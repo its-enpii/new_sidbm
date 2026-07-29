@@ -4,6 +4,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
+import AppCurrencyInput from '../../../Components/AppCurrencyInput.vue';
 import AppDatePicker from '../../../Components/AppDatePicker.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
@@ -129,7 +130,7 @@ watch(
 );
 
 function n(v) {
-    const x = Number(String(v ?? '').replace(/[^\d.-]/g, ''));
+    const x = Number(v);
     return Number.isFinite(x) && x > 0 ? x : 0;
 }
 
@@ -145,10 +146,30 @@ const allocOver = computed(() => allocTotal.value - Number(props.allocation.rema
 function fillRetained() {
     const rest = Math.max(
         0,
-        Number(props.allocation.remaining || 0) - communityTotal.value - villageTotal.value - n(allocForm.investor),
+        Math.round(
+            Number(props.allocation.remaining || 0) -
+                communityTotal.value -
+                villageTotal.value -
+                n(allocForm.investor),
+        ),
     );
-    allocForm.retained = rest > 0 ? String(Math.round(rest)) : '';
+    allocForm.retained = rest > 0 ? rest : '';
 }
+
+function formatPeriodDate(v) {
+    if (!v) return '—';
+    const d = new Date(v);
+    if (Number.isNaN(d.getTime())) return v;
+    return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(d);
+}
+
+const typeLabels = {
+    asset: 'Aset',
+    liability: 'Kewajiban',
+    equity: 'Ekuitas',
+    revenue: 'Pendapatan',
+    expense: 'Beban',
+};
 
 function submitAllocation() {
     if (!props.can_close) return;
@@ -235,7 +256,7 @@ function submitAllocation() {
                             <tr v-for="m in months" :key="m.month" class="border-t border-outline-variant/40">
                                 <td class="px-3 py-2 font-medium">{{ m.label }}</td>
                                 <td class="px-3 py-2 whitespace-nowrap text-on-surface-variant">
-                                    {{ m.starts_at || '—' }} → {{ m.ends_at || '—' }}
+                                    {{ formatPeriodDate(m.starts_at) }} – {{ formatPeriodDate(m.ends_at) }}
                                 </td>
                                 <td class="px-3 py-2">
                                     <AppBadge :tone="statusTone[m.status] || 'neutral'">
@@ -334,7 +355,7 @@ function submitAllocation() {
                             >
                                 <td class="px-3 py-2 font-mono text-xs">{{ row.code }}</td>
                                 <td class="px-3 py-2">{{ row.name }}</td>
-                                <td class="px-3 py-2 text-on-surface-variant">{{ row.account_type }}</td>
+                                <td class="px-3 py-2 text-on-surface-variant">{{ typeLabels[row.account_type] || row.account_type }}</td>
                                 <td class="px-3 py-2 text-right tabular-nums">
                                     {{ row.debit ? formatMoney(row.debit) : '—' }}
                                 </td>
@@ -396,101 +417,153 @@ function submitAllocation() {
                         </ul>
                     </div>
 
-                    <form v-if="can_close && allocation.remaining > 0" class="space-y-5 p-4" @submit.prevent="submitAllocation">
-                        <div class="grid gap-3 sm:grid-cols-2">
+                    <form
+                        v-if="can_close && allocation.remaining > 0"
+                        class="space-y-6 p-4 sm:p-5"
+                        @submit.prevent="submitAllocation"
+                    >
+                        <div class="grid gap-4 sm:grid-cols-2">
                             <AppDatePicker v-model="allocForm.date" mode="day" label="Tanggal alokasi" />
-                            <AppInput v-model="allocForm.note" label="Keterangan (opsional)" placeholder="Alokasi laba …" />
+                            <AppInput
+                                v-model="allocForm.note"
+                                label="Keterangan (opsional)"
+                                placeholder="Alokasi laba …"
+                            />
                         </div>
 
-                        <div>
-                            <div class="mb-2 flex items-center justify-between">
-                                <h3 class="text-sm font-bold text-primary">
-                                    {{ allocation.accounts.community.code }} · Masyarakat
-                                </h3>
-                                <span class="text-sm tabular-nums text-on-surface-variant">
-                                    Σ {{ formatMoney(communityTotal) }}
-                                </span>
+                        <!-- Masyarakat -->
+                        <section class="rounded-2xl border border-outline-variant/70 bg-surface-container-low/30 p-4">
+                            <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                                <div>
+                                    <p class="font-mono text-[11px] font-semibold tracking-wide text-on-surface-variant">
+                                        {{ allocation.accounts.community.code }}
+                                    </p>
+                                    <h3 class="text-sm font-bold text-primary">Bagian masyarakat</h3>
+                                </div>
+                                <p class="text-sm tabular-nums text-on-surface-variant">
+                                    Σ <span class="font-semibold text-primary">{{ formatMoney(communityTotal) }}</span>
+                                </p>
                             </div>
-                            <div class="space-y-2">
+                            <div class="divide-y divide-outline-variant/50">
                                 <div
                                     v-for="line in allocation.community_lines"
                                     :key="line.key"
-                                    class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_10rem] sm:items-center"
+                                    class="grid gap-3 py-3 first:pt-0 last:pb-0 sm:grid-cols-[minmax(0,1fr)_16rem] sm:items-center"
                                 >
-                                    <p class="text-sm text-on-surface">{{ line.label }}</p>
-                                    <AppInput
+                                    <p class="text-sm leading-snug text-on-surface">{{ line.label }}</p>
+                                    <AppCurrencyInput
                                         v-model="allocForm.community[line.key]"
-                                        type="number"
-                                        min="0"
-                                        step="1"
-                                        label="Jumlah"
+                                        :label="`Jumlah ${line.label}`"
                                         hide-label
-                                        class="text-right"
+                                        :min="0"
+                                        :step="1000"
+                                        placeholder="0"
                                     />
                                 </div>
                             </div>
-                        </div>
+                        </section>
 
-                        <div v-if="allocation.villages?.length">
-                            <div class="mb-2 flex items-center justify-between">
-                                <h3 class="text-sm font-bold text-primary">
-                                    {{ allocation.accounts.village.code }} · Desa
-                                </h3>
-                                <span class="text-sm tabular-nums text-on-surface-variant">
-                                    Σ {{ formatMoney(villageTotal) }}
-                                </span>
+                        <!-- Desa -->
+                        <section
+                            v-if="allocation.villages?.length"
+                            class="rounded-2xl border border-outline-variant/70 bg-surface-container-low/30 p-4"
+                        >
+                            <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                                <div>
+                                    <p class="font-mono text-[11px] font-semibold tracking-wide text-on-surface-variant">
+                                        {{ allocation.accounts.village.code }}
+                                    </p>
+                                    <h3 class="text-sm font-bold text-primary">Bagian desa</h3>
+                                </div>
+                                <p class="text-sm tabular-nums text-on-surface-variant">
+                                    Σ <span class="font-semibold text-primary">{{ formatMoney(villageTotal) }}</span>
+                                </p>
                             </div>
-                            <div class="max-h-64 space-y-2 overflow-y-auto pr-1">
+                            <div class="max-h-80 divide-y divide-outline-variant/50 overflow-y-auto pr-1">
                                 <div
                                     v-for="v in allocation.villages"
                                     :key="v.row_id"
-                                    class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_10rem] sm:items-center"
+                                    class="grid gap-3 py-3 first:pt-0 last:pb-0 sm:grid-cols-[minmax(0,1fr)_16rem] sm:items-center"
                                 >
-                                    <p class="text-sm">{{ v.name }}</p>
-                                    <AppInput
+                                    <p class="text-sm font-medium text-on-surface">{{ v.name }}</p>
+                                    <AppCurrencyInput
                                         v-model="allocForm.villages[v.row_id]"
-                                        type="number"
-                                        min="0"
-                                        step="1"
-                                        label="Jumlah"
+                                        :label="`Jumlah ${v.name}`"
                                         hide-label
+                                        :min="0"
+                                        :step="1000"
+                                        placeholder="0"
                                     />
                                 </div>
                             </div>
-                        </div>
+                        </section>
 
-                        <div class="grid gap-3 sm:grid-cols-2">
-                            <div>
-                                <p class="mb-1 text-sm font-bold text-primary">
-                                    {{ allocation.accounts.investor.code }} · Penyerta modal
+                        <!-- Penyerta + ditahan -->
+                        <div class="grid gap-4 lg:grid-cols-2">
+                            <section class="rounded-2xl border border-outline-variant/70 bg-surface-container-low/30 p-4">
+                                <p class="font-mono text-[11px] font-semibold tracking-wide text-on-surface-variant">
+                                    {{ allocation.accounts.investor.code }}
                                 </p>
-                                <AppInput v-model="allocForm.investor" type="number" min="0" step="1" label="Jumlah" hide-label />
-                            </div>
-                            <div>
-                                <div class="mb-1 flex items-center justify-between">
-                                    <p class="text-sm font-bold text-primary">
-                                        {{ allocation.accounts.retained.code }} · Laba ditahan
-                                    </p>
+                                <h3 class="mb-3 text-sm font-bold text-primary">Penyerta modal</h3>
+                                <AppCurrencyInput
+                                    v-model="allocForm.investor"
+                                    label="Jumlah penyerta modal"
+                                    hide-label
+                                    :min="0"
+                                    :step="1000"
+                                    placeholder="0"
+                                />
+                            </section>
+                            <section class="rounded-2xl border border-outline-variant/70 bg-surface-container-low/30 p-4">
+                                <div class="mb-3 flex items-start justify-between gap-2">
+                                    <div>
+                                        <p class="font-mono text-[11px] font-semibold tracking-wide text-on-surface-variant">
+                                            {{ allocation.accounts.retained.code }}
+                                        </p>
+                                        <h3 class="text-sm font-bold text-primary">Laba ditahan</h3>
+                                    </div>
                                     <button
                                         type="button"
-                                        class="text-xs font-semibold text-primary hover:underline"
+                                        class="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/5"
                                         @click="fillRetained"
                                     >
                                         Isi sisa
                                     </button>
                                 </div>
-                                <AppInput v-model="allocForm.retained" type="number" min="0" step="1" label="Jumlah" hide-label />
-                            </div>
+                                <AppCurrencyInput
+                                    v-model="allocForm.retained"
+                                    label="Jumlah laba ditahan"
+                                    hide-label
+                                    :min="0"
+                                    :step="1000"
+                                    placeholder="0"
+                                />
+                            </section>
                         </div>
 
                         <div
-                            class="flex flex-col gap-3 border-t border-outline-variant pt-4 sm:flex-row sm:items-center sm:justify-between"
+                            class="flex flex-col gap-3 rounded-2xl border border-outline-variant bg-surface-container-low/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                         >
-                            <p class="text-sm" :class="allocOver ? 'font-semibold text-error' : 'text-on-surface-variant'">
-                                Total alokasi
-                                <span class="font-bold text-primary">{{ formatMoney(allocTotal) }}</span>
-                                <span v-if="allocOver"> · melebihi sisa {{ formatMoney(allocation.remaining) }}</span>
-                            </p>
+                            <div class="text-sm">
+                                <p class="text-on-surface-variant">
+                                    Total alokasi
+                                    <span class="ml-1 text-lg font-bold tabular-nums text-primary">
+                                        {{ formatMoney(allocTotal) }}
+                                    </span>
+                                </p>
+                                <p
+                                    class="mt-0.5 text-xs"
+                                    :class="allocOver ? 'font-semibold text-error' : 'text-on-surface-variant'"
+                                >
+                                    <template v-if="allocOver">
+                                        Melebihi sisa {{ formatMoney(allocation.remaining) }}
+                                    </template>
+                                    <template v-else>
+                                        Sisa setelah alokasi
+                                        {{ formatMoney(Math.max(0, Number(allocation.remaining || 0) - allocTotal)) }}
+                                    </template>
+                                </p>
+                            </div>
                             <AppButton
                                 type="submit"
                                 variant="primary"
