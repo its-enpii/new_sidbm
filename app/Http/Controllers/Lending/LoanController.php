@@ -8,6 +8,11 @@ use App\Domain\Accounting\Models\Account;
 use App\Domain\Lending\Models\Loan;
 use App\Domain\Lending\Models\LoanProduct;
 use App\Domain\Lending\Services\LoanService;
+use App\Domain\Lending\Services\Reports\LoanCardService;
+use App\Support\ReportPdf;
+use DomainException;
+use Illuminate\Http\Response as HttpResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Domain\Membership\Models\Group;
 use App\Domain\Membership\Models\Member;
 use App\Http\Requests\Lending\LoanApproveRequest;
@@ -325,9 +330,11 @@ final class LoanController
         $loan->load([
             'product:row_id,code,name,default_interest_rate,default_term_months',
             'borrower.group.village:row_id,name',
+            'borrower.group.activeMemberships.member.person',
             'committee',
             'beneficiaries.member.person',
             'installments',
+            'payments.allocations',
             'statusHistories' => fn ($q) => $q->orderBy('changed_at'),
         ]);
 
@@ -337,6 +344,9 @@ final class LoanController
 
         return Inertia::render('Lending/Loans/Show', [
             'loan' => $this->presentLoanDetail($loan),
+            'card_url' => $loan->installments->isNotEmpty()
+                ? route('lending.loans.card', ['loan' => $loan->row_id])
+                : null,
             'disbursement_account' => $disbursementAccount?->only(['row_id', 'id', 'code', 'name', 'account_type']),
             'disbursementAccounts' => Account::query()
                 ->where('is_active', true)
@@ -350,6 +360,23 @@ final class LoanController
                 ])->all(),
             'today' => now()->toDateString(),
         ]);
+    }
+
+    public function card(Loan $loan, LoanCardService $cards, ReportPdf $pdf): HttpResponse|StreamedResponse
+    {
+        $loan->load(['installments']);
+        try {
+            $data = $cards->build($loan);
+        } catch (DomainException $e) {
+            abort(422, $e->getMessage());
+        }
+
+        return $pdf->stream(
+            'reports.pdf.loan_card',
+            $data,
+            'kartu-angsuran-'.$loan->id.'.pdf',
+            'landscape',
+        );
     }
 
     public function verify(LoanVerifyRequest $request, Loan $loan, LoanService $loans): RedirectResponse
@@ -402,6 +429,28 @@ final class LoanController
 
         return to_route('lending.loans.show', ['loan' => $loan->row_id])
             ->with('success', 'Penghapusan piutang berhasil dicatat.');
+    }
+
+    public function setCommittee(Request $request, Loan $loan, LoanService $loans): RedirectResponse
+    {
+        $data = $request->validate([
+            'chair_id' => ['required', 'integer', 'min:1'],
+            'secretary_id' => ['required', 'integer', 'min:1', 'different:chair_id'],
+            'treasurer_id' => ['required', 'integer', 'min:1', 'different:chair_id', 'different:secretary_id'],
+        ], [], [
+            'chair_id' => 'ketua',
+            'secretary_id' => 'sekretaris',
+            'treasurer_id' => 'bendahara',
+        ]);
+
+        try {
+            $loans->setCommittee($loan, $data, (int) $request->user()->row_id);
+        } catch (\RuntimeException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        return to_route('lending.loans.show', ['loan' => $loan->row_id])
+            ->with('success', 'Pengurus pinjaman berhasil disimpan. Data ini tidak dapat diganti.');
     }
 
     private function formOptions(): array
@@ -494,6 +543,9 @@ final class LoanController
 
         return [
             'row_id' => $loan->row_id,
+            // Local/legacy id for display & reports (docs: id lama immutable).
+            'id' => $loan->id,
+            'legacy_source' => $loan->legacy_source,
             'loan_number' => $loan->loan_number,
             'status' => $loan->status,
             'proposed_at' => $loan->proposed_at?->format('Y-m-d'),
@@ -536,6 +588,8 @@ final class LoanController
                 'secretary' => $this->committeeEntry($committeeByPosition->get('secretary')),
                 'treasurer' => $this->committeeEntry($committeeByPosition->get('treasurer')),
             ],
+            'committee_editable' => $loan->committee->isEmpty(),
+            'committee_member_options' => $this->committeeMemberOptions($loan),
             'beneficiaries' => $loan->beneficiaries->map(fn ($b): array => [
                 'row_id' => $b->row_id,
                 'member_row_id' => $b->member_row_id,
@@ -568,6 +622,41 @@ final class LoanController
             ])->values()->all(),
             'status_histories' => $histories,
         ];
+    }
+
+    /**
+     * @return list<array{value: int, label: string}>
+     */
+    private function committeeMemberOptions(Loan $loan): array
+    {
+        $fromBeneficiaries = $loan->beneficiaries
+            ->filter(fn ($b) => $b->member !== null)
+            ->map(fn ($b): array => [
+                'value' => (int) $b->member_row_id,
+                'label' => ($b->member?->person?->full_name ?? '—').' · '.($b->member?->member_number ?? $b->member?->id ?? ''),
+            ])
+            ->values()
+            ->all();
+
+        if ($fromBeneficiaries !== []) {
+            return $fromBeneficiaries;
+        }
+
+        $group = $loan->borrower?->group;
+        if ($group === null) {
+            return [];
+        }
+
+        return $group->activeMemberships()
+            ->with('member.person')
+            ->get()
+            ->filter(fn ($m) => $m->member !== null)
+            ->map(fn ($m): array => [
+                'value' => (int) $m->member_row_id,
+                'label' => ($m->member?->person?->full_name ?? '—').' · '.($m->member?->member_number ?? ''),
+            ])
+            ->values()
+            ->all();
     }
 
     private function committeeEntry(mixed $committee): ?array

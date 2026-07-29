@@ -233,6 +233,52 @@ final class LoanService
         });
     }
 
+    /**
+     * One-shot committee fill for loans missing officers (e.g. legacy import).
+     * After save, committee cannot be changed.
+     *
+     * @param  array{chair_id: int, secretary_id: int, treasurer_id: int}  $data
+     */
+    public function setCommittee(Loan $loan, array $data, int $userId): Loan
+    {
+        return DB::connection('tenant')->transaction(function () use ($loan, $data, $userId): Loan {
+            $loan = Loan::query()->lockForUpdate()->findOrFail($loan->row_id);
+            $loan->load('committee');
+
+            if ($loan->committee->isNotEmpty()) {
+                throw new RuntimeException('Pengurus pinjaman sudah diisi dan tidak dapat diganti.');
+            }
+
+            $positions = [
+                'chair' => (int) $data['chair_id'],
+                'secretary' => (int) $data['secretary_id'],
+                'treasurer' => (int) $data['treasurer_id'],
+            ];
+            if (count(array_unique(array_values($positions))) < 3) {
+                throw new RuntimeException('Ketua, sekretaris, dan bendahara harus orang yang berbeda.');
+            }
+
+            $today = now()->toDateString();
+            foreach ($positions as $position => $memberRowId) {
+                $member = Member::query()->with('person')->where('row_id', $memberRowId)->first();
+                if ($member === null) {
+                    throw new RuntimeException("Anggota untuk posisi {$position} tidak ditemukan.");
+                }
+                LoanCommittee::query()->create([
+                    'loan_row_id' => $loan->row_id,
+                    'position' => $position,
+                    'member_row_id' => $memberRowId,
+                    'member_name_snapshot' => $member->person?->full_name,
+                    'snapshot_at' => $loan->proposed_at?->toDateString() ?? $today,
+                ]);
+            }
+
+            unset($userId); // reserved for audit later
+
+            return $loan->fresh(['product', 'borrower.group', 'committee', 'beneficiaries', 'installments', 'payments.allocations']);
+        });
+    }
+
     public function verify(Loan $loan, array $data, int $userId): Loan
     {
         return DB::connection('tenant')->transaction(function () use ($loan, $data, $userId): Loan {

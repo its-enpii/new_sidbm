@@ -295,7 +295,7 @@ final class DashboardService
             ->where('status', 'posted')
             ->orderByDesc('transaction_date')
             ->orderByDesc('row_id')
-            ->limit(8)
+            ->limit(20)
             ->get(['row_id', 'journal_number', 'transaction_date', 'description', 'source_type']);
 
         if ($entries->isEmpty()) {

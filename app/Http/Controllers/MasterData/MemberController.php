@@ -6,6 +6,7 @@ namespace App\Http\Controllers\MasterData;
 
 use App\Domain\Membership\Models\Member;
 use App\Domain\Membership\Models\Person;
+use App\Domain\Membership\Services\EntityLoanHistoryService;
 use App\Domain\Membership\Services\MasterDataCsvService;
 use App\Domain\Membership\Services\MemberService;
 use App\Http\Requests\MasterData\MemberRequest;
@@ -78,6 +79,48 @@ final class MemberController
         $members->create($request->validated(), (int) $request->user()->row_id);
 
         return to_route('master-data.members.index')->with('success', 'Anggota berhasil ditambahkan.');
+    }
+
+    public function show(Member $member, EntityLoanHistoryService $loanHistory): Response
+    {
+        $member->load([
+            'person',
+            'village',
+            'address',
+            'business',
+            'guarantor.person',
+            'groupMemberships' => fn ($q) => $q->where('status', 'active')->whereNull('left_at')->with('group:row_id,id,code,name,status'),
+        ]);
+
+        $loans = $loanHistory->forMember((int) $member->row_id);
+        $activeLoans = collect($loans)->whereIn('status', ['active', 'disbursed'])->count();
+        $outstanding = collect($loans)->sum(fn (array $l): float => (float) ($l['principal_remaining'] ?? 0));
+
+        return Inertia::render('MasterData/Members/Show', [
+            'member' => [
+                ...$this->formMember($member),
+                'member_number' => $member->member_number,
+                'public_id' => $member->public_id,
+                'groups' => $member->groupMemberships
+                    ->map(fn ($gm) => $gm->group ? [
+                        'row_id' => (int) $gm->group->row_id,
+                        'id' => (int) $gm->group->id,
+                        'code' => $gm->group->code,
+                        'name' => $gm->group->name,
+                        'status' => $gm->group->status,
+                        'href' => '/master-data/groups/'.$gm->group->row_id,
+                    ] : null)
+                    ->filter()
+                    ->values()
+                    ->all(),
+            ],
+            'loans' => $loans,
+            'summary' => [
+                'loan_count' => count($loans),
+                'active_loan_count' => $activeLoans,
+                'principal_remaining' => round((float) $outstanding, 2),
+            ],
+        ]);
     }
 
     public function edit(Member $member): Response
@@ -159,6 +202,7 @@ final class MemberController
             'family_card_number' => $member->person?->family_card_number,
             'address' => $member->address?->address,
             'village_id' => $member->organization_unit_row_id,
+            'village' => $member->village?->only(['row_id', 'name', 'code']),
             'registered_at' => $member->registered_at?->format('Y-m-d'),
             'status' => $member->status,
             'guarantor' => $member->guarantor ? [

@@ -48,11 +48,28 @@ const csvColumns = ['nama', 'desa', 'alamat', 'no_hp', 'tanggal_berdiri', 'statu
             <AppCard :padded="false">
                 <div class="p-6">
                     <SmartDataTable :rows="groups.data" :columns="columns" :pagination="groups" url="/master-data/groups" :search="search" :per-page="perPage" :sort="sort" :direction="direction" search-label="Cari kelompok" search-placeholder="Kode, nama, atau desa" empty-title="Belum ada kelompok" empty-description="Tambahkan kelompok untuk mulai mengelola anggota dan pengurus.">
-                        <template #cell-name="{ row }"><span class="font-semibold">{{ row.name }}</span></template>
+                        <template #cell-name="{ row }">
+                            <Link :href="`/master-data/groups/${row.row_id}`" class="font-semibold text-primary hover:underline">
+                                {{ row.name }}
+                            </Link>
+                        </template>
                         <template #cell-village="{ row }">{{ row.village?.name || '—' }}</template>
                         <template #cell-members_count="{ row }">{{ row.members_count }} orang</template>
-                        <template #cell-status="{ row }"><AppBadge :tone="row.status === 'active' ? 'success' : 'neutral'">{{ row.status === 'active' ? 'Aktif' : 'Tidak aktif' }}</AppBadge></template>
-                        <template #actions="{ row }"><Link :href="`/master-data/groups/${row.row_id}/edit`"><AppButton variant="ghost" size="compact" icon="edit">Edit</AppButton></Link></template>
+                        <template #cell-status="{ row }">
+                            <AppBadge :tone="row.status === 'active' ? 'success' : 'neutral'">
+                                {{ row.status === 'active' ? 'Aktif' : 'Tidak aktif' }}
+                            </AppBadge>
+                        </template>
+                        <template #actions="{ row }">
+                            <div class="flex justify-end gap-1">
+                                <Link :href="`/master-data/groups/${row.row_id}`">
+                                    <AppButton variant="ghost" size="compact" icon="visibility">Detail</AppButton>
+                                </Link>
+                                <Link :href="`/master-data/groups/${row.row_id}/edit`">
+                                    <AppButton variant="ghost" size="compact" icon="edit">Edit</AppButton>
+                                </Link>
+                            </div>
+                        </template>
                     </SmartDataTable>
                 </div>
             </AppCard>

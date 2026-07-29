@@ -109,160 +109,165 @@ const sourceLabel = {
                 </AppCard>
             </section>
 
-            <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                <div class="space-y-6 xl:col-span-2">
-                    <AppCard>
-                        <header class="mb-6 flex items-center justify-between gap-3">
+            <div class="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-3">
+                <section class="card-shadow flex min-h-0 flex-col rounded-xl bg-surface-container-lowest p-6 xl:col-span-2">
+                    <header class="mb-4 flex shrink-0 items-center justify-between gap-3">
+                        <div>
+                            <h2 class="text-lg font-bold text-primary">Tren 6 Bulan</h2>
+                            <p class="text-sm text-on-surface-variant">Pencairan vs penerimaan angsuran</p>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs font-semibold text-on-surface-variant">
+                            <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-sm bg-primary" />Cair</span>
+                            <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-sm bg-secondary" />Terima</span>
+                        </div>
+                    </header>
+
+                    <div v-if="trend.length" class="flex min-h-[12rem] flex-1 items-end gap-3 sm:gap-4">
+                        <div v-for="row in trend" :key="row.key" class="flex h-full min-w-0 flex-1 flex-col items-center gap-2">
+                            <div class="flex min-h-0 w-full flex-1 items-end justify-center gap-1.5">
+                                <div
+                                    class="w-3 rounded-t bg-primary sm:w-3.5"
+                                    :style="{ height: barHeight(row.disbursed) }"
+                                    :title="`Cair ${formatMoney(row.disbursed)}`"
+                                />
+                                <div
+                                    class="w-3 rounded-t bg-secondary sm:w-3.5"
+                                    :style="{ height: barHeight(row.collected) }"
+                                    :title="`Terima ${formatMoney(row.collected)}`"
+                                />
+                            </div>
+                            <p class="shrink-0 truncate text-[11px] font-semibold text-on-surface-variant">{{ row.label }}</p>
+                        </div>
+                    </div>
+                    <div v-else class="flex flex-1 items-center">
+                        <AppEmptyState icon="show_chart" title="Belum ada tren" description="Pencairan dan angsuran akan tampil di sini." />
+                    </div>
+                </section>
+
+                <section class="card-shadow flex min-h-0 flex-col rounded-xl bg-surface-container-lowest p-6">
+                    <header class="mb-4 flex shrink-0 items-center justify-between">
+                        <h2 class="text-lg font-bold text-primary">Pipeline Pinjaman</h2>
+                        <AppBadge tone="primary">{{ pipelineTotal }}</AppBadge>
+                    </header>
+                    <div class="flex flex-1 flex-col justify-between gap-3">
+                        <Link
+                            v-for="stage in pipeline"
+                            :key="stage.status"
+                            :href="`/lending/loans?tab=${stage.status === 'draft' ? 'proposal' : stage.status === 'verified' ? 'verifikasi' : stage.status === 'waiting' ? 'waiting' : 'aktif'}`"
+                            class="flex items-center justify-between rounded-xl border border-outline-variant px-4 py-3 transition hover:bg-surface-container-low"
+                        >
                             <div>
-                                <h2 class="text-lg font-bold text-primary">Tren 6 Bulan</h2>
-                                <p class="text-sm text-on-surface-variant">Pencairan vs penerimaan angsuran</p>
+                                <p class="font-semibold text-primary">{{ stage.label }}</p>
+                                <p class="text-xs text-on-surface-variant">{{ formatMoney(stage.amount) }}</p>
                             </div>
-                            <div class="flex items-center gap-3 text-xs font-semibold text-on-surface-variant">
-                                <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-sm bg-primary" />Cair</span>
-                                <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-sm bg-secondary" />Terima</span>
-                            </div>
-                        </header>
+                            <p class="text-xl font-bold text-primary">{{ stage.count }}</p>
+                        </Link>
+                    </div>
+                </section>
+            </div>
 
-                        <div v-if="trend.length" class="flex h-48 items-end gap-3 sm:gap-4">
-                            <div v-for="row in trend" :key="row.key" class="flex min-w-0 flex-1 flex-col items-center gap-2">
-                                <div class="flex h-36 w-full items-end justify-center gap-1">
-                                    <div
-                                        class="w-2.5 rounded-t bg-primary sm:w-3"
-                                        :style="{ height: barHeight(row.disbursed) }"
-                                        :title="`Cair ${formatMoney(row.disbursed)}`"
-                                    />
-                                    <div
-                                        class="w-2.5 rounded-t bg-secondary sm:w-3"
-                                        :style="{ height: barHeight(row.collected) }"
-                                        :title="`Terima ${formatMoney(row.collected)}`"
-                                    />
-                                </div>
-                                <p class="truncate text-[11px] font-semibold text-on-surface-variant">{{ row.label }}</p>
-                            </div>
+            <!-- Jurnal + Jatuh Tempo: fixed max height, internal scroll -->
+            <div class="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-3">
+                <section class="card-shadow flex max-h-[28rem] min-h-0 flex-col rounded-xl bg-surface-container-lowest xl:col-span-2">
+                    <header class="flex shrink-0 items-center justify-between border-b border-outline-variant px-6 py-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-primary">Jurnal Terbaru</h2>
+                            <p class="text-sm text-on-surface-variant">Posted, {{ recent_journals.length }} entri terakhir</p>
                         </div>
-                        <AppEmptyState v-else icon="show_chart" title="Belum ada tren" description="Pencairan dan angsuran akan tampil di sini." />
-                    </AppCard>
+                        <Link href="/accounting/journal-entries/create">
+                            <AppButton variant="ghost" size="compact">Buat jurnal</AppButton>
+                        </Link>
+                    </header>
 
-                    <AppCard :padded="false">
-                        <header class="flex items-center justify-between border-b border-outline-variant px-6 py-4">
-                            <div>
-                                <h2 class="text-lg font-bold text-primary">Jurnal Terbaru</h2>
-                                <p class="text-sm text-on-surface-variant">Posted, 8 entri terakhir</p>
-                            </div>
-                            <Link href="/accounting/journal-entries/create">
-                                <AppButton variant="ghost" size="compact">Buat jurnal</AppButton>
-                            </Link>
-                        </header>
+                    <div v-if="recent_journals.length" class="min-h-0 flex-1 overflow-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="sticky top-0 z-10 bg-surface-container-low text-on-surface-variant">
+                                <tr>
+                                    <th class="px-6 py-3 font-semibold">Tanggal</th>
+                                    <th class="px-6 py-3 font-semibold">No / Uraian</th>
+                                    <th class="px-6 py-3 font-semibold">Sumber</th>
+                                    <th class="px-6 py-3 text-right font-semibold">Jumlah</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="row in recent_journals"
+                                    :key="row.row_id"
+                                    class="border-t border-outline-variant"
+                                >
+                                    <td class="whitespace-nowrap px-6 py-3 text-on-surface-variant">{{ formatDate(row.transaction_date) }}</td>
+                                    <td class="px-6 py-3">
+                                        <p class="font-semibold text-primary">{{ row.journal_number || `#${row.row_id}` }}</p>
+                                        <p class="line-clamp-1 text-xs text-on-surface-variant">{{ row.description || '—' }}</p>
+                                    </td>
+                                    <td class="px-6 py-3">
+                                        <AppBadge tone="neutral">{{ sourceLabel[row.source_type] || row.source_type || '—' }}</AppBadge>
+                                    </td>
+                                    <td class="whitespace-nowrap px-6 py-3 text-right font-semibold text-primary">
+                                        {{ formatMoney(row.amount) }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div v-else class="flex flex-1 items-center p-6">
+                        <AppEmptyState icon="receipt_long" title="Belum ada jurnal posted" description="Transaksi yang di-post akan tampil di sini." />
+                    </div>
+                </section>
 
-                        <div v-if="recent_journals.length" class="overflow-x-auto">
-                            <table class="w-full text-left text-sm">
-                                <thead class="bg-surface-container-low text-on-surface-variant">
-                                    <tr>
-                                        <th class="px-6 py-3 font-semibold">Tanggal</th>
-                                        <th class="px-6 py-3 font-semibold">No / Uraian</th>
-                                        <th class="px-6 py-3 font-semibold">Sumber</th>
-                                        <th class="px-6 py-3 text-right font-semibold">Jumlah</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr
-                                        v-for="row in recent_journals"
-                                        :key="row.row_id"
-                                        class="border-t border-outline-variant"
-                                    >
-                                        <td class="whitespace-nowrap px-6 py-3 text-on-surface-variant">{{ formatDate(row.transaction_date) }}</td>
-                                        <td class="px-6 py-3">
-                                            <p class="font-semibold text-primary">{{ row.journal_number || `#${row.row_id}` }}</p>
-                                            <p class="line-clamp-1 text-xs text-on-surface-variant">{{ row.description || '—' }}</p>
-                                        </td>
-                                        <td class="px-6 py-3">
-                                            <AppBadge tone="neutral">{{ sourceLabel[row.source_type] || row.source_type || '—' }}</AppBadge>
-                                        </td>
-                                        <td class="whitespace-nowrap px-6 py-3 text-right font-semibold text-primary">
-                                            {{ formatMoney(row.amount) }}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div v-else class="p-6">
-                            <AppEmptyState icon="receipt_long" title="Belum ada jurnal posted" description="Transaksi yang di-post akan tampil di sini." />
-                        </div>
-                    </AppCard>
-                </div>
+                <section class="card-shadow flex max-h-[28rem] min-h-0 flex-col rounded-xl bg-surface-container-lowest">
+                    <header class="flex shrink-0 items-center justify-between gap-2 border-b border-outline-variant px-6 py-4">
+                        <h2 class="flex items-center gap-2 text-lg font-bold text-primary">
+                            <AppIcon name="event_note" class="text-tertiary" />
+                            Jatuh Tempo
+                        </h2>
+                        <AppBadge v-if="overdue_summary.count" tone="error">{{ overdue_summary.count }} lewat</AppBadge>
+                    </header>
 
-                <aside class="space-y-6">
-                    <AppCard>
-                        <header class="mb-4 flex items-center justify-between">
-                            <h2 class="text-lg font-bold text-primary">Pipeline Pinjaman</h2>
-                            <AppBadge tone="primary">{{ pipelineTotal }}</AppBadge>
-                        </header>
-                        <div class="space-y-3">
-                            <Link
-                                v-for="stage in pipeline"
-                                :key="stage.status"
-                                :href="`/lending/loans?tab=${stage.status === 'draft' ? 'proposal' : stage.status === 'verified' ? 'verifikasi' : stage.status === 'waiting' ? 'waiting' : 'aktif'}`"
-                                class="flex items-center justify-between rounded-xl border border-outline-variant px-4 py-3 transition hover:bg-surface-container-low"
-                            >
-                                <div>
-                                    <p class="font-semibold text-primary">{{ stage.label }}</p>
-                                    <p class="text-xs text-on-surface-variant">{{ formatMoney(stage.amount) }}</p>
-                                </div>
-                                <p class="text-xl font-bold text-primary">{{ stage.count }}</p>
-                            </Link>
-                        </div>
-                    </AppCard>
-
-                    <AppCard>
-                        <header class="mb-4 flex items-center justify-between gap-2">
-                            <h2 class="flex items-center gap-2 text-lg font-bold text-primary">
-                                <AppIcon name="event_note" class="text-tertiary" />
-                                Jatuh Tempo
-                            </h2>
-                            <AppBadge v-if="overdue_summary.count" tone="error">{{ overdue_summary.count }} lewat</AppBadge>
-                        </header>
-
-                        <div v-if="upcoming_due.length" class="space-y-3">
-                            <article
-                                v-for="item in upcoming_due"
-                                :key="item.row_id"
-                                class="rounded-lg border-l-4 bg-surface-container-low p-3"
-                                :class="item.overdue ? 'border-error' : 'border-tertiary'"
-                            >
-                                <div class="flex items-start justify-between gap-2">
-                                    <div class="min-w-0">
-                                        <p class="truncate font-bold text-primary">{{ item.borrower }}</p>
-                                        <p class="text-xs text-on-surface-variant">
-                                            {{ item.loan_number || 'Pinjaman' }} · {{ formatDate(item.due_date) }}
-                                        </p>
-                                    </div>
-                                    <p class="shrink-0 text-sm font-bold" :class="item.overdue ? 'text-error' : 'text-primary'">
-                                        {{ formatMoney(item.amount) }}
+                    <div v-if="upcoming_due.length" class="min-h-0 flex-1 space-y-3 overflow-y-auto px-6 py-4">
+                        <article
+                            v-for="item in upcoming_due"
+                            :key="item.row_id"
+                            class="rounded-lg border-l-4 bg-surface-container-low p-3"
+                            :class="item.overdue ? 'border-error' : 'border-tertiary'"
+                        >
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="min-w-0">
+                                    <p class="truncate font-bold text-primary">{{ item.borrower }}</p>
+                                    <p class="text-xs text-on-surface-variant">
+                                        {{ item.loan_number || 'Pinjaman' }} · {{ formatDate(item.due_date) }}
                                     </p>
                                 </div>
-                            </article>
-                        </div>
-                        <AppEmptyState v-else icon="event_available" title="Tidak ada jatuh tempo 14 hari" />
+                                <p class="shrink-0 text-sm font-bold" :class="item.overdue ? 'text-error' : 'text-primary'">
+                                    {{ formatMoney(item.amount) }}
+                                </p>
+                            </div>
+                        </article>
+                    </div>
+                    <div v-else class="flex flex-1 items-center px-6 py-4">
+                        <AppEmptyState icon="event_available" title="Tidak ada jatuh tempo 14 hari" />
+                    </div>
 
-                        <Link href="/accounting/journal-entries/installment" class="mt-4 block">
+                    <div class="shrink-0 border-t border-outline-variant px-6 py-4">
+                        <Link href="/accounting/journal-entries/installment" class="block">
                             <AppButton variant="secondary" class="w-full" icon="payments">Catat angsuran</AppButton>
                         </Link>
-                    </AppCard>
-
-                    <section class="relative overflow-hidden rounded-xl bg-primary p-6 text-on-primary">
-                        <AppIcon name="verified" class="absolute -bottom-8 -right-5 text-[8rem] text-on-primary/5" />
-                        <div class="relative space-y-2">
-                            <h2 class="text-lg font-bold">Siap operasional</h2>
-                            <p class="text-sm leading-6 text-primary-fixed-dim">
-                                KPI dihitung dari jurnal posted dan jadwal angsuran pinjaman aktif — tanpa salinan saldo legacy.
-                            </p>
-                            <Link href="/accounting/tax-estimate" class="inline-flex text-sm font-bold text-on-primary underline-offset-2 hover:underline">
-                                Lihat taksiran pajak →
-                            </Link>
-                        </div>
-                    </section>
-                </aside>
+                    </div>
+                </section>
             </div>
+
+            <section class="relative overflow-hidden rounded-xl bg-primary p-6 text-on-primary">
+                <AppIcon name="verified" class="absolute -bottom-8 -right-5 text-[8rem] text-on-primary/5" />
+                <div class="relative space-y-2">
+                    <h2 class="text-lg font-bold">Siap operasional</h2>
+                    <p class="text-sm leading-6 text-primary-fixed-dim">
+                        KPI dihitung dari jurnal posted dan jadwal angsuran pinjaman aktif — tanpa salinan saldo legacy.
+                    </p>
+                    <Link href="/accounting/tax-estimate" class="inline-flex text-sm font-bold text-on-primary underline-offset-2 hover:underline">
+                        Lihat taksiran pajak →
+                    </Link>
+                </div>
+            </section>
         </div>
     </AuthenticatedLayout>
 </template>

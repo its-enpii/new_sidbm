@@ -6,6 +6,7 @@ namespace App\Http\Controllers\MasterData;
 
 use App\Domain\Membership\Models\Group;
 use App\Domain\Membership\Models\Member;
+use App\Domain\Membership\Services\EntityLoanHistoryService;
 use App\Domain\Membership\Services\GroupService;
 use App\Domain\Membership\Services\MasterDataCsvService;
 use App\Domain\Membership\Services\MemberService;
@@ -70,6 +71,69 @@ final class GroupController
         $groups->create($request->validated());
 
         return to_route('master-data.groups.index')->with('success', 'Kelompok berhasil ditambahkan.');
+    }
+
+    public function show(Group $group, EntityLoanHistoryService $loanHistory): Response
+    {
+        $group->load([
+            'village:row_id,name,code',
+            'businessType:row_id,name',
+            'activityType:row_id,name',
+            'level:row_id,name',
+            'functionType:row_id,name',
+            'activeMemberships.member.person',
+            'activeOfficers.member.person',
+        ]);
+
+        $loans = $loanHistory->forGroup((int) $group->row_id);
+        $activeLoans = collect($loans)->whereIn('status', ['active', 'disbursed'])->count();
+        $outstanding = collect($loans)->sum(fn (array $l): float => (float) ($l['principal_remaining'] ?? 0));
+
+        $officers = [];
+        foreach ($group->activeOfficers as $officer) {
+            $officers[] = [
+                'position' => (string) $officer->position,
+                'member_row_id' => (int) $officer->member_row_id,
+                'name' => $officer->member?->person?->full_name,
+                'member_href' => $officer->member_row_id
+                    ? '/master-data/members/'.$officer->member_row_id
+                    : null,
+            ];
+        }
+
+        $members = $group->activeMemberships->map(fn ($gm) => [
+            'row_id' => (int) $gm->member_row_id,
+            'member_number' => $gm->member?->member_number,
+            'name' => $gm->member?->person?->full_name,
+            'href' => '/master-data/members/'.$gm->member_row_id,
+        ])->values()->all();
+
+        return Inertia::render('MasterData/Groups/Show', [
+            'group' => [
+                'row_id' => (int) $group->row_id,
+                'id' => (int) $group->id,
+                'code' => $group->code,
+                'name' => $group->name,
+                'address' => $group->address,
+                'phone' => $group->phone,
+                'status' => $group->status,
+                'established_at' => $group->established_at?->format('Y-m-d'),
+                'village' => $group->village?->only(['row_id', 'name', 'code']),
+                'business_type' => $group->businessType?->name,
+                'activity_type' => $group->activityType?->name,
+                'level' => $group->level?->name,
+                'function' => $group->functionType?->name,
+                'officers' => $officers,
+                'members' => $members,
+                'members_count' => count($members),
+            ],
+            'loans' => $loans,
+            'summary' => [
+                'loan_count' => count($loans),
+                'active_loan_count' => $activeLoans,
+                'principal_remaining' => round((float) $outstanding, 2),
+            ],
+        ]);
     }
 
     public function edit(Group $group, TenantGroupMasterDataProvisioner $masterData): Response

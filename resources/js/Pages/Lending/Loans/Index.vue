@@ -98,7 +98,7 @@ const emptyMessages = {
                         <template #cell-group_name="{ row }">
                             <div class="font-semibold text-primary">{{ row.group_name }}</div>
                             <div v-if="row.group_address" class="mt-0.5 text-xs text-on-surface-variant">{{ row.group_address }}</div>
-                            <div class="mt-0.5 text-[10px] uppercase tracking-wider text-outline">#{{ row.id ?? row.row_id }} · {{ row.product?.code || '—' }}</div>
+                            <div class="mt-0.5 text-[10px] uppercase tracking-wider text-outline">#{{ row.id }} · {{ row.product?.code || '—' }}</div>
                         </template>
                         <template #cell-proposed_at="{ row }">{{ formatDate(row.proposed_at) }}</template>
                         <template #cell-verified_at="{ row }">{{ formatDate(row.verified_at) }}</template>

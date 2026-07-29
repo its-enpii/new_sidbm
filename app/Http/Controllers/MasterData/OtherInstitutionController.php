@@ -79,6 +79,30 @@ final class OtherInstitutionController
         return to_route('master-data.institutions.index')->with('success', 'Lembaga berhasil ditambahkan.');
     }
 
+    public function show(OrganizationUnit $institution): Response
+    {
+        abort_unless($institution->type === 'other_institution', 404);
+        $institution->load('parent:row_id,name,code');
+
+        // Lembaga lain belum punya relasi pinjaman di schema V1 — riwayat kosong, UI tetap konsisten.
+        return Inertia::render('MasterData/Institutions/Show', [
+            'institution' => [
+                ...$institution->only([
+                    'row_id', 'code', 'name', 'address', 'phone',
+                    'institution_identity_number', 'leader_name', 'responsible_name', 'is_active',
+                ]),
+                'village' => $institution->parent?->only(['row_id', 'name', 'code']),
+            ],
+            'loans' => [],
+            'summary' => [
+                'loan_count' => 0,
+                'active_loan_count' => 0,
+                'principal_remaining' => 0.0,
+            ],
+            'loan_note' => 'Riwayat pinjaman lembaga belum terhubung di skema saat ini. Relasi pinjaman lembaga akan ditambahkan bila produk mendukung.',
+        ]);
+    }
+
     public function edit(OrganizationUnit $institution): Response
     {
         abort_unless($institution->type === 'other_institution', 404);

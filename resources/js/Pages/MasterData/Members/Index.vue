@@ -48,7 +48,31 @@ const statusLabels = { active: 'Aktif', exited: 'Keluar', deceased: 'Meninggal' 
                     <Link href="/master-data/members/create"><AppButton icon="add">Tambah Anggota</AppButton></Link>
                 </div>
             </header>
-            <AppCard :padded="false"><div class="p-6"><SmartDataTable :rows="members.data" :columns="columns" :pagination="members" url="/master-data/members" :search="search" :per-page="perPage" :sort="sort" :direction="direction" search-label="Cari anggota" search-placeholder="NIK, nama, atau nomor HP" empty-title="Belum ada anggota" empty-description="Tambahkan anggota untuk mulai mengelola data anggota."><template #cell-name="{ row }"><span>{{ row.name }}</span><span class="block text-xs text-on-surface-variant">{{ row.member_number }}</span></template><template #cell-village="{ row }">{{ row.village?.name || '—' }}</template><template #cell-status="{ row }"><AppBadge :tone="row.status === 'active' ? 'success' : 'neutral'">{{ statusLabels[row.status] || row.status }}</AppBadge></template><template #actions="{ row }"><Link :href="`/master-data/members/${row.row_id}/edit`"><AppButton variant="ghost" size="compact" icon="edit" aria-label="Edit anggota">Edit</AppButton></Link></template></SmartDataTable></div></AppCard>
+            <AppCard :padded="false"><div class="p-6"><SmartDataTable :rows="members.data" :columns="columns" :pagination="members" url="/master-data/members" :search="search" :per-page="perPage" :sort="sort" :direction="direction" search-label="Cari anggota" search-placeholder="NIK, nama, atau nomor HP" empty-title="Belum ada anggota" empty-description="Tambahkan anggota untuk mulai mengelola data anggota."><template #cell-name="{ row }">
+                            <Link :href="`/master-data/members/${row.row_id}`" class="font-semibold text-primary hover:underline">
+                                {{ row.name }}
+                            </Link>
+                            <span class="block text-xs text-on-surface-variant">{{ row.member_number }}</span>
+                        </template>
+                        <template #cell-village="{ row }">{{ row.village?.name || '—' }}</template>
+                        <template #cell-status="{ row }">
+                            <AppBadge :tone="row.status === 'active' ? 'success' : 'neutral'">
+                                {{ statusLabels[row.status] || row.status }}
+                            </AppBadge>
+                        </template>
+                        <template #actions="{ row }">
+                            <div class="flex justify-end gap-1">
+                                <Link :href="`/master-data/members/${row.row_id}`">
+                                    <AppButton variant="ghost" size="compact" icon="visibility" aria-label="Detail anggota">Detail</AppButton>
+                                </Link>
+                                <Link :href="`/master-data/members/${row.row_id}/edit`">
+                                    <AppButton variant="ghost" size="compact" icon="edit" aria-label="Edit anggota">Edit</AppButton>
+                                </Link>
+                            </div>
+                        </template>
+                    </SmartDataTable>
+                </div>
+            </AppCard>
         </div>
     </AuthenticatedLayout>
 </template>

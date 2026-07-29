@@ -17,57 +17,38 @@ Aplikasi pembaruan SIDBM berbasis Laravel 13, Vue 3, Inertia, Tailwind CSS, MySQ
 cp .env.example .env
 docker compose up --build -d
 docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate \
+  --database=platform \
+  --path=database/migrations/platform --force
+docker compose exec app php artisan sidbm:bootstrap-local --password='change-me'
 ```
 
-Aplikasi: <http://localhost:8081> (ubah `APP_PORT` jika port ini tidak tersedia)
-Vite HMR: <http://localhost:5173>
+`sidbm:bootstrap-local` idempotent: daftarkan shard+tenant `local`, migrate shard, sync registry, import COA, buka fiscal periods, seed master data/loan products, provision user `dev`.
 
-Authentication development:
+Aplikasi: <http://localhost:8080/login> (ubah `APP_PORT` jika perlu)  
+Vite HMR: port `VITE_PORT` (default 5173; contoh env memakai 5174)  
+Login dev: `dev` / password yang di-set di bootstrap.
+
+MySQL host port default **3307** (`FORWARD_DB_PORT`) agar tidak bentrok Laragon MySQL di 3306. Di dalam Docker, app tetap ke `mysql:3306`.
+
+Entrypoint memasang Composer bila `vendor` kosong. Service Node memasang NPM lalu Vite.
+
+## Database lokal (manual)
+
+MySQL init membuat: `sidbm_platform`, `sidbm_shard_local`, `sidbm_platform_test`, `sidbm_shard_test`.
+
+Tanpa bootstrap, urutan manual:
 
 ```bash
+docker compose exec app php artisan migrate --database=platform --path=database/migrations/platform --force
+# daftarkan shard code=local → sidbm_shard_local, credential_reference=local
+docker compose exec app php artisan tenancy:migrate-shards --shard=local --force
+docker compose exec app php artisan tenancy:sync-registry --shard=local
+docker compose exec app php artisan tenancy:import-legacy-chart-of-accounts local
 docker compose exec app php artisan sidbm:provision-dev-user --password='change-me' --tenant=local
 ```
 
-Login: <http://localhost:8081/login>. Ganti password contoh. Command provisioning hanya berjalan pada environment `local`/`testing`.
-
-Entrypoint memasang dependency Composer ketika volume `vendor` masih kosong. Service Node memasang dependency NPM lalu menjalankan Vite.
-
-## Menyiapkan database lokal
-
-MySQL init membuat:
-
-- `sidbm_platform`
-- `sidbm_shard_local`
-- `sidbm_platform_test`
-- `sidbm_shard_test`
-
-Jalankan platform migration:
-
-```bash
-docker compose exec app php artisan migrate \
-  --database=platform \
-  --path=database/migrations/platform
-```
-
-Daftarkan shard lokal pada database platform. Nilai penting:
-
-```text
-code                 local
-host                 mysql
-port                 3306
-database_name        sidbm_shard_local
-credential_reference local
-status               active
-```
-
-Lalu jalankan:
-
-```bash
-docker compose exec app php artisan tenancy:migrate-shards --shard=local --force
-docker compose exec app php artisan tenancy:sync-registry --shard=local
-```
-
-`TENANCY_SHARD_CREDENTIALS_JSON` pada `.env` menyediakan kredensial reference `local` dan `test` untuk development saja.
+`TENANCY_SHARD_CREDENTIALS_JSON` di `.env` untuk credential reference `local`/`test` (dev only).
 
 ## Frontend
 

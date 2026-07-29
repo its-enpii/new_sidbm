@@ -121,7 +121,7 @@ function destroyPhoto() {
 <template>
     <Head title="Profil" />
     <AuthenticatedLayout>
-        <div class="mx-auto max-w-6xl space-y-6">
+        <div class="mx-auto max-w-7xl space-y-6">
             <header>
                 <h1 class="text-2xl font-bold text-primary sm:text-3xl">Profil Pengguna</h1>
                 <p class="mt-1 text-on-surface-variant">Data pribadi, akun login, dan foto profil Anda.</p>

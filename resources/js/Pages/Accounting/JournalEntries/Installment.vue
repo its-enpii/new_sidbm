@@ -300,14 +300,26 @@ function balanceAllocationRemainder(field) {
                     <div class="grid size-12 shrink-0 place-items-center rounded-full bg-secondary-container text-secondary">
                         <AppIcon name="check_circle" class="text-2xl" />
                     </div>
-                    <div class="flex-1">
+                    <div class="min-w-0 flex-1">
                         <p class="text-base font-bold text-primary">{{ flashEntry.message }}</p>
                         <p class="mt-1 text-sm text-on-surface-variant">
                             <span class="font-semibold">{{ flashEntry.entry.transaction_date }}</span>
                             <span v-if="flashEntry.entry.journal_number"> · No. {{ flashEntry.entry.journal_number }}</span>
+                            <span v-else-if="flashEntry.entry.id"> · #{{ flashEntry.entry.id }}</span>
                         </p>
                         <p v-if="flashEntry.entry.description" class="mt-1 text-sm text-on-surface-variant">{{ flashEntry.entry.description }}</p>
                     </div>
+                    <a
+                        v-if="flashEntry.receipt_url"
+                        :href="flashEntry.receipt_url"
+                        target="_blank"
+                        rel="noopener"
+                        class="shrink-0"
+                    >
+                        <AppButton type="button" variant="secondary" icon="print" size="compact">
+                            Cetak Bukti
+                        </AppButton>
+                    </a>
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">

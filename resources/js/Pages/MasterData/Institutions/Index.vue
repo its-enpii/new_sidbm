@@ -62,10 +62,28 @@ const csvColumns = ['nama', 'desa', 'nomor_identitas', 'pimpinan', 'penanggungja
                         empty-title="Belum ada lembaga"
                         empty-description="Tambahkan lembaga lain untuk mulai mengelola master data."
                     >
-                        <template #cell-name="{ row }"><span>{{ row.name }}</span><span class="block text-xs text-on-surface-variant">{{ row.institution_identity_number }}</span></template>
+                        <template #cell-name="{ row }">
+                            <Link :href="`/master-data/institutions/${row.row_id}`" class="font-semibold text-primary hover:underline">
+                                {{ row.name }}
+                            </Link>
+                            <span class="block text-xs text-on-surface-variant">{{ row.institution_identity_number }}</span>
+                        </template>
                         <template #cell-village="{ row }">{{ row.village?.name || '—' }}</template>
-                        <template #cell-is_active="{ row }"><AppBadge :tone="row.is_active ? 'success' : 'neutral'">{{ row.is_active ? 'Aktif' : 'Nonaktif' }}</AppBadge></template>
-                        <template #actions="{ row }"><Link :href="`/master-data/institutions/${row.row_id}/edit`"><AppButton variant="ghost" size="compact" icon="edit" aria-label="Edit lembaga">Edit</AppButton></Link></template>
+                        <template #cell-is_active="{ row }">
+                            <AppBadge :tone="row.is_active ? 'success' : 'neutral'">
+                                {{ row.is_active ? 'Aktif' : 'Nonaktif' }}
+                            </AppBadge>
+                        </template>
+                        <template #actions="{ row }">
+                            <div class="flex justify-end gap-1">
+                                <Link :href="`/master-data/institutions/${row.row_id}`">
+                                    <AppButton variant="ghost" size="compact" icon="visibility" aria-label="Detail lembaga">Detail</AppButton>
+                                </Link>
+                                <Link :href="`/master-data/institutions/${row.row_id}/edit`">
+                                    <AppButton variant="ghost" size="compact" icon="edit" aria-label="Edit lembaga">Edit</AppButton>
+                                </Link>
+                            </div>
+                        </template>
                     </SmartDataTable>
                 </div>
             </AppCard>

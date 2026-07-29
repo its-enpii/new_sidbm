@@ -19,3 +19,11 @@ Paket ini terdiri dari tiga deliverable utama:
 - sistem backup cron existing tetap digunakan.
 
 Baca `laravel-boilerplate/VALIDATION.md` sebelum mencoba migration pada MySQL.
+
+## Cutover (Phase 5)
+
+- `CUTOVER_RUNBOOK.md` — urutan load 1 tenant, checklist acceptance, command `legacy:cutover-tenant`.
+
+## Fitur / paritas harian
+
+- `FEATURE_ROADMAP.md` — prioritas P0–P2 agar Next ganti legacy di kerja harian (bukan mirror semua laporan). Gap vs legacy `sidbm` + workstream docs.

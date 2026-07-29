@@ -71,6 +71,7 @@ const sections = [
                 label: 'Transaksi',
                 icon: 'receipt_long',
                 children: [
+                    { label: 'Daftar Jurnal', href: '/accounting/journals' },
                     { label: 'Jurnal Umum', href: '/accounting/journal-entries/create' },
                     { label: 'Jurnal Angsuran', href: '/accounting/journal-entries/installment' },
                 ],
@@ -78,7 +79,24 @@ const sections = [
             { label: 'Taksiran Pajak', icon: 'request_quote', href: '/accounting/tax-estimate' },
             { label: 'Notifikasi Tagihan', icon: 'sms', href: '/notifications/billing' },
             { label: 'Tutup Buku', icon: 'menu_book' },
-            { label: 'Pelaporan', icon: 'assessment' },
+            {
+                key: 'reports',
+                label: 'Pelaporan',
+                icon: 'assessment',
+                children: [
+                    { label: 'Ringkasan Laporan', href: '/accounting/reports', exact: true },
+                    { label: 'Portofolio Pinjaman', href: '/lending/reports/portfolio' },
+                    { label: 'Rencana vs Realisasi', href: '/lending/reports/schedule-vs-actual' },
+                    { label: 'Jurnal Transaksi', href: '/accounting/reports/journals' },
+                    { label: 'Neraca Saldo', href: '/accounting/reports/trial-balance' },
+                    { label: 'Neraca', href: '/accounting/reports/balance-sheet' },
+                    { label: 'Laba Rugi', href: '/accounting/reports/income-statement' },
+                    { label: 'Arus Kas', href: '/accounting/reports/cash-flow' },
+                    { label: 'Perubahan Ekuitas', href: '/accounting/reports/equity-change' },
+                    { label: 'CALK', href: '/accounting/reports/calk' },
+                    { label: 'Buku Besar', href: '/accounting/reports/general-ledger' },
+                ],
+            },
         ],
     },
     {

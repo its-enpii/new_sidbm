@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Accounting;
 
 use App\Domain\Accounting\Models\Account;
 use App\Domain\Accounting\Models\JournalEntry;
+use App\Domain\Accounting\Services\InstallmentReceiptService;
 use App\Domain\Accounting\Services\JournalEntryOptionResolver;
 use App\Domain\Accounting\Services\JournalPostingService;
 use App\Domain\Assets\Models\Asset;
@@ -15,14 +16,18 @@ use App\Domain\Lending\Services\LoanTrackingService;
 use App\Domain\Notifications\Services\WhatsappNotificationService;
 use App\Http\Requests\Accounting\JournalEntryRequest;
 use App\Http\Requests\Accounting\LoanInstallmentJournalRequest;
+use App\Support\ReportPdf;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class JournalEntryController
 {
@@ -387,6 +392,7 @@ final class JournalEntryController
         session()->flash('success', [
             'message' => 'Jurnal angsuran berhasil dicatat.'.($waMessage ?? ''),
             'entry' => [
+                'row_id' => $posted->row_id,
                 'id' => $posted->id,
                 'journal_number' => $posted->journal_number,
                 'transaction_date' => $posted->transaction_date?->toDateString(),
@@ -399,9 +405,26 @@ final class JournalEntryController
                 'debit' => (float) $l->debit,
                 'credit' => (float) $l->credit,
             ])->all(),
+            'receipt_url' => route('accounting.journal-entries.installment.receipt', ['entry' => $posted->row_id]),
         ]);
 
         return redirect()->route('accounting.journal-entries.installment');
+    }
+
+    public function installmentReceipt(
+        JournalEntry $entry,
+        InstallmentReceiptService $receipts,
+        ReportPdf $pdf,
+    ): HttpResponse|StreamedResponse {
+        try {
+            $data = $receipts->build($entry);
+        } catch (DomainException $e) {
+            abort(422, $e->getMessage());
+        }
+
+        $filename = 'bukti-angsuran-'.$entry->id.'.pdf';
+
+        return $pdf->stream('reports.pdf.installment_receipt', $data, $filename);
     }
 
     /**

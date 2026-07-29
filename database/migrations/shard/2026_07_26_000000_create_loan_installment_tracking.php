@@ -55,8 +55,10 @@ return new class extends Migration
                 ->references(['tenant_id', 'row_id'])->on('loans')->cascadeOnDelete();
             $table->foreign(['tenant_id', 'member_row_id'], 'fk_tracking_member')
                 ->references(['tenant_id', 'row_id'])->on('members')->restrictOnDelete();
+            // Composite FK cannot use ON DELETE SET NULL while tenant_id is NOT NULL (MySQL 1830).
+            // App clears journal_entry_row_id on reversal; restrict keeps tenant isolation.
             $table->foreign(['tenant_id', 'journal_entry_row_id'], 'fk_tracking_journal')
-                ->references(['tenant_id', 'row_id'])->on('journal_entries')->nullOnDelete();
+                ->references(['tenant_id', 'row_id'])->on('journal_entries')->restrictOnDelete();
         });
     }
 

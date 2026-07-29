@@ -54,7 +54,7 @@ function pay() {
 <template>
     <Head :title="invoice.number" />
     <AuthenticatedLayout>
-        <div class="mx-auto max-w-5xl space-y-6">
+        <div class="mx-auto max-w-7xl space-y-6">
             <header class="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
                 <div>
                     <Link href="/billing/invoices" class="text-sm font-semibold text-primary">← Daftar tagihan</Link>

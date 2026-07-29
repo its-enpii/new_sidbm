@@ -15,6 +15,7 @@ import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
 
 const props = defineProps({
     loan: { type: Object, required: true },
+    card_url: { type: String, default: null },
     disbursement_account: { type: Object, default: null },
     disbursementAccounts: { type: Array, default: () => [] },
     today: { type: String, required: true },
@@ -251,6 +252,47 @@ const isActiveLoan = computed(() => ['active', 'disbursed'].includes(props.loan.
 const canReschedule = computed(() => isActiveLoan.value && Number(props.loan.principal_remaining) > 0);
 const canWriteOff = computed(() => isActiveLoan.value && Number(props.loan.principal_remaining) > 0);
 
+const committeeEditable = computed(() => props.loan.committee_editable === true);
+const committeeOptions = computed(() => props.loan.committee_member_options ?? []);
+const committeeForm = useForm({
+    chair_id: '',
+    secretary_id: '',
+    treasurer_id: '',
+});
+const committeeConfirmOpen = ref(false);
+
+const committeeLabels = {
+    chair: 'Ketua',
+    secretary: 'Sekretaris',
+    treasurer: 'Bendahara',
+};
+
+const committeeReady = computed(() =>
+    Number(committeeForm.chair_id) > 0
+    && Number(committeeForm.secretary_id) > 0
+    && Number(committeeForm.treasurer_id) > 0
+    && Number(committeeForm.chair_id) !== Number(committeeForm.secretary_id)
+    && Number(committeeForm.chair_id) !== Number(committeeForm.treasurer_id)
+    && Number(committeeForm.secretary_id) !== Number(committeeForm.treasurer_id),
+);
+
+function memberLabel(id) {
+    const opt = committeeOptions.value.find((o) => Number(o.value) === Number(id));
+    return opt?.label || '—';
+}
+
+function openCommitteeConfirm() {
+    if (!committeeReady.value) return;
+    committeeConfirmOpen.value = true;
+}
+
+function submitCommittee() {
+    committeeForm.patch(`/lending/loans/${props.loan.row_id}/committee`, {
+        preserveScroll: true,
+        onSuccess: () => { committeeConfirmOpen.value = false; },
+    });
+}
+
 const rescheduleModalOpen = ref(false);
 const writeOffModalOpen = ref(false);
 
@@ -330,15 +372,18 @@ function setAllocatedAmount(memberRowId, value) {
 <template>
     <Head title="Detail Pinjaman" />
     <AuthenticatedLayout>
-        <div class="mx-auto max-w-6xl space-y-6">
+        <div class="mx-auto max-w-7xl space-y-6">
             <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <Link :href="backUrl" class="text-sm font-semibold text-primary hover:underline">← Kembali ke daftar pinjaman</Link>
                     <h1 class="mt-2 text-2xl font-bold text-primary">Detail Pinjaman</h1>
-                    <p class="text-on-surface-variant">#{{ loan.id ?? loan.row_id }} · {{ loan.product?.name || '—' }} · {{ loan.product?.code || '' }}</p>
+                    <p class="text-on-surface-variant">#{{ loan.id ?? loan.row_id }} · {{ loan.loan_number || '—' }} · {{ loan.product?.name || '—' }} · {{ loan.product?.code || '' }}</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
                     <AppBadge :tone="statusMeta.tone">{{ statusMeta.label }}</AppBadge>
+                    <a v-if="card_url" :href="card_url" target="_blank" rel="noopener">
+                        <AppButton type="button" variant="secondary" icon="credit_card" size="compact">Kartu Angsuran</AppButton>
+                    </a>
                     <AppButton v-if="canEdit" variant="secondary" icon="edit" @click="openEditModal">Edit Proposal</AppButton>
                     <AppButton v-if="canReschedule" variant="secondary" icon="event_repeat" @click="openRescheduleModal">Reschedule Pinjaman</AppButton>
                     <AppButton v-if="canWriteOff" variant="danger" icon="delete_forever" @click="openWriteOffModal">Penghapusan Pinjaman</AppButton>
@@ -421,17 +466,74 @@ function setAllocatedAmount(memberRowId, value) {
 
             <AppCard>
                 <template #header>
-                    <h2 class="text-lg font-bold text-primary">Pengurus Kelompok</h2>
-                    <p class="text-sm text-on-surface-variant">Snapshot saat proposal didaftarkan.</p>
+                    <div>
+                        <h2 class="text-lg font-bold text-primary">Pengurus Kelompok</h2>
+                        <p class="text-sm text-on-surface-variant">
+                            {{ committeeEditable ? 'Belum terisi (data legacy). Pilih lalu simpan — setelah disimpan tidak dapat diganti.' : 'Snapshot pengurus pinjaman.' }}
+                        </p>
+                    </div>
                 </template>
-                <div class="grid gap-4 sm:grid-cols-3">
+                <div v-if="committeeEditable" class="space-y-4">
+                    <div class="grid gap-4 sm:grid-cols-3">
+                        <SmartSelect
+                            v-model="committeeForm.chair_id"
+                            label="Ketua"
+                            placeholder="Pilih ketua"
+                            :options="committeeOptions"
+                            :error="committeeForm.errors.chair_id"
+                            required
+                        />
+                        <SmartSelect
+                            v-model="committeeForm.secretary_id"
+                            label="Sekretaris"
+                            placeholder="Pilih sekretaris"
+                            :options="committeeOptions"
+                            :error="committeeForm.errors.secretary_id"
+                            required
+                        />
+                        <SmartSelect
+                            v-model="committeeForm.treasurer_id"
+                            label="Bendahara"
+                            placeholder="Pilih bendahara"
+                            :options="committeeOptions"
+                            :error="committeeForm.errors.treasurer_id"
+                            required
+                        />
+                    </div>
+                    <div class="flex justify-end">
+                        <AppButton
+                            type="button"
+                            icon="save"
+                            :disabled="!committeeReady || committeeForm.processing"
+                            @click="openCommitteeConfirm"
+                        >
+                            Simpan Pengurus
+                        </AppButton>
+                    </div>
+                </div>
+                <div v-else class="grid gap-4 sm:grid-cols-3">
                     <div v-for="(entry, position) in loan.committee" :key="position" class="rounded-xl border border-outline-variant p-4">
-                        <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant capitalize">{{ position }}</p>
+                        <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{{ committeeLabels[position] || position }}</p>
                         <p class="mt-1 text-base font-bold text-primary">{{ entry?.name || '—' }}</p>
                         <p v-if="entry?.snapshot_at" class="mt-1 text-xs text-on-surface-variant">Sejak {{ formatDate(entry.snapshot_at) }}</p>
                     </div>
                 </div>
             </AppCard>
+
+            <AppModal v-model="committeeConfirmOpen" title="Simpan pengurus?">
+                <p class="text-sm text-on-surface">
+                    Setelah disimpan, pengurus pinjaman <strong>tidak dapat diganti</strong>.
+                </p>
+                <ul class="mt-3 space-y-1 text-sm text-on-surface">
+                    <li><span class="font-semibold">Ketua:</span> {{ memberLabel(committeeForm.chair_id) }}</li>
+                    <li><span class="font-semibold">Sekretaris:</span> {{ memberLabel(committeeForm.secretary_id) }}</li>
+                    <li><span class="font-semibold">Bendahara:</span> {{ memberLabel(committeeForm.treasurer_id) }}</li>
+                </ul>
+                <template #footer>
+                    <AppButton variant="secondary" :disabled="committeeForm.processing" @click="committeeConfirmOpen = false">Batal</AppButton>
+                    <AppButton :loading="committeeForm.processing" @click="submitCommittee">Ya, simpan</AppButton>
+                </template>
+            </AppModal>
 
             <AppCard v-if="status === 'draft'">
                 <template #header>

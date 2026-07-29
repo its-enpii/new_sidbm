@@ -9,6 +9,7 @@ use App\Http\Controllers\Budgeting\BudgetController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Lending\LoanController;
+use App\Http\Controllers\Lending\LoanReportController;
 use App\Http\Controllers\MasterData\GroupController;
 use App\Http\Controllers\MasterData\MemberController;
 use App\Http\Controllers\MasterData\OtherInstitutionController;
@@ -104,6 +105,7 @@ Route::middleware(['auth', 'tenant'])->group(function (): void {
     Route::get('/master-data/members/export', [MemberController::class, 'export'])->name('master-data.members.export');
     Route::post('/master-data/members/import', [MemberController::class, 'import'])->name('master-data.members.import');
     Route::post('/master-data/members', [MemberController::class, 'store'])->name('master-data.members.store');
+    Route::get('/master-data/members/{member}', [MemberController::class, 'show'])->name('master-data.members.show');
     Route::get('/master-data/members/{member}/edit', [MemberController::class, 'edit'])->name('master-data.members.edit');
     Route::put('/master-data/members/{member}', [MemberController::class, 'update'])->name('master-data.members.update');
     Route::delete('/master-data/members/{member}', [MemberController::class, 'destroy'])->name('master-data.members.destroy');
@@ -115,6 +117,7 @@ Route::middleware(['auth', 'tenant'])->group(function (): void {
     Route::post('/master-data/groups/import', [GroupController::class, 'import'])->name('master-data.groups.import');
     Route::post('/master-data/groups/members', [GroupController::class, 'storeMember'])->name('master-data.groups.members.store');
     Route::post('/master-data/groups', [GroupController::class, 'store'])->name('master-data.groups.store');
+    Route::get('/master-data/groups/{group}', [GroupController::class, 'show'])->name('master-data.groups.show');
     Route::get('/master-data/groups/{group}/edit', [GroupController::class, 'edit'])->name('master-data.groups.edit');
     Route::put('/master-data/groups/{group}', [GroupController::class, 'update'])->name('master-data.groups.update');
     Route::delete('/master-data/groups/{group}', [GroupController::class, 'destroy'])->name('master-data.groups.destroy');
@@ -128,6 +131,7 @@ Route::middleware(['auth', 'tenant'])->group(function (): void {
     Route::get('/master-data/institutions/export', [OtherInstitutionController::class, 'export'])->name('master-data.institutions.export');
     Route::post('/master-data/institutions/import', [OtherInstitutionController::class, 'import'])->name('master-data.institutions.import');
     Route::post('/master-data/institutions', [OtherInstitutionController::class, 'store'])->name('master-data.institutions.store');
+    Route::get('/master-data/institutions/{institution}', [OtherInstitutionController::class, 'show'])->name('master-data.institutions.show');
     Route::get('/master-data/institutions/{institution}/edit', [OtherInstitutionController::class, 'edit'])->name('master-data.institutions.edit');
     Route::put('/master-data/institutions/{institution}', [OtherInstitutionController::class, 'update'])->name('master-data.institutions.update');
 
@@ -136,20 +140,32 @@ Route::middleware(['auth', 'tenant'])->group(function (): void {
     Route::get('/lending/loans/beneficiary-options', [LoanController::class, 'beneficiaryOptions'])->name('lending.loans.beneficiary-options');
     Route::post('/lending/loans', [LoanController::class, 'store'])->name('lending.loans.store');
     Route::get('/lending/loans/{loan}', [LoanController::class, 'show'])->name('lending.loans.show');
+    Route::get('/lending/loans/{loan}/card', [LoanController::class, 'card'])->name('lending.loans.card');
     Route::put('/lending/loans/{loan}', [LoanController::class, 'update'])->name('lending.loans.update');
     Route::delete('/lending/loans/{loan}/beneficiaries/{member}', [LoanController::class, 'removeBeneficiary'])->name('lending.loans.beneficiaries.destroy');
     Route::patch('/lending/loans/{loan}/verify', [LoanController::class, 'verify'])->name('lending.loans.verify');
     Route::patch('/lending/loans/{loan}/approve', [LoanController::class, 'approve'])->name('lending.loans.approve');
     Route::patch('/lending/loans/{loan}/disburse', [LoanController::class, 'disburse'])->name('lending.loans.disburse');
     Route::patch('/lending/loans/{loan}/revert', [LoanController::class, 'revert'])->name('lending.loans.revert');
+    Route::patch('/lending/loans/{loan}/committee', [LoanController::class, 'setCommittee'])->name('lending.loans.committee');
     Route::post('/lending/loans/{loan}/reschedule', [LoanController::class, 'reschedule'])->name('lending.loans.reschedule');
     Route::post('/lending/loans/{loan}/write-off', [LoanController::class, 'writeOff'])->name('lending.loans.write-off');
 
+    Route::prefix('lending/reports')->name('lending.reports.')->group(function (): void {
+        Route::get('/portfolio', [LoanReportController::class, 'portfolio'])->name('portfolio');
+        Route::get('/portfolio/pdf', [LoanReportController::class, 'portfolioPdf'])->name('portfolio.pdf');
+        Route::get('/schedule-vs-actual', [LoanReportController::class, 'scheduleVsActual'])->name('schedule-vs-actual');
+        Route::get('/schedule-vs-actual/pdf', [LoanReportController::class, 'scheduleVsActualPdf'])->name('schedule-vs-actual.pdf');
+    });
+
     Route::prefix('accounting')->name('accounting.')->group(function (): void {
+        Route::get('/journals', [\App\Http\Controllers\Accounting\JournalBrowseController::class, 'index'])->name('journals.index');
+        Route::post('/journals/{entry}/reverse', [\App\Http\Controllers\Accounting\JournalBrowseController::class, 'reverse'])->name('journals.reverse');
         Route::get('/journal-entries/create', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'create'])->name('journal-entries.create');
         Route::post('/journal-entries', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'store'])->name('journal-entries.store');
         Route::get('/journal-entries/installment', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'installment'])->name('journal-entries.installment');
         Route::post('/journal-entries/installment', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'storeInstallment'])->name('journal-entries.installment.store');
+        Route::get('/journal-entries/{entry}/installment-receipt', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'installmentReceipt'])->name('journal-entries.installment.receipt');
         Route::get('/loans/{loan}/group-detail', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'loanGroupDetail'])->name('loans.group-detail');
         Route::get('/loans/{loan}/installment-history', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'loanInstallmentHistory'])->name('loans.installment-history');
         Route::get('/loans/{loan}/member-options', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'groupMemberOptions'])->name('loans.member-options');
@@ -164,6 +180,27 @@ Route::middleware(['auth', 'tenant'])->group(function (): void {
     });
 
     Route::get('/accounting/tax-estimate', [TaxEstimateController::class, 'index'])->name('accounting.tax-estimate');
+
+    Route::prefix('accounting/reports')->name('accounting.reports.')->group(function (): void {
+        Route::get('/', [\App\Http\Controllers\Accounting\ReportController::class, 'index'])->name('index');
+        Route::get('/journals', [\App\Http\Controllers\Accounting\ReportController::class, 'journals'])->name('journals');
+        Route::get('/journals/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'journalsPdf'])->name('journals.pdf');
+        Route::get('/trial-balance', [\App\Http\Controllers\Accounting\ReportController::class, 'trialBalance'])->name('trial-balance');
+        Route::get('/trial-balance/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'trialBalancePdf'])->name('trial-balance.pdf');
+        Route::get('/balance-sheet', [\App\Http\Controllers\Accounting\ReportController::class, 'balanceSheet'])->name('balance-sheet');
+        Route::get('/balance-sheet/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'balanceSheetPdf'])->name('balance-sheet.pdf');
+        Route::get('/income-statement', [\App\Http\Controllers\Accounting\ReportController::class, 'incomeStatement'])->name('income-statement');
+        Route::get('/income-statement/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'incomeStatementPdf'])->name('income-statement.pdf');
+        Route::get('/cash-flow', [\App\Http\Controllers\Accounting\ReportController::class, 'cashFlow'])->name('cash-flow');
+        Route::get('/cash-flow/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'cashFlowPdf'])->name('cash-flow.pdf');
+        Route::get('/equity-change', [\App\Http\Controllers\Accounting\ReportController::class, 'equityChange'])->name('equity-change');
+        Route::get('/equity-change/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'equityChangePdf'])->name('equity-change.pdf');
+        Route::get('/calk', [\App\Http\Controllers\Accounting\ReportController::class, 'calk'])->name('calk');
+        Route::get('/calk/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'calkPdf'])->name('calk.pdf');
+        Route::put('/calk/notes', [\App\Http\Controllers\Accounting\ReportController::class, 'saveCalkNotes'])->name('calk.notes');
+        Route::get('/general-ledger', [\App\Http\Controllers\Accounting\ReportController::class, 'generalLedger'])->name('general-ledger');
+        Route::get('/general-ledger/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'generalLedgerPdf'])->name('general-ledger.pdf');
+    });
 
     Route::prefix('notifications')->name('notifications.')->group(function (): void {
         Route::get('/billing', [\App\Http\Controllers\Notifications\BillingNoticeController::class, 'index'])->name('billing');
