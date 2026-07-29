@@ -1,9 +1,11 @@
 <script setup>
-import { Head, router, useForm } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { computed, reactive, ref, watch } from 'vue';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
+import AppDatePicker from '../../../Components/AppDatePicker.vue';
+import AppInput from '../../../Components/AppInput.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
 
@@ -18,6 +20,7 @@ const props = defineProps({
     can_close_year: { type: Boolean, required: true },
     year_end_preview: { type: Array, required: true },
     net_income: { type: Number, required: true },
+    allocation: { type: Object, required: true },
     can_close: { type: Boolean, default: false },
     year_options: { type: Array, required: true },
 });
@@ -65,9 +68,10 @@ function reopenMonth(month) {
 
 function closeYear() {
     if (!props.can_close) return;
-    const msg = props.next_year_openings_exist && !forceRewrite.value
-        ? `Saldo awal ${props.next_year} dari tutup buku sudah ada. Centang "paksa tulis ulang" dulu, atau batalkan.`
-        : `Tutup seluruh tahun ${props.year} dan bawa saldo neraca ke ${props.next_year}?`;
+    const msg =
+        props.next_year_openings_exist && !forceRewrite.value
+            ? `Saldo awal ${props.next_year} dari tutup buku sudah ada. Centang "paksa tulis ulang" dulu, atau batalkan.`
+            : `Tutup seluruh tahun ${props.year} dan bawa saldo neraca ke ${props.next_year}?`;
     if (props.next_year_openings_exist && !forceRewrite.value) {
         alert(msg);
         return;
@@ -78,23 +82,88 @@ function closeYear() {
     yearForm.post('/accounting/period-close/year', { preserveScroll: true });
 }
 
-const statusTone = {
-    open: 'success',
-    closed: 'neutral',
-    missing: 'warning',
-};
-const statusLabel = {
-    open: 'Terbuka',
-    closed: 'Ditutup',
-    missing: 'Belum ada',
-};
+const statusTone = { open: 'success', closed: 'neutral', missing: 'warning' };
+const statusLabel = { open: 'Terbuka', closed: 'Ditutup', missing: 'Belum ada' };
 
-const previewDebit = computed(() =>
-    props.year_end_preview.reduce((s, r) => s + Number(r.debit || 0), 0),
+const previewDebit = computed(() => props.year_end_preview.reduce((s, r) => s + Number(r.debit || 0), 0));
+const previewCredit = computed(() => props.year_end_preview.reduce((s, r) => s + Number(r.credit || 0), 0));
+
+// --- Alokasi laba ---
+function emptyCommunity() {
+    const o = {};
+    for (const line of props.allocation.community_lines || []) o[line.key] = '';
+    return o;
+}
+function emptyVillages() {
+    const o = {};
+    for (const v of props.allocation.villages || []) o[v.row_id] = '';
+    return o;
+}
+
+const allocForm = useForm({
+    year: props.year,
+    date: props.allocation.default_date,
+    community: emptyCommunity(),
+    villages: emptyVillages(),
+    investor: '',
+    retained: '',
+    note: '',
+});
+
+watch(
+    () => props.allocation,
+    (a) => {
+        allocForm.defaults({
+            year: props.year,
+            date: a.default_date,
+            community: emptyCommunity(),
+            villages: emptyVillages(),
+            investor: '',
+            retained: '',
+            note: '',
+        });
+        allocForm.reset();
+        allocForm.year = props.year;
+        allocForm.date = a.default_date;
+    },
 );
-const previewCredit = computed(() =>
-    props.year_end_preview.reduce((s, r) => s + Number(r.credit || 0), 0),
+
+function n(v) {
+    const x = Number(String(v ?? '').replace(/[^\d.-]/g, ''));
+    return Number.isFinite(x) && x > 0 ? x : 0;
+}
+
+const communityTotal = computed(() =>
+    Object.values(allocForm.community).reduce((s, v) => s + n(v), 0),
 );
+const villageTotal = computed(() => Object.values(allocForm.villages).reduce((s, v) => s + n(v), 0));
+const allocTotal = computed(
+    () => communityTotal.value + villageTotal.value + n(allocForm.investor) + n(allocForm.retained),
+);
+const allocOver = computed(() => allocTotal.value - Number(props.allocation.remaining || 0) > 0.009);
+
+function fillRetained() {
+    const rest = Math.max(
+        0,
+        Number(props.allocation.remaining || 0) - communityTotal.value - villageTotal.value - n(allocForm.investor),
+    );
+    allocForm.retained = rest > 0 ? String(Math.round(rest)) : '';
+}
+
+function submitAllocation() {
+    if (!props.can_close) return;
+    if (allocTotal.value <= 0) {
+        alert('Isi minimal satu pos alokasi.');
+        return;
+    }
+    if (allocOver.value) {
+        alert('Total alokasi melebihi sisa laba.');
+        return;
+    }
+    if (!confirm(`Simpan alokasi laba ${props.year} total ${formatMoney(allocTotal.value)}?`)) return;
+    allocForm.year = props.year;
+    allocForm.post('/accounting/period-close/allocate', { preserveScroll: true });
+}
 </script>
 
 <template>
@@ -106,8 +175,7 @@ const previewCredit = computed(() =>
                     <p class="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Keuangan</p>
                     <h1 class="mt-1 text-2xl font-bold text-primary">Tutup Buku</h1>
                     <p class="mt-1 text-sm text-on-surface-variant">
-                        Tutup periode bulanan (blokir posting) dan bawa saldo neraca ke tahun berikutnya.
-                        Alokasi laba multi-akun belum termasuk.
+                        1) Tutup periode · 2) Bawa saldo awal tahun · 3) Alokasi laba ke utang/laba ditahan.
                     </p>
                 </div>
                 <div class="w-40">
@@ -146,9 +214,9 @@ const previewCredit = computed(() =>
 
             <AppCard class="overflow-hidden p-0">
                 <div class="border-b border-outline-variant px-4 py-3">
-                    <h2 class="text-sm font-bold text-primary">Periode bulanan {{ year }}</h2>
+                    <h2 class="text-sm font-bold text-primary">1. Periode bulanan {{ year }}</h2>
                     <p class="text-xs text-on-surface-variant">
-                        Periode tertutup menolak posting jurnal baru (sudah dicek di JournalPostingService).
+                        Periode tertutup menolak posting jurnal baru.
                     </p>
                 </div>
                 <div class="overflow-x-auto">
@@ -164,13 +232,9 @@ const previewCredit = computed(() =>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr
-                                v-for="m in months"
-                                :key="m.month"
-                                class="border-t border-outline-variant/40"
-                            >
+                            <tr v-for="m in months" :key="m.month" class="border-t border-outline-variant/40">
                                 <td class="px-3 py-2 font-medium">{{ m.label }}</td>
-                                <td class="px-3 py-2 text-on-surface-variant whitespace-nowrap">
+                                <td class="px-3 py-2 whitespace-nowrap text-on-surface-variant">
                                     {{ m.starts_at || '—' }} → {{ m.ends_at || '—' }}
                                 </td>
                                 <td class="px-3 py-2">
@@ -184,7 +248,7 @@ const previewCredit = computed(() =>
                                 >
                                     {{ m.draft_journals }}
                                 </td>
-                                <td class="px-3 py-2 text-on-surface-variant whitespace-nowrap">
+                                <td class="px-3 py-2 whitespace-nowrap text-on-surface-variant">
                                     {{ m.closed_at || '—' }}
                                 </td>
                                 <td class="px-3 py-2 text-right">
@@ -215,12 +279,13 @@ const previewCredit = computed(() =>
             </AppCard>
 
             <AppCard class="overflow-hidden p-0">
-                <div class="flex flex-col gap-3 border-b border-outline-variant px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div
+                    class="flex flex-col gap-3 border-b border-outline-variant px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
                     <div>
-                        <h2 class="text-sm font-bold text-primary">Tutup tahun → saldo awal {{ next_year }}</h2>
+                        <h2 class="text-sm font-bold text-primary">2. Tutup tahun → saldo awal {{ next_year }}</h2>
                         <p class="text-xs text-on-surface-variant">
-                            Akun neraca (aset/kewajiban/ekuitas) dibawa; pendapatan &amp; beban di-reset.
-                            Laba/rugi tahun berjalan masuk pembuka akun {{ '3.2.02.01' }}.
+                            Neraca dibawa; P/L di-reset. Laba berjalan ke {{ '3.2.02.01' }}.
                         </p>
                     </div>
                     <div v-if="can_close" class="flex flex-wrap items-center gap-3">
@@ -239,11 +304,12 @@ const previewCredit = computed(() =>
                         </AppButton>
                     </div>
                 </div>
-
-                <div v-if="next_year_openings_exist" class="border-b border-outline-variant bg-surface-container-low/50 px-4 py-2 text-sm text-on-surface-variant">
+                <div
+                    v-if="next_year_openings_exist"
+                    class="border-b border-outline-variant bg-surface-container-low/50 px-4 py-2 text-sm text-on-surface-variant"
+                >
                     Saldo awal {{ next_year }} dari tutup buku sudah ada.
                 </div>
-
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-sm">
                         <thead class="bg-surface-container-low text-xs uppercase tracking-wide text-on-surface-variant">
@@ -286,6 +352,167 @@ const previewCredit = computed(() =>
                         </tfoot>
                     </table>
                 </div>
+            </AppCard>
+
+            <!-- 3. Alokasi laba -->
+            <AppCard class="overflow-hidden p-0">
+                <div class="border-b border-outline-variant px-4 py-3">
+                    <h2 class="text-sm font-bold text-primary">3. Alokasi laba tahun {{ year }}</h2>
+                    <p class="text-xs text-on-surface-variant">
+                        Dr {{ allocation.accounts?.earnings?.code || '3.2.02.01' }} → Cr utang laba / laba ditahan.
+                        Tanggal biasanya 1 Jan tahun berikutnya (periode harus terbuka).
+                    </p>
+                </div>
+
+                <div v-if="allocation.error" class="px-4 py-6 text-sm text-error">{{ allocation.error }}</div>
+
+                <template v-else>
+                    <div class="grid gap-3 border-b border-outline-variant p-4 sm:grid-cols-3">
+                        <div>
+                            <p class="text-xs font-bold uppercase text-on-surface-variant">Laba tersedia</p>
+                            <p class="mt-1 text-xl font-bold text-primary">{{ formatMoney(allocation.available) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold uppercase text-on-surface-variant">Sudah dialokasi</p>
+                            <p class="mt-1 text-xl font-bold">{{ formatMoney(allocation.already_allocated) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold uppercase text-on-surface-variant">Sisa</p>
+                            <p class="mt-1 text-xl font-bold" :class="allocation.remaining > 0 ? 'text-primary' : ''">
+                                {{ formatMoney(allocation.remaining) }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div v-if="allocation.existing?.length" class="border-b border-outline-variant px-4 py-3">
+                        <p class="mb-2 text-xs font-bold uppercase text-on-surface-variant">Jurnal alokasi sebelumnya</p>
+                        <ul class="space-y-1 text-sm">
+                            <li v-for="e in allocation.existing" :key="e.row_id">
+                                <Link :href="e.href" class="font-semibold text-primary hover:underline">
+                                    #{{ e.id }}
+                                </Link>
+                                <span class="text-on-surface-variant"> · {{ e.transaction_date }} · {{ e.description }}</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <form v-if="can_close && allocation.remaining > 0" class="space-y-5 p-4" @submit.prevent="submitAllocation">
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <AppDatePicker v-model="allocForm.date" mode="day" label="Tanggal alokasi" />
+                            <AppInput v-model="allocForm.note" label="Keterangan (opsional)" placeholder="Alokasi laba …" />
+                        </div>
+
+                        <div>
+                            <div class="mb-2 flex items-center justify-between">
+                                <h3 class="text-sm font-bold text-primary">
+                                    {{ allocation.accounts.community.code }} · Masyarakat
+                                </h3>
+                                <span class="text-sm tabular-nums text-on-surface-variant">
+                                    Σ {{ formatMoney(communityTotal) }}
+                                </span>
+                            </div>
+                            <div class="space-y-2">
+                                <div
+                                    v-for="line in allocation.community_lines"
+                                    :key="line.key"
+                                    class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_10rem] sm:items-center"
+                                >
+                                    <p class="text-sm text-on-surface">{{ line.label }}</p>
+                                    <AppInput
+                                        v-model="allocForm.community[line.key]"
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        label="Jumlah"
+                                        hide-label
+                                        class="text-right"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="allocation.villages?.length">
+                            <div class="mb-2 flex items-center justify-between">
+                                <h3 class="text-sm font-bold text-primary">
+                                    {{ allocation.accounts.village.code }} · Desa
+                                </h3>
+                                <span class="text-sm tabular-nums text-on-surface-variant">
+                                    Σ {{ formatMoney(villageTotal) }}
+                                </span>
+                            </div>
+                            <div class="max-h-64 space-y-2 overflow-y-auto pr-1">
+                                <div
+                                    v-for="v in allocation.villages"
+                                    :key="v.row_id"
+                                    class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_10rem] sm:items-center"
+                                >
+                                    <p class="text-sm">{{ v.name }}</p>
+                                    <AppInput
+                                        v-model="allocForm.villages[v.row_id]"
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        label="Jumlah"
+                                        hide-label
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div>
+                                <p class="mb-1 text-sm font-bold text-primary">
+                                    {{ allocation.accounts.investor.code }} · Penyerta modal
+                                </p>
+                                <AppInput v-model="allocForm.investor" type="number" min="0" step="1" label="Jumlah" hide-label />
+                            </div>
+                            <div>
+                                <div class="mb-1 flex items-center justify-between">
+                                    <p class="text-sm font-bold text-primary">
+                                        {{ allocation.accounts.retained.code }} · Laba ditahan
+                                    </p>
+                                    <button
+                                        type="button"
+                                        class="text-xs font-semibold text-primary hover:underline"
+                                        @click="fillRetained"
+                                    >
+                                        Isi sisa
+                                    </button>
+                                </div>
+                                <AppInput v-model="allocForm.retained" type="number" min="0" step="1" label="Jumlah" hide-label />
+                            </div>
+                        </div>
+
+                        <div
+                            class="flex flex-col gap-3 border-t border-outline-variant pt-4 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                            <p class="text-sm" :class="allocOver ? 'font-semibold text-error' : 'text-on-surface-variant'">
+                                Total alokasi
+                                <span class="font-bold text-primary">{{ formatMoney(allocTotal) }}</span>
+                                <span v-if="allocOver"> · melebihi sisa {{ formatMoney(allocation.remaining) }}</span>
+                            </p>
+                            <AppButton
+                                type="submit"
+                                variant="primary"
+                                :loading="allocForm.processing"
+                                :disabled="allocForm.processing || allocTotal <= 0 || allocOver"
+                            >
+                                Simpan alokasi
+                            </AppButton>
+                        </div>
+                    </form>
+
+                    <p
+                        v-else-if="can_close && allocation.remaining <= 0"
+                        class="px-4 py-6 text-sm text-on-surface-variant"
+                    >
+                        Tidak ada sisa laba untuk dialokasi
+                        <span v-if="allocation.already_allocated > 0">
+                            (sudah {{ formatMoney(allocation.already_allocated) }}).
+                        </span>
+                        <span v-else-if="allocation.available <= 0">(laba/rugi ≤ 0).</span>
+                    </p>
+                </template>
             </AppCard>
         </div>
     </AuthenticatedLayout>

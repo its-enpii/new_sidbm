@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Accounting;
 
 use App\Domain\Access\Services\PermissionChecker;
 use App\Domain\Accounting\Services\FiscalPeriodCloseService;
+use App\Domain\Accounting\Services\ProfitAllocationService;
 use Carbon\CarbonImmutable;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
@@ -18,6 +19,7 @@ final class PeriodCloseController
     public function __construct(
         private readonly PermissionChecker $permissions,
         private readonly FiscalPeriodCloseService $closer,
+        private readonly ProfitAllocationService $allocation,
     ) {
     }
 
@@ -31,9 +33,26 @@ final class PeriodCloseController
         }
 
         $payload = $this->closer->overview($year);
+        try {
+            $allocation = $this->allocation->formState($year);
+        } catch (DomainException $e) {
+            $allocation = [
+                'error' => $e->getMessage(),
+                'profit_year' => $year,
+                'available' => 0,
+                'already_allocated' => 0,
+                'remaining' => 0,
+                'accounts' => null,
+                'community_lines' => [],
+                'villages' => [],
+                'existing' => [],
+                'default_date' => CarbonImmutable::create($year + 1, 1, 1)->toDateString(),
+            ];
+        }
 
         return Inertia::render('Accounting/PeriodClose/Index', [
             ...$payload,
+            'allocation' => $allocation,
             'can_close' => $this->permissions->allows($request->user(), 'journals.create'),
             'year_options' => $this->yearOptions($year),
         ]);
@@ -93,6 +112,46 @@ final class PeriodCloseController
                 $result['next_year'],
                 $result['openings_written'],
                 number_format($result['net_income'], 0, ',', '.'),
+            ));
+    }
+
+    public function allocate(Request $request): RedirectResponse
+    {
+        $this->permissions->denyUnless($request->user(), 'journals.create');
+
+        $validated = $request->validate([
+            'year' => ['required', 'integer', 'min:2000', 'max:2100'],
+            'date' => ['required', 'date'],
+            'community' => ['nullable', 'array'],
+            'community.*' => ['nullable', 'numeric', 'min:0'],
+            'villages' => ['nullable', 'array'],
+            'villages.*' => ['nullable', 'numeric', 'min:0'],
+            'investor' => ['nullable', 'numeric', 'min:0'],
+            'retained' => ['nullable', 'numeric', 'min:0'],
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $year = (int) $validated['year'];
+
+        try {
+            $result = $this->allocation->allocate($year, [
+                'date' => $validated['date'],
+                'community' => $validated['community'] ?? [],
+                'villages' => $validated['villages'] ?? [],
+                'investor' => $validated['investor'] ?? 0,
+                'retained' => $validated['retained'] ?? 0,
+                'note' => $validated['note'] ?? null,
+            ], (int) $request->user()->row_id);
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return to_route('accounting.period-close.index', ['year' => $year])
+            ->with('success', sprintf(
+                'Alokasi laba %d tersimpan (jurnal #%d, total %s).',
+                $year,
+                $result['journal_id'],
+                number_format($result['total'], 0, ',', '.'),
             ));
     }
 

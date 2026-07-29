@@ -52,7 +52,7 @@ Script: `docker exec new_sidbm-app-1 php scripts/smoke_pilot_local.php`
 | Laporan akuntansi NS/Neraca/LR/BB/Jurnal | Ada + PDF | Tidak |
 | **Laporan piutang inti** | ✅ P0.3 (portofolio group-by-desa + R vs R) | — |
 | Arus kas / LPM / CALK / kartu angsuran | ✅ P1 | — |
-| Tutup buku | ✅ P2.1 minimal (close/reopen bulan + bawa saldo awal tahun) | Alokasi laba multi-akun belakangan |
+| Tutup buku | ✅ P2.1 close/reopen + year openings + **alokasi laba** | — |
 | COA manage UI | Belum | P2.2 |
 | Aset / inventaris UI | Model only | P2.3 |
 | Migrasi data pilot | Hijau | Bukan fitur harian |
@@ -92,7 +92,7 @@ Script: `docker exec new_sidbm-app-1 php scripts/smoke_pilot_local.php`
 
 | ID | Fitur |
 |---|---|
-| P2.1 | ✅ Tutup buku minimal — `/accounting/period-close`: close/reopen bulan, tutup tahun + `account_opening_balances` source=`year_close`. Alokasi laba multi-akun = belakangan. |
+| P2.1 | ✅ Tutup buku — `/accounting/period-close`: close/reopen, year openings, alokasi laba → jurnal `profit_allocation` (2.1.04.01/02/03 + 3.2.01.01). |
 | P2.2 | COA manage UI |
 | P2.3 | Aset / inventaris UI + ATI/ATB |
 | P2.4 | Cutover tenant #2+ (setelah P0 pilot hijau) |
@@ -109,7 +109,7 @@ Search global, lonceng notifikasi, holding/kab multi-tenant reports, 1:1 semua s
 |---|---|
 | A Foundation | hijau |
 | B Membership | hijau ops + detail entity + riwayat pinjaman |
-| C Accounting | posting/report/list/reverse/tutup-periode hijau; alokasi laba belakangan |
+| C Accounting | posting/report/list/reverse/tutup+alokasi hijau; COA UI masih P2.2 |
 | D Lending | lifecycle + cetak + portofolio/RvsR/kartu hijau |
 | E Supporting | budget/settings hijau; assets/docs depth bolong (P2) |
 | F Migration | pilot hijau — **bukan** yang nahan user pindah |
@@ -137,4 +137,4 @@ Search global, lonceng notifikasi, holding/kab multi-tenant reports, 1:1 semua s
 | 2026-07-29 | Detail master data (anggota/kelompok/lembaga) + `EntityLoanHistoryService` + `LoanHistoryTable`. |
 | 2026-07-29 | Portofolio: group-by-desa (header + total per desa + spacer); PDF sama. |
 | 2026-07-29 | Sync status workstream C/D (P0+P1 hijau). |
-| 2026-07-29 | **P2.1** tutup buku minimal: period close UI + year-end openings. Next: alokasi laba / P2.2 COA. |
+| 2026-07-29 | **P2.1** tutup buku + alokasi laba (`ProfitAllocationService`). Next: P2.2 COA UI. |

@@ -177,6 +177,7 @@ Route::middleware(['auth', 'tenant'])->group(function (): void {
             ->whereNumber(['year', 'month'])
             ->name('period-close.month.reopen');
         Route::post('/period-close/year', [\App\Http\Controllers\Accounting\PeriodCloseController::class, 'closeYear'])->name('period-close.year');
+        Route::post('/period-close/allocate', [\App\Http\Controllers\Accounting\PeriodCloseController::class, 'allocate'])->name('period-close.allocate');
     });
 
     Route::prefix('budgeting')->name('budgeting.')->group(function (): void {

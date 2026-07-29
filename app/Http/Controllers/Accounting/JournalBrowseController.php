@@ -52,6 +52,7 @@ final class JournalBrowseController
                 ['value' => 'journal_reversal', 'label' => 'Reversal'],
                 ['value' => 'loan_write_off', 'label' => 'Penghapusan'],
                 ['value' => 'loan_reschedule_close', 'label' => 'Reschedule'],
+                ['value' => 'profit_allocation', 'label' => 'Alokasi laba'],
             ],
             'can_reverse' => $this->permissions->allows($request->user(), 'journals.create'),
         ]);
