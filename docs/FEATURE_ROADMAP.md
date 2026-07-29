@@ -99,7 +99,11 @@ Script: `docker exec new_sidbm-app-1 php scripts/smoke_pilot_local.php`
 
 ### P3 — Bukan blocking
 
-Search global, lonceng notifikasi, holding/kab multi-tenant reports, 1:1 semua sub-laporan legacy.
+| ID | Fitur |
+|---|---|
+| P3.1 | ✅ Search global header — `/search?q=` anggota/kelompok/pinjaman/jurnal/inventaris |
+| P3.2 | Lonceng notifikasi in-app |
+| P3.3 | Holding/kab multi-tenant reports, 1:1 sub-laporan legacy |
 
 ---
 
@@ -140,3 +144,4 @@ Search global, lonceng notifikasi, holding/kab multi-tenant reports, 1:1 semua s
 | 2026-07-29 | **P2.1** tutup buku + alokasi laba (`ProfitAllocationService`). Next: P2.2 COA UI. |
 | 2026-07-29 | **P2.2** COA read-only (aturan pusat: no CRUD tenant). Next: P2.3 aset UI. |
 | 2026-07-29 | **P2.3** inventaris: beli via jurnal umum; `/assets` register/nilai buku/status (`AssetService`). |
+| 2026-07-29 | **P3.1** search global header (`GlobalSearchService` + omnibox). |

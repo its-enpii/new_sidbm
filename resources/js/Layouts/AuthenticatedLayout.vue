@@ -1,6 +1,6 @@
 <script setup>
 import { Link, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import AppIcon from '../Components/AppIcon.vue';
 import AppToast from '../Components/AppToast.vue';
 import AssistantWidget from '../Components/AssistantWidget.vue';
@@ -15,6 +15,133 @@ const currentPath = computed(() => page.url.split('?')[0]);
 const mobileMenuOpen = ref(false);
 const expanded = ref({});
 const logoutForm = useForm({});
+
+// Command-palette search
+const searchOpen = ref(false);
+const searchQ = ref('');
+const searchLoading = ref(false);
+const searchGroups = ref([]);
+const searchInput = ref(null);
+const searchHighlight = ref(0);
+let searchTimer;
+let searchAbort;
+let previousOverflow = '';
+
+const flatResults = computed(() =>
+    searchGroups.value.flatMap((g) => g.items.map((item) => ({ ...item, group: g.label }))),
+);
+
+async function runSearch(q) {
+    searchAbort?.abort();
+    if (!q || q.trim().length < 2) {
+        searchGroups.value = [];
+        searchLoading.value = false;
+        searchHighlight.value = 0;
+        return;
+    }
+    const controller = new AbortController();
+    searchAbort = controller;
+    searchLoading.value = true;
+    try {
+        const res = await fetch(`/search?q=${encodeURIComponent(q.trim())}`, {
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+            signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        searchGroups.value = data.groups || [];
+        searchHighlight.value = 0;
+    } catch (e) {
+        if (e?.name === 'AbortError') return;
+        searchGroups.value = [];
+    } finally {
+        if (searchAbort === controller) searchLoading.value = false;
+    }
+}
+
+function openSearch() {
+    searchOpen.value = true;
+}
+
+function closeSearch() {
+    searchOpen.value = false;
+}
+
+function onSearchInput() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => runSearch(searchQ.value), 280);
+}
+
+function clearSearchQuery() {
+    searchQ.value = '';
+    searchGroups.value = [];
+    searchHighlight.value = 0;
+    searchInput.value?.focus();
+}
+
+function pickResult(item) {
+    closeSearch();
+    if (item?.href) {
+        // Link click handles navigation; keyboard path uses router via <a>
+    }
+}
+
+function onPaletteKeydown(e) {
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        closeSearch();
+        return;
+    }
+    const items = flatResults.value;
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        searchHighlight.value = (searchHighlight.value + 1) % items.length;
+        return;
+    }
+    if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        searchHighlight.value = (searchHighlight.value - 1 + items.length) % items.length;
+        return;
+    }
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const hit = items[searchHighlight.value];
+        if (hit?.href) {
+            closeSearch();
+            window.location.assign(hit.href);
+        }
+    }
+}
+
+watch(searchOpen, async (open) => {
+    if (open) {
+        previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        await nextTick();
+        searchInput.value?.focus();
+        if (searchQ.value.trim().length >= 2) runSearch(searchQ.value);
+        return;
+    }
+    document.body.style.overflow = previousOverflow;
+    searchAbort?.abort();
+    clearTimeout(searchTimer);
+});
+
+function onGlobalKey(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        openSearch();
+    }
+}
+onMounted(() => window.addEventListener('keydown', onGlobalKey));
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', onGlobalKey);
+    clearTimeout(searchTimer);
+    searchAbort?.abort();
+    if (searchOpen.value) document.body.style.overflow = previousOverflow;
+});
 const sections = [
     {
         label: 'Dashboard',
@@ -251,7 +378,16 @@ function logout() { logoutForm.post('/logout'); }
 
         <header class="sticky top-0 z-30 flex h-16 items-center border-b border-outline-variant bg-surface px-4 lg:ml-64 lg:px-6">
             <button type="button" class="mr-3 rounded-lg p-2 text-primary lg:hidden" aria-label="Buka navigasi" @click="mobileMenuOpen = true"><AppIcon name="menu" /></button>
-            <div class="relative w-full max-w-md"><AppIcon name="search" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" /><input type="search" disabled placeholder="Pencarian segera tersedia" aria-label="Pencarian belum tersedia" class="w-full rounded-full border-0 bg-surface-container-low py-2 pr-4 pl-11 text-sm text-on-surface-variant disabled:cursor-not-allowed"></div>
+            <button
+                type="button"
+                class="flex w-full max-w-md items-center gap-3 rounded-full border-0 bg-surface-container-low py-2 pr-3 pl-3 text-left text-sm text-on-surface-variant transition hover:bg-surface-container focus:outline-none focus:ring-2 focus:ring-primary-container/30"
+                aria-label="Buka pencarian"
+                @click="openSearch"
+            >
+                <AppIcon name="search" class="text-on-surface-variant" />
+                <span class="min-w-0 flex-1 truncate">Cari anggota, kelompok, pinjaman…</span>
+                <kbd class="hidden rounded-md border border-outline-variant bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-on-surface-variant sm:inline">Ctrl K</kbd>
+            </button>
             <p v-if="props.unitName" class="ml-6 hidden items-center gap-2 text-sm font-bold text-primary xl:flex"><AppIcon name="location_on" class="text-secondary" />{{ props.unitName }}</p>
             <div class="ml-auto flex items-center gap-1 pl-3">
                 <button type="button" disabled class="rounded-full p-2 text-on-surface-variant" aria-label="Notifikasi belum tersedia"><AppIcon name="notifications" /></button>
@@ -261,6 +397,96 @@ function logout() { logoutForm.post('/logout'); }
         <main class="p-4 sm:p-6 lg:ml-64 lg:p-8"><slot /></main>
         <AssistantWidget v-if="assistantEnabled" />
         <AppToast />
+
+        <Teleport to="body">
+            <Transition name="cmdk">
+                <div
+                    v-if="searchOpen"
+                    class="fixed inset-0 z-[60] flex items-start justify-center bg-primary/50 p-4 pt-[12vh] sm:pt-[15vh]"
+                    role="presentation"
+                    @click.self="closeSearch"
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Pencarian"
+                        class="flex max-h-[min(36rem,75vh)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-2xl"
+                        @keydown="onPaletteKeydown"
+                    >
+                        <div class="flex shrink-0 items-center gap-2 border-b border-outline-variant px-3">
+                            <AppIcon name="search" class="text-xl text-on-surface-variant" />
+                            <input
+                                ref="searchInput"
+                                v-model="searchQ"
+                                type="search"
+                                placeholder="Cari anggota, kelompok, pinjaman…"
+                                aria-label="Kata kunci pencarian"
+                                class="h-14 min-w-0 flex-1 border-0 bg-transparent text-base text-primary placeholder:text-on-surface-variant focus:outline-none focus:ring-0"
+                                autocomplete="off"
+                                @input="onSearchInput"
+                            />
+                            <button
+                                v-if="searchQ"
+                                type="button"
+                                class="grid size-9 shrink-0 place-items-center rounded-full text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
+                                aria-label="Hapus kata kunci"
+                                @click="clearSearchQuery"
+                            >
+                                <AppIcon name="close" class="text-xl" />
+                            </button>
+                            <button
+                                v-else
+                                type="button"
+                                class="grid size-9 shrink-0 place-items-center rounded-full text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
+                                aria-label="Tutup pencarian"
+                                @click="closeSearch"
+                            >
+                                <AppIcon name="close" class="text-xl" />
+                            </button>
+                        </div>
+
+                        <div class="min-h-0 flex-1 overflow-y-auto py-2" role="listbox">
+                            <p v-if="searchQ.trim().length < 2" class="px-4 py-10 text-center text-sm text-on-surface-variant">
+                                Ketik minimal 2 karakter untuk mencari.
+                            </p>
+                            <p v-else-if="searchLoading" class="px-4 py-10 text-center text-sm text-on-surface-variant">Mencari…</p>
+                            <template v-else-if="searchGroups.length">
+                                <div v-for="group in searchGroups" :key="group.key" class="mb-1">
+                                    <p class="px-4 py-1.5 text-xs font-semibold text-on-surface-variant">{{ group.label }}</p>
+                                    <Link
+                                        v-for="(item, idx) in group.items"
+                                        :key="`${group.key}-${idx}`"
+                                        :href="item.href"
+                                        role="option"
+                                        class="mx-2 flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors"
+                                        :class="flatResults[searchHighlight]?.href === item.href && flatResults[searchHighlight]?.title === item.title
+                                            ? 'bg-primary-container/40 text-primary'
+                                            : 'text-on-surface hover:bg-surface-container-low'"
+                                        @mouseenter="searchHighlight = flatResults.findIndex((r) => r.href === item.href && r.title === item.title)"
+                                        @click="pickResult(item)"
+                                    >
+                                        <AppIcon :name="item.icon || 'search'" class="shrink-0 text-xl text-primary" />
+                                        <span class="min-w-0 flex-1">
+                                            <span class="block truncate text-sm font-semibold">{{ item.title }}</span>
+                                            <span v-if="item.subtitle" class="block truncate text-xs text-on-surface-variant">{{ item.subtitle }}</span>
+                                        </span>
+                                    </Link>
+                                </div>
+                            </template>
+                            <p v-else class="px-4 py-10 text-center text-sm text-on-surface-variant">
+                                Tidak ada hasil untuk “{{ searchQ.trim() }}”.
+                            </p>
+                        </div>
+
+                        <div class="flex shrink-0 items-center gap-3 border-t border-outline-variant px-4 py-2 text-[11px] text-on-surface-variant">
+                            <span><kbd class="rounded border border-outline-variant px-1 font-mono">↑↓</kbd> pilih</span>
+                            <span><kbd class="rounded border border-outline-variant px-1 font-mono">Enter</kbd> buka</span>
+                            <span><kbd class="rounded border border-outline-variant px-1 font-mono">Esc</kbd> tutup</span>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
     </div>
 </template>
 
@@ -280,9 +506,31 @@ function logout() { logoutForm.post('/logout'); }
     transform: translateY(-0.25rem);
 }
 
+.cmdk-enter-active,
+.cmdk-leave-active {
+    transition: opacity 160ms ease;
+}
+.cmdk-enter-active > div,
+.cmdk-leave-active > div {
+    transition: transform 160ms ease, opacity 160ms ease;
+}
+.cmdk-enter-from,
+.cmdk-leave-to {
+    opacity: 0;
+}
+.cmdk-enter-from > div,
+.cmdk-leave-to > div {
+    opacity: 0;
+    transform: translateY(-0.5rem) scale(0.98);
+}
+
 @media (prefers-reduced-motion: reduce) {
     .sidebar-menu-enter-active,
-    .sidebar-menu-leave-active {
+    .sidebar-menu-leave-active,
+    .cmdk-enter-active,
+    .cmdk-leave-active,
+    .cmdk-enter-active > div,
+    .cmdk-leave-active > div {
         transition: none;
     }
 }

@@ -15,6 +15,7 @@ use App\Http\Controllers\MasterData\MemberController;
 use App\Http\Controllers\MasterData\OtherInstitutionController;
 use App\Http\Controllers\Assets\AssetController;
 use App\Http\Controllers\MasterData\VillageController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\InvoiceController as AdminInvoiceController;
 use App\Http\Controllers\Admin\InvoicePaymentController as AdminInvoicePaymentController;
@@ -93,6 +94,8 @@ Route::middleware(['auth', 'tenant'])->group(function (): void {
         ->name('assistant.embed-token');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('/search', SearchController::class)->name('search');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'updateProfile'])->name('profile.update');
