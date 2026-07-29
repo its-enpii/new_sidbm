@@ -78,7 +78,7 @@ const sections = [
             },
             { label: 'Taksiran Pajak', icon: 'request_quote', href: '/accounting/tax-estimate' },
             { label: 'Notifikasi Tagihan', icon: 'sms', href: '/notifications/billing' },
-            { label: 'Tutup Buku', icon: 'menu_book' },
+            { label: 'Tutup Buku', icon: 'menu_book', href: '/accounting/period-close' },
             {
                 key: 'reports',
                 label: 'Pelaporan',

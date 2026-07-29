@@ -169,6 +169,14 @@ Route::middleware(['auth', 'tenant'])->group(function (): void {
         Route::get('/loans/{loan}/group-detail', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'loanGroupDetail'])->name('loans.group-detail');
         Route::get('/loans/{loan}/installment-history', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'loanInstallmentHistory'])->name('loans.installment-history');
         Route::get('/loans/{loan}/member-options', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'groupMemberOptions'])->name('loans.member-options');
+        Route::get('/period-close', [\App\Http\Controllers\Accounting\PeriodCloseController::class, 'index'])->name('period-close.index');
+        Route::post('/period-close/{year}/{month}/close', [\App\Http\Controllers\Accounting\PeriodCloseController::class, 'closeMonth'])
+            ->whereNumber(['year', 'month'])
+            ->name('period-close.month.close');
+        Route::post('/period-close/{year}/{month}/reopen', [\App\Http\Controllers\Accounting\PeriodCloseController::class, 'reopenMonth'])
+            ->whereNumber(['year', 'month'])
+            ->name('period-close.month.reopen');
+        Route::post('/period-close/year', [\App\Http\Controllers\Accounting\PeriodCloseController::class, 'closeYear'])->name('period-close.year');
     });
 
     Route::prefix('budgeting')->name('budgeting.')->group(function (): void {
