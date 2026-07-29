@@ -325,11 +325,6 @@ function submitAllocation() {
                         </tbody>
                     </table>
                 </div>
-                <div class="flex justify-end border-t border-outline-variant px-4 py-3">
-                    <AppButton variant="secondary" size="compact" @click="tab = 'year'">
-                        Lanjut: saldo awal →
-                    </AppButton>
-                </div>
             </AppCard>
 
             <!-- TAB 2: year close — aksi di bawah (sama seperti tab lain) -->
@@ -405,23 +400,16 @@ function submitAllocation() {
                         label="Paksa tulis ulang"
                         description="Timpa saldo awal tahun berikutnya yang sudah ada"
                     />
-                    <div class="flex flex-wrap items-center justify-between gap-2">
-                        <AppButton variant="ghost" size="compact" @click="tab = 'periods'">← Periode</AppButton>
-                        <div class="flex flex-wrap items-center gap-2">
-                            <AppButton
-                                v-if="can_close"
-                                variant="primary"
-                                size="compact"
-                                :loading="yearForm.processing"
-                                :disabled="!can_close_year || yearForm.processing"
-                                @click="closeYear"
-                            >
-                                Tutup tahun {{ year }}
-                            </AppButton>
-                            <AppButton variant="secondary" size="compact" @click="tab = 'allocate'">
-                                Lanjut: alokasi laba →
-                            </AppButton>
-                        </div>
+                    <div v-if="can_close" class="flex justify-end">
+                        <AppButton
+                            variant="primary"
+                            size="compact"
+                            :loading="yearForm.processing"
+                            :disabled="!can_close_year || yearForm.processing"
+                            @click="closeYear"
+                        >
+                            Tutup tahun {{ year }}
+                        </AppButton>
                     </div>
                 </div>
             </AppCard>
@@ -637,10 +625,7 @@ function submitAllocation() {
                     </p>
                 </template>
 
-                <div class="flex justify-start border-t border-outline-variant px-4 py-3">
-                    <AppButton variant="ghost" size="compact" @click="tab = 'year'">← Saldo awal</AppButton>
-                </div>
-            </AppCard>
+                </AppCard>
         </div>
     </AuthenticatedLayout>
 </template>
