@@ -169,6 +169,7 @@ Route::middleware(['auth', 'tenant'])->group(function (): void {
         Route::get('/loans/{loan}/group-detail', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'loanGroupDetail'])->name('loans.group-detail');
         Route::get('/loans/{loan}/installment-history', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'loanInstallmentHistory'])->name('loans.installment-history');
         Route::get('/loans/{loan}/member-options', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'groupMemberOptions'])->name('loans.member-options');
+        Route::get('/chart-of-accounts', [\App\Http\Controllers\Accounting\ChartOfAccountsController::class, 'index'])->name('chart-of-accounts.index');
         Route::get('/period-close', [\App\Http\Controllers\Accounting\PeriodCloseController::class, 'index'])->name('period-close.index');
         Route::post('/period-close/{year}/{month}/close', [\App\Http\Controllers\Accounting\PeriodCloseController::class, 'closeMonth'])
             ->whereNumber(['year', 'month'])

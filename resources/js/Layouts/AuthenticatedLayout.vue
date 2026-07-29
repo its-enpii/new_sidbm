@@ -76,6 +76,7 @@ const sections = [
                     { label: 'Jurnal Angsuran', href: '/accounting/journal-entries/installment' },
                 ],
             },
+            { label: 'Bagan Akun', icon: 'account_tree', href: '/accounting/chart-of-accounts' },
             { label: 'Taksiran Pajak', icon: 'request_quote', href: '/accounting/tax-estimate' },
             { label: 'Notifikasi Tagihan', icon: 'sms', href: '/notifications/billing' },
             { label: 'Tutup Buku', icon: 'menu_book', href: '/accounting/period-close' },
