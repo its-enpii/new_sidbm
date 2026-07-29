@@ -18,6 +18,7 @@ const props = defineProps({
     loading: { type: Boolean, default: false },
     valueKey: { type: String, default: 'value' },
     labelKey: { type: String, default: 'label' },
+    groupKey: { type: String, default: 'group' },
     id: { type: String, default: null },
     hideLabel: { type: Boolean, default: false },
     emptyActionLabel: { type: String, default: null },
@@ -51,12 +52,38 @@ const visibleOptions = computed(() => {
 
     if (!query) return filtered;
 
-    return filtered.filter((option) => String(option[props.labelKey]).toLocaleLowerCase().includes(query));
+    return filtered.filter((option) => {
+        const label = String(option[props.labelKey]).toLocaleLowerCase();
+        const group = String(option[props.groupKey] ?? '').toLocaleLowerCase();
+        return label.includes(query) || group.includes(query);
+    });
+});
+
+/** Flat list for keyboard nav; grouped rows for render (header + options). */
+const visibleRows = computed(() => {
+    const opts = visibleOptions.value;
+    const hasGroup = opts.some((o) => o[props.groupKey]);
+    if (!hasGroup) {
+        return opts.map((option, index) => ({ kind: 'option', option, index }));
+    }
+
+    const rows = [];
+    let index = 0;
+    let lastGroup = Symbol('start');
+    for (const option of opts) {
+        const group = option[props.groupKey] || '';
+        if (group !== lastGroup) {
+            rows.push({ kind: 'header', label: group || 'Lainnya' });
+            lastGroup = group;
+        }
+        rows.push({ kind: 'option', option, index: index++ });
+    }
+    return rows;
 });
 
 function estimatedPopupHeight() {
     const itemHeight = 36;
-    const optionHeight = Math.min(visibleOptions.value.length, 7) * itemHeight;
+    const optionHeight = Math.min(visibleRows.value.length, 8) * itemHeight;
     const searchHeight = props.searchable ? 52 : 0;
     return optionHeight + searchHeight + 16;
 }
@@ -246,7 +273,28 @@ watch(() => props.modelValue, () => rememberSelected());
                     <div class="min-h-0 flex-1 overflow-y-auto">
                         <div v-if="loading" class="px-3 py-4 text-center text-sm text-on-surface-variant">Memuat...</div>
                         <template v-else>
-                            <button v-for="(option, index) in visibleOptions" :id="`${selectId}-option-${index}`" :key="String(option[valueKey])" type="button" role="option" :aria-selected="String(option[valueKey]) === String(modelValue)" class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-container-low" :class="index === highlighted ? 'bg-surface-container-low text-primary' : 'text-on-surface'" @mouseenter="highlighted = index" @click="choose(option)">{{ option[labelKey] }}</button>
+                            <template v-for="(row, rowIndex) in visibleRows" :key="row.kind === 'header' ? `h-${row.label}-${rowIndex}` : String(row.option[valueKey])">
+                                <div
+                                    v-if="row.kind === 'header'"
+                                    class="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant first:pt-1"
+                                    role="presentation"
+                                >
+                                    {{ row.label }}
+                                </div>
+                                <button
+                                    v-else
+                                    :id="`${selectId}-option-${row.index}`"
+                                    type="button"
+                                    role="option"
+                                    :aria-selected="String(row.option[valueKey]) === String(modelValue)"
+                                    class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-container-low"
+                                    :class="row.index === highlighted ? 'bg-surface-container-low text-primary' : 'text-on-surface'"
+                                    @mouseenter="highlighted = row.index"
+                                    @click="choose(row.option)"
+                                >
+                                    {{ row.option[labelKey] }}
+                                </button>
+                            </template>
                             <button v-if="!visibleOptions.length && emptyActionLabel && search.trim()" type="button" class="flex w-full items-center gap-2 rounded-lg px-3 py-3 text-left text-sm font-semibold text-primary hover:bg-surface-container-low focus:bg-surface-container-low focus:outline-none" @click="runEmptyAction"><AppIcon name="person_add" class="text-xl" />{{ emptyActionLabel }}</button>
                             <div v-else-if="!visibleOptions.length" class="px-3 py-4 text-center text-sm text-on-surface-variant">Tidak ada opsi.</div>
                         </template>

@@ -22,6 +22,7 @@ const props = defineProps({
     accountOptions: { type: Array, required: true },
     today: { type: String, required: true },
     history: { type: Object, default: null },
+    presetType: { type: String, default: null },
 });
 
 const page = usePage();
@@ -29,7 +30,7 @@ const pagePath = '/accounting/journal-entries/create';
 const path = '/accounting/journal-entries';
 const form = useForm({
     transaction_date: props.today,
-    transaction_type: '',
+    transaction_type: props.presetType || '',
     description: '',
     reference: '',
     amount: '',
@@ -41,8 +42,23 @@ const form = useForm({
     asset_useful_life_months: '',
 });
 
+const ASSET_PURCHASE_TYPES = [
+    'pembelian_aset_tanah',
+    'pembelian_aset_gedung',
+    'pembelian_aset_kendaraan',
+    'pembelian_aset_peralatan',
+    'pembelian_inventaris', // legacy
+];
+const DEFAULT_LIFE = {
+    pembelian_aset_tanah: 0,
+    pembelian_aset_gedung: 240,
+    pembelian_aset_kendaraan: 60,
+    pembelian_aset_peralatan: 48,
+    pembelian_inventaris: 48,
+};
+
 const currentType = computed(() => form.transaction_type);
-const isInventory = computed(() => currentType.value === 'pembelian_inventaris');
+const isInventory = computed(() => ASSET_PURCHASE_TYPES.includes(currentType.value));
 const sumberDanaLabel = computed(() => (props.labels[currentType.value]?.sumber_dana ?? 'Sumber Dana'));
 const disimpanKeLabel = computed(() => (props.labels[currentType.value]?.disimpan_ke ?? 'Disimpan Ke'));
 const sumberDanaOptions = computed(() => props.options[currentType.value]?.sumber_dana ?? []);
@@ -55,7 +71,17 @@ const acquisitionCost = computed(() => {
     return Math.round(qty * unit);
 });
 
-watch(currentType, () => {
+function optionValue(opt) {
+    return opt?.value ?? opt?.row_id ?? '';
+}
+
+function autoPickSingle(options, field) {
+    if (!Array.isArray(options) || options.length !== 1) return;
+    const only = optionValue(options[0]);
+    if (only !== '' && only != null) form[field] = only;
+}
+
+watch(currentType, (type, prev) => {
     form.sumber_dana_row_id = '';
     form.disimpan_ke_row_id = '';
     if (!isInventory.value) {
@@ -63,8 +89,16 @@ watch(currentType, () => {
         form.asset_quantity = '';
         form.asset_unit_cost = '';
         form.asset_useful_life_months = '';
+    } else if (type !== prev) {
+        // Default umur eko per jenis (tanah = 0).
+        const life = DEFAULT_LIFE[type];
+        if (life !== undefined) form.asset_useful_life_months = life;
+        if (!form.asset_quantity) form.asset_quantity = 1;
     }
-});
+    // Single-option COA (1 debit account per purchase type) → auto-select.
+    autoPickSingle(sumberDanaOptions.value, 'sumber_dana_row_id');
+    autoPickSingle(disimpanKeOptions.value, 'disimpan_ke_row_id');
+}, { immediate: true });
 
 watch(acquisitionCost, (value) => {
     if (!isInventory.value) return;
@@ -301,7 +335,16 @@ function openHistoryModal() {
                         </div>
                         <div class="grid gap-4 sm:grid-cols-3">
                             <AppCurrencyInput v-model="form.asset_unit_cost" label="Harga Satuan" icon="payments" :min="1" required :error="form.errors.asset_unit_cost" placeholder="0" />
-                            <AppInput v-model="form.asset_useful_life_months" label="Umur Eko. (bulan)" type="number" min="1" required :error="form.errors.asset_useful_life_months" placeholder="36" />
+                            <AppInput
+                                v-model="form.asset_useful_life_months"
+                                label="Umur Eko. (bulan)"
+                                type="number"
+                                :min="currentType === 'pembelian_aset_tanah' ? 0 : 1"
+                                required
+                                :error="form.errors.asset_useful_life_months"
+                                :placeholder="currentType === 'pembelian_aset_tanah' ? '0' : '48'"
+                                :hint="currentType === 'pembelian_aset_tanah' ? 'Tanah: 0 = tidak disusutkan' : null"
+                            />
                             <AppCurrencyInput v-model="form.amount" label="Harga Perolehan" icon="payments" :min="1" required readonly :error="form.errors.amount" placeholder="0" hint="Otomatis: unit × harga satuan" />
                         </div>
                     </template>

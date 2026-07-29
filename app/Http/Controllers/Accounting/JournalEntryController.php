@@ -9,7 +9,7 @@ use App\Domain\Accounting\Models\JournalEntry;
 use App\Domain\Accounting\Services\InstallmentReceiptService;
 use App\Domain\Accounting\Services\JournalEntryOptionResolver;
 use App\Domain\Accounting\Services\JournalPostingService;
-use App\Domain\Assets\Models\Asset;
+use App\Domain\Assets\Services\AssetService;
 use App\Domain\Lending\Models\Loan;
 use App\Domain\Lending\Services\LoanService;
 use App\Domain\Lending\Services\LoanTrackingService;
@@ -39,14 +39,21 @@ final class JournalEntryController
     public function create(Request $request, TenantContext $context): Response
     {
         $history = $this->resolveHistory($request, $context);
+        $types = $this->resolver->getTransactionTypes();
+        $allowed = array_column($types, 'value');
+        $preset = (string) $request->query('type', '');
+        if ($preset !== '' && ! in_array($preset, $allowed, true)) {
+            $preset = '';
+        }
 
         return Inertia::render('Accounting/JournalEntries/Create', [
-            'transactionTypes' => $this->resolver->getTransactionTypes(),
+            'transactionTypes' => $types,
             'labels' => $this->resolver->getLabels(),
             'options' => $this->resolver->getOptionsForAllTypes(),
             'accountOptions' => $this->resolver->getAllAccountOptions(),
             'today' => now()->toDateString(),
             'history' => $history,
+            'presetType' => $preset !== '' ? $preset : null,
         ]);
     }
 
@@ -54,7 +61,7 @@ final class JournalEntryController
     {
         $data = $request->validated();
         $userId = (int) $request->user()->row_id;
-        $isInventory = ($data['transaction_type'] ?? '') === 'pembelian_inventaris';
+        $isInventory = JournalEntryOptionResolver::isAssetPurchase($data['transaction_type'] ?? null);
 
         if ($isInventory) {
             $qty = (int) ($data['asset_quantity'] ?? 0);
@@ -99,18 +106,15 @@ final class JournalEntryController
             ]);
 
             if ($isInventory) {
-                $asset = Asset::query()->create([
-                    'organization_unit_row_id' => null,
-                    'asset_category_row_id' => null,
-                    'asset_code' => null,
+                // Register inventaris ikut jurnal (sama alur legacy) — daftar di /assets.
+                $asset = app(AssetService::class)->create([
                     'name' => (string) $data['asset_name'],
                     'purchased_at' => $data['transaction_date'],
                     'quantity' => (int) $data['asset_quantity'],
                     'unit_cost' => (float) $data['asset_unit_cost'],
                     'useful_life_months' => (int) $data['asset_useful_life_months'],
                     'status' => 'good',
-                    'validated_at' => null,
-                ]);
+                ], $userId);
 
                 $entry->update(['source_row_id' => (int) $asset->row_id]);
             }

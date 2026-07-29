@@ -8,21 +8,56 @@ use App\Domain\Accounting\Models\Account;
 
 final class JournalEntryOptionResolver
 {
+    /** Jenis beli aset → akun debit COA 1.2.01.xx (auto-select). */
+    public const ASSET_PURCHASE_TYPES = [
+        'pembelian_aset_tanah' => '1.2.01.01',
+        'pembelian_aset_gedung' => '1.2.01.02',
+        'pembelian_aset_kendaraan' => '1.2.01.03',
+        'pembelian_aset_peralatan' => '1.2.01.04',
+    ];
+
+    /** Default umur ekonomis (bulan); tanah = 0 (tidak disusutkan). */
+    public const ASSET_PURCHASE_DEFAULT_LIFE = [
+        'pembelian_aset_tanah' => 0,
+        'pembelian_aset_gedung' => 240,
+        'pembelian_aset_kendaraan' => 60,
+        'pembelian_aset_peralatan' => 48,
+    ];
+
     public const TYPES = [
         'aset_masuk' => 'Aset Masuk',
         'aset_keluar' => 'Aset Keluar',
         'pemindahan_saldo' => 'Pemindahan Saldo/Aset',
-        'pembelian_inventaris' => 'Pembelian Inventaris',
+        'pembelian_aset_tanah' => 'Pembelian Aset Tanah',
+        'pembelian_aset_gedung' => 'Pembelian Aset Gedung & Bangunan',
+        'pembelian_aset_kendaraan' => 'Pembelian Aset Kendaraan & Mesin',
+        'pembelian_aset_peralatan' => 'Pembelian Aset Inventaris/Peralatan',
         'penyusutan_inventaris' => 'Penyusutan Inventaris',
         'cadangan_kerugian_piutang' => 'Cadangan Kerugian Piutang',
-        'angsuran' => 'Jurnal Angsuran',
+        // 'angsuran' sengaja tidak di TYPES UI — input lewat /journal-entries/installment
+    ];
+
+    /** @var array<string, string> optgroup labels for UI */
+    public const TYPE_GROUPS = [
+        'aset_masuk' => 'Umum',
+        'aset_keluar' => 'Umum',
+        'pemindahan_saldo' => 'Umum',
+        'pembelian_aset_tanah' => 'Pembelian Aset',
+        'pembelian_aset_gedung' => 'Pembelian Aset',
+        'pembelian_aset_kendaraan' => 'Pembelian Aset',
+        'pembelian_aset_peralatan' => 'Pembelian Aset',
+        'penyusutan_inventaris' => 'Penyesuaian',
+        'cadangan_kerugian_piutang' => 'Penyesuaian',
     ];
 
     public const LABELS = [
         'aset_masuk' => ['sumber_dana' => 'Sumber Dana', 'disimpan_ke' => 'Disimpan Ke'],
         'aset_keluar' => ['sumber_dana' => 'Sumber Dana', 'disimpan_ke' => 'Keperluan'],
         'pemindahan_saldo' => ['sumber_dana' => 'Sumber Dana', 'disimpan_ke' => 'Disimpan Ke'],
-        'pembelian_inventaris' => ['sumber_dana' => 'Sumber Dana', 'disimpan_ke' => 'Disimpan Ke'],
+        'pembelian_aset_tanah' => ['sumber_dana' => 'Sumber Dana', 'disimpan_ke' => 'Akun Tanah'],
+        'pembelian_aset_gedung' => ['sumber_dana' => 'Sumber Dana', 'disimpan_ke' => 'Akun Gedung'],
+        'pembelian_aset_kendaraan' => ['sumber_dana' => 'Sumber Dana', 'disimpan_ke' => 'Akun Kendaraan'],
+        'pembelian_aset_peralatan' => ['sumber_dana' => 'Sumber Dana', 'disimpan_ke' => 'Akun Inventaris'],
         'penyusutan_inventaris' => ['sumber_dana' => 'Sumber Dana', 'disimpan_ke' => 'Disimpan Ke'],
         'cadangan_kerugian_piutang' => ['sumber_dana' => 'Sumber Dana', 'disimpan_ke' => 'Disimpan Ke'],
         'angsuran' => ['sumber_dana' => 'Tujuan', 'disimpan_ke' => 'Akun Kredit'],
@@ -49,6 +84,31 @@ final class JournalEntryOptionResolver
         'pemindahan_saldo:disimpan_ke' => [
             'exclude_codes' => ['1.1.03.01', '1.1.03.02', '1.1.03.03'],
         ],
+        'pembelian_aset_tanah:sumber_dana' => [
+            'starts_with' => ['1.1.01'],
+        ],
+        'pembelian_aset_tanah:disimpan_ke' => [
+            'exact' => '1.2.01.01',
+        ],
+        'pembelian_aset_gedung:sumber_dana' => [
+            'starts_with' => ['1.1.01'],
+        ],
+        'pembelian_aset_gedung:disimpan_ke' => [
+            'exact' => '1.2.01.02',
+        ],
+        'pembelian_aset_kendaraan:sumber_dana' => [
+            'starts_with' => ['1.1.01'],
+        ],
+        'pembelian_aset_kendaraan:disimpan_ke' => [
+            'exact' => '1.2.01.03',
+        ],
+        'pembelian_aset_peralatan:sumber_dana' => [
+            'starts_with' => ['1.1.01'],
+        ],
+        'pembelian_aset_peralatan:disimpan_ke' => [
+            'exact' => '1.2.01.04',
+        ],
+        // Legacy type (jurnal lama) — keep filter working if still posted
         'pembelian_inventaris:sumber_dana' => [
             'starts_with' => ['1.1.01'],
         ],
@@ -75,14 +135,26 @@ final class JournalEntryOptionResolver
         ],
     ];
 
+    public static function isAssetPurchase(?string $type): bool
+    {
+        return is_string($type) && (
+            isset(self::ASSET_PURCHASE_TYPES[$type])
+            || $type === 'pembelian_inventaris'
+        );
+    }
+
     /**
-     * @return array<int, array{value: string, label: string}>
+     * @return array<int, array{value: string, label: string, group?: string}>
      */
     public function getTransactionTypes(): array
     {
         $types = [];
         foreach (self::TYPES as $value => $label) {
-            $types[] = ['value' => $value, 'label' => $label];
+            $row = ['value' => $value, 'label' => $label];
+            if (isset(self::TYPE_GROUPS[$value])) {
+                $row['group'] = self::TYPE_GROUPS[$value];
+            }
+            $types[] = $row;
         }
 
         return $types;

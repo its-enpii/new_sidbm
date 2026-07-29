@@ -54,7 +54,7 @@ Script: `docker exec new_sidbm-app-1 php scripts/smoke_pilot_local.php`
 | Arus kas / LPM / CALK / kartu angsuran | ✅ P1 | — |
 | Tutup buku | ✅ P2.1 close/reopen + year openings + **alokasi laba** | — |
 | COA UI | ✅ P2.2 read-only (mutasi pusat) | — |
-| Aset / inventaris UI | Model only | P2.3 |
+| Aset / inventaris UI | ✅ P2.3 register + nilai buku | — |
 | Migrasi data pilot | Hijau | Bukan fitur harian |
 | Tenant #2+ | Belum | P2.4 setelah metric pilot |
 
@@ -94,7 +94,7 @@ Script: `docker exec new_sidbm-app-1 php scripts/smoke_pilot_local.php`
 |---|---|
 | P2.1 | ✅ Tutup buku — `/accounting/period-close`: close/reopen, year openings, alokasi laba → jurnal `profit_allocation` (2.1.04.01/02/03 + 3.2.01.01). |
 | P2.2 | ✅ COA UI read-only `/accounting/chart-of-accounts` — filter jenis/status/cari; mutasi akun = pusat |
-| P2.3 | Aset / inventaris UI + ATI/ATB |
+| P2.3 | ✅ Inventaris: **beli** = Jurnal Umum `pembelian_inventaris`; **register** `/accounting/assets` list/detail/status/nilai buku. |
 | P2.4 | Cutover tenant #2+ (setelah P0 pilot hijau) |
 
 ### P3 — Bukan blocking
@@ -109,9 +109,9 @@ Search global, lonceng notifikasi, holding/kab multi-tenant reports, 1:1 semua s
 |---|---|
 | A Foundation | hijau |
 | B Membership | hijau ops + detail entity + riwayat pinjaman |
-| C Accounting | posting/report/list/reverse/tutup+alokasi+COA view hijau; assets UI P2.3 |
+| C Accounting | posting/report/list/reverse/tutup+alokasi+COA view hijau |
 | D Lending | lifecycle + cetak + portofolio/RvsR/kartu hijau |
-| E Supporting | budget/settings hijau; assets/docs depth bolong (P2) |
+| E Supporting | budget/settings/inventaris hijau; docs depth P3 |
 | F Migration | pilot hijau — **bukan** yang nahan user pindah |
 
 ---
@@ -139,3 +139,4 @@ Search global, lonceng notifikasi, holding/kab multi-tenant reports, 1:1 semua s
 | 2026-07-29 | Sync status workstream C/D (P0+P1 hijau). |
 | 2026-07-29 | **P2.1** tutup buku + alokasi laba (`ProfitAllocationService`). Next: P2.2 COA UI. |
 | 2026-07-29 | **P2.2** COA read-only (aturan pusat: no CRUD tenant). Next: P2.3 aset UI. |
+| 2026-07-29 | **P2.3** inventaris: beli via jurnal umum; `/assets` register/nilai buku/status (`AssetService`). |

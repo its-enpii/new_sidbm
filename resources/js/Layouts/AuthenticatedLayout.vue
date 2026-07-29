@@ -65,21 +65,29 @@ const sections = [
     {
         label: 'Keuangan',
         items: [
-            { label: 'E-Budgeting', icon: 'account_balance_wallet', href: '/budgeting' },
             {
                 key: 'transactions',
                 label: 'Transaksi',
                 icon: 'receipt_long',
                 children: [
                     { label: 'Daftar Jurnal', href: '/accounting/journals' },
+                    { label: 'Daftar Inventaris', href: '/accounting/assets' },
                     { label: 'Jurnal Umum', href: '/accounting/journal-entries/create' },
                     { label: 'Jurnal Angsuran', href: '/accounting/journal-entries/installment' },
                 ],
             },
             { label: 'Bagan Akun', icon: 'account_tree', href: '/accounting/chart-of-accounts' },
-            { label: 'Taksiran Pajak', icon: 'request_quote', href: '/accounting/tax-estimate' },
-            { label: 'Notifikasi Tagihan', icon: 'sms', href: '/notifications/billing' },
-            { label: 'Tutup Buku', icon: 'menu_book', href: '/accounting/period-close' },
+            {
+                key: 'finance-periodic',
+                label: 'Periodik',
+                icon: 'event_note',
+                children: [
+                    { label: 'E-Budgeting', href: '/budgeting' },
+                    { label: 'Tutup Buku', href: '/accounting/period-close' },
+                    { label: 'Taksiran Pajak', href: '/accounting/tax-estimate' },
+                    { label: 'Notifikasi Tagihan', href: '/notifications/billing' },
+                ],
+            },
             {
                 key: 'reports',
                 label: 'Pelaporan',

@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Accounting;
 
-use App\Http\Requests\Concerns\AuthorizesPermission;
 use App\Domain\Accounting\Models\Account;
+use App\Domain\Accounting\Services\JournalEntryOptionResolver;
+use App\Http\Requests\Concerns\AuthorizesPermission;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -18,11 +19,14 @@ final class JournalEntryRequest extends FormRequest
         'aset_masuk',
         'aset_keluar',
         'pemindahan_saldo',
-        'pembelian_inventaris',
+        'pembelian_aset_tanah',
+        'pembelian_aset_gedung',
+        'pembelian_aset_kendaraan',
+        'pembelian_aset_peralatan',
+        'pembelian_inventaris', // legacy
         'penyusutan_inventaris',
         'cadangan_kerugian_piutang',
     ];
-
 
     public function rules(): array
     {
@@ -30,7 +34,9 @@ final class JournalEntryRequest extends FormRequest
         $level4Exists = Rule::exists(Account::class, 'row_id')
             ->where(fn ($query) => $query->where('tenant_id', $tenantId)->where('is_active', true)->where('is_postable', true));
 
-        $inventory = $this->input('transaction_type') === 'pembelian_inventaris';
+        $type = (string) $this->input('transaction_type', '');
+        $inventory = JournalEntryOptionResolver::isAssetPurchase($type);
+        $isLand = $type === 'pembelian_aset_tanah';
 
         return [
             'transaction_date' => ['required', 'date', 'before_or_equal:today'],
@@ -40,18 +46,23 @@ final class JournalEntryRequest extends FormRequest
             'amount' => ['required', 'numeric', 'min:1'],
             'sumber_dana_row_id' => ['required', 'integer', 'different:disimpan_ke_row_id', $level4Exists],
             'disimpan_ke_row_id' => ['required', 'integer', 'different:sumber_dana_row_id', $level4Exists],
-            // Pembelian inventaris
             'asset_name' => [$inventory ? 'required' : 'nullable', 'string', 'max:180'],
             'asset_quantity' => [$inventory ? 'required' : 'nullable', 'integer', 'min:1', 'max:999999'],
             'asset_unit_cost' => [$inventory ? 'required' : 'nullable', 'numeric', 'min:1'],
-            'asset_useful_life_months' => [$inventory ? 'required' : 'nullable', 'integer', 'min:1', 'max:1200'],
+            // Tanah: 0 / null = tidak disusutkan; lainnya min 1.
+            'asset_useful_life_months' => [
+                $inventory ? 'required' : 'nullable',
+                'integer',
+                $isLand ? 'min:0' : 'min:1',
+                'max:1200',
+            ],
         ];
     }
 
     public function withValidator($validator): void
     {
         $validator->after(function ($validator): void {
-            if ($this->input('transaction_type') !== 'pembelian_inventaris') {
+            if (! JournalEntryOptionResolver::isAssetPurchase((string) $this->input('transaction_type', ''))) {
                 return;
             }
 

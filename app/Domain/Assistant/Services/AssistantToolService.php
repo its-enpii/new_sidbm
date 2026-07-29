@@ -7,6 +7,7 @@ namespace App\Domain\Assistant\Services;
 use App\Domain\Access\Services\PermissionChecker;
 use App\Domain\Accounting\Models\Account;
 use App\Domain\Accounting\Models\JournalEntry;
+use App\Domain\Accounting\Services\JournalEntryOptionResolver;
 use App\Domain\Accounting\Services\JournalPostingService;
 use App\Domain\Accounting\Services\JournalReversalService;
 use DomainException;
@@ -1287,13 +1288,8 @@ final class AssistantToolService
     /**
      * General journal → posted.
      *
-     * Supports pembelian_inventaris (creates Asset) — same rules as UI:
-     * debit = inventaris (1.2.01.*), credit = kas (1.1.01.*).
-     *
-     * Natural language helpers (for the LLM / missing fields):
-     *  - asset_name present or type=pembelian_inventaris → inventory path
-     *  - account row ids optional: resolved from code / asset name heuristics
-     *  - useful life defaulted by asset kind (vehicle vs equipment)
+     * Supports pembelian_aset_* (creates Asset) — same rules as UI:
+     * debit = 1.2.01.0x per kind, credit = kas (1.1.01.*).
      *
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
@@ -1316,14 +1312,20 @@ final class AssistantToolService
         $hintName = trim((string) ($params['asset_name'] ?? $params['description'] ?? ''));
         $type = (string) ($params['transaction_type'] ?? '');
         if ($type === '' && $hintName !== '' && $this->looksLikeInventoryPurchase($hintName, $params)) {
-            $type = 'pembelian_inventaris';
+            $code = $this->suggestInventoryAccountCode($hintName !== '' ? $hintName : (string) ($params['asset_name'] ?? ''));
+            $type = match ($code) {
+                '1.2.01.01' => 'pembelian_aset_tanah',
+                '1.2.01.02' => 'pembelian_aset_gedung',
+                '1.2.01.03' => 'pembelian_aset_kendaraan',
+                default => 'pembelian_aset_peralatan',
+            };
             $params['transaction_type'] = $type;
         }
         if ($type === '' && $this->looksLikeCashTransfer($hintName, $params)) {
             $type = 'pemindahan_saldo';
             $params['transaction_type'] = $type;
         }
-        $isInventory = $type === 'pembelian_inventaris';
+        $isInventory = JournalEntryOptionResolver::isAssetPurchase($type);
         $isTransfer = $type === 'pemindahan_saldo';
 
         if ($isInventory) {
@@ -1560,7 +1562,7 @@ final class AssistantToolService
             $params['amount'] = $amount;
         }
 
-        if (! isset($params['asset_useful_life_months']) || (int) $params['asset_useful_life_months'] <= 0) {
+        if (! isset($params['asset_useful_life_months']) || $params['asset_useful_life_months'] === '') {
             $params['asset_useful_life_months'] = $this->defaultUsefulLifeMonths((string) $params['asset_name']);
         }
 
@@ -1601,7 +1603,7 @@ final class AssistantToolService
             return 240;
         }
         if (str_contains($t, 'tanah')) {
-            return 1200; // non-depreciating; keep validation happy (max 1200)
+            return 0; // non-depreciating
         }
         // Inventaris/peralatan & elektronik
         foreach (['laptop', 'komputer', 'printer', 'monitor', 'hp', 'handphone'] as $kw) {

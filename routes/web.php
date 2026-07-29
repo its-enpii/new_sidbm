@@ -13,6 +13,7 @@ use App\Http\Controllers\Lending\LoanReportController;
 use App\Http\Controllers\MasterData\GroupController;
 use App\Http\Controllers\MasterData\MemberController;
 use App\Http\Controllers\MasterData\OtherInstitutionController;
+use App\Http\Controllers\Assets\AssetController;
 use App\Http\Controllers\MasterData\VillageController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\InvoiceController as AdminInvoiceController;
@@ -99,6 +100,11 @@ Route::middleware(['auth', 'tenant'])->group(function (): void {
     Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
     Route::delete('/profile/photo', [ProfileController::class, 'destroyPhoto'])->name('profile.photo.destroy');
 
+    // Legacy path → accounting namespace
+    Route::redirect('/assets', '/accounting/assets', 301);
+    Route::get('/assets/{asset}', fn (string $asset) => redirect("/accounting/assets/{$asset}", 301));
+    Route::get('/assets/{asset}/edit', fn (string $asset) => redirect("/accounting/assets/{$asset}/edit", 301));
+
     Route::get('/master-data/members', [MemberController::class, 'index'])->name('master-data.members.index');
     Route::get('/master-data/members/create', [MemberController::class, 'create'])->name('master-data.members.create');
     Route::get('/master-data/members/lookup', [MemberController::class, 'lookup'])->name('master-data.members.lookup');
@@ -170,6 +176,12 @@ Route::middleware(['auth', 'tenant'])->group(function (): void {
         Route::get('/loans/{loan}/installment-history', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'loanInstallmentHistory'])->name('loans.installment-history');
         Route::get('/loans/{loan}/member-options', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'groupMemberOptions'])->name('loans.member-options');
         Route::get('/chart-of-accounts', [\App\Http\Controllers\Accounting\ChartOfAccountsController::class, 'index'])->name('chart-of-accounts.index');
+        // Register inventaris (nilai buku / status). Beli = journal-entries type pembelian_inventaris.
+        Route::get('/assets', [AssetController::class, 'index'])->name('assets.index');
+        Route::get('/assets/{asset}', [AssetController::class, 'show'])->name('assets.show');
+        Route::get('/assets/{asset}/edit', [AssetController::class, 'edit'])->name('assets.edit');
+        Route::put('/assets/{asset}', [AssetController::class, 'update'])->name('assets.update');
+        Route::delete('/assets/{asset}', [AssetController::class, 'destroy'])->name('assets.destroy');
         Route::get('/period-close', [\App\Http\Controllers\Accounting\PeriodCloseController::class, 'index'])->name('period-close.index');
         Route::post('/period-close/{year}/{month}/close', [\App\Http\Controllers\Accounting\PeriodCloseController::class, 'closeMonth'])
             ->whereNumber(['year', 'month'])
