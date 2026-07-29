@@ -332,38 +332,18 @@ function submitAllocation() {
                 </div>
             </AppCard>
 
-            <!-- TAB 2: year close -->
+            <!-- TAB 2: year close — aksi di bawah (sama seperti tab lain) -->
             <AppCard v-show="tab === 'year'" class="overflow-hidden p-0">
-                <div class="border-b border-outline-variant px-4 py-3 sm:flex sm:items-start sm:justify-between sm:gap-4">
-                    <div class="min-w-0">
-                        <h2 class="text-sm font-bold text-primary">
-                            Tutup tahun {{ year }} → saldo awal {{ next_year }}
-                        </h2>
-                        <p class="mt-1 text-xs text-on-surface-variant">
-                            Preview akun aset/kewajiban/ekuitas yang akan jadi saldo awal tahun
-                            {{ next_year }}. Pendapatan &amp; beban di-nolkan; laba/rugi ke 3.2.02.01.
-                            Ini bukan laporan Neraca — lihat
-                            <a href="/accounting/reports/balance-sheet" class="font-semibold text-primary hover:underline">Pelaporan → Neraca</a>.
-                        </p>
-                    </div>
-                    <div v-if="can_close" class="mt-3 flex shrink-0 flex-col gap-2 sm:mt-0 sm:items-end">
-                        <AppSwitch
-                            v-if="next_year_openings_exist"
-                            v-model="forceRewrite"
-                            label="Paksa tulis ulang"
-                            description="Timpa saldo awal tahun berikutnya"
-                            class="min-w-[16rem]"
-                        />
-                        <AppButton
-                            variant="primary"
-                            size="compact"
-                            :loading="yearForm.processing"
-                            :disabled="!can_close_year || yearForm.processing"
-                            @click="closeYear"
-                        >
-                            Tutup tahun {{ year }}
-                        </AppButton>
-                    </div>
+                <div class="border-b border-outline-variant px-4 py-3">
+                    <h2 class="text-sm font-bold text-primary">
+                        Tutup tahun {{ year }} → saldo awal {{ next_year }}
+                    </h2>
+                    <p class="mt-1 text-xs text-on-surface-variant">
+                        Preview akun aset/kewajiban/ekuitas yang akan jadi saldo awal tahun
+                        {{ next_year }}. Pendapatan &amp; beban di-nolkan; laba/rugi ke 3.2.02.01.
+                        Ini bukan laporan Neraca — lihat
+                        <a href="/accounting/reports/balance-sheet" class="font-semibold text-primary hover:underline">Pelaporan → Neraca</a>.
+                    </p>
                 </div>
 
                 <div
@@ -417,11 +397,32 @@ function submitAllocation() {
                         </tfoot>
                     </table>
                 </div>
-                <div class="flex flex-wrap justify-between gap-2 border-t border-outline-variant px-4 py-3">
-                    <AppButton variant="ghost" size="compact" @click="tab = 'periods'">← Periode</AppButton>
-                    <AppButton variant="secondary" size="compact" @click="tab = 'allocate'">
-                        Lanjut: alokasi laba →
-                    </AppButton>
+
+                <div class="space-y-3 border-t border-outline-variant px-4 py-3">
+                    <AppSwitch
+                        v-if="can_close && next_year_openings_exist"
+                        v-model="forceRewrite"
+                        label="Paksa tulis ulang"
+                        description="Timpa saldo awal tahun berikutnya yang sudah ada"
+                    />
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <AppButton variant="ghost" size="compact" @click="tab = 'periods'">← Periode</AppButton>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <AppButton
+                                v-if="can_close"
+                                variant="primary"
+                                size="compact"
+                                :loading="yearForm.processing"
+                                :disabled="!can_close_year || yearForm.processing"
+                                @click="closeYear"
+                            >
+                                Tutup tahun {{ year }}
+                            </AppButton>
+                            <AppButton variant="secondary" size="compact" @click="tab = 'allocate'">
+                                Lanjut: alokasi laba →
+                            </AppButton>
+                        </div>
+                    </div>
                 </div>
             </AppCard>
 
