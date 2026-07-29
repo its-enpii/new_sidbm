@@ -6,6 +6,7 @@ import AppButton from '../Components/AppButton.vue';
 import AppCard from '../Components/AppCard.vue';
 import AppEmptyState from '../Components/AppEmptyState.vue';
 import AppIcon from '../Components/AppIcon.vue';
+import TrendBarChart from '../Components/TrendBarChart.vue';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout.vue';
 
 const props = defineProps({
@@ -37,18 +38,6 @@ function formatDate(value) {
     const d = new Date(`${value}T00:00:00`);
     if (Number.isNaN(d.getTime())) return value;
     return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-const trendMax = computed(() => {
-    let max = 0;
-    for (const row of props.trend) {
-        max = Math.max(max, Number(row.disbursed || 0), Number(row.collected || 0));
-    }
-    return max || 1;
-});
-
-function barHeight(value) {
-    return `${Math.max(4, Math.round((Number(value || 0) / trendMax.value) * 100))}%`;
 }
 
 const pipelineTotal = computed(() => props.pipeline.reduce((sum, row) => sum + Number(row.count || 0), 0));
@@ -122,22 +111,8 @@ const sourceLabel = {
                         </div>
                     </header>
 
-                    <div v-if="trend.length" class="flex min-h-[12rem] flex-1 items-end gap-3 sm:gap-4">
-                        <div v-for="row in trend" :key="row.key" class="flex h-full min-w-0 flex-1 flex-col items-center gap-2">
-                            <div class="flex min-h-0 w-full flex-1 items-end justify-center gap-1.5">
-                                <div
-                                    class="w-3 rounded-t bg-primary sm:w-3.5"
-                                    :style="{ height: barHeight(row.disbursed) }"
-                                    :title="`Cair ${formatMoney(row.disbursed)}`"
-                                />
-                                <div
-                                    class="w-3 rounded-t bg-secondary sm:w-3.5"
-                                    :style="{ height: barHeight(row.collected) }"
-                                    :title="`Terima ${formatMoney(row.collected)}`"
-                                />
-                            </div>
-                            <p class="shrink-0 truncate text-[11px] font-semibold text-on-surface-variant">{{ row.label }}</p>
-                        </div>
+                    <div v-if="trend.length" class="min-h-[14rem] flex-1">
+                        <TrendBarChart :data="trend" />
                     </div>
                     <div v-else class="flex flex-1 items-center">
                         <AppEmptyState icon="show_chart" title="Belum ada tren" description="Pencairan dan angsuran akan tampil di sini." />

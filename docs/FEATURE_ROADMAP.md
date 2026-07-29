@@ -44,18 +44,19 @@ Script: `docker exec new_sidbm-app-1 php scripts/smoke_pilot_local.php`
 
 | Zona | Next | Blocking harian? |
 |---|---|---|
-| Master data | Ada | Tidak |
+| Master data | Ada + **detail** anggota/kelompok/lembaga + riwayat pinjaman | Tidak |
 | Alur pinjaman (proposal→cair→bayar) | Ada | Tidak (depth form beda) |
 | Jurnal angsuran + umum (create) | Ada | — |
 | **Cetak bukti angsuran** | ✅ P0.1 | — |
 | **Daftar + reverse jurnal** | ✅ P0.2 | — |
 | Laporan akuntansi NS/Neraca/LR/BB/Jurnal | Ada + PDF | Tidak |
-| **Laporan piutang inti** | ✅ P0.3 (portofolio + R vs R) | — |
+| **Laporan piutang inti** | ✅ P0.3 (portofolio group-by-desa + R vs R) | — |
 | Arus kas / LPM / CALK / kartu angsuran | ✅ P1 | — |
-| Tutup buku | Menu disabled | P2 (tahunan) |
-| Aset / inventaris UI | Model only | P2 |
+| Tutup buku | Menu disabled | **P2.1** (berikutnya) |
+| COA manage UI | Belum | P2.2 |
+| Aset / inventaris UI | Model only | P2.3 |
 | Migrasi data pilot | Hijau | Bukan fitur harian |
-| Tenant #2+ | Belum | Setelah P0 pilot |
+| Tenant #2+ | Belum | P2.4 setelah metric pilot |
 
 ---
 
@@ -106,11 +107,11 @@ Search global, lonceng notifikasi, holding/kab multi-tenant reports, 1:1 semua s
 
 | Workstream | Fitur status |
 |---|---|
-| A Foundation | ~hijau |
-| B Membership | ~hijau ops |
-| C Accounting | posting/report hijau; list+reverse+tutup buku bolong |
-| D Lending | lifecycle hijau; cetak + laporan piutang bolong |
-| E Supporting | budget/settings hijau; assets/docs depth bolong |
+| A Foundation | hijau |
+| B Membership | hijau ops + detail entity + riwayat pinjaman |
+| C Accounting | posting/report/list/reverse hijau; **tutup buku** masih P2 |
+| D Lending | lifecycle + cetak + portofolio/RvsR/kartu hijau |
+| E Supporting | budget/settings hijau; assets/docs depth bolong (P2) |
 | F Migration | pilot hijau — **bukan** yang nahan user pindah |
 
 ---
@@ -133,3 +134,6 @@ Search global, lonceng notifikasi, holding/kab multi-tenant reports, 1:1 semua s
 | 2026-07-28 | P0.1 cetak bukti angsuran. P0.2 daftar + reverse jurnal. |
 | 2026-07-28 | P0.3 portofolio diperkaya + rencana vs realisasi. |
 | 2026-07-28 | P1.1–P1.4: arus kas, perubahan ekuitas, CALK, kartu angsuran. |
+| 2026-07-29 | Detail master data (anggota/kelompok/lembaga) + `EntityLoanHistoryService` + `LoanHistoryTable`. |
+| 2026-07-29 | Portofolio: group-by-desa (header + total per desa + spacer); PDF sama. |
+| 2026-07-29 | Sync status workstream C/D (P0+P1 hijau). Next: **P2.1 tutup buku**. |
