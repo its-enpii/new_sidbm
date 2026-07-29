@@ -81,7 +81,7 @@ function closeYear() {
     const msg =
         props.next_year_openings_exist && !forceRewrite.value
             ? `Saldo awal ${props.next_year} dari tutup buku sudah ada. Aktifkan "Paksa tulis ulang" dulu, atau batalkan.`
-            : `Tutup seluruh tahun ${props.year} dan bawa saldo neraca ke ${props.next_year}?`;
+            : `Tutup seluruh tahun ${props.year} dan tulis saldo awal ${props.next_year}?`;
     if (props.next_year_openings_exist && !forceRewrite.value) {
         alert(msg);
         return;
@@ -204,7 +204,7 @@ function submitAllocation() {
                     <p class="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Keuangan</p>
                     <h1 class="mt-1 text-2xl font-bold text-primary">Tutup Buku</h1>
                     <p class="mt-1 text-sm text-on-surface-variant">
-                        Tutup periode, bawa saldo awal, lalu alokasi laba — satu langkah per tab.
+                        Tutup periode, bawa saldo akun ke tahun depan, lalu alokasi laba — satu langkah per tab.
                     </p>
                 </div>
                 <div class="w-40">
@@ -340,7 +340,10 @@ function submitAllocation() {
                             Tutup tahun {{ year }} → saldo awal {{ next_year }}
                         </h2>
                         <p class="mt-1 text-xs text-on-surface-variant">
-                            Neraca dibawa; P/L di-reset. Laba berjalan ke 3.2.02.01.
+                            Preview akun aset/kewajiban/ekuitas yang akan jadi saldo awal tahun
+                            {{ next_year }}. Pendapatan &amp; beban di-nolkan; laba/rugi ke 3.2.02.01.
+                            Ini bukan laporan Neraca — lihat
+                            <a href="/accounting/reports/balance-sheet" class="font-semibold text-primary hover:underline">Pelaporan → Neraca</a>.
                         </p>
                     </div>
                     <div v-if="can_close" class="mt-3 flex shrink-0 flex-col gap-2 sm:mt-0 sm:items-end">
@@ -384,7 +387,7 @@ function submitAllocation() {
                         <tbody>
                             <tr v-if="year_end_preview.length === 0">
                                 <td colspan="5" class="px-3 py-8 text-center text-on-surface-variant">
-                                    Tidak ada saldo neraca yang dibawa.
+                                    Tidak ada saldo akun yang dibawa ke tahun berikutnya.
                                 </td>
                             </tr>
                             <tr
@@ -407,7 +410,7 @@ function submitAllocation() {
                         </tbody>
                         <tfoot v-if="year_end_preview.length">
                             <tr class="border-t-2 border-outline bg-surface-container-low font-semibold">
-                                <td class="px-3 py-2" colspan="3">Jumlah preview</td>
+                                <td class="px-3 py-2" colspan="3">Jumlah preview saldo awal</td>
                                 <td class="px-3 py-2 text-right tabular-nums">{{ formatMoney(previewDebit) }}</td>
                                 <td class="px-3 py-2 text-right tabular-nums">{{ formatMoney(previewCredit) }}</td>
                             </tr>
