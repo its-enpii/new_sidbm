@@ -1,12 +1,13 @@
 <script setup>
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import AppCurrencyInput from '../../../Components/AppCurrencyInput.vue';
 import AppDatePicker from '../../../Components/AppDatePicker.vue';
 import AppInput from '../../../Components/AppInput.vue';
+import AppSwitch from '../../../Components/AppSwitch.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
 
@@ -29,6 +30,14 @@ const props = defineProps({
 const selectedYear = ref(String(props.year));
 const syncing = ref(false);
 const forceRewrite = ref(false);
+
+/** periods | year | allocate */
+const tab = ref('periods');
+const tabs = [
+    { key: 'periods', label: '1. Periode', short: 'Periode' },
+    { key: 'year', label: '2. Saldo awal', short: 'Saldo awal' },
+    { key: 'allocate', label: '3. Alokasi laba', short: 'Alokasi' },
+];
 
 watch(
     () => props.year,
@@ -71,7 +80,7 @@ function closeYear() {
     if (!props.can_close) return;
     const msg =
         props.next_year_openings_exist && !forceRewrite.value
-            ? `Saldo awal ${props.next_year} dari tutup buku sudah ada. Centang "paksa tulis ulang" dulu, atau batalkan.`
+            ? `Saldo awal ${props.next_year} dari tutup buku sudah ada. Aktifkan "Paksa tulis ulang" dulu, atau batalkan.`
             : `Tutup seluruh tahun ${props.year} dan bawa saldo neraca ke ${props.next_year}?`;
     if (props.next_year_openings_exist && !forceRewrite.value) {
         alert(msg);
@@ -89,7 +98,6 @@ const statusLabel = { open: 'Terbuka', closed: 'Ditutup', missing: 'Belum ada' }
 const previewDebit = computed(() => props.year_end_preview.reduce((s, r) => s + Number(r.debit || 0), 0));
 const previewCredit = computed(() => props.year_end_preview.reduce((s, r) => s + Number(r.credit || 0), 0));
 
-// --- Alokasi laba ---
 function emptyCommunity() {
     const o = {};
     for (const line of props.allocation.community_lines || []) o[line.key] = '';
@@ -196,7 +204,7 @@ function submitAllocation() {
                     <p class="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Keuangan</p>
                     <h1 class="mt-1 text-2xl font-bold text-primary">Tutup Buku</h1>
                     <p class="mt-1 text-sm text-on-surface-variant">
-                        1) Tutup periode · 2) Bawa saldo awal tahun · 3) Alokasi laba ke utang/laba ditahan.
+                        Tutup periode, bawa saldo awal, lalu alokasi laba — satu langkah per tab.
                     </p>
                 </div>
                 <div class="w-40">
@@ -233,9 +241,29 @@ function submitAllocation() {
                 </AppCard>
             </div>
 
-            <AppCard class="overflow-hidden p-0">
+            <!-- Step tabs -->
+            <div class="flex flex-wrap gap-2 border-b border-outline-variant pb-3">
+                <button
+                    v-for="t in tabs"
+                    :key="t.key"
+                    type="button"
+                    class="rounded-xl border px-3 py-2 text-sm font-semibold transition sm:px-4"
+                    :class="
+                        tab === t.key
+                            ? 'border-primary bg-primary text-on-primary'
+                            : 'border-outline-variant bg-surface-container-lowest text-primary hover:border-primary/40'
+                    "
+                    @click="tab = t.key"
+                >
+                    <span class="sm:hidden">{{ t.short }}</span>
+                    <span class="hidden sm:inline">{{ t.label }}</span>
+                </button>
+            </div>
+
+            <!-- TAB 1: periods -->
+            <AppCard v-show="tab === 'periods'" class="overflow-hidden p-0">
                 <div class="border-b border-outline-variant px-4 py-3">
-                    <h2 class="text-sm font-bold text-primary">1. Periode bulanan {{ year }}</h2>
+                    <h2 class="text-sm font-bold text-primary">Periode bulanan {{ year }}</h2>
                     <p class="text-xs text-on-surface-variant">
                         Periode tertutup menolak posting jurnal baru.
                     </p>
@@ -297,23 +325,32 @@ function submitAllocation() {
                         </tbody>
                     </table>
                 </div>
+                <div class="flex justify-end border-t border-outline-variant px-4 py-3">
+                    <AppButton variant="secondary" size="compact" @click="tab = 'year'">
+                        Lanjut: saldo awal →
+                    </AppButton>
+                </div>
             </AppCard>
 
-            <AppCard class="overflow-hidden p-0">
-                <div
-                    class="flex flex-col gap-3 border-b border-outline-variant px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                >
-                    <div>
-                        <h2 class="text-sm font-bold text-primary">2. Tutup tahun → saldo awal {{ next_year }}</h2>
-                        <p class="text-xs text-on-surface-variant">
-                            Neraca dibawa; P/L di-reset. Laba berjalan ke {{ '3.2.02.01' }}.
+            <!-- TAB 2: year close -->
+            <AppCard v-show="tab === 'year'" class="overflow-hidden p-0">
+                <div class="border-b border-outline-variant px-4 py-3 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                    <div class="min-w-0">
+                        <h2 class="text-sm font-bold text-primary">
+                            Tutup tahun {{ year }} → saldo awal {{ next_year }}
+                        </h2>
+                        <p class="mt-1 text-xs text-on-surface-variant">
+                            Neraca dibawa; P/L di-reset. Laba berjalan ke 3.2.02.01.
                         </p>
                     </div>
-                    <div v-if="can_close" class="flex flex-wrap items-center gap-3">
-                        <label class="flex items-center gap-2 text-sm text-on-surface-variant">
-                            <input v-model="forceRewrite" type="checkbox" class="rounded border-outline-variant" />
-                            Paksa tulis ulang
-                        </label>
+                    <div v-if="can_close" class="mt-3 flex shrink-0 flex-col gap-2 sm:mt-0 sm:items-end">
+                        <AppSwitch
+                            v-if="next_year_openings_exist"
+                            v-model="forceRewrite"
+                            label="Paksa tulis ulang"
+                            description="Timpa saldo awal tahun berikutnya"
+                            class="min-w-[16rem]"
+                        />
                         <AppButton
                             variant="primary"
                             size="compact"
@@ -325,15 +362,17 @@ function submitAllocation() {
                         </AppButton>
                     </div>
                 </div>
+
                 <div
                     v-if="next_year_openings_exist"
                     class="border-b border-outline-variant bg-surface-container-low/50 px-4 py-2 text-sm text-on-surface-variant"
                 >
                     Saldo awal {{ next_year }} dari tutup buku sudah ada.
                 </div>
-                <div class="overflow-x-auto">
+
+                <div class="max-h-[28rem] overflow-auto">
                     <table class="min-w-full text-sm">
-                        <thead class="bg-surface-container-low text-xs uppercase tracking-wide text-on-surface-variant">
+                        <thead class="sticky top-0 z-10 bg-surface-container-low text-xs uppercase tracking-wide text-on-surface-variant">
                             <tr>
                                 <th class="px-3 py-2 text-left">Kode</th>
                                 <th class="px-3 py-2 text-left">Akun</th>
@@ -355,7 +394,9 @@ function submitAllocation() {
                             >
                                 <td class="px-3 py-2 font-mono text-xs">{{ row.code }}</td>
                                 <td class="px-3 py-2">{{ row.name }}</td>
-                                <td class="px-3 py-2 text-on-surface-variant">{{ typeLabels[row.account_type] || row.account_type }}</td>
+                                <td class="px-3 py-2 text-on-surface-variant">
+                                    {{ typeLabels[row.account_type] || row.account_type }}
+                                </td>
                                 <td class="px-3 py-2 text-right tabular-nums">
                                     {{ row.debit ? formatMoney(row.debit) : '—' }}
                                 </td>
@@ -373,12 +414,18 @@ function submitAllocation() {
                         </tfoot>
                     </table>
                 </div>
+                <div class="flex flex-wrap justify-between gap-2 border-t border-outline-variant px-4 py-3">
+                    <AppButton variant="ghost" size="compact" @click="tab = 'periods'">← Periode</AppButton>
+                    <AppButton variant="secondary" size="compact" @click="tab = 'allocate'">
+                        Lanjut: alokasi laba →
+                    </AppButton>
+                </div>
             </AppCard>
 
-            <!-- 3. Alokasi laba -->
-            <AppCard class="overflow-hidden p-0">
+            <!-- TAB 3: allocate -->
+            <AppCard v-show="tab === 'allocate'" class="overflow-hidden p-0">
                 <div class="border-b border-outline-variant px-4 py-3">
-                    <h2 class="text-sm font-bold text-primary">3. Alokasi laba tahun {{ year }}</h2>
+                    <h2 class="text-sm font-bold text-primary">Alokasi laba tahun {{ year }}</h2>
                     <p class="text-xs text-on-surface-variant">
                         Dr {{ allocation.accounts?.earnings?.code || '3.2.02.01' }} → Cr utang laba / laba ditahan.
                         Tanggal biasanya 1 Jan tahun berikutnya (periode harus terbuka).
@@ -412,7 +459,9 @@ function submitAllocation() {
                                 <Link :href="e.href" class="font-semibold text-primary hover:underline">
                                     #{{ e.id }}
                                 </Link>
-                                <span class="text-on-surface-variant"> · {{ e.transaction_date }} · {{ e.description }}</span>
+                                <span class="text-on-surface-variant">
+                                    · {{ e.transaction_date }} · {{ e.description }}
+                                </span>
                             </li>
                         </ul>
                     </div>
@@ -431,7 +480,6 @@ function submitAllocation() {
                             />
                         </div>
 
-                        <!-- Masyarakat -->
                         <section class="rounded-2xl border border-outline-variant/70 bg-surface-container-low/30 p-4">
                             <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
                                 <div>
@@ -463,7 +511,6 @@ function submitAllocation() {
                             </div>
                         </section>
 
-                        <!-- Desa -->
                         <section
                             v-if="allocation.villages?.length"
                             class="rounded-2xl border border-outline-variant/70 bg-surface-container-low/30 p-4"
@@ -498,7 +545,6 @@ function submitAllocation() {
                             </div>
                         </section>
 
-                        <!-- Penyerta + ditahan -->
                         <div class="grid gap-4 lg:grid-cols-2">
                             <section class="rounded-2xl border border-outline-variant/70 bg-surface-container-low/30 p-4">
                                 <p class="font-mono text-[11px] font-semibold tracking-wide text-on-surface-variant">
@@ -586,6 +632,10 @@ function submitAllocation() {
                         <span v-else-if="allocation.available <= 0">(laba/rugi ≤ 0).</span>
                     </p>
                 </template>
+
+                <div class="flex justify-start border-t border-outline-variant px-4 py-3">
+                    <AppButton variant="ghost" size="compact" @click="tab = 'year'">← Saldo awal</AppButton>
+                </div>
             </AppCard>
         </div>
     </AuthenticatedLayout>
