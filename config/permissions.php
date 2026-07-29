@@ -111,6 +111,8 @@ return [
         'get_loan' => 'loans.view',
         'list_accounts' => 'journals.view',
         'search_journals' => 'journals.view',
+        'search_assets' => 'journals.view',
+        'get_asset' => 'journals.view',
         'list_due_billing' => 'messages.send',
         'create_journal_entry' => 'journals.create',
         'reverse_journal' => 'journals.create',

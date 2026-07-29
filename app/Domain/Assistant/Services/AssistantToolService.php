@@ -12,6 +12,7 @@ use App\Domain\Accounting\Services\JournalPostingService;
 use App\Domain\Accounting\Services\JournalReversalService;
 use DomainException;
 use App\Domain\Assets\Models\Asset;
+use App\Domain\Assets\Services\AssetService;
 use App\Domain\Lending\Models\Loan;
 use App\Domain\Lending\Services\LoanService;
 use App\Domain\Membership\Models\Member;
@@ -60,6 +61,8 @@ final class AssistantToolService
             'get_loan' => $this->getLoan($params),
             'list_accounts' => $this->listAccounts($params),
             'search_journals' => $this->searchJournals($params),
+            'search_assets' => $this->searchAssets($params),
+            'get_asset' => $this->getAsset($params),
             'list_due_billing' => $this->listDueBilling($params),
             'create_journal_entry' => $this->createJournalEntry($params, $actor),
             'reverse_journal' => $this->reverseJournal($params, $actor),
@@ -67,6 +70,94 @@ final class AssistantToolService
             'send_billing_notices' => $this->sendBillingNotices($params),
             default => throw new RuntimeException("Unknown tool: {$tool}"),
         };
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array{items: list<array<string, mixed>>, match_count: int, needs_clarification: bool}
+     */
+    private function searchAssets(array $params): array
+    {
+        $q = trim((string) ($params['query'] ?? $params['name'] ?? $params['asset_name'] ?? ''));
+        if (mb_strlen($q) < 2) {
+            throw ValidationException::withMessages(['query' => 'query min 2 characters']);
+        }
+
+        $term = '%'.$q.'%';
+        $status = trim((string) ($params['status'] ?? ''));
+        $asOf = trim((string) ($params['as_of'] ?? ''));
+        $asOfDate = $asOf !== ''
+            ? CarbonImmutable::parse($asOf)->startOfDay()
+            : CarbonImmutable::today();
+
+        $query = Asset::query()
+            ->with(['category:row_id,code,name'])
+            ->where(function ($w) use ($term): void {
+                $w->where('name', 'like', $term)->orWhere('asset_code', 'like', $term);
+            });
+
+        if ($status !== '' && isset(Asset::STATUSES[$status])) {
+            $query->where('status', $status);
+        }
+
+        $rows = $query->orderBy('name')->limit(15)->get();
+        $service = app(AssetService::class);
+
+        $items = $rows->map(function (Asset $a) use ($service, $asOfDate): array {
+            $calc = $service->bookValue($a, $asOfDate);
+
+            return [
+                'row_id' => (int) $a->row_id,
+                'id' => (int) $a->id,
+                'asset_code' => $a->asset_code,
+                'name' => $a->name,
+                'status' => (string) $a->status,
+                'status_label' => Asset::STATUSES[(string) $a->status] ?? (string) $a->status,
+                'category' => $a->category?->name,
+                'purchased_at' => $a->purchased_at?->format('Y-m-d'),
+                'quantity' => (int) $a->quantity,
+                'unit_cost' => (float) $a->unit_cost,
+                'useful_life_months' => $a->useful_life_months !== null ? (int) $a->useful_life_months : null,
+                'acquisition' => $calc['acquisition'],
+                'book_value' => $calc['book_value'],
+                'accumulated_depreciation' => $calc['accumulated_depreciation'],
+                'href' => '/accounting/assets/'.$a->row_id,
+            ];
+        })->all();
+
+        $count = count($items);
+
+        return [
+            'items' => $items,
+            'match_count' => $count,
+            'needs_clarification' => $count !== 1,
+            'as_of' => $asOfDate->toDateString(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function getAsset(array $params): array
+    {
+        $rowId = (int) ($params['asset_row_id'] ?? $params['row_id'] ?? 0);
+        if ($rowId <= 0) {
+            throw ValidationException::withMessages(['asset_row_id' => 'asset_row_id required']);
+        }
+
+        $asset = Asset::query()->with(['category', 'unit'])->whereKey($rowId)->first();
+        if ($asset === null) {
+            throw ValidationException::withMessages(['asset_row_id' => 'Inventaris tidak ditemukan']);
+        }
+
+        $asOf = trim((string) ($params['as_of'] ?? ''));
+        $detail = app(AssetService::class)->detail($asset, $asOf !== '' ? $asOf : null);
+
+        return [
+            ...$detail,
+            'href' => '/accounting/assets/'.$asset->row_id,
+        ];
     }
 
     /**
@@ -1406,7 +1497,12 @@ final class AssistantToolService
             'asset_name' => [$isInventory ? 'required' : 'nullable', 'string', 'max:180'],
             'asset_quantity' => [$isInventory ? 'required' : 'nullable', 'integer', 'min:1', 'max:999999'],
             'asset_unit_cost' => [$isInventory ? 'required' : 'nullable', 'numeric', 'min:1'],
-            'asset_useful_life_months' => [$isInventory ? 'required' : 'nullable', 'integer', 'min:1', 'max:1200'],
+            'asset_useful_life_months' => [
+                $isInventory ? 'required' : 'nullable',
+                'integer',
+                ($type === 'pembelian_aset_tanah') ? 'min:0' : 'min:0',
+                'max:1200',
+            ],
         ], [], [
             'debit_account_row_id' => 'akun debit (disimpan ke / inventaris)',
             'credit_account_row_id' => 'akun kredit (sumber dana / kas)',
@@ -1466,18 +1562,14 @@ final class AssistantToolService
             ]);
 
             if ($isInventory) {
-                $asset = Asset::query()->create([
-                    'organization_unit_row_id' => null,
-                    'asset_category_row_id' => null,
-                    'asset_code' => null,
+                $asset = app(AssetService::class)->create([
                     'name' => (string) $data['asset_name'],
                     'purchased_at' => $data['transaction_date'],
                     'quantity' => (int) $data['asset_quantity'],
                     'unit_cost' => (float) $data['asset_unit_cost'],
-                    'useful_life_months' => (int) $data['asset_useful_life_months'],
+                    'useful_life_months' => (int) ($data['asset_useful_life_months'] ?? 0),
                     'status' => 'good',
-                    'validated_at' => null,
-                ]);
+                ], $userId);
                 $entry->update(['source_row_id' => (int) $asset->row_id]);
             }
 

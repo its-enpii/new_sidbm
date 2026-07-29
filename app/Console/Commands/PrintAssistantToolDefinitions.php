@@ -90,6 +90,35 @@ final class PrintAssistantToolDefinitions extends Command
                 ],
             ],
             [
+                'name' => 'search_assets',
+                'description' => 'Cari inventaris/register aset by nama atau kode. Return book_value per as_of. needs_clarification jika ≠1. Beli aset = create_journal_entry tipe pembelian_aset_*.',
+                'requires_confirmation' => false,
+                'endpoint_url' => $base.'/api/assistant/tools/search_assets',
+                'json_schema' => [
+                    'type' => 'object',
+                    'required' => ['query'],
+                    'properties' => [
+                        'query' => ['type' => 'string', 'description' => 'Nama/kode aset min 2 karakter'],
+                        'status' => ['type' => 'string', 'description' => 'good|damaged|lost|sold|written_off'],
+                        'as_of' => ['type' => 'string', 'description' => 'Y-m-d untuk nilai buku, default hari ini'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'get_asset',
+                'description' => 'Detail inventaris + nilai buku + riwayat status.',
+                'requires_confirmation' => false,
+                'endpoint_url' => $base.'/api/assistant/tools/get_asset',
+                'json_schema' => [
+                    'type' => 'object',
+                    'required' => ['asset_row_id'],
+                    'properties' => [
+                        'asset_row_id' => ['type' => 'integer'],
+                        'as_of' => ['type' => 'string', 'description' => 'Y-m-d nilai buku'],
+                    ],
+                ],
+            ],
+            [
                 'name' => 'list_due_billing',
                 'description' => 'Daftar tagihan angsuran jatuh tempo pada tanggal.',
                 'requires_confirmation' => false,
@@ -130,7 +159,7 @@ final class PrintAssistantToolDefinitions extends Command
             ],
             [
                 'name' => 'create_journal_entry',
-                'description' => 'Rencana/post jurnal. Default PREVIEW (preview=true) — tampilkan plan ke user. Post hanya confirm=true. Beli=pembelian_inventaris. Setor bank=pemindahan_saldo. Ambiguitas akun → needs_clarification. Tanggal Y-m-d absolut.',
+                'description' => 'Rencana/post jurnal. Default PREVIEW; post confirm=true. Beli aset=pembelian_aset_tanah|gedung|kendaraan|peralatan (server juga infer dari asset_name). Setor bank=pemindahan_saldo. Ambiguitas → needs_clarification. Tanggal Y-m-d.',
                 'requires_confirmation' => true,
                 'endpoint_url' => $base.'/api/assistant/tools/create_journal_entry',
                 'json_schema' => [
@@ -154,11 +183,15 @@ final class PrintAssistantToolDefinitions extends Command
                                 'aset_masuk',
                                 'aset_keluar',
                                 'pemindahan_saldo',
+                                'pembelian_aset_tanah',
+                                'pembelian_aset_gedung',
+                                'pembelian_aset_kendaraan',
+                                'pembelian_aset_peralatan',
                                 'pembelian_inventaris',
                                 'penyusutan_inventaris',
                                 'cadangan_kerugian_piutang',
                             ],
-                            'description' => 'Beli=pembelian_inventaris; setor bank=pemindahan_saldo. Boleh dikosongkan — server infer dari teks.',
+                            'description' => 'Beli: pembelian_aset_* per jenis (tanah/gedung/kendaraan/peralatan). Legacy pembelian_inventaris masih diterima. Setor bank=pemindahan_saldo. Boleh kosong — server infer.',
                         ],
                         'description' => ['type' => 'string'],
                         'reference' => ['type' => 'string'],

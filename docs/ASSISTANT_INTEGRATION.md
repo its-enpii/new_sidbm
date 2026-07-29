@@ -54,6 +54,8 @@ app(\App\Domain\Access\Services\PermissionChecker::class)
 | `get_loan` | loans.view | no |
 | `list_accounts` | journals.view | no |
 | `search_journals` | journals.view | no |
+| `search_assets` | journals.view | no |
+| `get_asset` | journals.view | no |
 | `list_due_billing` | messages.send | no |
 | `create_journal_entry` | journals.create | **yes** |
 | `reverse_journal` | journals.create | **yes** |
@@ -152,9 +154,14 @@ Admin embed → tenant SIDBM → tools. Contoh JSON schema:
 ### list_accounts
 `code_prefix`, `query` (nama COA), `cash_only`.
 
+### search_assets / get_asset
+
+Register inventaris (bukan form beli). `query` nama/kode → items + `book_value`. Detail: `asset_row_id` + opsional `as_of`.
+
 ### create_journal_entry  (requires_confirmation: true)
 
-- Inventaris: NL *"beli motor …"* → `pembelian_inventaris` + `asset_name`
+- Beli aset: NL *"beli motor …"* → `pembelian_aset_kendaraan` (atau tanah/gedung/peralatan) + `asset_name`  
+  Debit COA `1.2.01.0x` per jenis; register row `assets` ikut jurnal.
 - Setor bank: *"setor ke Bank X"* → `pemindahan_saldo` + `bank_account_query`  
   Resolve debit = `1.1.01.03+` cocok nama COA; credit default Kas Tunai.  
   Nama bank tidak di COA → `needs_clarification` + daftar akun bank tenant.
@@ -206,7 +213,7 @@ Dump schema: `php artisan sidbm:assistant-tools --base=http://host.docker.intern
 ## Setup checklist
 
 1. Encompletion: tenant embed + API key → `ENCOMPLETION_TENANT_API_KEY`
-2. Daftarkan **11** tools (lihat `sidbm:assistant-tools`)
+2. Daftarkan **13** tools (lihat `sidbm:assistant-tools`)
 3. Capability: bash off; confirmation on write; whitelist semua tool id
 4. SIDBM `.env`: base/public URL + key + `WIDGET_ENABLED=true`
 5. Login → FAB asisten
