@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Accounting;
 
+use App\Domain\Access\Services\PermissionChecker;
 use App\Domain\Accounting\Services\TaxEstimateService;
 use DomainException;
 use Illuminate\Http\Request;
@@ -14,11 +15,14 @@ final class TaxEstimateController
 {
     public function __construct(
         private readonly TaxEstimateService $estimates,
+        private readonly PermissionChecker $permissions,
     ) {
     }
 
     public function index(Request $request): Response
     {
+        $this->permissions->denyUnless($request->user(), 'tax.view');
+
         $year = $this->resolveYear($request);
         $month = $this->resolveMonth($request);
         $selected = $request->query('accounts');

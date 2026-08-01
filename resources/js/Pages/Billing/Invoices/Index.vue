@@ -18,11 +18,21 @@ const props = defineProps({
 
 const columns = [
     { key: 'number', label: 'Nomor', sortable: true },
+    { key: 'purpose', label: 'Keperluan' },
     { key: 'description', label: 'Deskripsi' },
     { key: 'amount', label: 'Nominal', sortable: true },
     { key: 'due_at', label: 'Jatuh tempo', sortable: true },
     { key: 'status', label: 'Status', sortable: true },
 ];
+
+const purposeLabels = {
+    subscription: 'Langganan',
+    setup: 'Setup',
+    support: 'Support',
+    training: 'Pelatihan',
+    custom_dev: 'Custom',
+    other: 'Lainnya',
+};
 
 const statusOptions = [
     { value: '', label: 'Semua status' },
@@ -67,12 +77,12 @@ function statusLabel(status) {
 </script>
 
 <template>
-    <Head title="Tagihan Langganan" />
+    <Head title="Tagihan" />
     <AuthenticatedLayout>
         <div class="mx-auto max-w-7xl space-y-6">
             <header>
-                <h1 class="text-2xl font-bold text-primary">Tagihan Langganan</h1>
-                <p class="mt-1 text-on-surface-variant">Daftar tagihan langganan lembaga Anda.</p>
+                <h1 class="text-2xl font-bold text-primary">Tagihan</h1>
+                <p class="mt-1 text-on-surface-variant">Daftar tagihan lembaga: langganan, setup, support, dan lainnya.</p>
             </header>
 
             <AppCard :padded="false">
@@ -88,12 +98,15 @@ function statusLabel(status) {
                         :direction="direction"
                         search-placeholder="Nomor atau deskripsi"
                         empty-title="Belum ada tagihan"
-                        empty-description="Invoice langganan akan muncul di sini setelah diterbitkan."
+                        empty-description="Tagihan akan muncul di sini setelah diterbitkan."
                     >
                         <template #toolbar>
                             <div class="min-w-48">
                                 <SmartSelect :model-value="status" label="Status" hide-label :options="statusOptions" @update:model-value="filterStatus" />
                             </div>
+                        </template>
+                        <template #cell-purpose="{ row }">
+                            <span class="font-semibold text-primary">{{ purposeLabels[row.purpose] || row.purpose || '—' }}</span>
                         </template>
                         <template #cell-description="{ row }">
                             <span class="text-on-surface">{{ row.description || '—' }}</span>

@@ -1,0 +1,84 @@
+# RBAC matrix — SIDBM tenant user
+
+**Rules:** superadmin = all · zero roles = full access (legacy) · has role(s) = union packs.
+
+Platform `/admin/*` = **superadmin only** (bukan role tenant).
+
+## A. Nav tenant → permission
+
+| Section | Label | Path | Permission |
+|---|---|---|---|
+| — | Dashboard | `/dashboard` | *(auth)* |
+| Master | Data Desa | `/master-data/villages` | `villages.view` |
+| Master | Daftar / Tambah Anggota | `/master-data/members…` | `members.view` / `members.manage` |
+| Master | Daftar / Tambah Kelompok | `/master-data/groups…` | `groups.view` / `groups.manage` |
+| Master | Daftar / Tambah Lembaga | `/master-data/institutions…` | `institutions.view` / `institutions.manage` |
+| SIDBM | Register Proposal | `/lending/loans/create` | `loans.propose` |
+| SIDBM | Tahapan Perguliran | `/lending/loans` | `loans.view` |
+| Transaksi | Daftar Jurnal | `/accounting/journals` | `journals.view` |
+| Transaksi | Daftar Inventaris | `/accounting/assets` | `assets.view` |
+| Transaksi | Jurnal Umum | `/accounting/journal-entries/create` | `journals.create` |
+| Transaksi | Jurnal Angsuran | `/accounting/journal-entries/installment` | `installments.record` |
+| Keuangan | Bagan Akun | `/accounting/chart-of-accounts` | `journals.view` |
+| Periodik | E-Budgeting | `/budgeting` | `budgeting.view` |
+| Periodik | Tutup Buku | `/accounting/period-close` | `period_close.view` |
+| Periodik | Taksiran Pajak | `/accounting/tax-estimate` | `tax.view` |
+| Periodik | Notifikasi Tagihan | `/notifications/billing` | `messages.send` |
+| Pelaporan | Accounting reports + PDF | `/accounting/reports…` | `reports.view` |
+| Pelaporan | Portofolio / Rencana vs Realisasi | `/lending/reports…` | `loans.view` |
+| Tagihan | Daftar Tagihan SaaS | `/billing/invoices` | `billing.view` |
+| Pengaturan | Pengaturan | `/settings` | `settings.manage` |
+| Widget | Ariel | session + tools | `assistant.use` |
+| Header | Profil | `/profile` | *(self)* |
+| Header | Search | `/search` | any `*.view` held |
+| Platform | Panel Admin | `/admin` | superadmin |
+
+## B. Tombol aksi → permission
+
+| Modul | Aksi UI | Permission |
+|---|---|---|
+| Anggota | Tambah/Edit/Import/Export/Hapus | `members.manage` (list = `members.view`) |
+| Kelompok | Tambah/Edit/Import/Export/Hapus/quick member | `groups.manage` |
+| Lembaga | CRUD/Import/Export | `institutions.manage` |
+| Desa | Edit | `villages.manage` |
+| Pinjaman | Proposal | `loans.propose` |
+| Pinjaman | Verify | `loans.verify` |
+| Pinjaman | Approve / alokasi | `loans.approve` |
+| Pinjaman | Disburse | `loans.disburse` |
+| Pinjaman | Edit/reschedule/write-off/revert/committee/hapus beneficiary | `loans.manage` |
+| Jurnal | Post / reverse | `journals.create` |
+| Angsuran | Catat | `installments.record` |
+| Inventaris | Edit/Hapus | `assets.manage` (lihat = `assets.view`) |
+| Tutup buku | Tutup/buka bulan/tahun/alokasi | `period_close.manage` |
+| Budget | Simpan/copy/approve/reopen | `budgeting.manage` |
+| Laporan | Lihat/PDF | `reports.view` |
+| CALK | Simpan catatan | `reports.manage` |
+| Notifikasi WA | Kirim | `messages.send` |
+| Tagihan tenant | Bayar | `billing.pay` |
+| Settings | Semua simpan | `settings.manage` |
+| Assistant tools | per `tool_map` | lihat config |
+
+## C. Role packs (default)
+
+| Role | Isi |
+|---|---|
+| `admin` | `*` |
+| `kasir` | view master+loan+jurnal+assets+reports; `journals.create`; `installments.record`; `messages.send`; `billing.view`+`pay`; `assistant.use` |
+| `verifikator` | view + `loans.verify` + `assistant.use` |
+| `viewer` | view-only (+ tax, reports, budgeting.view, billing.view, assistant.use) |
+
+## D. Admin platform (bukan role tenant)
+
+Dashboard · Tenant CRUD · Users/role · Repair · Plans · Invoices/void/pay · Regional API → **superadmin**.
+
+## E. Enforcement status
+
+| Layer | Status |
+|---|---|
+| FormRequest `request_map` | write kritis (loan/jurnal/member/group/budget save/settings) |
+| Controller `denyUnless` | journals/assets/period/reports/loan reports/assistant session |
+| Nav hide by permission | via `auth.permissions` + `nav_map` |
+| GET index members/groups/loans | still mostly auth-only (legacy); nav hides entry |
+| Institutions/villages/billing GET | catalog + nav; controller wire incremental |
+
+Update packs / keys: `config/permissions.php`.

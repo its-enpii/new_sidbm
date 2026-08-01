@@ -6,13 +6,13 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 
-/** Dump tool registry payload for pasting into encompletion embed admin. */
+/** Dump tool registry payload for orchestrator tool seed / admin import. */
 final class PrintAssistantToolDefinitions extends Command
 {
     protected $signature = 'sidbm:assistant-tools
         {--base= : SIDBM public base URL, default APP_URL}';
 
-    protected $description = 'Print encompletion Kategori-B tool definitions for SIDBM.';
+    protected $description = 'Print assistant tool definitions (JSON) for orchestrator seed.';
 
     public function handle(): int
     {
@@ -43,6 +43,19 @@ final class PrintAssistantToolDefinitions extends Command
                     'required' => ['query'],
                     'properties' => [
                         'query' => ['type' => 'string', 'description' => 'Nama/kode kelompok min 2 karakter'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'groups_with_loans',
+                'description' => 'Daftar kelompok yang punya pinjaman workable (active/disbursed/ongoing/approved/funded) + ringkasan tanggungan. 1 query, bukan loop. Pakai ini untuk cek tanggungan banyak kelompok sekaligus.',
+                'requires_confirmation' => false,
+                'endpoint_url' => $base.'/api/assistant/tools/groups_with_loans',
+                'json_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'query' => ['type' => 'string', 'description' => 'Filter nama/kode kelompok (min 2 char)'],
+                        'include_inactive_groups' => ['type' => 'boolean', 'description' => 'Default true. Set false untuk skip kelompok non-aktif.'],
                     ],
                 ],
             ],

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\MasterData;
 
+use App\Domain\Access\Services\PermissionChecker;
 use App\Http\Requests\MasterData\VillageRequest;
 use App\Models\Tenant\OrganizationUnit;
 use App\Models\Tenant\VillageNaming;
@@ -14,8 +15,15 @@ use Inertia\Response;
 
 final class VillageController
 {
+    public function __construct(
+        private readonly PermissionChecker $permissions,
+    ) {
+    }
+
     public function index(Request $request): Response
     {
+        $this->permissions->denyUnless($request->user(), 'villages.view');
+
         $search = trim((string) $request->query('search', ''));
         $perPage = $this->perPage($request->query('per_page'));
         $sort = $this->sort((string) $request->query('sort', 'name'));
@@ -47,8 +55,9 @@ final class VillageController
         ]);
     }
 
-    public function edit(OrganizationUnit $village): Response
+    public function edit(Request $request, OrganizationUnit $village): Response
     {
+        $this->permissions->denyUnless($request->user(), 'villages.manage');
         abort_unless($village->type === 'village', 404);
 
         return Inertia::render('MasterData/Villages/Form', [

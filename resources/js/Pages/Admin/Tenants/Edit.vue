@@ -31,7 +31,7 @@ function submit() {
 <template>
     <Head title="Edit Tenant" />
     <AdminLayout>
-        <div class="mx-auto max-w-3xl space-y-6">
+        <div class="mx-auto max-w-7xl space-y-6">
             <header>
                 <Link :href="`/admin/tenants/${tenant.row_id}`" class="text-sm font-semibold text-primary">← Kembali</Link>
                 <h1 class="mt-3 text-2xl font-bold text-primary">Edit Tenant</h1>

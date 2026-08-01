@@ -221,7 +221,7 @@ final class ReportController
             ...$this->calk->build($year, $month),
             'monthLabels' => $this->monthLabels(),
             'filters' => ['year' => $year, 'month' => $month ?? 'all'],
-            'can_edit' => $this->permissions->allows($request->user(), 'settings.manage')
+            'can_edit' => $this->permissions->allows($request->user(), 'reports.manage')
                 || $this->permissions->allows($request->user(), 'journals.create'),
         ]);
     }
@@ -241,11 +241,7 @@ final class ReportController
 
     public function saveCalkNotes(Request $request): RedirectResponse
     {
-        $user = $request->user();
-        if (! $this->permissions->allows($user, 'settings.manage')
-            && ! $this->permissions->allows($user, 'journals.create')) {
-            abort(403, 'Missing permission: settings.manage or journals.create');
-        }
+        $this->permissions->denyUnless($request->user(), 'reports.manage');
 
         $data = $request->validate([
             'notes' => ['nullable', 'string', 'max:20000'],
@@ -319,7 +315,7 @@ final class ReportController
     {
         /** @var User|null $user */
         $user = $request->user();
-        $this->permissions->denyUnless($user, 'journals.view');
+        $this->permissions->denyUnless($user, 'reports.view');
     }
 
     /**

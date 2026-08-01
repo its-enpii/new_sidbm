@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Domain\Accounting\Models\FiscalPeriod;
 use App\Models\Platform\DatabaseShard;
 use App\Models\Platform\Tenant;
 use App\Models\Platform\TenantPlacement;
@@ -13,7 +12,6 @@ use App\Tenancy\Services\TenantGroupMasterDataProvisioner;
 use App\Tenancy\Services\TenantLoanProductProvisioner;
 use App\Tenancy\Services\TenantRegistrySynchronizer;
 use App\Tenancy\TenantContext;
-use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
@@ -72,21 +70,17 @@ final class BootstrapLocalEnvironment extends Command
             $context->initialize($tenant, $placement, $shard);
 
             $this->info('Importing chart of accounts...');
-            $exit = Artisan::call('tenancy:import-legacy-chart-of-accounts', [
-                'tenant' => $tenantCode,
-            ]);
-            $this->output->write(Artisan::output());
-            if ($exit !== self::SUCCESS) {
-                return $exit;
-            }
+            $coa = app(\App\Tenancy\Services\DefaultChartOfAccountsProvisioner::class)->ensureDefaults();
+            $this->info("COA inserted={$coa['inserted']} skipped={$coa['skipped']}");
 
-            // Re-bind context: import command may clear it.
-            $context->initialize($tenant->fresh(['placement.shard']), $placement, $shard);
+            $created = app(\App\Tenancy\Services\FiscalPeriodProvisioner::class)
+                ->ensureDefaults((int) $this->option('years'));
+            $this->info("Fiscal periods: opened {$created} month(s).");
 
-            $this->seedFiscalPeriods((int) $this->option('years'));
             $groupMasterData->ensureDefaults();
             $loanProducts->ensureDefaults();
-            $this->info('Master data + loan products ready.');
+            app(\App\Domain\Access\Services\PermissionChecker::class)->ensureSystemRoles();
+            $this->info('Master data + loan products + roles ready.');
         } finally {
             $context->clear();
             $connections->disconnect();
@@ -181,38 +175,5 @@ final class BootstrapLocalEnvironment extends Command
         $this->line("Tenant [{$tenant->code}] row_id={$tenant->row_id}");
 
         return $tenant->fresh(['placement.shard']);
-    }
-
-    private function seedFiscalPeriods(int $years): void
-    {
-        $years = max(1, min($years, 5));
-        $startYear = (int) CarbonImmutable::now()->year;
-        $created = 0;
-
-        for ($offset = 0; $offset < $years; $offset++) {
-            $year = $startYear + $offset;
-            for ($month = 1; $month <= 12; $month++) {
-                $starts = CarbonImmutable::create($year, $month, 1)->startOfMonth();
-                $exists = FiscalPeriod::query()
-                    ->where('fiscal_year', $year)
-                    ->where('fiscal_month', $month)
-                    ->exists();
-
-                if ($exists) {
-                    continue;
-                }
-
-                FiscalPeriod::query()->create([
-                    'fiscal_year' => $year,
-                    'fiscal_month' => $month,
-                    'starts_at' => $starts->toDateString(),
-                    'ends_at' => $starts->endOfMonth()->toDateString(),
-                    'status' => 'open',
-                ]);
-                $created++;
-            }
-        }
-
-        $this->info("Fiscal periods: opened {$created} month(s) across {$years} year(s).");
     }
 }

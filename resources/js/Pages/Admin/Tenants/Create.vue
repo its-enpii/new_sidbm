@@ -63,7 +63,7 @@ function submit() {
 <template>
     <Head title="Tambah Tenant" />
     <AdminLayout>
-        <div class="mx-auto max-w-7xl">
+        <div class="mx-auto max-w-7xl space-y-6">
             <header class="mb-6">
                 <Link href="/admin/tenants" class="text-sm font-semibold text-primary">← Kembali ke daftar tenant</Link>
                 <h1 class="mt-3 text-2xl font-bold text-primary">Tambah Tenant</h1>

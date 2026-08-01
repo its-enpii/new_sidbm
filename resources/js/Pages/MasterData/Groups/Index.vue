@@ -6,6 +6,9 @@ import AppCard from '../../../Components/AppCard.vue';
 import CsvImportExport from '../../../Components/CsvImportExport.vue';
 import SmartDataTable from '../../../Components/SmartDataTable.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+
+const { can } = useCan();
 
 defineProps({
     groups: { type: Object, required: true },
@@ -34,7 +37,7 @@ const csvColumns = ['nama', 'desa', 'alamat', 'no_hp', 'tanggal_berdiri', 'statu
         <div class="mx-auto max-w-7xl space-y-6">
             <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div><h1 class="text-2xl font-bold text-primary">Kelompok</h1><p class="mt-1 text-on-surface-variant">Kelola data, anggota, dan pengurus kelompok.</p></div>
-                <div class="flex flex-wrap items-center gap-2">
+                <div v-if="can('groups.manage')" class="flex flex-wrap items-center gap-2">
                     <CsvImportExport
                         export-url="/master-data/groups/export"
                         import-url="/master-data/groups/import"
@@ -65,7 +68,7 @@ const csvColumns = ['nama', 'desa', 'alamat', 'no_hp', 'tanggal_berdiri', 'statu
                                 <Link :href="`/master-data/groups/${row.row_id}`">
                                     <AppButton variant="ghost" size="compact" icon="visibility">Detail</AppButton>
                                 </Link>
-                                <Link :href="`/master-data/groups/${row.row_id}/edit`">
+                                <Link v-if="can('groups.manage')" :href="`/master-data/groups/${row.row_id}/edit`">
                                     <AppButton variant="ghost" size="compact" icon="edit">Edit</AppButton>
                                 </Link>
                             </div>

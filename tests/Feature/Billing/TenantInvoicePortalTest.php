@@ -105,6 +105,7 @@ final class TenantInvoicePortalTest extends TestCase
             'public_id' => (string) Str::ulid(),
             'number' => $number,
             'tenant_id' => $tenantId,
+            'purpose' => 'subscription',
             'status' => $status,
             'amount' => 250000,
             'amount_paid' => 0,

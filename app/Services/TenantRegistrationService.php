@@ -4,15 +4,20 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Domain\Access\Services\PermissionChecker;
 use App\Models\Platform\DatabaseShard;
 use App\Models\Platform\Tenant;
 use App\Models\Platform\TenantMembership;
 use App\Models\Platform\TenantPlacement;
 use App\Models\User;
+use App\Tenancy\Services\DefaultChartOfAccountsProvisioner;
+use App\Tenancy\Services\FiscalPeriodProvisioner;
 use App\Tenancy\Services\ShardConnectionManager;
 use App\Tenancy\Services\TenantGroupMasterDataProvisioner;
+use App\Tenancy\Services\TenantLoanProductProvisioner;
 use App\Tenancy\Services\TenantRegistrySynchronizer;
 use App\Tenancy\Services\TenantVillageProvisioner;
+use App\Tenancy\Services\TenantWorkbench;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -26,12 +31,17 @@ final readonly class TenantRegistrationService
         private TenantRegistrySynchronizer $registry,
         private TenantVillageProvisioner $villages,
         private TenantGroupMasterDataProvisioner $groupMasterData,
+        private TenantLoanProductProvisioner $loanProducts,
+        private DefaultChartOfAccountsProvisioner $coa,
+        private FiscalPeriodProvisioner $fiscalPeriods,
+        private PermissionChecker $permissions,
         private TenantContext $context,
+        private TenantWorkbench $workbench,
     ) {}
 
     public function register(array $data): Tenant
     {
-        [$tenant, $placement, $shard] = DB::connection('platform')->transaction(function () use ($data): array {
+        [$tenant, $placement, $shard, $user] = DB::connection('platform')->transaction(function () use ($data): array {
             $shard = DatabaseShard::query()->where('status', 'active')->orderBy('row_id')->firstOrFail();
             $tenant = Tenant::query()->create([
                 'public_id' => (string) Str::ulid(),
@@ -63,15 +73,22 @@ final readonly class TenantRegistrationService
                 'joined_at' => now(),
             ]);
 
-            return [$tenant, $placement, $shard];
+            return [$tenant, $placement, $shard, $user];
         });
 
         try {
             $this->connections->connect($shard);
             $this->registry->sync($tenant);
             $this->context->initialize($tenant, $placement, $shard);
+
             $this->groupMasterData->ensureDefaults();
             $this->villages->provision($tenant);
+            $this->loanProducts->ensureDefaults();
+            $this->coa->ensureDefaults();
+            $this->fiscalPeriods->ensureDefaults(1);
+            $this->permissions->ensureSystemRoles();
+            $this->permissions->assignRole($user, 'admin');
+
             $tenant->forceFill(['status' => 'active', 'provisioned_at' => now()])->save();
             $this->registry->sync($tenant);
 
@@ -83,6 +100,29 @@ final readonly class TenantRegistrationService
             $this->context->clear();
             $this->connections->disconnect();
         }
+    }
+
+    /**
+     * Re-run idempotent provision steps for an existing tenant (repair).
+     *
+     * @return array{coa: array, fiscal_created: int, roles: bool}
+     */
+    public function repair(Tenant $tenant): array
+    {
+        return $this->workbench->run($tenant->loadMissing('placement.shard'), function () use ($tenant): array {
+            $this->registry->sync($tenant);
+            $this->groupMasterData->ensureDefaults();
+            $this->loanProducts->ensureDefaults();
+            $coa = $this->coa->ensureDefaults();
+            $fiscal = $this->fiscalPeriods->ensureDefaults(1);
+            $this->permissions->ensureSystemRoles();
+
+            return [
+                'coa' => $coa,
+                'fiscal_created' => $fiscal,
+                'roles' => true,
+            ];
+        });
     }
 
     private function tenantCode(string $name): string

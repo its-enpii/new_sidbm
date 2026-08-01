@@ -25,7 +25,7 @@ final class PeriodCloseController
 
     public function index(Request $request): Response
     {
-        $this->permissions->denyUnless($request->user(), 'journals.view');
+        $this->permissions->denyUnless($request->user(), 'period_close.view');
 
         $year = (int) $request->query('year', CarbonImmutable::today()->year);
         if ($year < 2000 || $year > 2100) {
@@ -53,14 +53,14 @@ final class PeriodCloseController
         return Inertia::render('Accounting/PeriodClose/Index', [
             ...$payload,
             'allocation' => $allocation,
-            'can_close' => $this->permissions->allows($request->user(), 'journals.create'),
+            'can_close' => $this->permissions->allows($request->user(), 'period_close.manage'),
             'year_options' => $this->yearOptions($year),
         ]);
     }
 
     public function closeMonth(Request $request, int $year, int $month): RedirectResponse
     {
-        $this->permissions->denyUnless($request->user(), 'journals.create');
+        $this->permissions->denyUnless($request->user(), 'period_close.manage');
 
         try {
             $this->closer->closeMonth($year, $month, (int) $request->user()->row_id);
@@ -74,7 +74,7 @@ final class PeriodCloseController
 
     public function reopenMonth(Request $request, int $year, int $month): RedirectResponse
     {
-        $this->permissions->denyUnless($request->user(), 'journals.create');
+        $this->permissions->denyUnless($request->user(), 'period_close.manage');
 
         try {
             $this->closer->reopenMonth($year, $month);
@@ -88,7 +88,7 @@ final class PeriodCloseController
 
     public function closeYear(Request $request): RedirectResponse
     {
-        $this->permissions->denyUnless($request->user(), 'journals.create');
+        $this->permissions->denyUnless($request->user(), 'period_close.manage');
 
         $validated = $request->validate([
             'year' => ['required', 'integer', 'min:2000', 'max:2100'],
@@ -117,7 +117,7 @@ final class PeriodCloseController
 
     public function allocate(Request $request): RedirectResponse
     {
-        $this->permissions->denyUnless($request->user(), 'journals.create');
+        $this->permissions->denyUnless($request->user(), 'period_close.manage');
 
         $validated = $request->validate([
             'year' => ['required', 'integer', 'min:2000', 'max:2100'],

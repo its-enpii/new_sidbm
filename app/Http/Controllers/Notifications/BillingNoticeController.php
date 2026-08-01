@@ -18,11 +18,14 @@ final class BillingNoticeController
     public function __construct(
         private readonly WhatsappNotificationService $notices,
         private readonly WhatsappGatewayService $gateway,
+        private readonly PermissionChecker $permissions,
     ) {
     }
 
     public function index(Request $request): Response
     {
+        $this->permissions->denyUnless($request->user(), 'messages.send');
+
         $due = $this->resolveDueDate($request);
         $items = $this->notices->dueOn($due);
         $state = $this->gateway->isConfigured()

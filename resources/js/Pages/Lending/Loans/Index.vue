@@ -5,6 +5,9 @@ import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import SmartDataTable from '../../../Components/SmartDataTable.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     loans: { type: Object, required: true },
@@ -61,7 +64,7 @@ const emptyMessages = {
                     <h1 class="text-2xl font-bold text-primary">Tahapan Perguliran</h1>
                     <p class="mt-1 text-on-surface-variant">Pantau pergerakan pinjaman dari pengajuan hingga pelunasan.</p>
                 </div>
-                <Link href="/lending/loans/create"><AppButton icon="add">Register Proposal</AppButton></Link>
+                <Link v-if="can('loans.propose')" href="/lending/loans/create"><AppButton icon="add">Register Proposal</AppButton></Link>
             </header>
 
             <div class="border-b border-outline-variant">

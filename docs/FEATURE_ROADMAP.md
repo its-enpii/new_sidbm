@@ -56,7 +56,8 @@ Script: `docker exec new_sidbm-app-1 php scripts/smoke_pilot_local.php`
 | COA UI | ✅ P2.2 read-only (mutasi pusat) | — |
 | Aset / inventaris UI | ✅ P2.3 register + nilai buku | — |
 | Migrasi data pilot | Hijau | Bukan fitur harian |
-| Tenant #2+ | Belum | P2.4 setelah metric pilot |
+| Tenant #2+ | Belum cutover data; **provision blank hijau** (admin) | P2.4 setelah metric pilot |
+| Admin platform | ✅ tenant/plan/invoice + **provision + role** | COA CRUD ad-hoc / impersonate later |
 
 ---
 
@@ -145,3 +146,5 @@ Script: `docker exec new_sidbm-app-1 php scripts/smoke_pilot_local.php`
 | 2026-07-29 | **P2.2** COA read-only (aturan pusat: no CRUD tenant). Next: P2.3 aset UI. |
 | 2026-07-29 | **P2.3** inventaris: beli via jurnal umum; `/assets` register/nilai buku/status (`AssetService`). |
 | 2026-07-29 | **P3.1** search global header (`GlobalSearchService` + omnibox). |
+| 2026-07-29 | **Admin platform:** provision lengkap (COA + fiscal + loan products + system roles + role `admin` user pertama); assign role user tenant; `TenantWorkbench` + tombol **Lengkapi provision**. |
+

@@ -1,17 +1,81 @@
 <script setup>
-import { onBeforeUnmount, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import AppIcon from './AppIcon.vue';
 
-const ASSISTANT_NAME = 'Ariel';
+const FALLBACK_NAME = 'Ariel';
 
-const open = ref(false);
-const loading = ref(false);
-const error = ref(null);
-const mountEl = ref(null);
+// Global singleton survives module reloads (Vite HMR + Inertia page swaps).
+// Vite dev mode may re-evaluate this module on every navigation, so module-level
+// `reactive()` would reset. Stashing in `window` keeps the same instance.
+if (!window.__assistantState__) {
+    window.__assistantState__ = reactive({
+        open: false,
+        loading: false,
+        sending: false,
+        typing: false,
+        typingLabel: 'Sedang mengetik',
+        error: null,
+        input: '',
+        messages: [],
+        pendingConfirmation: null,
+        persona: null,
+        sessionToken: null,
+        endpoint: null,
+        conversationId: null,
+        expiresAt: null,
+        msgSeq: 0,
+    });
+}
+const shared = window.__assistantState__;
+
 const rootEl = ref(null);
+const listEl = ref(null);
+const inputEl = ref(null);
 
-let scriptEl = null;
-let greetingObserver = null;
+const open = ref(shared.open);
+const loading = ref(shared.loading);
+const sending = ref(shared.sending);
+const typing = ref(shared.typing);
+const typingLabel = ref(shared.typingLabel);
+const error = ref(shared.error);
+const input = ref(shared.input);
+const messages = ref(shared.messages);
+const pendingConfirmation = ref(shared.pendingConfirmation);
+const persona = ref(shared.persona);
+
+// Watch wrapper so all `xxx.value = ...` calls round-trip into shared module state,
+// otherwise Inertia layout remounts would lose chat history.
+watch(open, (v) => (shared.open = v));
+watch(loading, (v) => (shared.loading = v));
+watch(sending, (v) => (shared.sending = v));
+watch(typing, (v) => (shared.typing = v));
+watch(typingLabel, (v) => (shared.typingLabel = v));
+watch(error, (v) => (shared.error = v));
+watch(input, (v) => (shared.input = v));
+watch(messages, (v) => (shared.messages = v), { deep: true });
+watch(pendingConfirmation, (v) => (shared.pendingConfirmation = v), { deep: true });
+watch(persona, (v) => (shared.persona = v), { deep: true });
+
+const sessionToken = ref(shared.sessionToken);
+const endpoint = ref(shared.endpoint);
+let conversationId = shared.conversationId;
+const expiresAt = ref(shared.expiresAt);
+let msgSeq = shared.msgSeq;
+
+watch(sessionToken, (v) => (shared.sessionToken = v));
+watch(endpoint, (v) => (shared.endpoint = v));
+watch(expiresAt, (v) => (shared.expiresAt = v));
+
+function displayName() {
+    return persona.value?.name || FALLBACK_NAME;
+}
+
+function pushMessage(msg) {
+    messages.value.push({ id: ++msgSeq, ...msg });
+    shared.msgSeq = msgSeq;
+    scrollBottom();
+    return messages.value[messages.value.length - 1];
+}
 
 function onDocumentPointerDown(event) {
     if (!open.value || !rootEl.value) return;
@@ -21,221 +85,564 @@ function onDocumentPointerDown(event) {
 }
 
 document.addEventListener('pointerdown', onDocumentPointerDown, true);
+onMounted(() => {
+    // intentionally empty — placeholder if future init needed
+});
 
 function pickGreeting() {
+    const name = displayName();
     const hour = new Date().getHours();
     const salam = hour < 11 ? 'Selamat pagi' : hour < 15 ? 'Selamat siang' : hour < 18 ? 'Selamat sore' : 'Selamat malam';
-
     const pool = [
-        `${salam}, apa yang bisa ${ASSISTANT_NAME} bantu hari ini?`,
-        `Butuh bantuan? ${ASSISTANT_NAME} siap membantu.`,
-        `Perlu bantuan mencatat transaksi? Mungkin ${ASSISTANT_NAME} bisa bantu.`,
-        `Halo! ${ASSISTANT_NAME} di sini. Ada data yang ingin dicari?`,
-        `${salam}. ${ASSISTANT_NAME} siap bantu cek angsuran, jurnal, atau data anggota.`,
-        `Ada yang bisa ${ASSISTANT_NAME} bantu? Langsung saja tulis kebutuhannya.`,
+        `${salam}, apa yang bisa ${name} bantu hari ini?`,
+        `Butuh bantuan? ${name} siap membantu.`,
+        `Perlu bantuan mencatat transaksi? Mungkin ${name} bisa bantu.`,
+        `Halo! ${name} di sini. Ada data yang ingin dicari?`,
+        `${salam}. ${name} siap bantu cek angsuran, jurnal, atau data anggota.`,
     ];
-
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
-function injectGreetingBubble(text) {
-    if (!text || !mountEl.value) return;
-
-    const tryInject = () => {
-        const list = mountEl.value?.querySelector('.enc-embed-list');
-        if (!list || list.querySelector('[data-sidbm-greeting]')) return true;
-
-        const bubble = document.createElement('div');
-        bubble.className = 'enc-embed-msg assistant';
-        bubble.setAttribute('data-sidbm-greeting', '1');
-        bubble.textContent = text;
-        list.prepend(bubble);
-        return true;
-    };
-
-    if (tryInject()) return;
-
-    greetingObserver?.disconnect();
-    greetingObserver = new MutationObserver(() => {
-        if (tryInject()) {
-            greetingObserver?.disconnect();
-            greetingObserver = null;
-        }
-    });
-    greetingObserver.observe(mountEl.value, { childList: true, subtree: true });
+function escapeHtml(s) {
+    return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 }
 
-async function ensureWidget() {
-    if (scriptEl || !mountEl.value) return;
+/** Lightweight markdown → safe HTML. No new deps. */
+function formatMessage(raw) {
+    if (!raw) return '';
+    let text = String(raw).replace(/\r\n/g, '\n');
+
+    // fenced code
+    text = text.replace(/```([\s\S]*?)```/g, (_, code) =>
+        `<pre class="assistant-md-pre"><code>${escapeHtml(code.replace(/^\n|\n$/g, ''))}</code></pre>`);
+
+    // split by pre blocks so we don't format inside code
+    const parts = text.split(/(<pre class="assistant-md-pre">[\s\S]*?<\/pre>)/);
+    return parts.map((part) => {
+        if (part.startsWith('<pre class="assistant-md-pre">')) return part;
+        // Inline " - a. - b." → newlines before list markers (common LLM habit)
+        let t = part.replace(/([:;])\s+[-–—]\s+/g, '$1\n- ').replace(/\s+[-–—]\s+(?=[A-Z0-9*])/g, '\n- ');
+        t = escapeHtml(t);
+        t = t.replace(/`([^`]+)`/g, '<code class="assistant-md-code">$1</code>');
+        t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        t = t.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+        t = t.replace(/^### (.+)$/gm, '<div class="assistant-md-h3">$1</div>');
+        t = t.replace(/^## (.+)$/gm, '<div class="assistant-md-h2">$1</div>');
+        t = t.replace(/^# (.+)$/gm, '<div class="assistant-md-h2">$1</div>');
+        t = t.replace(/(?:^(?:[-*]|\d+\.) .+(?:\n|$))+/gm, (block) => {
+            const items = block.trim().split('\n').map((line) =>
+                line.replace(/^(?:[-*]|\d+\.)\s+/, ''));
+            return `<ul class="assistant-md-ul">${items.map((i) => `<li>${i}</li>`).join('')}</ul>`;
+        });
+        t = t.replace(/\n\n+/g, '</p><p class="assistant-md-p">');
+        t = t.replace(/\n/g, '<br>');
+        if (!t.startsWith('<ul') && !t.startsWith('<div') && !t.startsWith('<pre')) {
+            t = `<p class="assistant-md-p">${t}</p>`;
+        }
+        return t;
+    }).join('');
+}
+
+function sessionValid() {
+    if (!sessionToken.value || !endpoint.value) return false;
+    if (!expiresAt.value) return true;
+    return Date.parse(expiresAt.value) > Date.now() + 30_000;
+}
+
+async function ensureSession() {
+    if (sessionValid()) return;
     loading.value = true;
     error.value = null;
-
     try {
-        const res = await fetch('/api/assistant/embed-token', {
+        const res = await fetch('/api/assistant/session-token', {
             credentials: 'same-origin',
             headers: { Accept: 'application/json' },
         });
         const data = await res.json();
-        if (!res.ok) {
-            throw new Error(data.error || `HTTP ${res.status}`);
+        if (!res.ok) throw new Error(data.error || data.detail || `HTTP ${res.status}`);
+        sessionToken.value = data.session_token;
+        endpoint.value = String(data.endpoint || '').replace(/\/$/, '');
+        expiresAt.value = data.expires_at || null;
+        if (data.conversation_id) {
+            conversationId = data.conversation_id;
+            shared.conversationId = conversationId;
         }
-
-        // SIDBM owns the visible greeting; persona greeting from Encompletion is system-facing.
-        const greeting = pickGreeting();
-
-        scriptEl = document.createElement('script');
-        scriptEl.src = data.widget_script;
-        scriptEl.defer = true;
-        scriptEl.setAttribute('data-endpoint', data.endpoint);
-        scriptEl.setAttribute('data-token', data.embed_token);
-        scriptEl.setAttribute('data-mount', '#sidbm-encompletion-mount');
-        scriptEl.onload = () => injectGreetingBubble(greeting);
-        scriptEl.onerror = () => {
-            error.value = 'Gagal memuat widget asisten.';
-        };
-        document.body.appendChild(scriptEl);
-
-        setTimeout(() => injectGreetingBubble(greeting), 150);
-        setTimeout(() => injectGreetingBubble(greeting), 500);
-    } catch (e) {
-        error.value = e?.message || 'Gagal menghubungkan asisten.';
+        if (data.persona && typeof data.persona === 'object') {
+            persona.value = {
+                id: data.persona.id || null,
+                slug: data.persona.slug || null,
+                name: data.persona.name || FALLBACK_NAME,
+            };
+        }
+        if (!endpoint.value || !sessionToken.value) throw new Error('Session orchestrator tidak lengkap.');
     } finally {
         loading.value = false;
+    }
+}
+
+async function scrollBottom() {
+    await nextTick();
+    if (listEl.value) listEl.value.scrollTop = listEl.value.scrollHeight;
+}
+
+function resizeInput() {
+    const el = inputEl.value;
+    if (!el) return;
+    el.style.height = 'auto';
+    const max = 7.5 * 16; // ~7.5rem ≈ 5 lines
+    el.style.height = `${Math.min(el.scrollHeight, max)}px`;
+}
+
+async function afterInputChange() {
+    await nextTick();
+    resizeInput();
+}
+
+function parseSseChunk(buffer, onEvent) {
+    const parts = buffer.split('\n\n');
+    const rest = parts.pop() ?? '';
+    for (const block of parts) {
+        let event = 'message';
+        const dataLines = [];
+        for (const line of block.split('\n')) {
+            if (line.startsWith('event:')) event = line.slice(6).trim();
+            else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+        }
+        if (!dataLines.length) continue;
+        let data = dataLines.join('\n');
+        try {
+            data = JSON.parse(data);
+        } catch {
+            // keep raw string
+        }
+        onEvent(event, data);
+    }
+    return rest;
+}
+
+async function readSse(response, onEvent) {
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || `HTTP ${response.status}`);
+    }
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('Stream tidak tersedia.');
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        buffer = parseSseChunk(buffer, onEvent);
+    }
+    if (buffer.trim()) parseSseChunk(buffer + '\n\n', onEvent);
+}
+
+function handleEvent(event, data, assistantMsg) {
+    if (event === 'conversation' && data?.id) {
+        conversationId = data.id;
+        shared.conversationId = conversationId;
+        return;
+    }
+    if (event === 'text') {
+        const delta = typeof data === 'string' ? data : (data?.delta ?? '');
+        if (delta) {
+            typing.value = false;
+            if (!assistantMsg._pushed) {
+                assistantMsg._pushed = true;
+                assistantMsg._ref = pushMessage({ role: 'assistant', content: '' });
+            }
+            assistantMsg.content += delta;
+            if (assistantMsg._ref) assistantMsg._ref.content = assistantMsg.content;
+            scrollBottom();
+        }
+        return;
+    }
+    // Tools stay internal — only status on typing chip (not chat bubbles).
+    if (event === 'tool_use') {
+        typing.value = true;
+        typingLabel.value = 'Mencari data…';
+        scrollBottom();
+        return;
+    }
+    if (event === 'tool_result') {
+        typing.value = true;
+        typingLabel.value = data?.ok === false ? 'Data tidak lengkap, menyusun jawaban…' : 'Menyusun jawaban…';
+        scrollBottom();
+        return;
+    }
+    if (event === 'confirmation_required') {
+        typing.value = false;
+        pendingConfirmation.value = {
+            execution_id: data?.execution_id,
+            summary: data?.summary || 'Konfirmasi aksi',
+            plan: data?.plan || null,
+            warnings: data?.warnings || [],
+            options: data?.options || [],
+            proposed_params: data?.proposed_params || {},
+        };
+        pushMessage({
+            role: 'system',
+            content: data?.summary || 'Aksi membutuhkan konfirmasi.',
+        });
+        return;
+    }
+    if (event === 'error') {
+        typing.value = false;
+        const msg = data?.message || 'Terjadi kesalahan asisten.';
+        error.value = msg;
+        pushMessage({ role: 'error', content: msg });
+        return;
+    }
+    if (event === 'result') {
+        if (data?.conversation_id) {
+            conversationId = data.conversation_id;
+            shared.conversationId = conversationId;
+        }
+        // Keep typing until text arrived; clear if run ended without text
+        if (data?.status && data.status !== 'needs_confirmation' && !assistantMsg.content) {
+            typing.value = false;
+        }
+    }
+}
+
+async function sendMessage() {
+    const content = input.value.trim();
+    if (!content || sending.value) return;
+    input.value = '';
+    nextTick(resizeInput);
+    error.value = null;
+    pendingConfirmation.value = null;
+    pushMessage({ role: 'user', content });
+    const assistantMsg = { role: 'assistant', content: '', _pushed: false };
+    sending.value = true;
+    typing.value = true;
+    typingLabel.value = 'Sedang mengetik';
+    scrollBottom();
+    try {
+        await ensureSession();
+        const res = await fetch(`${endpoint.value}/api/v1/chat`, {
+            method: 'POST',
+            headers: {
+                Accept: 'text/event-stream',
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${sessionToken.value}`,
+            },
+            body: JSON.stringify({
+                conversation_id: conversationId,
+                message: content,
+            }),
+        });
+        await readSse(res, (event, data) => handleEvent(event, data, assistantMsg));
+        // No silent empty bubble — only surface real failure text
+        if (!assistantMsg._pushed && !assistantMsg.content) {
+            // stream finished without assistant text (tools-only / empty model)
+            // leave UI clean; user can re-ask. Optional soft note:
+            pushMessage({
+                role: 'assistant',
+                content: 'Maaf, saya belum bisa merangkai jawaban. Coba ulangi pertanyaan atau sebutkan lebih spesifik.',
+            });
+        }
+    } catch (e) {
+        error.value = e?.message || 'Gagal mengirim pesan.';
+        pushMessage({ role: 'error', content: error.value });
+    } finally {
+        typing.value = false;
+        typingLabel.value = 'Sedang mengetik';
+        sending.value = false;
+        scrollBottom();
+    }
+}
+
+async function decideConfirmation(decision) {
+    const conf = pendingConfirmation.value;
+    if (!conf?.execution_id || sending.value) return;
+    sending.value = true;
+    typing.value = true;
+    typingLabel.value = decision === 'approve' ? 'Menjalankan aksi…' : 'Membatalkan…';
+    error.value = null;
+    const assistantMsg = { role: 'assistant', content: '', _pushed: false };
+    scrollBottom();
+    try {
+        await ensureSession();
+        const res = await fetch(`${endpoint.value}/api/v1/confirmations/${conf.execution_id}`, {
+            method: 'POST',
+            headers: {
+                Accept: 'text/event-stream',
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${sessionToken.value}`,
+            },
+            body: JSON.stringify({ decision }),
+        });
+        pendingConfirmation.value = null;
+        await readSse(res, (event, data) => handleEvent(event, data, assistantMsg));
+        if (!assistantMsg._pushed) {
+            pushMessage({
+                role: 'assistant',
+                content: decision === 'approve' ? 'Aksi dijalankan.' : 'Aksi dibatalkan.',
+            });
+        }
+    } catch (e) {
+        error.value = e?.message || 'Gagal konfirmasi.';
+        pushMessage({ role: 'error', content: error.value });
+    } finally {
+        typing.value = false;
+        typingLabel.value = 'Sedang mengetik';
+        sending.value = false;
+        scrollBottom();
     }
 }
 
 async function toggle() {
     open.value = !open.value;
     if (open.value) {
-        await ensureWidget();
+        if (!messages.value.length) {
+            pushMessage({ role: 'assistant', content: pickGreeting() });
+        }
+        try {
+            await ensureSession();
+        } catch (e) {
+            error.value = e?.message || 'Gagal menghubungkan asisten.';
+        }
+    }
+}
+
+function onKeydown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+        nextTick(resizeInput);
     }
 }
 
 onBeforeUnmount(() => {
     document.removeEventListener('pointerdown', onDocumentPointerDown, true);
-    greetingObserver?.disconnect();
-    greetingObserver = null;
-    if (scriptEl?.parentNode) {
-        scriptEl.parentNode.removeChild(scriptEl);
-    }
-    scriptEl = null;
 });
 </script>
 
 <template>
     <div ref="rootEl" class="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
-        <div
-            v-show="open"
-            class="assistant-panel pointer-events-auto flex h-[min(36rem,75vh)] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-2xl"
-            role="dialog"
-            :aria-label="ASSISTANT_NAME"
-        >
-            <div class="flex shrink-0 items-center justify-between gap-2 border-b border-outline-variant bg-primary px-4 py-3 text-on-primary">
-                <div class="flex items-center gap-2">
-                    <AppIcon name="smart_toy" class="text-xl" />
-                    <span class="text-sm font-bold">{{ ASSISTANT_NAME }}</span>
+        <Transition name="assistant-panel">
+            <div
+                v-if="open"
+                class="assistant-panel pointer-events-auto flex h-[min(36rem,75vh)] w-[min(24rem,calc(100vw-2rem))] origin-bottom-right flex-col overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-2xl"
+                role="dialog"
+                :aria-label="displayName()"
+            >
+                <div class="flex shrink-0 items-center justify-between gap-2 border-b border-outline-variant bg-primary px-4 py-3 text-on-primary">
+                    <div class="flex min-w-0 items-center gap-2">
+                        <AppIcon name="smart_toy" class="shrink-0 text-xl" />
+                        <div class="min-w-0">
+                            <span class="block truncate text-sm font-bold">{{ displayName() }}</span>
+                            <span v-if="persona?.slug" class="block truncate text-[10px] font-medium uppercase tracking-wide text-on-primary/70">{{ persona.slug }}</span>
+                        </div>
+                    </div>
+                    <button type="button" class="rounded-lg p-1 hover:bg-on-primary/10" aria-label="Tutup asisten" @click="open = false">
+                        <AppIcon name="close" class="text-xl" />
+                    </button>
                 </div>
-                <button type="button" class="rounded-lg p-1 hover:bg-on-primary/10" aria-label="Tutup asisten" @click="open = false">
-                    <AppIcon name="close" class="text-xl" />
-                </button>
-            </div>
 
-            <p v-if="loading" class="shrink-0 p-4 text-sm text-on-surface-variant">Menghubungkan…</p>
-            <p v-else-if="error" class="shrink-0 p-4 text-sm text-error">{{ error }}</p>
-            <div id="sidbm-encompletion-mount" ref="mountEl" class="assistant-mount min-h-0 flex-1 overflow-hidden" />
-        </div>
+                <p v-if="loading && !messages.length" class="shrink-0 p-4 text-sm text-on-surface-variant">Menghubungkan…</p>
+                <p v-else-if="error && !messages.length" class="shrink-0 p-4 text-sm text-error">{{ error }}</p>
+
+                <div ref="listEl" class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-surface p-4">
+                    <TransitionGroup name="assistant-msg" tag="div" class="flex flex-col gap-3">
+                        <div
+                            v-for="msg in messages"
+                            :key="msg.id"
+                            class="max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed"
+                            :class="{
+                                'self-end rounded-br-sm bg-primary text-on-primary whitespace-pre-wrap': msg.role === 'user',
+                                'assistant-md self-start rounded-bl-sm border border-outline-variant bg-surface-container-lowest text-on-surface': msg.role === 'assistant' || msg.role === 'system',
+                                'self-start rounded-bl-sm bg-error-container text-on-error-container whitespace-pre-wrap': msg.role === 'error',
+                                'self-start rounded-bl-sm border border-dashed border-outline-variant bg-surface-container-low text-xs text-on-surface-variant': msg.role === 'tool',
+                            }"
+                        >
+                            <template v-if="msg.role === 'tool'">
+                                <span class="font-semibold">{{ msg.kind === 'use' ? 'Tool' : 'Hasil' }}: {{ msg.name }}</span>
+                                <span v-if="msg.ok === false" class="text-error"> (gagal)</span>
+                            </template>
+                            <template v-else-if="msg.role === 'user' || msg.role === 'error'">{{ msg.content }}</template>
+                            <!-- eslint-disable-next-line vue/no-v-html -->
+                            <div v-else class="assistant-md-body" v-html="formatMessage(msg.content)" />
+                        </div>
+                    </TransitionGroup>
+
+                    <div
+                        v-if="typing"
+                        class="assistant-typing self-start flex max-w-[85%] items-center gap-2 rounded-2xl rounded-bl-sm border border-outline-variant bg-surface-container-lowest px-3.5 py-2.5"
+                        :aria-label="typingLabel"
+                    >
+                        <span class="flex items-center gap-1">
+                            <span class="assistant-typing-dot" />
+                            <span class="assistant-typing-dot" />
+                            <span class="assistant-typing-dot" />
+                        </span>
+                        <span class="text-xs text-on-surface-variant">{{ typingLabel }}</span>
+                    </div>
+
+                    <div
+                        v-if="pendingConfirmation"
+                        class="self-stretch rounded-xl border border-outline-variant bg-surface-container-lowest p-3 text-sm"
+                    >
+                        <p class="font-semibold text-primary">{{ pendingConfirmation.summary }}</p>
+                        <ul v-if="pendingConfirmation.warnings?.length" class="mt-2 list-disc pl-4 text-on-surface-variant">
+                            <li v-for="(w, i) in pendingConfirmation.warnings" :key="i">{{ w }}</li>
+                        </ul>
+                        <div class="mt-3 flex gap-2">
+                            <button
+                                type="button"
+                                class="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary disabled:opacity-50"
+                                :disabled="sending"
+                                @click="decideConfirmation('approve')"
+                            >Setuju</button>
+                            <button
+                                type="button"
+                                class="rounded-lg border border-outline-variant px-3 py-1.5 text-xs font-semibold text-on-surface disabled:opacity-50"
+                                :disabled="sending"
+                                @click="decideConfirmation('reject')"
+                            >Tolak</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex shrink-0 items-end gap-2 border-t border-outline-variant bg-surface-container-lowest p-3">
+                    <textarea
+                        ref="inputEl"
+                        v-model="input"
+                        rows="2"
+                        class="assistant-composer min-h-[2.75rem] max-h-[7.5rem] flex-1 resize-none overflow-y-auto rounded-xl border border-outline-variant bg-surface px-3 py-2.5 text-sm leading-5 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                        :placeholder="`Tulis ke ${displayName()}…`"
+                        :disabled="sending || loading"
+                        @input="afterInputChange"
+                        @keydown="onKeydown"
+                    />
+                    <button
+                        type="button"
+                        class="mb-0.5 grid size-11 shrink-0 place-items-center rounded-xl bg-primary text-on-primary disabled:opacity-50"
+                        :disabled="sending || loading || !input.trim()"
+                        aria-label="Kirim"
+                        @click="sendMessage"
+                    >
+                        <AppIcon name="send" class="text-xl" />
+                    </button>
+                </div>
+            </div>
+        </Transition>
 
         <button
             type="button"
-            class="pointer-events-auto grid size-14 place-items-center rounded-full bg-primary text-on-primary shadow-lg transition hover:bg-primary-container focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            class="pointer-events-auto grid size-14 place-items-center rounded-full bg-primary text-on-primary shadow-lg transition duration-200 hover:scale-105 hover:bg-primary-container focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-95"
             :aria-expanded="open"
-            :aria-label="`Buka ${ASSISTANT_NAME}`"
+            :aria-label="`Buka ${displayName()}`"
             @click="toggle"
         >
-            <AppIcon :name="open ? 'close' : 'smart_toy'" class="text-2xl" />
+            <AppIcon :name="open ? 'close' : 'smart_toy'" class="text-2xl transition-transform duration-200" />
         </button>
     </div>
 </template>
 
-<style>
-/* Embed fills SIDBM chrome; hide duplicate header. Tokens only. */
-.assistant-mount,
-.assistant-mount .enc-embed {
-    height: 100% !important;
-    max-width: none !important;
-    max-height: none !important;
+<style scoped>
+.assistant-composer {
+    field-sizing: content;
+}
+.assistant-composer::-webkit-resizer,
+.assistant-composer::-webkit-scrollbar-corner {
+    display: none;
 }
 
-.assistant-mount .enc-embed {
-    border: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    background: var(--color-surface-container-lowest) !important;
-    color: var(--color-on-surface) !important;
+.assistant-panel-enter-active,
+.assistant-panel-leave-active {
+    transition:
+        opacity 0.2s ease,
+        transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.assistant-panel-enter-from,
+.assistant-panel-leave-to {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
 }
 
-.assistant-mount .enc-embed-header {
-    display: none !important;
+.assistant-msg-enter-active {
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.assistant-msg-enter-from {
+    opacity: 0;
+    transform: translateY(8px);
 }
 
-.assistant-mount .enc-embed-list {
-    gap: 0.75rem !important;
-    padding: 1rem !important;
-    background: var(--color-surface) !important;
+.assistant-typing-dot {
+    display: block;
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--color-on-surface) 45%, transparent);
+    animation: assistant-typing-bounce 1.2s infinite ease-in-out;
+}
+.assistant-typing-dot:nth-child(2) {
+    animation-delay: 0.15s;
+}
+.assistant-typing-dot:nth-child(3) {
+    animation-delay: 0.3s;
+}
+@keyframes assistant-typing-bounce {
+    0%,
+    60%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.45;
+    }
+    30% {
+        transform: translateY(-3px);
+        opacity: 1;
+    }
 }
 
-/* Chat bubbles */
-.assistant-mount .enc-embed-msg {
-    max-width: 85% !important;
-    padding: 0.625rem 0.875rem !important;
-    border-radius: 1rem !important;
-    line-height: 1.45 !important;
-    font-size: 0.875rem !important;
-    box-shadow: none !important;
+.assistant-md-body :deep(.assistant-md-p) {
+    margin: 0;
 }
-
-.assistant-mount .enc-embed-msg.user {
-    align-self: flex-end !important;
-    border-bottom-right-radius: 0.25rem !important;
-    background: var(--color-primary) !important;
-    color: var(--color-on-primary) !important;
+.assistant-md-body :deep(.assistant-md-p + .assistant-md-p) {
+    margin-top: 0.5rem;
 }
-
-.assistant-mount .enc-embed-msg.assistant {
-    align-self: flex-start !important;
-    border-bottom-left-radius: 0.25rem !important;
-    background: var(--color-surface-container-lowest) !important;
-    color: var(--color-on-surface) !important;
-    border: 1px solid var(--color-outline-variant) !important;
+.assistant-md-body :deep(.assistant-md-ul) {
+    margin: 0.35rem 0;
+    padding-left: 1.15rem;
+    list-style: disc;
 }
-
-.assistant-mount .enc-embed-msg.error {
-    align-self: flex-start !important;
-    border-bottom-left-radius: 0.25rem !important;
-    background: var(--color-error-container) !important;
-    color: var(--color-on-error-container) !important;
-    border: 1px solid transparent !important;
+.assistant-md-body :deep(.assistant-md-ul li) {
+    margin: 0.15rem 0;
 }
-
-.assistant-mount .enc-embed-composer {
-    background: var(--color-surface-container-lowest) !important;
-    border-top: 1px solid var(--color-outline-variant) !important;
-    padding: 0.75rem !important;
-    gap: 0.5rem !important;
+.assistant-md-body :deep(.assistant-md-h2),
+.assistant-md-body :deep(.assistant-md-h3) {
+    font-weight: 700;
+    margin: 0.35rem 0 0.2rem;
 }
-
-.assistant-mount .enc-embed-composer textarea {
-    border: 1px solid var(--color-outline-variant) !important;
-    border-radius: 0.75rem !important;
-    background: var(--color-surface) !important;
-    color: var(--color-on-surface) !important;
-    padding: 0.5rem 0.75rem !important;
+.assistant-md-body :deep(.assistant-md-h2) {
+    font-size: 0.95rem;
 }
-
-.assistant-mount .enc-embed-composer button {
-    border-radius: 0.75rem !important;
-    background: var(--color-primary) !important;
-    color: var(--color-on-primary) !important;
-    font-weight: 600 !important;
+.assistant-md-body :deep(.assistant-md-code) {
+    font-family: ui-monospace, monospace;
+    font-size: 0.8em;
+    padding: 0.05rem 0.3rem;
+    border-radius: 0.25rem;
+    background: color-mix(in srgb, var(--color-on-surface) 8%, transparent);
+}
+.assistant-md-body :deep(.assistant-md-pre) {
+    margin: 0.4rem 0;
+    padding: 0.5rem 0.65rem;
+    overflow-x: auto;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    background: color-mix(in srgb, var(--color-on-surface) 6%, transparent);
+}
+.assistant-md-body :deep(strong) {
+    font-weight: 700;
 }
 </style>

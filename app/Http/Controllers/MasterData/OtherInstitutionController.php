@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\MasterData;
 
+use App\Domain\Access\Services\PermissionChecker;
 use App\Domain\Membership\Services\MasterDataCsvService;
 use App\Http\Requests\MasterData\OtherInstitutionRequest;
 use App\Models\Tenant\OrganizationUnit;
@@ -18,8 +19,15 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class OtherInstitutionController
 {
+    public function __construct(
+        private readonly PermissionChecker $permissions,
+    ) {
+    }
+
     public function index(Request $request): Response
     {
+        $this->permissions->denyUnless($request->user(), 'institutions.view');
+
         $search = trim((string) $request->query('search', ''));
         $perPage = $this->perPage($request->query('per_page'));
         $sort = $this->sort((string) $request->query('sort', 'name'));
@@ -48,8 +56,10 @@ final class OtherInstitutionController
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        $this->permissions->denyUnless($request->user(), 'institutions.manage');
+
         return Inertia::render('MasterData/Institutions/Form', [
             'institution' => null,
             'villages' => $this->activeVillages(),
@@ -79,8 +89,9 @@ final class OtherInstitutionController
         return to_route('master-data.institutions.index')->with('success', 'Lembaga berhasil ditambahkan.');
     }
 
-    public function show(OrganizationUnit $institution): Response
+    public function show(Request $request, OrganizationUnit $institution): Response
     {
+        $this->permissions->denyUnless($request->user(), 'institutions.view');
         abort_unless($institution->type === 'other_institution', 404);
         $institution->load('parent:row_id,name,code');
 
@@ -103,8 +114,9 @@ final class OtherInstitutionController
         ]);
     }
 
-    public function edit(OrganizationUnit $institution): Response
+    public function edit(Request $request, OrganizationUnit $institution): Response
     {
+        $this->permissions->denyUnless($request->user(), 'institutions.manage');
         abort_unless($institution->type === 'other_institution', 404);
 
         return Inertia::render('MasterData/Institutions/Form', [
@@ -124,13 +136,17 @@ final class OtherInstitutionController
         return to_route('master-data.institutions.index')->with('success', 'Lembaga berhasil diperbarui.');
     }
 
-    public function export(MasterDataCsvService $csv): StreamedResponse
+    public function export(Request $request, MasterDataCsvService $csv): StreamedResponse
     {
+        $this->permissions->denyUnless($request->user(), 'institutions.manage');
+
         return $csv->exportInstitutions();
     }
 
     public function import(Request $request, MasterDataCsvService $csv): RedirectResponse
     {
+        $this->permissions->denyUnless($request->user(), 'institutions.manage');
+
         $request->validate([
             'file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
         ], [], ['file' => 'file CSV']);

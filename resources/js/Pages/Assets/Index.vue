@@ -8,6 +8,9 @@ import AppDatePicker from '../../Components/AppDatePicker.vue';
 import AppInput from '../../Components/AppInput.vue';
 import SmartSelect from '../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     assets: { type: Object, required: true },
@@ -86,7 +89,7 @@ watch([status, category, asOf], () => {
                         Register &amp; nilai buku. <strong>Beli aset</strong> lewat Jurnal Umum → tipe Pembelian Inventaris.
                     </p>
                 </div>
-                <Link href="/accounting/journal-entries/create?type=pembelian_aset_peralatan">
+                <Link v-if="can('journals.create')" href="/accounting/journal-entries/create?type=pembelian_aset_peralatan">
                     <AppButton icon="receipt_long">Beli di Jurnal Umum</AppButton>
                 </Link>
             </header>
@@ -166,7 +169,7 @@ watch([status, category, asOf], () => {
                                         <Link :href="`/accounting/assets/${row.row_id}`">
                                             <AppButton variant="ghost" size="compact" icon="visibility">Detail</AppButton>
                                         </Link>
-                                        <Link :href="`/accounting/assets/${row.row_id}/edit`">
+                                        <Link v-if="can('assets.manage')" :href="`/accounting/assets/${row.row_id}/edit`">
                                             <AppButton variant="ghost" size="compact" icon="edit">Edit</AppButton>
                                         </Link>
                                     </div>

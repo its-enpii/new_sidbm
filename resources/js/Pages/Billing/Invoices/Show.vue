@@ -5,11 +5,23 @@ import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     invoice: { type: Object, required: true },
     payments: { type: Array, default: () => [] },
 });
+
+const purposeLabels = {
+    subscription: 'Langganan / perpanjangan',
+    setup: 'Biaya setup / onboarding',
+    support: 'Dukungan / maintenance',
+    training: 'Pelatihan',
+    custom_dev: 'Pengembangan custom',
+    other: 'Lainnya',
+};
 
 const payForm = useForm({});
 const pendingCheckout = computed(() =>
@@ -63,11 +75,12 @@ function pay() {
                         <AppBadge :tone="tone(invoice.status)">{{ statusLabel(invoice.status) }}</AppBadge>
                     </div>
                     <p class="mt-1 text-on-surface-variant">
-                        Jatuh tempo {{ invoice.due_at || '—' }}
-                        <span v-if="invoice.subscription"> · {{ invoice.subscription.plan?.name || 'Langganan' }}</span>
+                        {{ purposeLabels[invoice.purpose] || invoice.purpose || 'Tagihan' }}
+                        · jatuh tempo {{ invoice.due_at || '—' }}
+                        <span v-if="invoice.subscription"> · {{ invoice.subscription.plan?.name }}</span>
                     </p>
                 </div>
-                <div v-if="invoice.is_open" class="flex flex-wrap gap-2">
+                <div v-if="invoice.is_open && can('billing.pay')" class="flex flex-wrap gap-2">
                     <a
                         v-if="pendingCheckout"
                         :href="pendingCheckout.tripay_checkout_url"
@@ -97,6 +110,10 @@ function pay() {
                         <div>
                             <dt class="text-sm text-on-surface-variant">Sisa</dt>
                             <dd class="text-xl font-bold text-primary">{{ money(invoice.remaining, invoice.currency) }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm text-on-surface-variant">Keperluan</dt>
+                            <dd class="font-semibold text-primary">{{ purposeLabels[invoice.purpose] || invoice.purpose || '—' }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm text-on-surface-variant">Diterbitkan</dt>

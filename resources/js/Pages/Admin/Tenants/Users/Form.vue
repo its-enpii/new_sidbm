@@ -9,6 +9,7 @@ import AdminLayout from '../../../../Layouts/AdminLayout.vue';
 const props = defineProps({
     tenant: { type: Object, required: true },
     user: { type: Object, default: null },
+    roleOptions: { type: Array, default: () => [] },
 });
 
 const editing = !!props.user;
@@ -20,6 +21,7 @@ const form = useForm({
     password: '',
     password_confirmation: '',
     status: props.user?.status || 'active',
+    role: props.user?.role || '',
 });
 
 const statusOptions = [
@@ -40,7 +42,7 @@ function submit() {
 <template>
     <Head :title="editing ? 'Edit User' : 'Tambah User'" />
     <AdminLayout>
-        <div class="mx-auto max-w-3xl space-y-6">
+        <div class="mx-auto max-w-7xl space-y-6">
             <header>
                 <Link :href="`/admin/tenants/${tenant.row_id}/users`" class="text-sm font-semibold text-primary">← Users {{ tenant.name }}</Link>
                 <h1 class="mt-3 text-2xl font-bold text-primary">{{ editing ? 'Edit User' : 'Tambah User' }}</h1>
@@ -54,6 +56,8 @@ function submit() {
                     <AppInput v-model="form.password" :label="editing ? 'Password baru (opsional)' : 'Password'" type="password" :required="!editing" :error="form.errors.password" />
                     <AppInput v-model="form.password_confirmation" label="Konfirmasi password" type="password" :required="!editing || !!form.password" />
                     <SmartSelect v-model="form.status" label="Status" :options="statusOptions" required :error="form.errors.status" />
+                    <SmartSelect v-model="form.role" label="Role" :options="roleOptions" :error="form.errors.role" />
+                    <p class="text-xs text-on-surface-variant">Role membatasi permission. Kosong = akses penuh (legacy).</p>
                     <div class="flex justify-end gap-3">
                         <Link :href="`/admin/tenants/${tenant.row_id}/users`"><AppButton variant="secondary">Batal</AppButton></Link>
                         <AppButton type="submit" :loading="form.processing" icon="save">Simpan</AppButton>

@@ -1,7 +1,9 @@
 <script setup>
 import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import AppButton from '../Components/AppButton.vue';
 import AppIcon from '../Components/AppIcon.vue';
+import AppModal from '../Components/AppModal.vue';
 import AppToast from '../Components/AppToast.vue';
 import AssistantWidget from '../Components/AssistantWidget.vue';
 
@@ -10,11 +12,70 @@ const props = defineProps({ unitName: { type: String, default: null } });
 const page = usePage();
 const logoPath = computed(() => page.props.logoPath ?? null);
 const user = computed(() => page.props.auth?.user);
-const assistantEnabled = computed(() => Boolean(page.props.assistant?.enabled));
+const permissions = computed(() => page.props.auth?.permissions ?? []);
+const navMap = computed(() => page.props.auth?.nav_map ?? {});
+const assistantEnabled = computed(() => {
+    if (!page.props.assistant?.enabled) return false;
+    return can('assistant.use');
+});
 const currentPath = computed(() => page.url.split('?')[0]);
 const mobileMenuOpen = ref(false);
 const expanded = ref({});
 const logoutForm = useForm({});
+
+function can(permission) {
+    if (!permission) return true;
+    const perms = permissions.value;
+    if (!Array.isArray(perms) || perms.length === 0) return true; // legacy unrestricted / not loaded
+    if (perms.includes('*')) return true;
+    return perms.includes(permission);
+}
+
+function permissionForHref(href) {
+    if (!href) return null;
+    const map = navMap.value || {};
+    const keys = Object.keys(map).sort((a, b) => b.length - a.length);
+    for (const prefix of keys) {
+        if (href === prefix || href.startsWith(prefix + '/') || href.startsWith(prefix + '?')) {
+            return map[prefix];
+        }
+        // exact prefix match for bare paths like /budgeting
+        if (href === prefix) return map[prefix];
+    }
+    // also try startsWith without trailing nuances
+    for (const prefix of keys) {
+        if (href.startsWith(prefix)) return map[prefix];
+    }
+    return null;
+}
+
+function filterNavItems(items) {
+    if (!Array.isArray(items)) return [];
+    return items
+        .map((item) => {
+            if (item.children) {
+                const children = filterNavItems(item.children);
+                if (!children.length) return null;
+                return { ...item, children };
+            }
+            if (item.href) {
+                const need = permissionForHref(item.href);
+                if (need && !can(need)) return null;
+            }
+            return item;
+        })
+        .filter(Boolean);
+}
+
+const visibleSections = computed(() =>
+    sections
+        .map((section) => {
+            const items = filterNavItems(section.items);
+            if (!items.length) return null;
+            return { ...section, items };
+        })
+        .filter(Boolean),
+);
 
 // Command-palette search
 const searchOpen = ref(false);
@@ -236,9 +297,9 @@ const sections = [
         ],
     },
     {
-        label: 'Langganan',
+        label: 'Tagihan',
         items: [
-            { label: 'Tagihan Langganan', icon: 'receipt_long', href: '/billing/invoices' },
+            { label: 'Daftar Tagihan', icon: 'receipt_long', href: '/billing/invoices' },
         ],
     },
     {
@@ -269,9 +330,21 @@ function openActiveGroups(items) {
     });
 }
 
-watch(currentPath, () => sections.forEach((section) => openActiveGroups(section.items)), { immediate: true });
+watch(currentPath, () => visibleSections.value.forEach((section) => openActiveGroups(section.items)), { immediate: true });
 
-function logout() { logoutForm.post('/logout'); }
+const logoutOpen = ref(false);
+
+function askLogout() {
+    logoutOpen.value = true;
+}
+
+function logout() {
+    logoutForm.post('/logout', {
+        onFinish: () => {
+            logoutOpen.value = false;
+        },
+    });
+}
 </script>
 
 <template>
@@ -287,7 +360,7 @@ function logout() { logoutForm.post('/logout'); }
             </div>
 
             <nav class="scrollbar-hidden flex-1 space-y-5 overflow-y-auto px-2" aria-label="Navigasi utama">
-                <section v-for="section in sections" :key="section.label">
+                <section v-for="section in visibleSections" :key="section.label">
                     <h2 class="mb-1 px-4 text-[10px] font-bold uppercase tracking-[0.18em] text-primary-fixed-dim/70">{{ section.label }}</h2>
                     <div class="space-y-1">
                         <template v-for="item in section.items" :key="item.key || item.label">
@@ -371,7 +444,7 @@ function logout() { logoutForm.post('/logout'); }
                 <div class="flex items-center gap-3 rounded-xl bg-primary-container/50 p-3">
                     <div class="grid size-10 shrink-0 place-items-center rounded-full bg-primary-fixed text-sm font-bold text-primary">{{ user?.name?.charAt(0).toUpperCase() || 'U' }}</div>
                     <div class="min-w-0 flex-1"><p class="truncate font-bold text-on-primary">{{ user?.name || 'Pengguna' }}</p><p class="truncate text-xs text-primary-fixed-dim">{{ props.unitName || 'Unit belum dipilih' }}</p></div>
-                    <button type="button" class="rounded-lg p-2 text-primary-fixed-dim hover:bg-on-primary/10 hover:text-on-primary" aria-label="Keluar" @click="logout"><AppIcon name="logout" class="text-xl" /></button>
+                    <button type="button" class="rounded-lg p-2 text-primary-fixed-dim hover:bg-on-primary/10 hover:text-on-primary" aria-label="Keluar" @click="askLogout"><AppIcon name="logout" class="text-xl" /></button>
                 </div>
             </div>
         </aside>
@@ -390,13 +463,24 @@ function logout() { logoutForm.post('/logout'); }
             </button>
             <p v-if="props.unitName" class="ml-6 hidden items-center gap-2 text-sm font-bold text-primary xl:flex"><AppIcon name="location_on" class="text-secondary" />{{ props.unitName }}</p>
             <div class="ml-auto flex items-center gap-1 pl-3">
-                <button type="button" disabled class="rounded-full p-2 text-on-surface-variant" aria-label="Notifikasi belum tersedia"><AppIcon name="notifications" /></button>
-                <Link href="/profile" class="rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary" aria-label="Profil"><AppIcon name="account_circle" /></Link>
+                <button type="button" disabled class="grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant" aria-label="Notifikasi belum tersedia"><AppIcon name="notifications" class="text-2xl leading-none" /></button>
+                <Link href="/profile" class="grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary" aria-label="Profil"><AppIcon name="account_circle" class="text-2xl leading-none" /></Link>
             </div>
         </header>
         <main class="p-4 sm:p-6 lg:ml-64 lg:p-8"><slot /></main>
         <AssistantWidget v-if="assistantEnabled" />
         <AppToast />
+
+        <AppModal v-model="logoutOpen" title="Keluar dari aplikasi?" size="sm">
+            <p class="text-sm text-on-surface-variant">
+                Sesi <span class="font-semibold text-primary">{{ user?.name || 'Anda' }}</span> akan diakhiri.
+                Lanjutkan?
+            </p>
+            <template #footer>
+                <AppButton variant="secondary" :disabled="logoutForm.processing" @click="logoutOpen = false">Batal</AppButton>
+                <AppButton variant="danger" icon="logout" :loading="logoutForm.processing" @click="logout">Keluar</AppButton>
+            </template>
+        </AppModal>
 
         <Teleport to="body">
             <Transition name="cmdk">

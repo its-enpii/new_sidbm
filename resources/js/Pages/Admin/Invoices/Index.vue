@@ -19,10 +19,20 @@ const props = defineProps({
 const columns = [
     { key: 'number', label: 'Nomor', sortable: true },
     { key: 'tenant', label: 'Tenant' },
+    { key: 'purpose', label: 'Keperluan' },
     { key: 'amount', label: 'Nominal', sortable: true },
     { key: 'due_at', label: 'Jatuh tempo', sortable: true },
     { key: 'status', label: 'Status', sortable: true },
 ];
+
+const purposeLabels = {
+    subscription: 'Langganan',
+    setup: 'Setup',
+    support: 'Support',
+    training: 'Pelatihan',
+    custom_dev: 'Custom',
+    other: 'Lainnya',
+};
 
 const statusOptions = [
     { value: '', label: 'Semua status' },
@@ -63,7 +73,7 @@ function tone(status) {
             <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
                     <h1 class="text-2xl font-bold text-primary">Invoice</h1>
-                    <p class="mt-1 text-on-surface-variant">Tagihan langganan SaaS tenant.</p>
+                    <p class="mt-1 text-on-surface-variant">Tagihan tenant: langganan, setup, support, training, custom, dll.</p>
                 </div>
                 <Link href="/admin/invoices/create"><AppButton icon="add">Buat Invoice</AppButton></Link>
             </header>
@@ -91,6 +101,10 @@ function tone(status) {
                         <template #cell-tenant="{ row }">
                             <span class="font-semibold text-primary">{{ row.tenant?.name || '—' }}</span>
                             <span class="block text-xs text-on-surface-variant">{{ row.tenant?.code }}</span>
+                        </template>
+                        <template #cell-purpose="{ row }">
+                            <span class="font-semibold text-primary">{{ purposeLabels[row.purpose] || row.purpose || '—' }}</span>
+                            <span v-if="row.description" class="block truncate text-xs text-on-surface-variant">{{ row.description }}</span>
                         </template>
                         <template #cell-amount="{ row }">{{ money(row.amount, row.currency) }}</template>
                         <template #cell-status="{ row }"><AppBadge :tone="tone(row.status)">{{ row.status }}</AppBadge></template>

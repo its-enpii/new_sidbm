@@ -147,6 +147,17 @@ final class TenantController
         return back()->with('success', 'Tenant diaktifkan.');
     }
 
+    public function repair(Tenant $tenant, TenantRegistrationService $registration): RedirectResponse
+    {
+        $result = $registration->repair($tenant);
+        $coa = $result['coa'];
+
+        return back()->with(
+            'success',
+            "Provision dilengkapi: COA +{$coa['inserted']} (skip {$coa['skipped']}), fiscal +{$result['fiscal_created']}."
+        );
+    }
+
     public function assignSubscription(Request $request, Tenant $tenant, SubscriptionService $subscriptions): RedirectResponse
     {
         $data = $request->validate([

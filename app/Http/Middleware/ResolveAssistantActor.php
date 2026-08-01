@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Binds the encompletion tool call to a real SIDBM user.
+ * Binds the orchestrator tool call to a real SIDBM user.
  *
  * Body shape from tool-executor:
  *   { tool, external_user_id, params, ts }

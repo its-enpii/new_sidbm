@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Http\Middleware\EnsureSuperadmin;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ResolveAssistantActor;
-use App\Http\Middleware\VerifyEncompletionSignature;
+use App\Http\Middleware\VerifyOrchestratorSignature;
 use App\Tenancy\Middleware\ResolveTenant;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -33,10 +33,21 @@ return Application::configure(basePath: dirname(__DIR__))
             'tripay/callback',
         ]);
 
+        // Logged-in users hitting /login: superadmin → /admin (NOT /dashboard —
+        // platform superadmin has no tenant membership → ResolveTenant 403 → looks like login loop).
+        $middleware->redirectUsersTo(function (\Illuminate\Http\Request $request): string {
+            $user = $request->user();
+
+            return ($user !== null && $user->is_superadmin === true)
+                ? route('admin.dashboard')
+                : route('dashboard');
+        });
+
         $middleware->alias([
             'tenant' => ResolveTenant::class,
             'superadmin' => EnsureSuperadmin::class,
-            'encompletion.signature' => VerifyEncompletionSignature::class,
+            'orchestrator.signature' => VerifyOrchestratorSignature::class,
+            'assistant.signature' => VerifyOrchestratorSignature::class,
             'assistant.actor' => ResolveAssistantActor::class,
         ]);
 

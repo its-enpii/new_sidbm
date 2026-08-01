@@ -9,13 +9,41 @@ const props = defineProps({
     description: { type: String, default: null },
     icon: { type: String, default: null },
     disabled: { type: Boolean, default: false },
+    /** When true, matches AppInput: uppercase label above + h-14 control row. */
+    field: { type: Boolean, default: false },
 });
 
 const switchId = props.id || useId();
 </script>
 
 <template>
-    <label :for="switchId" class="flex min-h-14 cursor-pointer items-center justify-between gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 transition focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container/10" :class="disabled && 'cursor-not-allowed opacity-60'">
+    <!-- Form-field layout (grid-aligned with AppInput / SmartSelect) -->
+    <div v-if="field" class="min-w-0 space-y-2">
+        <label :for="switchId" class="ml-1 block text-sm font-bold uppercase tracking-wider text-primary">{{ label }}</label>
+        <label
+            :for="switchId"
+            class="flex h-14 w-full cursor-pointer items-center justify-between gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 transition focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container/10"
+            :class="disabled && 'cursor-not-allowed opacity-60'"
+        >
+            <span class="flex min-w-0 items-center gap-3">
+                <AppIcon v-if="icon" :name="icon" class="shrink-0 text-xl text-outline" />
+                <span class="truncate text-sm font-medium text-primary">{{ model ? (description || 'Aktif') : (description || 'Nonaktif') }}</span>
+            </span>
+            <span class="relative inline-flex shrink-0">
+                <input :id="switchId" v-model="model" type="checkbox" role="switch" class="peer sr-only" :disabled="disabled">
+                <span class="h-7 w-12 rounded-full bg-outline-variant transition peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary-container peer-focus-visible:ring-offset-2" />
+                <span class="pointer-events-none absolute left-1 top-1 size-5 rounded-full bg-surface-container-lowest shadow transition peer-checked:translate-x-5" />
+            </span>
+        </label>
+    </div>
+
+    <!-- Compact inline (settings lists, etc.) -->
+    <label
+        v-else
+        :for="switchId"
+        class="flex min-h-14 cursor-pointer items-center justify-between gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 transition focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container/10"
+        :class="disabled && 'cursor-not-allowed opacity-60'"
+    >
         <span class="flex items-center gap-3">
             <AppIcon v-if="icon" :name="icon" class="text-xl text-outline" />
             <span>
@@ -25,8 +53,8 @@ const switchId = props.id || useId();
         </span>
         <span class="relative inline-flex shrink-0">
             <input :id="switchId" v-model="model" type="checkbox" role="switch" class="peer sr-only" :disabled="disabled">
-            <span class="h-7 w-12 rounded-full bg-outline-variant transition peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary-container peer-focus-visible:ring-offset-2"></span>
-            <span class="absolute left-1 top-1 size-5 rounded-full bg-surface-container-lowest shadow transition peer-checked:translate-x-5"></span>
+            <span class="h-7 w-12 rounded-full bg-outline-variant transition peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary-container peer-focus-visible:ring-offset-2" />
+            <span class="pointer-events-none absolute left-1 top-1 size-5 rounded-full bg-surface-container-lowest shadow transition peer-checked:translate-x-5" />
         </span>
     </label>
 </template>

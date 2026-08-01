@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Domain\Access\Services\PermissionChecker;
 use App\Domain\Membership\Models\OrganizationProfile;
+use App\Support\AssistantSettingsResolver;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Throwable;
 
 final class HandleInertiaRequests extends Middleware
 {
@@ -28,6 +31,8 @@ final class HandleInertiaRequests extends Middleware
                     'status',
                     'is_superadmin',
                 ]),
+                'permissions' => $this->resolvePermissions($request),
+                'nav_map' => config('permissions.nav_map', []),
             ],
             'flash' => $this->resolveFlash($request),
             'logoPath' => $this->resolveLogoPath(),
@@ -36,18 +41,36 @@ final class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * @return array{enabled: bool}
+     * @return list<string>
+     */
+    private function resolvePermissions(Request $request): array
+    {
+        $user = $request->user();
+        if ($user === null) {
+            return [];
+        }
+
+        try {
+            return app(PermissionChecker::class)->listFor($user);
+        } catch (Throwable) {
+            return $user->is_superadmin === true ? ['*'] : [];
+        }
+    }
+
+    /**
+     * @return array{enabled: bool, public_url: ?string}
      */
     private function resolveAssistant(Request $request): array
     {
-        $enabled = (bool) config('encompletion.widget_enabled')
-            && is_string(config('encompletion.base_url'))
-            && config('encompletion.base_url') !== ''
-            && is_string(config('encompletion.tenant_api_key'))
-            && config('encompletion.tenant_api_key') !== ''
+        $enabled = AssistantSettingsResolver::widgetEnabled()
+            && AssistantSettingsResolver::orchestratorBaseUrl() !== ''
+            && AssistantSettingsResolver::sharedSecret() !== ''
             && $request->user() !== null;
 
-        return ['enabled' => $enabled];
+        return [
+            'enabled' => $enabled,
+            'public_url' => $enabled ? AssistantSettingsResolver::orchestratorPublicUrl() : null,
+        ];
     }
 
     /**

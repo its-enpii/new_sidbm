@@ -42,6 +42,53 @@ final class AuthenticationTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_superadmin_login_goes_to_admin_not_intended_admin_trap(): void
+    {
+        $admin = $this->createUser([
+            'username' => 'superadmin_test',
+            'password' => 'secret-password',
+            'is_superadmin' => true,
+            'tenant_id' => null,
+        ]);
+
+        // Guest hit /admin first → session url.intended = /admin
+        $this->get('/admin')->assertRedirect('/login');
+
+        $this->post('/login', [
+            'identifier' => $admin->username,
+            'password' => 'secret-password',
+        ])->assertRedirect('/admin');
+
+        $this->assertAuthenticatedAs($admin);
+        $this->get('/admin')->assertOk();
+    }
+
+    public function test_tenant_user_cannot_use_stale_admin_intended(): void
+    {
+        $user = $this->createUser(['password' => 'secret-password']);
+
+        $this->get('/admin')->assertRedirect('/login');
+
+        $this->post('/login', [
+            'identifier' => $user->username,
+            'password' => 'secret-password',
+        ])->assertRedirect('/dashboard');
+    }
+
+    public function test_logged_in_superadmin_visiting_login_goes_to_admin_not_dashboard(): void
+    {
+        $admin = $this->createUser([
+            'username' => 'superadmin_guest_mw',
+            'password' => 'secret-password',
+            'is_superadmin' => true,
+            'tenant_id' => null,
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/login')
+            ->assertRedirect('/admin');
+    }
+
     public function test_invalid_credentials_are_rejected(): void
     {
         $user = $this->createUser(['password' => 'secret-password']);

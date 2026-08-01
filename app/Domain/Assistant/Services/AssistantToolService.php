@@ -28,7 +28,7 @@ use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 /**
- * JSON tool handlers invoked by encompletion (Kategori B).
+ * JSON tool handlers invoked by the assistant orchestrator.
  * Always run as the resolved assistant actor + current tenant.
  */
 final class AssistantToolService
@@ -57,6 +57,7 @@ final class AssistantToolService
         return match ($tool) {
             'search_members' => $this->searchMembers($params),
             'search_groups' => $this->searchGroups($params),
+            'groups_with_loans' => $this->groupsWithLoans($params),
             'search_loans' => $this->searchLoans($params),
             'get_loan' => $this->getLoan($params),
             'list_accounts' => $this->listAccounts($params),
@@ -259,6 +260,104 @@ final class AssistantToolService
             'status' => (string) $r->status,
             'phone' => $r->phone ? (string) $r->phone : null,
         ])->all();
+
+        return $this->withMatchMeta($items);
+    }
+
+    /**
+     * List groups with workable-loan summary in one shot.
+     * Loan-status filter follows searchLoans() workable set (active/disbursed/ongoing/approved/funded).
+     * Group status untouched unless include_inactive_groups=false.
+     *
+     * @param  array<string, mixed>  $params
+     * @return array{items: list<array<string, mixed>>, match_count: int, needs_clarification: bool}
+     */
+    private function groupsWithLoans(array $params): array
+    {
+        $q = trim((string) ($params['query'] ?? $params['name'] ?? ''));
+        $includeInactive = filter_var($params['include_inactive_groups'] ?? true, FILTER_VALIDATE_BOOLEAN);
+        $workable = ['active', 'disbursed', 'ongoing', 'approved', 'funded'];
+        $tenantId = $this->context->id();
+
+        $base = DB::connection('tenant')
+            ->table('groups as g')
+            ->where('g.tenant_id', $tenantId)
+            ->whereNull('g.deleted_at');
+
+        if (! $includeInactive) {
+            $base->where('g.status', 'active');
+        }
+
+        if (mb_strlen($q) >= 2) {
+            $base->where(function ($w) use ($q): void {
+                $w->where('g.name', 'like', '%'.$q.'%')->orWhere('g.code', 'like', '%'.$q.'%');
+            });
+        }
+
+        // Aggregate workable loans per group + member count with any loan.
+        $rows = $base
+            ->leftJoin('loan_borrowers as lb', function ($join) use ($tenantId): void {
+                $join->on('lb.group_row_id', '=', 'g.row_id')->where('lb.tenant_id', '=', $tenantId);
+            })
+            ->leftJoin('loans as l', function ($join) use ($tenantId, $workable): void {
+                $join->on('l.row_id', '=', 'lb.loan_row_id')
+                    ->where('l.tenant_id', '=', $tenantId)
+                    ->whereIn('l.status', $workable);
+            })
+            ->leftJoin('loan_installments as li', function ($join) use ($tenantId): void {
+                $join->on('li.loan_row_id', '=', 'l.row_id')
+                    ->where('li.tenant_id', '=', $tenantId)
+                    ->where('li.component', 'principal');
+            })
+            ->selectRaw('
+                g.row_id as group_row_id, g.code, g.name, g.status, g.phone,
+                COUNT(DISTINCT l.row_id) as active_loan_count,
+                COALESCE(SUM(l.principal_amount), 0) as principal_total,
+                COALESCE(SUM(li.principal_paid), 0) as principal_paid_total
+            ')
+            ->groupBy('g.row_id', 'g.code', 'g.name', 'g.status', 'g.phone')
+            ->havingRaw('COUNT(DISTINCT l.row_id) > 0')
+            ->orderByDesc('active_loan_count')
+            ->orderBy('g.name')
+            ->limit(50)
+            ->get();
+
+        // Members with loan (distinct per group) — one extra cheap query, not per-group.
+        $memberLoanCounts = [];
+        if ($rows->isNotEmpty()) {
+            $groupIds = $rows->pluck('group_row_id')->all();
+            $memberLoanCounts = DB::connection('tenant')
+                ->table('loan_borrowers as lb')
+                ->join('loans as l', function ($join) use ($tenantId, $workable): void {
+                    $join->on('l.row_id', '=', 'lb.loan_row_id')
+                        ->where('l.tenant_id', '=', $tenantId)
+                        ->whereIn('l.status', $workable);
+                })
+                ->where('lb.tenant_id', $tenantId)
+                ->whereIn('lb.group_row_id', $groupIds)
+                ->selectRaw('lb.group_row_id, COUNT(DISTINCT lb.member_row_id) as members_with_loan')
+                ->groupBy('lb.group_row_id')
+                ->pluck('members_with_loan', 'lb.group_row_id')
+                ->all();
+        }
+
+        $items = $rows->map(function ($r) use ($memberLoanCounts): array {
+            $paid = (float) $r->principal_paid_total;
+            $total = (float) $r->principal_total;
+
+            return [
+                'group_row_id' => (int) $r->group_row_id,
+                'code' => (string) ($r->code ?? ''),
+                'name' => (string) $r->name,
+                'status' => (string) $r->status,
+                'phone' => $r->phone ? (string) $r->phone : null,
+                'active_loan_count' => (int) $r->active_loan_count,
+                'principal_total' => round($total, 2),
+                'principal_outstanding' => round($total - $paid, 2),
+                'members_with_loan' => (int) ($memberLoanCounts[(int) $r->group_row_id] ?? 0),
+                'href' => '/master-data/groups/'.((string) ($r->code ?? '')),
+            ];
+        })->all();
 
         return $this->withMatchMeta($items);
     }
@@ -1658,7 +1757,7 @@ final class AssistantToolService
             $params['asset_useful_life_months'] = $this->defaultUsefulLifeMonths((string) $params['asset_name']);
         }
 
-        // transaction_date: required Y-m-d from the LLM (encompletion resolves
+        // transaction_date: required Y-m-d from the LLM (orchestrator resolves
         // "kemarin" / "minggu lalu" using today's date in the embed system prompt).
 
         // Resolve debit (inventaris) / credit (kas) if missing.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Assistant\EmbedTokenController;
+use App\Http\Controllers\Assistant\SessionTokenController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Accounting\TaxEstimateController;
 use App\Http\Controllers\Budgeting\BudgetController;
@@ -56,6 +56,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::put('/tenants/{tenant}', [AdminTenantController::class, 'update'])->name('tenants.update');
     Route::post('/tenants/{tenant}/suspend', [AdminTenantController::class, 'suspend'])->name('tenants.suspend');
     Route::post('/tenants/{tenant}/activate', [AdminTenantController::class, 'activate'])->name('tenants.activate');
+    Route::post('/tenants/{tenant}/repair', [AdminTenantController::class, 'repair'])->name('tenants.repair');
     Route::post('/tenants/{tenant}/subscription', [AdminTenantController::class, 'assignSubscription'])->name('tenants.subscription');
 
     Route::get('/tenants/{tenant}/users', [AdminTenantUserController::class, 'index'])->name('tenants.users.index');
@@ -83,6 +84,13 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::get('/regional/provinces', [RegionalCodeController::class, 'provinces'])->name('regional.provinces');
     Route::get('/regional/regencies/{province}', [RegionalCodeController::class, 'regencies'])->name('regional.regencies');
     Route::get('/regional/districts/{regency}', [RegionalCodeController::class, 'districts'])->name('regional.districts');
+
+    Route::prefix('integrations')->name('integrations.')->group(function (): void {
+        Route::get('/orchestrator', [\App\Http\Controllers\Admin\IntegrationController::class, 'index'])->name('orchestrator');
+        Route::put('/orchestrator', [\App\Http\Controllers\Admin\IntegrationController::class, 'update'])->name('orchestrator.update');
+        Route::post('/orchestrator/test', [\App\Http\Controllers\Admin\IntegrationController::class, 'test'])->name('orchestrator.test');
+        Route::post('/orchestrator/chat', [\App\Http\Controllers\Admin\IntegrationController::class, 'chat'])->name('orchestrator.chat');
+    });
 });
 
 Route::redirect('/superadmin/tenants', '/admin/tenants');
@@ -90,8 +98,8 @@ Route::redirect('/superadmin/tenants/create', '/admin/tenants/create');
 Route::redirect('/superadmin', '/admin');
 
 Route::middleware(['auth', 'tenant'])->group(function (): void {
-    Route::get('/api/assistant/embed-token', EmbedTokenController::class)
-        ->name('assistant.embed-token');
+    Route::get('/api/assistant/session-token', SessionTokenController::class)
+        ->name('assistant.session-token');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 

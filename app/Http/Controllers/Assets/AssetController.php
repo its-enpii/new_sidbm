@@ -25,7 +25,7 @@ final class AssetController
 
     public function index(Request $request): Response
     {
-        $this->permissions->denyUnless($request->user(), 'journals.view');
+        $this->permissions->denyUnless($request->user(), 'assets.view');
 
         $q = $request->query('q', $request->query('search'));
         $status = $request->query('status');
@@ -46,7 +46,7 @@ final class AssetController
 
     public function show(Request $request, Asset $asset): Response
     {
-        $this->permissions->denyUnless($request->user(), 'journals.view');
+        $this->permissions->denyUnless($request->user(), 'assets.view');
 
         $asOf = (string) $request->query('as_of', '');
 
@@ -55,7 +55,7 @@ final class AssetController
 
     public function edit(Request $request, Asset $asset): Response
     {
-        $this->permissions->denyUnless($request->user(), 'journals.create');
+        $this->permissions->denyUnless($request->user(), 'assets.manage');
 
         $detail = $this->assets->detail($asset);
 
@@ -72,7 +72,7 @@ final class AssetController
 
     public function update(AssetRequest $request, Asset $asset): RedirectResponse
     {
-        $this->permissions->denyUnless($request->user(), 'journals.create');
+        $this->permissions->denyUnless($request->user(), 'assets.manage');
 
         try {
             $this->assets->update($asset, $request->validated(), (int) $request->user()->row_id);
@@ -85,7 +85,7 @@ final class AssetController
 
     public function destroy(Request $request, Asset $asset): RedirectResponse
     {
-        $this->permissions->denyUnless($request->user(), 'journals.create');
+        $this->permissions->denyUnless($request->user(), 'assets.manage');
 
         $this->assets->delete($asset);
 

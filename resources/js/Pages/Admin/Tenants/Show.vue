@@ -22,6 +22,7 @@ const subForm = useForm({
 
 const suspendForm = useForm({});
 const activateForm = useForm({});
+const repairForm = useForm({});
 const invoiceForm = useForm({});
 
 function money(value, currency = 'IDR') {
@@ -38,6 +39,10 @@ function suspend() {
 
 function activate() {
     activateForm.post(`/admin/tenants/${props.tenant.row_id}/activate`, { preserveScroll: true });
+}
+
+function repair() {
+    repairForm.post(`/admin/tenants/${props.tenant.row_id}/repair`, { preserveScroll: true });
 }
 
 function generateInvoice() {
@@ -63,6 +68,7 @@ function generateInvoice() {
                     <Link :href="`/admin/tenants/${tenant.row_id}/edit`"><AppButton variant="secondary" icon="edit">Edit</AppButton></Link>
                     <Link :href="`/admin/tenants/${tenant.row_id}/users`"><AppButton variant="secondary" icon="group">Users</AppButton></Link>
                     <Link :href="`/admin/invoices/create?tenant_id=${tenant.row_id}`"><AppButton variant="secondary" icon="receipt_long">Buat Invoice</AppButton></Link>
+                    <AppButton variant="secondary" icon="build" :loading="repairForm.processing" @click="repair">Lengkapi provision</AppButton>
                     <AppButton v-if="tenant.status !== 'suspended'" variant="danger" :loading="suspendForm.processing" @click="suspend">Suspend</AppButton>
                     <AppButton v-else variant="success" :loading="activateForm.processing" @click="activate">Aktifkan</AppButton>
                 </div>

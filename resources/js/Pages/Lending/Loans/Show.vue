@@ -12,6 +12,7 @@ import AppModal from '../../../Components/AppModal.vue';
 import AppTextarea from '../../../Components/AppTextarea.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
 
 const props = defineProps({
     loan: { type: Object, required: true },
@@ -20,6 +21,8 @@ const props = defineProps({
     disbursementAccounts: { type: Array, default: () => [] },
     today: { type: String, required: true },
 });
+
+const { can } = useCan();
 
 function currency(value) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value ?? 0);
@@ -186,10 +189,10 @@ const editForm = useForm({
     beneficiary_amounts: Object.fromEntries((props.loan.beneficiaries ?? []).map((b) => [String(b.member_row_id), Number(b.allocated_amount ?? 0)])),
 });
 
-const canEdit = computed(() => ['draft', 'verified'].includes(props.loan.status));
-const canRemoveBeneficiary = computed(() => ['draft', 'verified'].includes(props.loan.status));
-const canVerifyBeneficiary = computed(() => props.loan.status === 'draft');
-const canAllocatePerBeneficiary = computed(() => props.loan.status === 'verified');
+const canEdit = computed(() => can('loans.manage') && ['draft', 'verified'].includes(props.loan.status));
+const canRemoveBeneficiary = computed(() => can('loans.manage') && ['draft', 'verified'].includes(props.loan.status));
+const canVerifyBeneficiary = computed(() => can('loans.verify') && props.loan.status === 'draft');
+const canAllocatePerBeneficiary = computed(() => can('loans.approve') && props.loan.status === 'verified');
 const canShowAllocatedAmount = computed(() => ['verified', 'waiting', 'approved', 'active', 'disbursed', 'completed', 'written_off', 'rescheduled'].includes(props.loan.status));
 const canShowVerifiedAmount = computed(() => ['draft', 'verified', 'waiting', 'approved', 'active', 'disbursed', 'completed', 'written_off', 'rescheduled'].includes(props.loan.status));
 const beneficiaryColumnCount = computed(() => 1 + 1 + (canShowVerifiedAmount.value ? 1 : 0) + (canShowAllocatedAmount.value ? 1 : 0) + (canRemoveBeneficiary.value ? 1 : 0));
@@ -247,12 +250,17 @@ function confirmRevert() {
     });
 }
 
-const canRevert = computed(() => ['verified', 'waiting', 'approved'].includes(props.loan.status));
+const canRevert = computed(() => can('loans.manage') && ['verified', 'waiting', 'approved'].includes(props.loan.status));
 const isActiveLoan = computed(() => ['active', 'disbursed'].includes(props.loan.status));
-const canReschedule = computed(() => isActiveLoan.value && Number(props.loan.principal_remaining) > 0);
-const canWriteOff = computed(() => isActiveLoan.value && Number(props.loan.principal_remaining) > 0);
+const canReschedule = computed(() => can('loans.manage') && isActiveLoan.value && Number(props.loan.principal_remaining) > 0);
+const canWriteOff = computed(() => can('loans.manage') && isActiveLoan.value && Number(props.loan.principal_remaining) > 0);
+const canDisburseAction = computed(() => can('loans.disburse'));
+const canCommitteeSave = computed(() => can('loans.manage'));
+const canShowVerifyForm = computed(() => can('loans.verify') && props.loan.status === 'draft');
+const canShowApproveForm = computed(() => can('loans.approve') && props.loan.status === 'verified');
+const canShowDisburseForm = computed(() => can('loans.disburse') && ['waiting', 'approved'].includes(props.loan.status));
 
-const committeeEditable = computed(() => props.loan.committee_editable === true);
+const committeeEditable = computed(() => can('loans.manage') && props.loan.committee_editable === true);
 const committeeOptions = computed(() => props.loan.committee_member_options ?? []);
 const committeeForm = useForm({
     chair_id: '',
@@ -774,7 +782,7 @@ function setAllocatedAmount(memberRowId, value) {
                 </ol>
             </AppCard>
 
-            <AppCard v-if="status === 'draft'">
+            <AppCard v-if="canShowVerifyForm">
                 <template #header>
                     <h2 class="text-lg font-bold text-primary">Form Verifikasi</h2>
                     <p class="text-sm text-on-surface-variant">Lengkapi tanggal dan catatan. Nominal verifikasi per pemanfaat dapat diatur langsung di Daftar Pemanfaat di atas.</p>
@@ -791,7 +799,7 @@ function setAllocatedAmount(memberRowId, value) {
                 </form>
             </AppCard>
 
-            <AppCard v-if="status === 'verified'">
+            <AppCard v-if="canShowApproveForm">
                 <template #header>
                     <h2 class="text-lg font-bold text-primary">Form Penetapan Alokasi</h2>
                     <p class="text-sm text-on-surface-variant">Atur alokasi kelompok (plafon) dan nominal per anggota di Daftar Pemanfaat di atas. Standar mengikuti nilai verifikasi ({{ currency(verifiedAmountTotal) }}).</p>
@@ -814,7 +822,7 @@ function setAllocatedAmount(memberRowId, value) {
                 </form>
             </AppCard>
 
-            <AppCard v-if="status === 'waiting' || status === 'approved'">
+            <AppCard v-if="canShowDisburseForm">
                 <template #header>
                     <h2 class="text-lg font-bold text-primary">Form Pencairan</h2>
                     <p class="text-sm text-on-surface-variant">Catat tanggal dan akun sumber dana saat pinjaman dicairkan.</p>
@@ -829,7 +837,7 @@ function setAllocatedAmount(memberRowId, value) {
                         <Link :href="backUrl"><AppButton type="button" variant="secondary">Kembali</AppButton></Link>
                         <div class="flex flex-wrap items-center gap-3">
                             <AppButton v-if="canRevert" type="button" variant="secondary" @click="openRevertModal">Kembalikan ke Draft</AppButton>
-                            <AppButton type="submit" :loading="disburseForm.processing">Catat Pencairan</AppButton>
+                            <AppButton v-if="canDisburseAction" type="submit" :loading="disburseForm.processing">Catat Pencairan</AppButton>
                         </div>
                     </div>
                 </form>

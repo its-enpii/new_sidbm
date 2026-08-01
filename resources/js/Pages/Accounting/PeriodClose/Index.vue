@@ -10,6 +10,9 @@ import AppInput from '../../../Components/AppInput.vue';
 import AppSwitch from '../../../Components/AppSwitch.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     year: { type: Number, required: true },
@@ -26,6 +29,8 @@ const props = defineProps({
     can_close: { type: Boolean, default: false },
     year_options: { type: Array, required: true },
 });
+
+const allowClose = computed(() => props.can_close && can('period_close.manage'));
 
 const selectedYear = ref(String(props.year));
 const syncing = ref(false);
@@ -65,19 +70,19 @@ function formatMoney(v) {
 const yearForm = useForm({ year: props.year, force: false });
 
 function closeMonth(month) {
-    if (!props.can_close) return;
+    if (!allowClose.value) return;
     if (!confirm(`Tutup periode ${String(month).padStart(2, '0')}/${props.year}? Jurnal draft harus kosong.`)) return;
     router.post(`/accounting/period-close/${props.year}/${month}/close`, {}, { preserveScroll: true });
 }
 
 function reopenMonth(month) {
-    if (!props.can_close) return;
+    if (!allowClose.value) return;
     if (!confirm(`Buka kembali periode ${String(month).padStart(2, '0')}/${props.year}?`)) return;
     router.post(`/accounting/period-close/${props.year}/${month}/reopen`, {}, { preserveScroll: true });
 }
 
 function closeYear() {
-    if (!props.can_close) return;
+    if (!allowClose.value) return;
     const msg =
         props.next_year_openings_exist && !forceRewrite.value
             ? `Saldo awal ${props.next_year} dari tutup buku sudah ada. Aktifkan "Paksa tulis ulang" dulu, atau batalkan.`
@@ -180,7 +185,7 @@ const typeLabels = {
 };
 
 function submitAllocation() {
-    if (!props.can_close) return;
+    if (!allowClose.value) return;
     if (allocTotal.value <= 0) {
         alert('Isi minimal satu pos alokasi.');
         return;
@@ -301,7 +306,7 @@ function submitAllocation() {
                                     {{ m.closed_at || '—' }}
                                 </td>
                                 <td class="px-3 py-2 text-right">
-                                    <div v-if="can_close" class="flex justify-end gap-1">
+                                    <div v-if="allowClose" class="flex justify-end gap-1">
                                         <AppButton
                                             v-if="m.can_close"
                                             variant="secondary"
@@ -395,12 +400,12 @@ function submitAllocation() {
 
                 <div class="space-y-3 border-t border-outline-variant px-4 py-3">
                     <AppSwitch
-                        v-if="can_close && next_year_openings_exist"
+                        v-if="allowClose && next_year_openings_exist"
                         v-model="forceRewrite"
                         label="Paksa tulis ulang"
                         description="Timpa saldo awal tahun berikutnya yang sudah ada"
                     />
-                    <div v-if="can_close" class="flex justify-end">
+                    <div v-if="allowClose" class="flex justify-end">
                         <AppButton
                             variant="primary"
                             size="compact"
@@ -459,7 +464,7 @@ function submitAllocation() {
                     </div>
 
                     <form
-                        v-if="can_close && allocation.remaining > 0"
+                        v-if="allowClose && allocation.remaining > 0"
                         class="space-y-6 p-4 sm:p-5"
                         @submit.prevent="submitAllocation"
                     >
@@ -614,7 +619,7 @@ function submitAllocation() {
                     </form>
 
                     <p
-                        v-else-if="can_close && allocation.remaining <= 0"
+                        v-else-if="allowClose && allocation.remaining <= 0"
                         class="px-4 py-6 text-sm text-on-surface-variant"
                     >
                         Tidak ada sisa laba untuk dialokasi

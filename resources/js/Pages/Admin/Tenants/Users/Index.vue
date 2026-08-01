@@ -19,6 +19,7 @@ const columns = [
     { key: 'name', label: 'Nama', sortable: true },
     { key: 'username', label: 'Username' },
     { key: 'email', label: 'Email' },
+    { key: 'role', label: 'Role' },
     { key: 'status', label: 'Status' },
     { key: 'last_login_at', label: 'Login terakhir' },
 ];
@@ -52,6 +53,9 @@ const columns = [
                         empty-title="Belum ada pengguna"
                         empty-description="Tambahkan user untuk tenant ini."
                     >
+                        <template #cell-role="{ row }">
+                            <span class="text-sm text-on-surface-variant">{{ row.role || '—' }}</span>
+                        </template>
                         <template #cell-status="{ row }">
                             <AppBadge :tone="row.status === 'active' ? 'success' : 'neutral'">{{ row.status }}</AppBadge>
                         </template>

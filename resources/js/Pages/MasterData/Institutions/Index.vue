@@ -6,6 +6,9 @@ import AppCard from '../../../Components/AppCard.vue';
 import CsvImportExport from '../../../Components/CsvImportExport.vue';
 import SmartDataTable from '../../../Components/SmartDataTable.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+
+const { can } = useCan();
 
 defineProps({
     institutions: { type: Object, required: true },
@@ -35,7 +38,7 @@ const csvColumns = ['nama', 'desa', 'nomor_identitas', 'pimpinan', 'penanggungja
                     <h1 class="text-2xl font-bold text-primary">Lembaga Lain</h1>
                     <p class="mt-1 text-on-surface-variant">Kelola lembaga penerima layanan di luar anggota dan kelompok.</p>
                 </div>
-                <div class="flex flex-wrap items-center gap-2">
+                <div v-if="can('institutions.manage')" class="flex flex-wrap items-center gap-2">
                     <CsvImportExport
                         export-url="/master-data/institutions/export"
                         import-url="/master-data/institutions/import"
@@ -79,7 +82,7 @@ const csvColumns = ['nama', 'desa', 'nomor_identitas', 'pimpinan', 'penanggungja
                                 <Link :href="`/master-data/institutions/${row.row_id}`">
                                     <AppButton variant="ghost" size="compact" icon="visibility" aria-label="Detail lembaga">Detail</AppButton>
                                 </Link>
-                                <Link :href="`/master-data/institutions/${row.row_id}/edit`">
+                                <Link v-if="can('institutions.manage')" :href="`/master-data/institutions/${row.row_id}/edit`">
                                     <AppButton variant="ghost" size="compact" icon="edit" aria-label="Edit lembaga">Edit</AppButton>
                                 </Link>
                             </div>

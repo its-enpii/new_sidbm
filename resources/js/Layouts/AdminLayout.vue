@@ -16,6 +16,7 @@ const navigation = [
     { label: 'Tenant', icon: 'domain', href: '/admin/tenants' },
     { label: 'Invoice', icon: 'receipt_long', href: '/admin/invoices' },
     { label: 'Plan', icon: 'workspace_premium', href: '/admin/plans' },
+    { label: 'Integrasi', icon: 'hub', href: '/admin/integrations/orchestrator' },
 ];
 
 function isActive(item) {

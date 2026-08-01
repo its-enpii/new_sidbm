@@ -10,6 +10,9 @@ import AppModal from '../../../Components/AppModal.vue';
 import AppTextarea from '../../../Components/AppTextarea.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     rows: { type: Array, required: true },
@@ -18,6 +21,8 @@ const props = defineProps({
     sourceOptions: { type: Array, required: true },
     can_reverse: { type: Boolean, default: false },
 });
+
+const allowReverse = computed(() => props.can_reverse && can('journals.create'));
 
 const from = ref(props.filters.from);
 const to = ref(props.filters.to);
@@ -121,10 +126,10 @@ function submitReverse() {
                     <p class="text-sm text-on-surface-variant">Jurnal posted. Koreksi lewat reverse (immutable).</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <a href="/accounting/journal-entries/create">
+                    <a v-if="can('journals.create')" href="/accounting/journal-entries/create">
                         <AppButton variant="secondary" icon="add" size="compact">Jurnal Umum</AppButton>
                     </a>
-                    <a href="/accounting/journal-entries/installment">
+                    <a v-if="can('installments.record')" href="/accounting/journal-entries/installment">
                         <AppButton icon="payments" size="compact">Jurnal Angsuran</AppButton>
                     </a>
                 </div>
@@ -188,7 +193,7 @@ function submitReverse() {
                                             Bukti
                                         </a>
                                         <button
-                                            v-if="can_reverse && row.can_reverse"
+                                            v-if="allowReverse && row.can_reverse"
                                             type="button"
                                             class="rounded-lg px-2 py-1 text-xs font-semibold text-error hover:bg-error/10"
                                             @click="openReverse(row)"

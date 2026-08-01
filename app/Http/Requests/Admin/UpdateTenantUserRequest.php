@@ -16,6 +16,13 @@ final class UpdateTenantUserRequest extends FormRequest
         return $this->user()?->is_superadmin === true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->input('role') === '') {
+            $this->merge(['role' => null]);
+        }
+    }
+
     public function rules(): array
     {
         /** @var User $target */
@@ -27,6 +34,7 @@ final class UpdateTenantUserRequest extends FormRequest
             'email' => ['nullable', 'email', 'max:190', Rule::unique('users', 'email')->ignore($target->row_id, 'row_id')],
             'password' => ['nullable', 'string', 'confirmed', Password::defaults()],
             'status' => ['required', Rule::in(['active', 'suspended', 'inactive'])],
+            'role' => ['nullable', 'string', Rule::in(array_keys(config('permissions.roles', [])))],
         ];
     }
 
@@ -38,6 +46,7 @@ final class UpdateTenantUserRequest extends FormRequest
             'email' => 'email',
             'password' => 'password',
             'status' => 'status',
+            'role' => 'role',
         ];
     }
 }

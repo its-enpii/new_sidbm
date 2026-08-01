@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\MasterData;
 
+use App\Http\Requests\Concerns\AuthorizesPermission;
 use App\Models\Tenant\OrganizationUnit;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
@@ -11,10 +12,7 @@ use Illuminate\Validation\Rule;
 
 abstract class OrganizationUnitRequest extends FormRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user() !== null;
-    }
+    use AuthorizesPermission;
 
     protected function unitId(): ?int
     {

@@ -50,9 +50,20 @@ final class AuthController
         $request->session()->regenerate();
         $user->forceFill(['last_login_at' => now()])->save();
 
-        $home = $user->is_superadmin === true ? route('admin.dashboard') : route('dashboard');
+        // Superadmin always lands on platform admin — ignore intended(/admin)
+        // left by a prior guest hit (would 403 non-superadmin, confuse superadmin flows).
+        if ($user->is_superadmin === true) {
+            $request->session()->forget('url.intended');
 
-        return redirect()->intended($home);
+            return redirect()->route('admin.dashboard');
+        }
+
+        $intended = $request->session()->pull('url.intended');
+        if (is_string($intended) && str_contains(parse_url($intended, PHP_URL_PATH) ?? '', '/admin')) {
+            $intended = null;
+        }
+
+        return redirect()->to($intended ?: route('dashboard'));
     }
 
     public function logout(Request $request): RedirectResponse

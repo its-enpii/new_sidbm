@@ -25,6 +25,7 @@ final readonly class InvoiceService
                 'number' => $this->nextNumber(),
                 'tenant_id' => $tenant->row_id,
                 'subscription_id' => $data['subscription_id'] ?? null,
+                'purpose' => $data['purpose'] ?? (($data['subscription_id'] ?? null) ? 'subscription' : 'other'),
                 'status' => $status,
                 'amount' => $data['amount'],
                 'amount_paid' => 0,
@@ -50,6 +51,7 @@ final readonly class InvoiceService
 
         return $this->create($subscription->tenant, [
             'subscription_id' => $subscription->row_id,
+            'purpose' => 'subscription',
             'amount' => $plan->price_amount,
             'currency' => $plan->currency ?: 'IDR',
             'due_at' => now()->addDays(14)->toDateString(),

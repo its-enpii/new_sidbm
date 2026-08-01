@@ -26,7 +26,7 @@ final readonly class ResolveTenant
         $code = $request->route($parameter);
 
         if (! is_string($code) || trim($code) === '') {
-            // Server-to-server tool callbacks (encompletion) may send X-Tenant-Code
+            // Server-to-server tool callbacks (orchestrator) may send X-Tenant-Code
             // when multiple tenants share one host. Gated by tenancy.allow_header.
             if (config('tenancy.allow_header')) {
                 $headerName = (string) config('tenancy.header', 'X-Tenant-Code');

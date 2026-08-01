@@ -6,6 +6,9 @@ import AppCard from '../../../Components/AppCard.vue';
 import CsvImportExport from '../../../Components/CsvImportExport.vue';
 import SmartDataTable from '../../../Components/SmartDataTable.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+
+const { can } = useCan();
 
 defineProps({
     members: { type: Object, required: true },
@@ -37,7 +40,7 @@ const statusLabels = { active: 'Aktif', exited: 'Keluar', deceased: 'Meninggal' 
                     <h1 class="text-2xl font-bold text-primary">Anggota</h1>
                     <p class="mt-1 text-on-surface-variant">Kelola data anggota tenant.</p>
                 </div>
-                <div class="flex flex-wrap items-center gap-2">
+                <div v-if="can('members.manage')" class="flex flex-wrap items-center gap-2">
                     <CsvImportExport
                         export-url="/master-data/members/export"
                         import-url="/master-data/members/import"
@@ -65,7 +68,7 @@ const statusLabels = { active: 'Aktif', exited: 'Keluar', deceased: 'Meninggal' 
                                 <Link :href="`/master-data/members/${row.row_id}`">
                                     <AppButton variant="ghost" size="compact" icon="visibility" aria-label="Detail anggota">Detail</AppButton>
                                 </Link>
-                                <Link :href="`/master-data/members/${row.row_id}/edit`">
+                                <Link v-if="can('members.manage')" :href="`/master-data/members/${row.row_id}/edit`">
                                     <AppButton variant="ghost" size="compact" icon="edit" aria-label="Edit anggota">Edit</AppButton>
                                 </Link>
                             </div>

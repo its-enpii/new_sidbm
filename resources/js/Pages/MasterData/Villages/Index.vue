@@ -5,6 +5,9 @@ import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import SmartDataTable from '../../../Components/SmartDataTable.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     villages: { type: Object, required: true },
@@ -49,7 +52,11 @@ const columns = [
                     >
                         <template #cell-village_naming="{ row }">{{ row.village_naming?.village_name || '—' }}</template>
                         <template #cell-is_active="{ row }"><AppBadge :tone="row.is_active ? 'success' : 'neutral'">{{ row.is_active ? 'Aktif' : 'Nonaktif' }}</AppBadge></template>
-                        <template #actions="{ row }"><Link :href="`/master-data/villages/${row.row_id}/edit`"><AppButton variant="ghost" size="compact" icon="edit" aria-label="Edit desa">Edit</AppButton></Link></template>
+                        <template #actions="{ row }">
+                            <Link v-if="can('villages.manage')" :href="`/master-data/villages/${row.row_id}/edit`">
+                                <AppButton variant="ghost" size="compact" icon="edit" aria-label="Edit desa">Edit</AppButton>
+                            </Link>
+                        </template>
                     </SmartDataTable>
                 </div>
             </AppCard>

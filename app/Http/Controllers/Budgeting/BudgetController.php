@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Budgeting;
 
+use App\Domain\Access\Services\PermissionChecker;
 use App\Domain\Budgeting\Services\BudgetService;
 use App\Http\Requests\Budgeting\SaveBudgetMonthRequest;
 use DomainException;
@@ -16,11 +17,14 @@ final class BudgetController
 {
     public function __construct(
         private readonly BudgetService $budgets,
+        private readonly PermissionChecker $permissions,
     ) {
     }
 
     public function index(Request $request): Response
     {
+        $this->permissions->denyUnless($request->user(), 'budgeting.view');
+
         $year = $this->resolveYear($request);
         $month = $this->resolveMonth($request);
         $overview = $this->budgets->yearOverview($year);
@@ -50,8 +54,10 @@ final class BudgetController
             ->with('success', "Rencana anggaran {$label} {$year} disimpan ({$result['imported']} akun).");
     }
 
-    public function copyPrevious(int $year, int $month): RedirectResponse
+    public function copyPrevious(Request $request, int $year, int $month): RedirectResponse
     {
+        $this->permissions->denyUnless($request->user(), 'budgeting.manage');
+
         try {
             $count = $this->budgets->copyFromPreviousMonth($year, $month);
         } catch (DomainException $exception) {
@@ -66,6 +72,8 @@ final class BudgetController
 
     public function approve(Request $request, int $year): RedirectResponse
     {
+        $this->permissions->denyUnless($request->user(), 'budgeting.manage');
+
         try {
             $this->budgets->approve($year, (int) $request->user()->row_id);
         } catch (DomainException $exception) {
@@ -76,8 +84,10 @@ final class BudgetController
             ->with('success', "Anggaran tahun {$year} disetujui.");
     }
 
-    public function reopen(int $year): RedirectResponse
+    public function reopen(Request $request, int $year): RedirectResponse
     {
+        $this->permissions->denyUnless($request->user(), 'budgeting.manage');
+
         try {
             $this->budgets->reopen($year);
         } catch (DomainException $exception) {

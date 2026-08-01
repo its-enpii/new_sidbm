@@ -12,7 +12,20 @@ final class EnsureSuperadmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        abort_unless($request->user()?->is_superadmin === true, 403);
+        $user = $request->user();
+
+        if ($user === null) {
+            return redirect()->guest(route('login'));
+        }
+
+        if ($user->is_superadmin !== true) {
+            // Tenant users: back to app. Superadmin-only accounts never hit this branch.
+            $fallback = $user->tenant_id !== null ? route('dashboard') : route('login');
+
+            return redirect()
+                ->to($fallback)
+                ->with('error', 'Halaman admin hanya untuk superadmin. Login: superadmin / password.');
+        }
 
         return $next($request);
     }

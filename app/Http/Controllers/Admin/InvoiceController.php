@@ -43,12 +43,14 @@ final class InvoiceController
             ->through(fn (Invoice $invoice): array => [
                 'row_id' => $invoice->row_id,
                 'number' => $invoice->number,
+                'purpose' => $invoice->purpose,
                 'status' => $invoice->status,
                 'amount' => $invoice->amount,
                 'amount_paid' => $invoice->amount_paid,
                 'currency' => $invoice->currency,
                 'due_at' => $invoice->due_at?->toDateString(),
                 'issued_at' => $invoice->issued_at?->toDateTimeString(),
+                'description' => $invoice->description,
                 'tenant' => $invoice->tenant?->only(['row_id', 'name', 'code']),
             ]);
 
@@ -95,6 +97,7 @@ final class InvoiceController
                 'row_id' => $invoice->row_id,
                 'public_id' => $invoice->public_id,
                 'number' => $invoice->number,
+                'purpose' => $invoice->purpose,
                 'status' => $invoice->status,
                 'amount' => $invoice->amount,
                 'amount_paid' => $invoice->amount_paid,

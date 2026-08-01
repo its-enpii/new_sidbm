@@ -30,7 +30,7 @@ final class TenantResolver
         $tenant = Tenant::query()->with(['placement.shard'])->whereIn('status', ['active', 'read_only'])
             ->get()->first(fn (Tenant $candidate): bool => $this->candidateMatchesHost($candidate, $normalizedHost));
 
-        // host.docker.internal: tool callbacks from encompletion container → host SIDBM
+        // host.docker.internal: tool callbacks from orchestrator container → host SIDBM
         $localHosts = ['localhost', '127.0.0.1', '::1', 'host.docker.internal'];
         if ($tenant === null && $localTenant !== '' && in_array($normalizedHost, $localHosts, true)) {
             $tenant = Tenant::query()->with(['placement.shard'])->where('code', $localTenant)

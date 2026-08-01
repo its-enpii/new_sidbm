@@ -10,25 +10,46 @@ declare(strict_types=1);
  *
  * Users with zero assigned roles keep full access (legacy). Once a user has
  * any role, only the union of that role's permissions applies.
+ *
+ * Full link/button map: docs/RBAC_MATRIX.md
  */
 return [
     'permissions' => [
+        // Master
         'members.view',
         'members.manage',
         'groups.view',
         'groups.manage',
+        'villages.view',
+        'villages.manage',
+        'institutions.view',
+        'institutions.manage',
+        // Lending
         'loans.view',
         'loans.propose',
         'loans.verify',
         'loans.approve',
         'loans.disburse',
         'loans.manage',
+        // Accounting
         'journals.view',
         'journals.create',
         'installments.record',
+        'assets.view',
+        'assets.manage',
+        'period_close.view',
+        'period_close.manage',
+        'reports.view',
+        'reports.manage',
+        'tax.view',
+        // Budget / ops
         'budgeting.view',
         'budgeting.manage',
         'messages.send',
+        // Tenant SaaS billing (pay platform invoices)
+        'billing.view',
+        'billing.pay',
+        // Settings / assistant
         'settings.manage',
         'assistant.use',
     ],
@@ -45,11 +66,19 @@ return [
             'permissions' => [
                 'members.view',
                 'groups.view',
+                'villages.view',
+                'institutions.view',
                 'loans.view',
                 'journals.view',
                 'journals.create',
                 'installments.record',
+                'assets.view',
+                'reports.view',
+                'tax.view',
+                'budgeting.view',
                 'messages.send',
+                'billing.view',
+                'billing.pay',
                 'assistant.use',
             ],
         ],
@@ -59,9 +88,13 @@ return [
             'permissions' => [
                 'members.view',
                 'groups.view',
+                'villages.view',
+                'institutions.view',
                 'loans.view',
                 'loans.verify',
                 'journals.view',
+                'assets.view',
+                'reports.view',
                 'assistant.use',
             ],
         ],
@@ -71,12 +104,53 @@ return [
             'permissions' => [
                 'members.view',
                 'groups.view',
+                'villages.view',
+                'institutions.view',
                 'loans.view',
                 'journals.view',
+                'assets.view',
+                'period_close.view',
+                'reports.view',
+                'tax.view',
                 'budgeting.view',
+                'billing.view',
                 'assistant.use',
             ],
         ],
+    ],
+
+    /*
+     * Admin role already has '*'. Kasir/verifikator/viewer do not get reports.manage
+     * or period_close.manage by default — assign admin or custom later.
+     */
+
+    /**
+     * Nav path prefix → permission required to show the link.
+     * Longest prefix wins when matching. Missing = always show (auth only).
+     */
+    'nav_map' => [
+        '/master-data/villages' => 'villages.view',
+        '/master-data/members/create' => 'members.manage',
+        '/master-data/members' => 'members.view',
+        '/master-data/groups/create' => 'groups.manage',
+        '/master-data/groups' => 'groups.view',
+        '/master-data/institutions/create' => 'institutions.manage',
+        '/master-data/institutions' => 'institutions.view',
+        '/lending/loans/create' => 'loans.propose',
+        '/lending/loans' => 'loans.view',
+        '/lending/reports' => 'loans.view',
+        '/accounting/journals' => 'journals.view',
+        '/accounting/assets' => 'assets.view',
+        '/accounting/journal-entries/installment' => 'installments.record',
+        '/accounting/journal-entries' => 'journals.create',
+        '/accounting/chart-of-accounts' => 'journals.view',
+        '/accounting/period-close' => 'period_close.view',
+        '/accounting/tax-estimate' => 'tax.view',
+        '/accounting/reports' => 'reports.view',
+        '/budgeting' => 'budgeting.view',
+        '/notifications/billing' => 'messages.send',
+        '/billing/invoices' => 'billing.view',
+        '/settings' => 'settings.manage',
     ],
 
     /**
@@ -101,18 +175,23 @@ return [
         \App\Http\Requests\Settings\LendingSystemRequest::class => 'settings.manage',
         \App\Http\Requests\Settings\LogoUploadRequest::class => 'settings.manage',
         \App\Http\Requests\Settings\WhatsappRequest::class => 'settings.manage',
+        \App\Http\Requests\Settings\OrchestratorRequest::class => 'settings.manage',
         \App\Http\Requests\Settings\SignaturesRequest::class => 'settings.manage',
+        \App\Http\Requests\Assets\AssetRequest::class => 'assets.manage',
+        \App\Http\Requests\MasterData\VillageRequest::class => 'villages.manage',
+        \App\Http\Requests\MasterData\OtherInstitutionRequest::class => 'institutions.manage',
     ],
 
     'tool_map' => [
         'search_members' => 'members.view',
         'search_groups' => 'groups.view',
+        'groups_with_loans' => 'groups.view',
         'search_loans' => 'loans.view',
         'get_loan' => 'loans.view',
         'list_accounts' => 'journals.view',
         'search_journals' => 'journals.view',
-        'search_assets' => 'journals.view',
-        'get_asset' => 'journals.view',
+        'search_assets' => 'assets.view',
+        'get_asset' => 'assets.view',
         'list_due_billing' => 'messages.send',
         'create_journal_entry' => 'journals.create',
         'reverse_journal' => 'journals.create',

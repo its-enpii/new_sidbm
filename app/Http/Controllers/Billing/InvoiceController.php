@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Billing;
 
+use App\Domain\Access\Services\PermissionChecker;
 use App\Models\Platform\Invoice;
 use App\Services\Billing\InvoicePaymentService;
 use App\Tenancy\TenantContext;
@@ -15,8 +16,15 @@ use RuntimeException;
 
 final class InvoiceController
 {
+    public function __construct(
+        private readonly PermissionChecker $permissions,
+    ) {
+    }
+
     public function index(Request $request, TenantContext $context): Response
     {
+        $this->permissions->denyUnless($request->user(), 'billing.view');
+
         $search = trim((string) $request->query('search', ''));
         $status = (string) $request->query('status', '');
         $perPage = in_array((int) $request->query('per_page'), [15, 30, 50, 100], true)
@@ -40,6 +48,7 @@ final class InvoiceController
             ->through(fn (Invoice $invoice): array => [
                 'row_id' => $invoice->row_id,
                 'number' => $invoice->number,
+                'purpose' => $invoice->purpose,
                 'status' => $invoice->status,
                 'amount' => $invoice->amount,
                 'amount_paid' => $invoice->amount_paid,
@@ -53,8 +62,9 @@ final class InvoiceController
         return Inertia::render('Billing/Invoices/Index', compact('invoices', 'search', 'status', 'perPage', 'sort', 'direction'));
     }
 
-    public function show(Invoice $invoice, TenantContext $context): Response
+    public function show(Request $request, Invoice $invoice, TenantContext $context): Response
     {
+        $this->permissions->denyUnless($request->user(), 'billing.view');
         $this->assertTenantOwns($invoice, $context);
 
         $invoice->load([
@@ -67,6 +77,7 @@ final class InvoiceController
                 'row_id' => $invoice->row_id,
                 'public_id' => $invoice->public_id,
                 'number' => $invoice->number,
+                'purpose' => $invoice->purpose,
                 'status' => $invoice->status,
                 'amount' => $invoice->amount,
                 'amount_paid' => $invoice->amount_paid,
@@ -100,6 +111,7 @@ final class InvoiceController
 
     public function pay(Request $request, Invoice $invoice, TenantContext $context, InvoicePaymentService $payments): RedirectResponse
     {
+        $this->permissions->denyUnless($request->user(), 'billing.pay');
         $this->assertTenantOwns($invoice, $context);
 
         try {

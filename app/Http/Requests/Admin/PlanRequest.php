@@ -30,7 +30,7 @@ final class PlanRequest extends FormRequest
             ],
             'name' => ['required', 'string', 'max:100'],
             'price_amount' => ['required', 'numeric', 'min:0'],
-            'currency' => ['required', 'string', 'size:3'],
+            'currency' => ['required', 'string', 'size:3', Rule::in(['IDR', 'USD'])],
             'billing_period' => ['required', Rule::in(['monthly', 'yearly'])],
             'is_active' => ['required', 'boolean'],
             'features' => ['nullable', 'array'],

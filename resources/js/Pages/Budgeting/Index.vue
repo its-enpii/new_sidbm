@@ -7,6 +7,9 @@ import AppCard from '../../Components/AppCard.vue';
 import AppCurrencyInput from '../../Components/AppCurrencyInput.vue';
 import AppDatePicker from '../../Components/AppDatePicker.vue';
 import AuthenticatedLayout from '../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     year: { type: Number, required: true },
@@ -130,7 +133,7 @@ function monthMeta(month) {
                 <div class="flex flex-wrap items-center gap-2">
                     <AppBadge :tone="statusTone">{{ statusLabel }}</AppBadge>
                     <AppButton
-                        v-if="budget.status === 'draft'"
+                        v-if="can('budgeting.manage') && budget.status === 'draft'"
                         variant="secondary"
                         icon="verified"
                         size="compact"
@@ -139,7 +142,7 @@ function monthMeta(month) {
                         Setujui Tahun
                     </AppButton>
                     <AppButton
-                        v-else
+                        v-else-if="can('budgeting.manage')"
                         variant="secondary"
                         icon="lock_open"
                         size="compact"
@@ -235,7 +238,7 @@ function monthMeta(month) {
                     <span class="mx-2 text-outline">·</span>
                     Surplus {{ formatMoney(liveTotals.surplus) }}
                 </div>
-                <div class="flex flex-wrap items-center gap-2">
+                <div v-if="can('budgeting.manage')" class="flex flex-wrap items-center gap-2">
                     <AppButton
                         v-if="sheet.has_previous"
                         variant="secondary"

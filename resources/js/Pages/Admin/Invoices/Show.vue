@@ -12,6 +12,15 @@ const props = defineProps({
     payments: { type: Array, default: () => [] },
 });
 
+const purposeLabels = {
+    subscription: 'Langganan / perpanjangan',
+    setup: 'Biaya setup / onboarding',
+    support: 'Dukungan / maintenance',
+    training: 'Pelatihan',
+    custom_dev: 'Pengembangan custom',
+    other: 'Lainnya',
+};
+
 const manualForm = useForm({
     amount: props.invoice.remaining,
     paid_at: new Date().toISOString().slice(0, 10),
@@ -82,9 +91,10 @@ function voidInvoice() {
                         <div><dt class="text-sm text-on-surface-variant">Nominal</dt><dd class="text-xl font-bold text-primary">{{ money(invoice.amount, invoice.currency) }}</dd></div>
                         <div><dt class="text-sm text-on-surface-variant">Dibayar</dt><dd class="text-xl font-bold text-primary">{{ money(invoice.amount_paid, invoice.currency) }}</dd></div>
                         <div><dt class="text-sm text-on-surface-variant">Sisa</dt><dd class="text-xl font-bold text-primary">{{ money(invoice.remaining, invoice.currency) }}</dd></div>
+                        <div><dt class="text-sm text-on-surface-variant">Keperluan</dt><dd class="font-semibold text-primary">{{ purposeLabels[invoice.purpose] || invoice.purpose || '—' }}</dd></div>
                         <div><dt class="text-sm text-on-surface-variant">Diterbitkan</dt><dd class="font-semibold text-primary">{{ invoice.issued_at || '—' }}</dd></div>
                         <div class="sm:col-span-2"><dt class="text-sm text-on-surface-variant">Deskripsi</dt><dd class="font-semibold text-primary">{{ invoice.description || '—' }}</dd></div>
-                        <div v-if="invoice.subscription" class="sm:col-span-2"><dt class="text-sm text-on-surface-variant">Langganan</dt><dd class="font-semibold text-primary">{{ invoice.subscription.plan?.name || invoice.subscription.row_id }} ({{ invoice.subscription.status }})</dd></div>
+                        <div v-if="invoice.subscription" class="sm:col-span-2"><dt class="text-sm text-on-surface-variant">Langganan terkait</dt><dd class="font-semibold text-primary">{{ invoice.subscription.plan?.name || invoice.subscription.row_id }} ({{ invoice.subscription.status }})</dd></div>
                     </dl>
                 </AppCard>
 

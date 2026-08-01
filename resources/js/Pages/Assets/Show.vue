@@ -4,6 +4,9 @@ import AppBadge from '../../Components/AppBadge.vue';
 import AppButton from '../../Components/AppButton.vue';
 import AppCard from '../../Components/AppCard.vue';
 import AuthenticatedLayout from '../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     asset: { type: Object, required: true },
@@ -39,8 +42,8 @@ function destroy() {
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <Link href="/accounting/assets"><AppButton variant="ghost" icon="arrow_back">Daftar</AppButton></Link>
-                    <Link :href="`/accounting/assets/${asset.row_id}/edit`"><AppButton icon="edit">Edit</AppButton></Link>
-                    <AppButton variant="ghost" icon="delete" @click="destroy">Hapus</AppButton>
+                    <Link v-if="can('assets.manage')" :href="`/accounting/assets/${asset.row_id}/edit`"><AppButton icon="edit">Edit</AppButton></Link>
+                    <AppButton v-if="can('assets.manage')" variant="ghost" icon="delete" @click="destroy">Hapus</AppButton>
                 </div>
             </header>
 

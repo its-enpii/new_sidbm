@@ -28,6 +28,11 @@ const periodOptions = [
     { value: 'yearly', label: 'Tahunan' },
 ];
 
+const currencyOptions = [
+    { value: 'IDR', label: 'IDR — Rupiah' },
+    { value: 'USD', label: 'USD — US Dollar' },
+];
+
 function submit() {
     if (editing) form.put(`/admin/plans/${props.plan.row_id}`);
     else form.post('/admin/plans');
@@ -37,7 +42,7 @@ function submit() {
 <template>
     <Head :title="editing ? 'Edit Plan' : 'Tambah Plan'" />
     <AdminLayout>
-        <div class="mx-auto max-w-3xl space-y-6">
+        <div class="mx-auto max-w-7xl space-y-6">
             <header>
                 <Link href="/admin/plans" class="text-sm font-semibold text-primary">← Daftar plan</Link>
                 <h1 class="mt-3 text-2xl font-bold text-primary">{{ editing ? 'Edit Plan' : 'Tambah Plan' }}</h1>
@@ -45,15 +50,13 @@ function submit() {
 
             <AppCard>
                 <form class="space-y-4" @submit.prevent="submit">
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <AppInput v-model="form.code" label="Kode" required :error="form.errors.code" :disabled="editing" />
-                        <AppInput v-model="form.name" label="Nama" required :error="form.errors.name" />
-                        <AppInput v-model="form.price_amount" label="Harga" type="number" step="0.01" min="0" required :error="form.errors.price_amount" />
-                        <AppInput v-model="form.currency" label="Mata uang" required :error="form.errors.currency" />
-                        <SmartSelect v-model="form.billing_period" label="Periode" :options="periodOptions" required :error="form.errors.billing_period" />
-                        <div class="flex items-end pb-2">
-                            <AppSwitch v-model="form.is_active" label="Aktif" />
-                        </div>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <AppInput v-model="form.code" class="min-w-0" label="Kode" required :error="form.errors.code" :disabled="editing" />
+                        <AppInput v-model="form.name" class="min-w-0" label="Nama" required :error="form.errors.name" />
+                        <AppInput v-model="form.price_amount" class="min-w-0" label="Harga" type="number" step="0.01" min="0" required :error="form.errors.price_amount" />
+                        <SmartSelect v-model="form.currency" class="min-w-0" label="Mata uang" :options="currencyOptions" required :error="form.errors.currency" />
+                        <SmartSelect v-model="form.billing_period" class="min-w-0" label="Periode" :options="periodOptions" required :error="form.errors.billing_period" />
+                        <AppSwitch v-model="form.is_active" class="min-w-0" field label="Status" />
                     </div>
                     <div class="flex justify-end gap-3">
                         <Link href="/admin/plans"><AppButton variant="secondary">Batal</AppButton></Link>

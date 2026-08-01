@@ -18,6 +18,12 @@ final class PermissionConfigTest extends TestCase
         self::assertContains('installments.record', $perms);
         self::assertContains('messages.send', $perms);
         self::assertContains('assistant.use', $perms);
+        self::assertContains('assets.view', $perms);
+        self::assertContains('period_close.manage', $perms);
+        self::assertContains('reports.view', $perms);
+        self::assertContains('billing.view', $perms);
+        self::assertContains('institutions.manage', $perms);
+        self::assertContains('villages.view', $perms);
     }
 
     public function test_system_roles_cover_admin_and_kasir(): void
@@ -26,7 +32,10 @@ final class PermissionConfigTest extends TestCase
         self::assertArrayHasKey('admin', $roles);
         self::assertSame(['*'], $roles['admin']['permissions']);
         self::assertContains('installments.record', $roles['kasir']['permissions']);
+        self::assertContains('assets.view', $roles['kasir']['permissions']);
         self::assertNotContains('loans.approve', $roles['kasir']['permissions']);
+        self::assertNotContains('period_close.manage', $roles['kasir']['permissions']);
+        self::assertContains('reports.view', $roles['viewer']['permissions']);
     }
 
     public function test_request_and_tool_maps_point_to_known_permissions(): void
@@ -38,9 +47,14 @@ final class PermissionConfigTest extends TestCase
         foreach (config('permissions.tool_map') as $tool => $permission) {
             self::assertContains($permission, $catalog, "unknown permission for tool {$tool}");
         }
+        foreach (config('permissions.nav_map') as $path => $permission) {
+            self::assertContains($permission, $catalog, "unknown permission in nav_map for {$path}");
+        }
 
         self::assertSame('journals.create', config('permissions.request_map.'.JournalEntryRequest::class));
         self::assertSame('installments.record', config('permissions.request_map.'.LoanInstallmentJournalRequest::class));
         self::assertSame('journals.create', config('permissions.tool_map.create_journal_entry'));
+        self::assertSame('assets.view', config('permissions.tool_map.search_assets'));
+        self::assertSame('assets.view', config('permissions.nav_map./accounting/assets'));
     }
 }

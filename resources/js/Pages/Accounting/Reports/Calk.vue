@@ -6,6 +6,9 @@ import AppCard from '../../../Components/AppCard.vue';
 import AppTextarea from '../../../Components/AppTextarea.vue';
 import ReportPeriodFilter from '../../../Components/ReportPeriodFilter.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     period: { type: Object, required: true },
@@ -17,6 +20,8 @@ const props = defineProps({
     filters: { type: Object, required: true },
     can_edit: { type: Boolean, default: false },
 });
+
+const allowEdit = computed(() => props.can_edit && can('reports.manage'));
 
 const form = useForm({
     notes: props.notes || '',
@@ -104,7 +109,7 @@ function save() {
 
             <AppCard class="p-5">
                 <h2 class="mb-3 text-sm font-bold uppercase tracking-wide text-on-surface-variant">Catatan tambahan</h2>
-                <form v-if="can_edit" class="space-y-3" @submit.prevent="save">
+                <form v-if="allowEdit" class="space-y-3" @submit.prevent="save">
                     <AppTextarea
                         v-model="form.notes"
                         label="Catatan manajemen / peristiwa penting"
