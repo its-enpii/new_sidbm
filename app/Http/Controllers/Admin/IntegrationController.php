@@ -11,6 +11,7 @@ use App\Support\AssistantSettingsResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -138,7 +139,10 @@ final class IntegrationController
                     personaSlug: $data['persona_slug'] ?? null,
                 ) as $event) {
                     echo 'event: '.$event['event']."\n";
-                    echo 'data: '.str_replace("\n", "\\n", $event['data'])."\n\n";
+                    foreach (explode("\n", $event['data']) as $line) {
+                        echo 'data: '.$line."\n";
+                    }
+                    echo "\n";
                     @ob_flush();
                     @flush();
                 }
@@ -154,5 +158,62 @@ final class IntegrationController
             'Connection' => 'keep-alive',
             'X-Accel-Buffering' => 'no',
         ]);
+    }
+
+    public function upload(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'title' => ['nullable', 'string', 'max:200'],
+            'file' => ['required', 'file', 'max:20480', 'mimetypes:text/plain,text/markdown,text/html,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+        ]);
+
+        $base = rtrim(AssistantSettingsResolver::orchestratorBaseUrl(), '/');
+        $secret = AssistantSettingsResolver::sharedSecret();
+        if ($base === '' || $secret === '') {
+            return response()->json([
+                'ok' => false,
+                'message' => 'URL server / shared secret belum diisi.',
+            ], 422);
+        }
+
+        // Resolve tenant id via /api/v1/personas (authenticated by shared secret → tenant key).
+        $probe = Http::timeout(15)
+            ->withToken($secret)
+            ->acceptJson()
+            ->get($base.'/api/v1/personas');
+
+        $tenantId = null;
+        if ($probe->successful()) {
+            $payload = $probe->json();
+            $tenantId = $payload['tenant']['id'] ?? null;
+        }
+
+        if (! $tenantId) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Tidak bisa menentukan tenant. Pastikan shared secret valid.',
+            ], 502);
+        }
+
+        $response = Http::timeout(60)
+            ->withToken($secret)
+            ->acceptJson()
+            ->attach(
+                'file',
+                file_get_contents($data['file']->getRealPath()),
+                $data['file']->getClientOriginalName(),
+            )
+            ->post($base.'/admin/tenants/'.$tenantId.'/knowledge/upload', [
+                'title' => $data['title'] ?? null,
+            ]);
+
+        if (! $response->successful()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'HTTP '.$response->status().': '.$response->body(),
+            ], $response->status());
+        }
+
+        return response()->json(['ok' => true]);
     }
 }

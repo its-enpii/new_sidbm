@@ -90,6 +90,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
         Route::put('/orchestrator', [\App\Http\Controllers\Admin\IntegrationController::class, 'update'])->name('orchestrator.update');
         Route::post('/orchestrator/test', [\App\Http\Controllers\Admin\IntegrationController::class, 'test'])->name('orchestrator.test');
         Route::post('/orchestrator/chat', [\App\Http\Controllers\Admin\IntegrationController::class, 'chat'])->name('orchestrator.chat');
+        Route::post('/orchestrator/upload', [\App\Http\Controllers\Admin\IntegrationController::class, 'upload'])->name('orchestrator.upload');
     });
 });
 

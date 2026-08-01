@@ -32,6 +32,71 @@ const showSecret = ref(false);
 const testResult = ref(null);
 const testLoading = ref(false);
 
+// === Upload RAG ===
+const uploadForm = useForm({
+    title: '',
+    file: null,
+});
+const uploadDragOver = ref(false);
+const uploadFileName = ref('');
+const uploadResult = ref(null);
+
+function onUploadFile(e) {
+    const f = e.target.files?.[0] ?? null;
+    setUploadFile(f);
+}
+function onUploadDrop(e) {
+    e.preventDefault();
+    uploadDragOver.value = false;
+    const f = e.dataTransfer?.files?.[0] ?? null;
+    setUploadFile(f);
+}
+function setUploadFile(f) {
+    if (!f) return;
+    const allowed = ['text/plain', 'text/markdown', 'text/html', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const ext = (f.name.split('.').pop() || '').toLowerCase();
+    if (!allowed.includes(f.type) && !['txt', 'md', 'html', 'pdf', 'docx'].includes(ext)) {
+        uploadResult.value = { ok: false, message: 'Tipe file tidak didukung.' };
+        return;
+    }
+    uploadForm.file = f;
+    uploadFileName.value = f.name;
+    uploadResult.value = null;
+    if (!uploadForm.title) uploadForm.title = f.name.replace(/\.[^.]+$/, '');
+}
+
+async function submitUpload() {
+    uploadResult.value = null;
+    try {
+        const response = await fetch('/admin/integrations/orchestrator/upload', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken(),
+            },
+            credentials: 'same-origin',
+            body: (() => {
+                const fd = new FormData();
+                if (uploadForm.title) fd.append('title', uploadForm.title);
+                fd.append('file', uploadForm.file);
+                return fd;
+            })(),
+        });
+        const data = await response.json();
+        uploadResult.value = response.ok
+            ? { ok: true, message: 'Dokumen di-ingest. Tunggu sebentar lalu cek halaman Knowledge tenant.' }
+            : { ok: false, message: data.message || `HTTP ${response.status}` };
+        if (response.ok) {
+            uploadFileName.value = '';
+            uploadForm.file = null;
+            uploadForm.title = '';
+        }
+    } catch (e) {
+        uploadResult.value = { ok: false, message: e.message };
+    }
+}
+
 function submit() {
     form.signature_max_skew_ms = Number(form.signature_max_skew_seconds) * 1000;
     form.put('/admin/integrations/orchestrator', { preserveScroll: true });
@@ -253,8 +318,9 @@ function cancelChat() {
                 </div>
             </AppCard>
 
-            <AppCard>
-                <div class="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-outline-variant bg-surface-container-lowest p-3 text-sm">
+            <div class="grid gap-6 lg:grid-cols-[1fr_380px]">
+                <AppCard class="min-w-0">
+                    <div class="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-outline-variant bg-surface-container-lowest p-3 text-sm">
                     <AppBadge :tone="orchestrator.configured ? 'success' : 'warning'">
                         {{ orchestrator.configured ? 'Terhubung' : 'Belum dikonfigurasi' }}
                     </AppBadge>
@@ -337,6 +403,122 @@ function cancelChat() {
                     <div class="flex justify-end gap-2 border-t border-outline-variant pt-4">
                         <AppButton type="submit" :loading="form.processing" :disabled="form.processing" icon="save">
                             Simpan Pengaturan
+                        </AppButton>
+                    </div>
+                </form>
+            </AppCard>
+
+            <AppCard class="flex flex-col self-start lg:sticky lg:top-20">
+                <header class="mb-3 flex items-center gap-2 border-b border-outline-variant pb-3">
+                    <AppIcon name="smart_toy" class="text-xl text-primary" />
+                    <div>
+                        <h2 class="text-base font-bold text-primary">Test Chat</h2>
+                        <p class="mt-0.5 text-xs text-on-surface-variant">Kirim pertanyaan ke orchestrator.</p>
+                    </div>
+                </header>
+                <div ref="chatListEl" class="min-h-40 max-h-96 flex-1 space-y-2 overflow-y-auto rounded-lg bg-surface p-3">
+                    <p v-if="!chatMessages.length" class="text-center text-xs text-on-surface-variant">Belum ada percakapan.</p>
+                    <div
+                        v-for="msg in chatMessages"
+                        :key="msg.id"
+                        class="flex"
+                        :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
+                    >
+                        <div
+                            class="max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed"
+                            :class="msg.role === 'user'
+                                ? 'rounded-br-sm bg-primary text-on-primary whitespace-pre-wrap'
+                                : 'rounded-bl-sm border border-outline-variant bg-surface-container-lowest text-primary'"
+                        >
+                            <template v-if="msg.role === 'user'">{{ msg.content }}</template>
+                            <!-- eslint-disable-next-line vue/no-v-html -->
+                            <div v-else v-html="formatMessage(msg.content) || ''" />
+                        </div>
+                    </div>
+                    <div
+                        v-if="chatTyping"
+                        class="flex justify-start"
+                        :aria-label="chatTypingLabel"
+                    >
+                        <div class="flex max-w-[85%] items-center gap-2 rounded-2xl rounded-bl-sm border border-outline-variant bg-surface-container-lowest px-3 py-2">
+                            <span class="flex items-center gap-1">
+                                <span class="inline-block size-1.5 animate-bounce rounded-full bg-on-surface/40" style="animation-delay:0s" />
+                                <span class="inline-block size-1.5 animate-bounce rounded-full bg-on-surface/40" style="animation-delay:0.15s" />
+                                <span class="inline-block size-1.5 animate-bounce rounded-full bg-on-surface/40" style="animation-delay:0.3s" />
+                            </span>
+                            <span class="text-xs text-on-surface-variant">{{ chatTypingLabel }}</span>
+                        </div>
+                    </div>
+                </div>
+                <p v-if="chatError" class="mt-2 text-xs text-error">{{ chatError }}</p>
+                <form class="mt-3 flex items-end gap-2" @submit.prevent="sendChat">
+                    <textarea
+                        v-model="chatInput"
+                        rows="1"
+                        placeholder="Tulis pertanyaan…"
+                        class="min-h-10 max-h-32 flex-1 resize-none rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm leading-5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
+                        :disabled="chatBusy"
+                        @keydown.enter.exact.prevent="sendChat"
+                    />
+                    <button
+                        v-if="chatBusy"
+                        type="button"
+                        class="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-on-secondary"
+                        aria-label="Batal"
+                        @click="cancelChat"
+                    >
+                        <AppIcon name="close" />
+                    </button>
+                    <button
+                        v-else
+                        type="submit"
+                        class="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-on-primary disabled:opacity-50"
+                        :disabled="!chatInput.trim()"
+                        aria-label="Kirim"
+                    >
+                        <AppIcon name="send" />
+                    </button>
+                </form>
+            </AppCard>
+            </div>
+
+            <AppCard>
+                <header class="mb-4">
+                    <h2 class="text-lg font-bold text-primary">Upload Bahan RAG</h2>
+                    <p class="mt-0.5 text-xs text-on-surface-variant">Kirim file ke orchestrator untuk di-chunk dan di-embed.</p>
+                </header>
+                <form class="space-y-4" @submit.prevent="submitUpload">
+                    <AppInput
+                        v-model="uploadForm.title"
+                        label="Judul (opsional)"
+                        placeholder="Mis. Buku Pedoman Koperasi 2024"
+                        :error="uploadForm.errors.title"
+                    />
+                    <div>
+                        <label class="mb-1 block text-sm font-bold uppercase tracking-wider text-primary">File</label>
+                        <label
+                            class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-outline-variant bg-surface-container-lowest px-4 py-6 text-center transition-colors hover:border-primary"
+                            :class="uploadDragOver ? 'border-primary bg-primary/5' : ''"
+                            @dragover.prevent="uploadDragOver = true"
+                            @dragleave.prevent="uploadDragOver = false"
+                            @drop="onUploadDrop"
+                        >
+                            <AppIcon name="upload_file" class="text-2xl text-on-surface-variant" />
+                            <p class="text-sm text-on-surface-variant">
+                                <span class="font-semibold text-primary">Klik untuk pilih</span> atau drop file di sini
+                            </p>
+                            <p class="text-xs text-on-surface-variant">PDF / DOCX / MD / HTML / TXT — maks 20 MB</p>
+                            <input type="file" class="hidden" accept=".pdf,.docx,.md,.markdown,.html,.htm,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html" @change="onUploadFile" />
+                        </label>
+                        <p v-if="uploadFileName" class="mt-2 text-xs text-on-surface-variant">
+                            Dipilih: <span class="font-semibold">{{ uploadFileName }}</span>
+                        </p>
+                        <p v-if="uploadForm.errors.file" class="mt-1 text-xs text-error">{{ uploadForm.errors.file }}</p>
+                    </div>
+                    <p v-if="uploadResult" class="text-xs" :class="uploadResult.ok ? 'text-success' : 'text-error'">{{ uploadResult.message }}</p>
+                    <div class="flex justify-end gap-2 border-t border-outline-variant pt-4">
+                        <AppButton type="submit" :loading="uploadForm.processing" :disabled="uploadForm.processing || !uploadForm.file" icon="upload">
+                            Upload &amp; Ingest
                         </AppButton>
                     </div>
                 </form>
