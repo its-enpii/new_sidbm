@@ -8,7 +8,11 @@ import AppIcon from '../../Components/AppIcon.vue';
 import AppInput from '../../Components/AppInput.vue';
 import AppSwitch from '../../Components/AppSwitch.vue';
 import SmartSelect from '../../Components/SmartSelect.vue';
-import { formatMarkdown } from '../../composables/useMarkdown';
+import { formatMarkdown, parseMarkdownTree } from '../../composables/useMarkdown';
+import ArtifactCard from '../../Components/AssistantComponents/ArtifactCard.vue';
+import ArtifactModal from '../../Components/AssistantComponents/ArtifactModal.vue';
+import ActionButton from '../../Components/AssistantComponents/ActionButton.vue';
+import PollCard from '../../Components/AssistantComponents/PollCard.vue';
 import AdminLayout from '../../Layouts/AdminLayout.vue';
 
 const props = defineProps({
@@ -286,6 +290,77 @@ const chatTypingLabel = ref('Sedang mengetik');
 const chatListEl = ref(null);
 let chatAbort = null;
 let chatSeq = 0;
+
+// Interactive component blocks (artifact / button / poll) — admin test chat
+const submittedComponentsTest = reactive(new Map());
+const activeArtifactTest = ref(null);
+
+const treeCacheTest = new WeakMap();
+function blocksFor(msg) {
+    if (!msg || !msg.content) return [];
+    let tree = treeCacheTest.get(msg);
+    if (!tree) {
+        tree = parseMarkdownTree(msg.content);
+        treeCacheTest.set(msg, tree);
+    }
+    return tree;
+}
+
+function openArtifact(block) {
+    activeArtifactTest.value = block;
+}
+
+function onComponentSubmitTest(block, payload) {
+    if (submittedComponentsTest.has(block.id)) return;
+    submittedComponentsTest.set(block.id, payload);
+    const text = payload === '__skip__' ? '(lewati)' : String(payload);
+    pushChat({ role: 'user', content: text });
+    nextTick(scrollChatBottom);
+    sendChatTest(text);
+}
+
+async function sendChatTest(content) {
+    const assistantMsg = { id: null, content: '' };
+    chatBusy.value = true;
+    chatTyping.value = true;
+    chatTypingLabel.value = 'Sedang mengetik';
+    chatAbort = new AbortController();
+    try {
+        const res = await fetch('/admin/integrations/orchestrator/chat', {
+            method: 'POST',
+            headers: {
+                Accept: 'text/event-stream',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken(),
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ message: content }),
+            signal: chatAbort.signal,
+        });
+        await readSseStream(res, (event, data) => handleChatEvent(event, data, assistantMsg));
+        if (!assistantMsg.id) {
+            assistantMsg.id = chatMessages.value.length + 1;
+            pushChat({ role: 'assistant', content: assistantMsg.content || 'Tidak ada respon dari orchestrator.' });
+        }
+    } catch (e) {
+        if (e.name !== 'AbortError') {
+            const msg = e?.message || 'Gagal mengirim pesan.';
+            chatError.value = msg;
+            if (assistantMsg.id === null) {
+                assistantMsg.content = msg;
+                assistantMsg.id = chatMessages.value.length + 1;
+                pushChat({ role: 'error', content: msg });
+            }
+        }
+    } finally {
+        chatTyping.value = false;
+        chatTyping.value = false;
+        chatBusy.value = false;
+        chatAbort = null;
+        scrollChatBottom();
+    }
+}
 
 function formatMessage(raw) {
     return formatMarkdown(raw);
@@ -581,8 +656,35 @@ function cancelChat() {
                                     : 'rounded-bl-sm border border-outline-variant bg-surface-container-lowest text-primary'"
                         >
                             <template v-if="msg.role === 'user' || msg.role === 'error'">{{ msg.content }}</template>
-                            <!-- eslint-disable-next-line vue/no-v-html -->
-                            <div v-else v-html="formatMessage(msg.content) || ''" />
+                            <div v-else class="flex flex-col gap-2">
+                                <template v-for="block in blocksFor(msg)" :key="block.id">
+                                    <h1 v-if="block.type === 'heading' && block.level === 1" class="text-base font-bold">{{ block.text }}</h1>
+                                    <h2 v-else-if="block.type === 'heading' && block.level === 2" class="text-sm font-bold">{{ block.text }}</h2>
+                                    <h3 v-else-if="block.type === 'heading' && block.level === 3" class="text-sm font-semibold">{{ block.text }}</h3>
+                                    <!-- eslint-disable-next-line vue/no-v-html -->
+                                    <div
+                                        v-else-if="block.type === 'paragraph' || block.type === 'code'"
+                                        class="assistant-md-body"
+                                        v-html="block.html"
+                                    />
+                                    <ArtifactCard
+                                        v-else-if="block.type === 'artifact'"
+                                        :block="block"
+                                        @open="openArtifact"
+                                    />
+                                    <ActionButton
+                                        v-else-if="block.type === 'button'"
+                                        :block="block"
+                                        @submit="(payload) => onComponentSubmitTest(block, payload)"
+                                    />
+                                    <PollCard
+                                        v-else-if="block.type === 'poll'"
+                                        :block="block"
+                                        :submitted="submittedComponentsTest.get(block.id) ?? null"
+                                        @submit="(payload) => onComponentSubmitTest(block, payload)"
+                                    />
+                                </template>
+                            </div>
                         </div>
                     </div>
                     <div
@@ -631,6 +733,8 @@ function cancelChat() {
                 </form>
             </AppCard>
             </div>
+
+            <ArtifactModal :block="activeArtifactTest" @close="activeArtifactTest = null" />
 
             <AppCard>
                 <header class="mb-4">

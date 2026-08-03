@@ -1,7 +1,11 @@
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import AppIcon from './AppIcon.vue';
-import { formatMarkdown } from '../composables/useMarkdown';
+import { parseMarkdownTree } from '../composables/useMarkdown';
+import ArtifactCard from './AssistantComponents/ArtifactCard.vue';
+import ArtifactModal from './AssistantComponents/ArtifactModal.vue';
+import ActionButton from './AssistantComponents/ActionButton.vue';
+import PollCard from './AssistantComponents/PollCard.vue';
 
 const FALLBACK_NAME = 'Ariel';
 
@@ -102,11 +106,6 @@ function pickGreeting() {
         `${salam}. ${name} siap bantu cek angsuran, jurnal, atau data anggota.`,
     ];
     return pool[Math.floor(Math.random() * pool.length)];
-}
-
-/** Lightweight markdown → safe HTML. No new deps. */
-function formatMessage(raw) {
-    return formatMarkdown(raw);
 }
 
 function sessionValid() {
@@ -282,9 +281,61 @@ function handleEvent(event, data, assistantMsg) {
 
 async function sendMessage() {
     const content = input.value.trim();
-    if (!content || sending.value) return;
+    if (!content) return;
     input.value = '';
     nextTick(resizeInput);
+    await sendContent(content);
+}
+
+// --- Interactive component blocks (artifact / button / poll) ---
+
+// Track submitted components per (msgId, blockId) so we can disable + show checkmark.
+//   key: `${msgId}__${blockId}` → value: the user's selected text (or '__skip__' / '__other__')
+const submittedComponents = reactive(new Map());
+
+function blockKey(msg, block) {
+    return `${msg?.id ?? '_'}__${block.id}`;
+}
+
+function onComponentSubmit(msg, block, payload) {
+    const key = blockKey(msg, block);
+    if (submittedComponents.has(key)) return;
+    submittedComponents.set(key, payload);
+
+    let text;
+    if (payload === '__skip__') text = '(lewati)';
+    else if (payload === '__other__') text = block.value || '';
+    else text = String(payload);
+
+    // Show user message bubble first; then trigger the SSE flow.
+    pushMessage({ role: 'user', content: text });
+    nextTick(scrollBottom);
+    sendContent(text);
+}
+
+// Artifact modal state (only one artifact open at a time).
+const activeArtifact = ref(null);
+function openArtifact(block) {
+    activeArtifact.value = block;
+}
+function closeArtifact() {
+    activeArtifact.value = null;
+}
+
+// Markdown tree per message — memoized via WeakMap on msg object identity.
+const treeCache = new WeakMap();
+function blocksFor(msg) {
+    if (!msg || !msg.content) return [];
+    let tree = treeCache.get(msg);
+    if (!tree) {
+        tree = parseMarkdownTree(msg.content);
+        treeCache.set(msg, tree);
+    }
+    return tree;
+}
+
+async function sendContent(content) {
+    if (!content || sending.value) return;
     error.value = null;
     pendingConfirmation.value = null;
     pushMessage({ role: 'user', content });
@@ -310,8 +361,6 @@ async function sendMessage() {
         await readSse(res, (event, data) => handleEvent(event, data, assistantMsg));
         // No silent empty bubble — only surface real failure text
         if (!assistantMsg._pushed && !assistantMsg.content) {
-            // stream finished without assistant text (tools-only / empty model)
-            // leave UI clean; user can re-ask. Optional soft note:
             pushMessage({
                 role: 'assistant',
                 content: 'Maaf, saya belum bisa merangkai jawaban. Coba ulangi pertanyaan atau sebutkan lebih spesifik.',
@@ -437,8 +486,35 @@ onBeforeUnmount(() => {
                                 <span v-if="msg.ok === false" class="text-error"> (gagal)</span>
                             </template>
                             <template v-else-if="msg.role === 'user' || msg.role === 'error'">{{ msg.content }}</template>
-                            <!-- eslint-disable-next-line vue/no-v-html -->
-                            <div v-else class="assistant-md-body" v-html="formatMessage(msg.content)" />
+                            <div v-else class="flex flex-col gap-2">
+                                <template v-for="block in blocksFor(msg)" :key="block.id">
+                                    <h1 v-if="block.type === 'heading' && block.level === 1" class="text-base font-bold">{{ block.text }}</h1>
+                                    <h2 v-else-if="block.type === 'heading' && block.level === 2" class="text-sm font-bold">{{ block.text }}</h2>
+                                    <h3 v-else-if="block.type === 'heading' && block.level === 3" class="text-sm font-semibold">{{ block.text }}</h3>
+                                    <!-- eslint-disable-next-line vue/no-v-html -->
+                                    <div
+                                        v-else-if="block.type === 'paragraph' || block.type === 'code'"
+                                        class="assistant-md-body"
+                                        v-html="block.html"
+                                    />
+                                    <ArtifactCard
+                                        v-else-if="block.type === 'artifact'"
+                                        :block="block"
+                                        @open="openArtifact"
+                                    />
+                                    <ActionButton
+                                        v-else-if="block.type === 'button'"
+                                        :block="block"
+                                        @submit="(payload) => onComponentSubmit(msg, block, payload)"
+                                    />
+                                    <PollCard
+                                        v-else-if="block.type === 'poll'"
+                                        :block="block"
+                                        :submitted="submittedComponents.get(`${msg.id}__${block.id}`) ?? null"
+                                        @submit="(payload) => onComponentSubmit(msg, block, payload)"
+                                    />
+                                </template>
+                            </div>
                         </div>
                     </TransitionGroup>
 
@@ -503,6 +579,8 @@ onBeforeUnmount(() => {
                 </div>
             </div>
         </Transition>
+
+        <ArtifactModal :block="activeArtifact" @close="closeArtifact" />
 
         <button
             type="button"
@@ -645,5 +723,52 @@ onBeforeUnmount(() => {
 }
 .assistant-md-body :deep(strong) {
     font-weight: 700;
+}
+
+/* Artifact modal content (reuses same md-* classes) */
+.assistant-artifact-body :deep(.md-p) {
+    margin: 0 0 0.5rem;
+}
+.assistant-artifact-body :deep(.md-p:last-child) {
+    margin-bottom: 0;
+}
+.assistant-artifact-body :deep(.md-table) {
+    width: 100%;
+    margin: 0.5rem 0;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    border: 1px solid color-mix(in srgb, var(--color-on-surface) 12%, transparent);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+.assistant-artifact-body :deep(.md-table thead) {
+    background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+    color: var(--color-primary);
+}
+.assistant-artifact-body :deep(.md-table th),
+.assistant-artifact-body :deep(.md-table td) {
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    border-top: 1px solid color-mix(in srgb, var(--color-on-surface) 8%, transparent);
+}
+.assistant-artifact-body :deep(.md-table tbody tr:nth-child(even)) {
+    background: color-mix(in srgb, var(--color-on-surface) 4%, transparent);
+}
+.assistant-artifact-body :deep(.md-table tbody tr:hover) {
+    background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+.assistant-artifact-body :deep(.md-pre) {
+    margin: 0.5rem 0;
+    padding: 0.6rem 0.8rem;
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--color-on-surface) 6%, transparent);
+    overflow-x: auto;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+.assistant-artifact-body :deep(.md-ul) {
+    margin: 0.5rem 0;
+    padding-left: 1.25rem;
+    list-style: disc;
 }
 </style>
