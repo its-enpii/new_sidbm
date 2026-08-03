@@ -8,6 +8,7 @@ import AppIcon from '../../Components/AppIcon.vue';
 import AppInput from '../../Components/AppInput.vue';
 import AppSwitch from '../../Components/AppSwitch.vue';
 import SmartSelect from '../../Components/SmartSelect.vue';
+import { formatMarkdown } from '../../composables/useMarkdown';
 import AdminLayout from '../../Layouts/AdminLayout.vue';
 
 const props = defineProps({
@@ -286,32 +287,8 @@ const chatListEl = ref(null);
 let chatAbort = null;
 let chatSeq = 0;
 
-function escapeHtml(s) {
-    return String(s ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
-
 function formatMessage(raw) {
-    if (!raw) return '';
-    let text = String(raw).replace(/\r\n/g, '\n');
-    text = text.replace(/```([\s\S]*?)```/g, (_, code) =>
-        `<pre class="my-2 overflow-x-auto rounded-md bg-on-surface/5 p-2 text-xs"><code>${escapeHtml(code.replace(/^\n|\n$/g, ''))}</code></pre>`);
-    const parts = text.split(/(<pre[^>]*>[\s\S]*?<\/pre>)/);
-    return parts.map((part) => {
-        if (part.startsWith('<pre')) return part;
-        let t = escapeHtml(part);
-        t = t.replace(/`([^`]+)`/g, '<code class="rounded bg-on-surface/5 px-1 text-xs">$1</code>');
-        t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-        t = t.replace(/(?:^|\n)([-*] .+(?:\n|$))+/g, (block) => {
-            const items = block.trim().split('\n').map((l) => l.replace(/^[-*]\s+/, ''));
-            return `<ul class="my-1 list-disc pl-5">${items.map((i) => `<li>${i}</li>`).join('')}</ul>`;
-        });
-        t = t.replace(/\n/g, '<br>');
-        return t;
-    }).join('');
+    return formatMarkdown(raw);
 }
 
 async function scrollChatBottom() {

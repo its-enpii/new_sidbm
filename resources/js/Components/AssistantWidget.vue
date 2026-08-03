@@ -1,6 +1,7 @@
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import AppIcon from './AppIcon.vue';
+import { formatMarkdown } from '../composables/useMarkdown';
 
 const FALLBACK_NAME = 'Ariel';
 
@@ -103,48 +104,9 @@ function pickGreeting() {
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
-function escapeHtml(s) {
-    return String(s ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
-
 /** Lightweight markdown → safe HTML. No new deps. */
 function formatMessage(raw) {
-    if (!raw) return '';
-    let text = String(raw).replace(/\r\n/g, '\n');
-
-    // fenced code
-    text = text.replace(/```([\s\S]*?)```/g, (_, code) =>
-        `<pre class="assistant-md-pre"><code>${escapeHtml(code.replace(/^\n|\n$/g, ''))}</code></pre>`);
-
-    // split by pre blocks so we don't format inside code
-    const parts = text.split(/(<pre class="assistant-md-pre">[\s\S]*?<\/pre>)/);
-    return parts.map((part) => {
-        if (part.startsWith('<pre class="assistant-md-pre">')) return part;
-        // Inline " - a. - b." → newlines before list markers (common LLM habit)
-        let t = part.replace(/([:;])\s+[-–—]\s+/g, '$1\n- ').replace(/\s+[-–—]\s+(?=[A-Z0-9*])/g, '\n- ');
-        t = escapeHtml(t);
-        t = t.replace(/`([^`]+)`/g, '<code class="assistant-md-code">$1</code>');
-        t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-        t = t.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
-        t = t.replace(/^### (.+)$/gm, '<div class="assistant-md-h3">$1</div>');
-        t = t.replace(/^## (.+)$/gm, '<div class="assistant-md-h2">$1</div>');
-        t = t.replace(/^# (.+)$/gm, '<div class="assistant-md-h2">$1</div>');
-        t = t.replace(/(?:^(?:[-*]|\d+\.) .+(?:\n|$))+/gm, (block) => {
-            const items = block.trim().split('\n').map((line) =>
-                line.replace(/^(?:[-*]|\d+\.)\s+/, ''));
-            return `<ul class="assistant-md-ul">${items.map((i) => `<li>${i}</li>`).join('')}</ul>`;
-        });
-        t = t.replace(/\n\n+/g, '</p><p class="assistant-md-p">');
-        t = t.replace(/\n/g, '<br>');
-        if (!t.startsWith('<ul') && !t.startsWith('<div') && !t.startsWith('<pre')) {
-            t = `<p class="assistant-md-p">${t}</p>`;
-        }
-        return t;
-    }).join('');
+    return formatMarkdown(raw);
 }
 
 function sessionValid() {
@@ -251,13 +213,21 @@ function handleEvent(event, data, assistantMsg) {
     if (event === 'text') {
         const delta = typeof data === 'string' ? data : (data?.delta ?? '');
         if (delta) {
-            typing.value = false;
+            // Push bubble only on the first non-empty delta so it never
+            // appears blank, then immediately hide the typing chip in the
+            // same reactive batch — Vue commits one render, no flicker.
             if (!assistantMsg._pushed) {
                 assistantMsg._pushed = true;
-                assistantMsg._ref = pushMessage({ role: 'assistant', content: '' });
+                assistantMsg.content = delta;
+                typing.value = false;
+                assistantMsg._ref = pushMessage({
+                    role: 'assistant',
+                    content: assistantMsg.content,
+                });
+            } else {
+                assistantMsg.content += delta;
+                if (assistantMsg._ref) assistantMsg._ref.content = assistantMsg.content;
             }
-            assistantMsg.content += delta;
-            if (assistantMsg._ref) assistantMsg._ref.content = assistantMsg.content;
             scrollBottom();
         }
         return;
@@ -617,6 +587,37 @@ onBeforeUnmount(() => {
 }
 .assistant-md-body :deep(.assistant-md-ul li) {
     margin: 0.15rem 0;
+}
+.assistant-md-body :deep(.assistant-md-table) {
+    width: 100%;
+    margin: 0.5rem 0;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    border: 1px solid color-mix(in srgb, var(--color-on-surface) 10%, transparent);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+.assistant-md-body :deep(.assistant-md-table thead) {
+    background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+    color: var(--color-primary);
+}
+.assistant-md-body :deep(.assistant-md-table th),
+.assistant-md-body :deep(.assistant-md-table td) {
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+    border-top: 1px solid color-mix(in srgb, var(--color-on-surface) 8%, transparent);
+    vertical-align: top;
+}
+.assistant-md-body :deep(.assistant-md-table th) {
+    font-weight: 700;
+    border-top: none;
+}
+.assistant-md-body :deep(.assistant-md-table tbody tr:nth-child(even)) {
+    background: color-mix(in srgb, var(--color-on-surface) 4%, transparent);
+}
+.assistant-md-body :deep(.assistant-md-table tbody tr:hover) {
+    background: color-mix(in srgb, var(--color-primary) 8%, transparent);
 }
 .assistant-md-body :deep(.assistant-md-h2),
 .assistant-md-body :deep(.assistant-md-h3) {
