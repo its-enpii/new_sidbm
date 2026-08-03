@@ -7,6 +7,7 @@ import AppCard from '../../Components/AppCard.vue';
 import AppIcon from '../../Components/AppIcon.vue';
 import AppInput from '../../Components/AppInput.vue';
 import AppSwitch from '../../Components/AppSwitch.vue';
+import SmartSelect from '../../Components/SmartSelect.vue';
 import AdminLayout from '../../Layouts/AdminLayout.vue';
 
 const props = defineProps({
@@ -38,6 +39,26 @@ const personas = ref([]);
 const personasLoading = ref(false);
 const personasError = ref('');
 const docs = ref({ loading: false, items: [], error: '' });
+
+const personaOptions = computed(() => {
+    const all = [{ value: '', label: 'Semua persona', description: 'Tampilkan tanpa filter' }];
+    const named = personas.value.map((p) => ({
+        value: p.id,
+        label: p.is_default ? `${p.name} (default)` : p.name,
+        description: p.slug,
+    }));
+    return [...all, ...named];
+});
+
+const uploadPersonaOptions = computed(() => {
+    const opts = personas.value.map((p) => ({
+        value: p.id,
+        label: p.is_default ? `${p.name} (default)` : p.name,
+        description: p.slug,
+    }));
+
+    return [{ value: '', label: '— Tanpa persona (semua) —', description: 'Dokumen tersedia global' }, ...opts];
+});
 
 async function fetchPersonas() {
     if (!ragEnabled.value) {
@@ -647,24 +668,18 @@ function cancelChat() {
                         :error="uploadForm.errors.title"
                     />
                     <div>
-                        <label class="mb-1 block text-sm font-bold uppercase tracking-wider text-primary" for="rag-persona">
-                            Persona (opsional)
-                        </label>
-                        <select
-                            id="rag-persona"
+                        <SmartSelect
                             v-model="uploadForm.persona_id"
-                            class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
-                            :disabled="personasLoading || !ragEnabled"
-                        >
-                            <option value="">— Tanpa persona (semua) —</option>
-                            <option v-for="p in personas" :key="p.id" :value="p.id">
-                                {{ p.name }}<span v-if="p.is_default"> (default)</span>
-                            </option>
-                        </select>
+                            label="Persona (opsional)"
+                            :options="uploadPersonaOptions"
+                            placeholder="— Pilih persona —"
+                            :loading="personasLoading"
+                            :disabled="!ragEnabled"
+                            :error="uploadForm.errors.persona_id"
+                            hint="Dokumen akan di-scope ke persona ini. Kosongkan untuk global."
+                            :clearable="false"
+                        />
                         <p v-if="personasError" class="mt-1 text-xs text-error">{{ personasError }}</p>
-                        <p v-else class="mt-1 text-xs text-on-surface-variant">
-                            Dokumen akan di-scope ke persona ini. Kosongkan untuk global.
-                        </p>
                     </div>
                     <div>
                         <label class="mb-1 block text-sm font-bold uppercase tracking-wider text-primary">File</label>
@@ -706,15 +721,14 @@ function cancelChat() {
                         </p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <select
+                        <SmartSelect
                             v-model="uploadForm.persona_id"
-                            class="rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-1.5 text-xs focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
-                            :disabled="personasLoading"
-                            aria-label="Filter persona"
-                        >
-                            <option value="">Semua persona</option>
-                            <option v-for="p in personas" :key="p.id" :value="p.id">{{ p.name }}</option>
-                        </select>
+                            :options="personaOptions"
+                            placeholder="Semua persona"
+                            :loading="personasLoading"
+                            hide-label
+                            class="min-w-44"
+                        />
                         <button
                             type="button"
                             class="inline-flex items-center gap-1 rounded-md border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-on-surface-variant transition-colors hover:bg-surface-container"
