@@ -322,16 +322,12 @@ function closeArtifact() {
     activeArtifact.value = null;
 }
 
-// Markdown tree per message — memoized via WeakMap on msg object identity.
-const treeCache = new WeakMap();
+// Markdown tree per message. Parsed each call — cheap for chat-sized text,
+// and avoids stale-cache issues when content streams incrementally under the
+// same proxy identity.
 function blocksFor(msg) {
     if (!msg || !msg.content) return [];
-    let tree = treeCache.get(msg);
-    if (!tree) {
-        tree = parseMarkdownTree(msg.content);
-        treeCache.set(msg, tree);
-    }
-    return tree;
+    return parseMarkdownTree(msg.content);
 }
 
 async function sendContent(content) {
