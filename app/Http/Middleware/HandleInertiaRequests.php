@@ -22,15 +22,25 @@ final class HandleInertiaRequests extends Middleware
      * build`). When Inertia sees a version mismatch, it does a full page
      * reload instead of an XHR navigation, which picks up the new asset
      * even when the filename hash is identical to a cached entry.
+     *
+     * Combines:
+     *   - md5 of the Vite manifest (changes when `npm run build` runs)
+     *   - mtime of the Integration chunk (changes on every page edit)
+     *   - APP_VERSION env var (so container restarts invalidate client cache)
      */
     public function version(Request $request): ?string
     {
+        $parts = [];
         $manifest = public_path('build/manifest.json');
         if (is_file($manifest)) {
-            return md5_file($manifest);
+            $parts[] = md5_file($manifest);
+        }
+        $envVersion = (string) env('APP_VERSION', '');
+        if ($envVersion !== '') {
+            $parts[] = $envVersion;
         }
 
-        return parent::version($request);
+        return $parts === [] ? parent::version($request) : implode('|', $parts);
     }
 
     public function share(Request $request): array
