@@ -91,6 +91,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
         Route::post('/orchestrator/test', [\App\Http\Controllers\Admin\IntegrationController::class, 'test'])->name('orchestrator.test');
         Route::post('/orchestrator/chat', [\App\Http\Controllers\Admin\IntegrationController::class, 'chat'])->name('orchestrator.chat');
         Route::post('/orchestrator/upload', [\App\Http\Controllers\Admin\IntegrationController::class, 'upload'])->name('orchestrator.upload');
+        Route::post('/orchestrator/personas', [\App\Http\Controllers\Admin\IntegrationController::class, 'personas'])->name('orchestrator.personas');
+        Route::post('/orchestrator/documents', [\App\Http\Controllers\Admin\IntegrationController::class, 'documents'])->name('orchestrator.documents');
     });
 });
 

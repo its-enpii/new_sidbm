@@ -164,6 +164,7 @@ final class IntegrationController
     {
         $data = $request->validate([
             'title' => ['nullable', 'string', 'max:200'],
+            'persona_id' => ['nullable', 'uuid'],
             'file' => ['required', 'file', 'max:20480', 'mimetypes:text/plain,text/markdown,text/html,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
         ]);
 
@@ -195,6 +196,11 @@ final class IntegrationController
             ], 502);
         }
 
+        $formParams = [
+            'title' => $data['title'] ?? null,
+            'persona_id' => $data['persona_id'] ?? null,
+        ];
+
         $response = Http::timeout(60)
             ->withToken($secret)
             ->acceptJson()
@@ -203,9 +209,7 @@ final class IntegrationController
                 file_get_contents($data['file']->getRealPath()),
                 $data['file']->getClientOriginalName(),
             )
-            ->post($base.'/admin/tenants/'.$tenantId.'/knowledge/upload', [
-                'title' => $data['title'] ?? null,
-            ]);
+            ->post($base.'/admin/tenants/'.$tenantId.'/knowledge/upload', $formParams);
 
         if (! $response->successful()) {
             return response()->json([
@@ -215,5 +219,104 @@ final class IntegrationController
         }
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * List uploaded documents for a persona via the orchestrator's API v1 endpoint.
+     */
+    public function documents(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'persona_id' => ['nullable', 'uuid'],
+        ]);
+
+        $base = rtrim(AssistantSettingsResolver::orchestratorBaseUrl(), '/');
+        $secret = AssistantSettingsResolver::sharedSecret();
+        if ($base === '' || $secret === '') {
+            return response()->json([
+                'ok' => false,
+                'items' => [],
+                'message' => 'URL server / shared secret belum diisi.',
+            ], 422);
+        }
+
+        // Resolve tenant id.
+        $probe = Http::timeout(15)
+            ->withToken($secret)
+            ->acceptJson()
+            ->get($base.'/api/v1/personas');
+
+        $tenantId = $probe->json('tenant.id') ?? null;
+        if (! $tenantId) {
+            return response()->json([
+                'ok' => false,
+                'items' => [],
+                'message' => 'Tidak bisa menentukan tenant.',
+            ], 502);
+        }
+
+        $response = Http::timeout(15)
+            ->withToken($secret)
+            ->acceptJson()
+            ->get($base.'/api/v1/tenants/'.$tenantId.'/documents', array_filter([
+                'persona_id' => $data['persona_id'] ?? null,
+            ], static fn ($v): bool => $v !== null && $v !== ''));
+
+        if (! $response->successful()) {
+            return response()->json([
+                'ok' => false,
+                'items' => [],
+                'message' => 'HTTP '.$response->status().': '.$response->body(),
+            ], $response->status());
+        }
+
+        $payload = $response->json() ?? [];
+        $items = $payload['items'] ?? [];
+        $personas = $payload['personas'] ?? null;
+
+        return response()->json([
+            'ok' => true,
+            'items' => $items,
+            'count' => $payload['count'] ?? count($items),
+            'tenant' => $payload['tenant'] ?? null,
+            'personas' => $personas,
+        ]);
+    }
+
+    /**
+     * Fetch the orchestrator's persona list (for the upload persona selector).
+     */
+    public function personas(Request $request): JsonResponse
+    {
+        $base = rtrim(AssistantSettingsResolver::orchestratorBaseUrl(), '/');
+        $secret = AssistantSettingsResolver::sharedSecret();
+        if ($base === '' || $secret === '') {
+            return response()->json([
+                'ok' => false,
+                'personas' => [],
+                'message' => 'URL server / shared secret belum diisi.',
+            ], 422);
+        }
+
+        $response = Http::timeout(15)
+            ->withToken($secret)
+            ->acceptJson()
+            ->get($base.'/api/v1/personas');
+
+        if (! $response->successful()) {
+            return response()->json([
+                'ok' => false,
+                'personas' => [],
+                'message' => 'HTTP '.$response->status().': '.$response->body(),
+            ], $response->status());
+        }
+
+        $payload = $response->json() ?? [];
+
+        return response()->json([
+            'ok' => true,
+            'personas' => $payload['personas'] ?? [],
+            'tenant' => $payload['tenant'] ?? null,
+        ]);
     }
 }

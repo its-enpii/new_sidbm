@@ -1,6 +1,6 @@
 <script setup>
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import AppBadge from '../../Components/AppBadge.vue';
 import AppButton from '../../Components/AppButton.vue';
 import AppCard from '../../Components/AppCard.vue';
@@ -32,14 +32,133 @@ const showSecret = ref(false);
 const testResult = ref(null);
 const testLoading = ref(false);
 
+// === RAG personas & uploaded documents ===
+const ragEnabled = computed(() => props.orchestrator.configured === true);
+const personas = ref([]);
+const personasLoading = ref(false);
+const personasError = ref('');
+const docs = ref({ loading: false, items: [], error: '' });
+
+async function fetchPersonas() {
+    if (!ragEnabled.value) {
+        personas.value = [];
+        return;
+    }
+    personasLoading.value = true;
+    personasError.value = '';
+    try {
+        const res = await fetch('/admin/integrations/orchestrator/personas', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken(),
+            },
+            credentials: 'same-origin',
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) {
+            personasError.value = data.message || `HTTP ${res.status}`;
+            personas.value = [];
+            return;
+        }
+        personas.value = Array.isArray(data.personas) ? data.personas : [];
+    } catch (e) {
+        personasError.value = e?.message || 'Gagal memuat persona.';
+        personas.value = [];
+    } finally {
+        personasLoading.value = false;
+    }
+}
+
+async function fetchDocuments() {
+    if (!ragEnabled.value) {
+        docs.value = { loading: false, items: [], error: '' };
+        return;
+    }
+    docs.value.loading = true;
+    docs.value.error = '';
+    try {
+        const params = new URLSearchParams();
+        if (uploadForm.persona_id) params.set('persona_id', uploadForm.persona_id);
+        const url = '/admin/integrations/orchestrator/documents'
+            + (params.toString() ? `?${params.toString()}` : '');
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken(),
+            },
+            credentials: 'same-origin',
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok === false) {
+            docs.value = {
+                loading: false,
+                items: [],
+                error: data.message || `HTTP ${res.status}`,
+            };
+            return;
+        }
+        docs.value = {
+            loading: false,
+            items: Array.isArray(data.items) ? data.items : [],
+            error: '',
+            tenant: data.tenant ?? null,
+        };
+    } catch (e) {
+        docs.value = {
+            loading: false,
+            items: [],
+            error: e?.message || 'Gagal memuat dokumen.',
+        };
+    }
+}
+
 // === Upload RAG ===
 const uploadForm = useForm({
     title: '',
+    persona_id: '',
     file: null,
 });
 const uploadDragOver = ref(false);
 const uploadFileName = ref('');
 const uploadResult = ref(null);
+
+watch(() => uploadForm.persona_id, () => {
+    // Refetch documents list when the persona filter changes.
+    fetchDocuments();
+});
+
+function formatBytes(n) {
+    if (!n) return '0 B';
+    const u = ['B', 'KB', 'MB', 'GB'];
+    let v = n;
+    let i = 0;
+    while (v >= 1024 && i < u.length - 1) {
+        v /= 1024;
+        i++;
+    }
+    return `${v.toFixed(1)} ${u[i]}`;
+}
+
+function formatDate(iso) {
+    if (!iso) return '—';
+    try {
+        return new Date(iso).toLocaleString('id-ID', {
+            day: '2-digit', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+        });
+    } catch {
+        return iso;
+    }
+}
+
+onMounted(() => {
+    fetchPersonas();
+    fetchDocuments();
+});
 
 function onUploadFile(e) {
     const f = e.target.files?.[0] ?? null;
@@ -79,18 +198,21 @@ async function submitUpload() {
             body: (() => {
                 const fd = new FormData();
                 if (uploadForm.title) fd.append('title', uploadForm.title);
+                if (uploadForm.persona_id) fd.append('persona_id', uploadForm.persona_id);
                 fd.append('file', uploadForm.file);
                 return fd;
             })(),
         });
         const data = await response.json();
         uploadResult.value = response.ok
-            ? { ok: true, message: 'Dokumen di-ingest. Tunggu sebentar lalu cek halaman Knowledge tenant.' }
+            ? { ok: true, message: 'Dokumen di-ingest. Tunggu sebentar lalu cek di daftar di bawah.' }
             : { ok: false, message: data.message || `HTTP ${response.status}` };
         if (response.ok) {
             uploadFileName.value = '';
             uploadForm.file = null;
             uploadForm.title = '';
+            // Refresh the list so the user sees their new file.
+            fetchDocuments();
         }
     } catch (e) {
         uploadResult.value = { ok: false, message: e.message };
@@ -228,8 +350,19 @@ function handleChatEvent(event, data, assistantMsg) {
     if (event === 'text') {
         const delta = typeof data === 'string' ? data : (data?.delta ?? '');
         if (delta) {
-            chatTyping.value = false;
-            assistantMsg.content += delta;
+            // First non-empty delta: push the assistant bubble with content
+            // and hide the typing chip in the same reactive batch so Vue
+            // commits a single render (no empty bubble + chip together).
+            if (assistantMsg.id === null) {
+                assistantMsg.content = delta;
+                chatTyping.value = false;
+                const ref = pushChat({ role: 'assistant', content: assistantMsg.content });
+                assistantMsg.id = ref.id;
+            } else {
+                assistantMsg.content += delta;
+                const target = chatMessages.value.find((m) => m.id === assistantMsg.id);
+                if (target) target.content = assistantMsg.content;
+            }
             scrollChatBottom();
         }
         return;
@@ -248,7 +381,13 @@ function handleChatEvent(event, data, assistantMsg) {
     }
     if (event === 'error') {
         chatTyping.value = false;
-        chatError.value = data?.message || 'Terjadi kesalahan.';
+        const msg = data?.message || 'Terjadi kesalahan.';
+        chatError.value = msg;
+        if (assistantMsg.id === null) {
+            assistantMsg.content = msg;
+            assistantMsg.id = chatMessages.value.length + 1;
+            pushChat({ role: 'error', content: msg });
+        }
         return;
     }
 }
@@ -259,7 +398,10 @@ async function sendChat() {
     chatInput.value = '';
     chatError.value = null;
     pushChat({ role: 'user', content });
-    const assistantMsg = pushChat({ role: 'assistant', content: '' });
+    // Don't push an empty assistant bubble yet — show the typing chip until
+    // the first text delta arrives, so the user never sees two placeholders
+    // (empty bubble + typing chip) at the same time.
+    const assistantMsg = { id: null, content: '' };
     chatBusy.value = true;
     chatTyping.value = true;
     chatTypingLabel.value = 'Sedang mengetik';
@@ -279,13 +421,21 @@ async function sendChat() {
             signal: chatAbort.signal,
         });
         await readSseStream(res, (event, data) => handleChatEvent(event, data, assistantMsg));
-        if (!assistantMsg.content) {
-            assistantMsg.content = 'Tidak ada respon dari orchestrator.';
+        if (!assistantMsg.id) {
+            // Stream finished without any text — surface a fallback bubble
+            // so the UI doesn't stay stuck on the typing chip.
+            assistantMsg.id = chatMessages.value.length + 1;
+            pushChat({ role: 'assistant', content: assistantMsg.content || 'Tidak ada respon dari orchestrator.' });
         }
     } catch (e) {
         if (e.name !== 'AbortError') {
-            chatError.value = e?.message || 'Gagal mengirim pesan.';
-            assistantMsg.content = assistantMsg.content || chatError.value;
+            const msg = e?.message || 'Gagal mengirim pesan.';
+            chatError.value = msg;
+            if (assistantMsg.id === null) {
+                assistantMsg.content = msg;
+                assistantMsg.id = chatMessages.value.length + 1;
+                pushChat({ role: 'error', content: msg });
+            }
         }
     } finally {
         chatTyping.value = false;
@@ -428,9 +578,11 @@ function cancelChat() {
                             class="max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed"
                             :class="msg.role === 'user'
                                 ? 'rounded-br-sm bg-primary text-on-primary whitespace-pre-wrap'
-                                : 'rounded-bl-sm border border-outline-variant bg-surface-container-lowest text-primary'"
+                                : msg.role === 'error'
+                                    ? 'rounded-bl-sm border border-error/40 bg-error-container text-error'
+                                    : 'rounded-bl-sm border border-outline-variant bg-surface-container-lowest text-primary'"
                         >
-                            <template v-if="msg.role === 'user'">{{ msg.content }}</template>
+                            <template v-if="msg.role === 'user' || msg.role === 'error'">{{ msg.content }}</template>
                             <!-- eslint-disable-next-line vue/no-v-html -->
                             <div v-else v-html="formatMessage(msg.content) || ''" />
                         </div>
@@ -495,6 +647,26 @@ function cancelChat() {
                         :error="uploadForm.errors.title"
                     />
                     <div>
+                        <label class="mb-1 block text-sm font-bold uppercase tracking-wider text-primary" for="rag-persona">
+                            Persona (opsional)
+                        </label>
+                        <select
+                            id="rag-persona"
+                            v-model="uploadForm.persona_id"
+                            class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
+                            :disabled="personasLoading || !ragEnabled"
+                        >
+                            <option value="">— Tanpa persona (semua) —</option>
+                            <option v-for="p in personas" :key="p.id" :value="p.id">
+                                {{ p.name }}<span v-if="p.is_default"> (default)</span>
+                            </option>
+                        </select>
+                        <p v-if="personasError" class="mt-1 text-xs text-error">{{ personasError }}</p>
+                        <p v-else class="mt-1 text-xs text-on-surface-variant">
+                            Dokumen akan di-scope ke persona ini. Kosongkan untuk global.
+                        </p>
+                    </div>
+                    <div>
                         <label class="mb-1 block text-sm font-bold uppercase tracking-wider text-primary">File</label>
                         <label
                             class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-outline-variant bg-surface-container-lowest px-4 py-6 text-center transition-colors hover:border-primary"
@@ -522,6 +694,84 @@ function cancelChat() {
                         </AppButton>
                     </div>
                 </form>
+            </AppCard>
+
+            <AppCard>
+                <header class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-lg font-bold text-primary">Dokumen Terupload</h2>
+                        <p class="mt-0.5 text-xs text-on-surface-variant">
+                            File yang sudah di-ingest ke RAG.
+                            <span v-if="docs.tenant" class="font-mono">tenant {{ docs.tenant.slug }}</span>
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select
+                            v-model="uploadForm.persona_id"
+                            class="rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-1.5 text-xs focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
+                            :disabled="personasLoading"
+                            aria-label="Filter persona"
+                        >
+                            <option value="">Semua persona</option>
+                            <option v-for="p in personas" :key="p.id" :value="p.id">{{ p.name }}</option>
+                        </select>
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-1 rounded-md border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-on-surface-variant transition-colors hover:bg-surface-container"
+                            :disabled="docs.loading"
+                            @click="fetchDocuments"
+                        >
+                            <AppIcon name="refresh" />
+                            <span>{{ docs.loading ? 'Memuat…' : 'Refresh' }}</span>
+                        </button>
+                    </div>
+                </header>
+
+                <div v-if="!ragEnabled" class="rounded-xl border border-dashed border-outline-variant bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">
+                    Konfigurasikan URL server & shared secret untuk melihat dokumen.
+                </div>
+                <div v-else-if="docs.loading" class="rounded-xl bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">
+                    Memuat…
+                </div>
+                <div v-else-if="docs.error" class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    {{ docs.error }}
+                </div>
+                <div v-else-if="!docs.items.length" class="rounded-xl border border-dashed border-outline-variant bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">
+                    Belum ada dokumen
+                    <span v-if="uploadForm.persona_id"> untuk persona ini</span>.
+                </div>
+                <div v-else class="overflow-x-auto rounded-xl border border-outline-variant">
+                    <table class="w-full text-sm">
+                        <thead class="bg-surface-container-lowest text-xs uppercase tracking-wider text-on-surface-variant">
+                            <tr>
+                                <th class="px-4 py-2 text-left font-semibold">Judul</th>
+                                <th class="px-4 py-2 text-left font-semibold">Format</th>
+                                <th class="px-4 py-2 text-right font-semibold">Ukuran</th>
+                                <th class="px-4 py-2 text-right font-semibold">Chunks</th>
+                                <th class="px-4 py-2 text-left font-semibold">Diupload</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-outline-variant bg-surface">
+                            <tr v-for="d in docs.items" :key="d.id" class="hover:bg-surface-container-lowest">
+                                <td class="px-4 py-2">
+                                    <p class="font-semibold text-primary">{{ d.title }}</p>
+                                    <p v-if="d.preview" class="mt-0.5 line-clamp-1 text-xs text-on-surface-variant">{{ d.preview }}</p>
+                                </td>
+                                <td class="px-4 py-2">
+                                    <span class="rounded bg-surface-container-lowest px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">
+                                        {{ d.format || '—' }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-2 text-right tabular-nums">{{ formatBytes(d.content_length) }}</td>
+                                <td class="px-4 py-2 text-right tabular-nums">{{ d.chunks_count }}</td>
+                                <td class="px-4 py-2 text-xs text-on-surface-variant">{{ formatDate(d.created_at) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p v-if="docs.items.length" class="mt-2 text-xs text-on-surface-variant">
+                    Total: <span class="font-semibold">{{ docs.items.length }}</span> dokumen.
+                </p>
             </AppCard>
         </div>
     </AdminLayout>
