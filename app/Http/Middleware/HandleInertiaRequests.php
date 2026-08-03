@@ -16,6 +16,23 @@ final class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'app';
 
+    /**
+     * Bump this string whenever the frontend asset bundle changes in a way
+     * that the browser cache may serve stale code (e.g. after a `npm run
+     * build`). When Inertia sees a version mismatch, it does a full page
+     * reload instead of an XHR navigation, which picks up the new asset
+     * even when the filename hash is identical to a cached entry.
+     */
+    public function version(Request $request): ?string
+    {
+        $manifest = public_path('build/manifest.json');
+        if (is_file($manifest)) {
+            return md5_file($manifest);
+        }
+
+        return parent::version($request);
+    }
+
     public function share(Request $request): array
     {
         return [
