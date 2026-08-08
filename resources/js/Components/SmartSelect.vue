@@ -32,7 +32,8 @@ const trigger = ref(null);
 const listbox = ref(null);
 const open = ref(false);
 const placeAbove = ref(false);
-const menuStyle = ref({});
+/** Selalu fixed sejak render pertama; kalau tidak, panel ikut alur dokumen di ujung <body> dan fokus memaksa halaman scroll ke bawah. */
+const menuStyle = ref({ position: 'fixed', top: '0px', left: '0px', width: '0px', zIndex: 80, visibility: 'hidden' });
 const search = ref('');
 const highlighted = ref(0);
 const searchInput = ref(null);
@@ -112,6 +113,7 @@ function positionMenu() {
             top: 'auto',
             zIndex: 80,
             maxHeight: `${maxList}px`,
+            visibility: 'visible',
         };
     } else {
         menuStyle.value = {
@@ -122,6 +124,7 @@ function positionMenu() {
             bottom: 'auto',
             zIndex: 80,
             maxHeight: `${maxList}px`,
+            visibility: 'visible',
         };
     }
 }
@@ -138,7 +141,7 @@ function openMenu() {
     nextTick(() => {
         positionMenu();
         requestAnimationFrame(() => positionMenu());
-        props.searchable && searchInput.value?.focus();
+        props.searchable && searchInput.value?.focus({ preventScroll: true });
     });
 }
 
@@ -156,6 +159,7 @@ onBeforeUnmount(() => {
 
 function closeMenu() {
     open.value = false;
+    menuStyle.value = { ...menuStyle.value, visibility: 'hidden' };
     if (search.value) emit('search-change', '');
     search.value = '';
 }
@@ -224,7 +228,10 @@ watch(() => props.options, (options) => {
 watch(search, () => {
     highlighted.value = 0;
 });
-watch(() => props.modelValue, () => rememberSelected());
+watch(() => props.modelValue, (value) => {
+    const match = props.options.find((item) => String(item[props.valueKey]) === String(value));
+    selectedCache.value = match ?? null;
+});
 </script>
 
 <template>

@@ -166,6 +166,35 @@ final class PeriodCloseTest extends TestCase
             );
     }
 
+    public function test_index_includes_trial_balance_payload(): void
+    {
+        $this->actingAs($this->user)
+            ->get('/accounting/period-close?year=2025')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Accounting/PeriodClose/Index')
+                ->where('year', 2025)
+                ->has('trial_balance')
+                ->where('trial_balance.balanced', true)
+                ->where('trial_balance.period.as_of', '2025-12-31')
+                ->has('trial_balance.rows')
+                ->has('trial_balance.totals.ns_debit')
+                ->has('trial_balance.totals.ns_credit')
+            );
+    }
+
+    public function test_trial_balance_uses_year_end_month(): void
+    {
+        $this->actingAs($this->user)
+            ->get('/accounting/period-close?year=2025')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('trial_balance.period.as_of', '2025-12-31')
+                ->where('trial_balance.period.year', 2025)
+                ->where('trial_balance.period.month', 12)
+            );
+    }
+
     public function test_close_month_blocks_posting(): void
     {
         $service = app(FiscalPeriodCloseService::class);

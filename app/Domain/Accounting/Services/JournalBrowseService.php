@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Accounting\Services;
 
+use App\Domain\Accounting\Services\Reports\DocumentKindClassifier;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,7 @@ final class JournalBrowseService
 {
     public function __construct(
         private readonly TenantContext $context,
+        private readonly DocumentKindClassifier $classifier,
     ) {
     }
 
@@ -86,6 +88,7 @@ final class JournalBrowseService
         $rowIds = $entries->pluck('row_id')->map(fn ($id) => (int) $id)->all();
         $amounts = [];
         $reversedOf = [];
+        $sideCodes = [];
         if ($rowIds !== []) {
             $amountRows = DB::connection('tenant')
                 ->table('journal_lines')
@@ -108,6 +111,28 @@ final class JournalBrowseService
                     'row_id' => (int) $rr->row_id,
                     'id' => (int) $rr->id,
                 ];
+            }
+
+            $sideRows = DB::connection('tenant')
+                ->table('journal_lines as l')
+                ->join('accounts as a', function ($j) use ($tenantId): void {
+                    $j->on('a.row_id', '=', 'l.account_row_id')
+                        ->where('a.tenant_id', '=', $tenantId);
+                })
+                ->where('l.tenant_id', $tenantId)
+                ->whereIn('l.journal_entry_row_id', $rowIds)
+                ->where('l.line_number', '<=', 2)
+                ->get(['l.journal_entry_row_id', 'l.line_number', 'l.debit', 'l.credit', 'a.code as account_code']);
+            foreach ($sideRows as $sr) {
+                $key = (int) $sr->journal_entry_row_id;
+                if (! isset($sideCodes[$key])) {
+                    $sideCodes[$key] = ['debit' => null, 'credit' => null];
+                }
+                if ((float) $sr->debit > 0 && $sideCodes[$key]['debit'] === null) {
+                    $sideCodes[$key]['debit'] = (string) $sr->account_code;
+                } elseif ((float) $sr->credit > 0 && $sideCodes[$key]['credit'] === null) {
+                    $sideCodes[$key]['credit'] = (string) $sr->account_code;
+                }
             }
         }
 
@@ -135,6 +160,8 @@ final class JournalBrowseService
                 'reversal' => $reversedOf[$rowId] ?? null,
                 'can_reverse' => $canReverse,
                 'receipt_url' => $this->receiptUrl($rowId, (string) ($e->source_type ?? ''), (string) ($e->description ?? '')),
+                'cash_evidence_kind' => $this->cashEvidenceKind($sideCodes[$rowId] ?? ['debit' => null, 'credit' => null]),
+                'cash_evidence_url' => '/accounting/journals/'.$rowId.'/cash-evidence',
             ];
         }
 
@@ -175,5 +202,13 @@ final class JournalBrowseService
         }
 
         return null;
+    }
+
+    /**
+     * @param  array{debit: ?string, credit: ?string}  $codes
+     */
+    private function cashEvidenceKind(array $codes): string
+    {
+        return $this->classifier->classify($codes['debit'], $codes['credit']);
     }
 }

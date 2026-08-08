@@ -1,0 +1,39 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "enpii/assistant",
+    "description": "In-process chat orchestrator — tool-use loop, RAG, persona, audit.",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.3",
+        "illuminate/support": "^13.8",
+        "illuminate/contracts": "^13.8",
+        "illuminate/database": "^13.8",
+        "illuminate/http": "^13.8",
+        "illuminate/console": "^13.8",
+        "smalot/pdfparser": "^2.10"
+    },
+    "require-dev": {
+        "mockery/mockery": "^1.6",
+        "phpunit/phpunit": "^12.5.12"
+    },
+    "autoload": {
+        "psr-4": {
+            "Enpii\\Assistant\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Enpii\\Assistant\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Enpii\\Assistant\\AssistantServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

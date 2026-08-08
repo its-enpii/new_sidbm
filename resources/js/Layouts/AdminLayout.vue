@@ -2,6 +2,7 @@
 import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppIcon from '../Components/AppIcon.vue';
+import AppConfirmDialog from '../Components/AppConfirmDialog.vue';
 import AppToast from '../Components/AppToast.vue';
 
 const page = usePage();
@@ -99,6 +100,7 @@ function logout() {
             <slot />
         </main>
 
+        <AppConfirmDialog />
         <AppToast />
     </div>
 </template>

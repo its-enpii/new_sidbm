@@ -1,4 +1,5 @@
 <script setup>
+import { useConfirm } from '../../../composables/useConfirm';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import AppBadge from '../../../Components/AppBadge.vue';
@@ -23,7 +24,7 @@ const props = defineProps({
     next_year: { type: Number, required: true },
     next_year_openings_exist: { type: Boolean, required: true },
     can_close_year: { type: Boolean, required: true },
-    year_end_preview: { type: Array, required: true },
+    trial_balance: { type: Object, required: true },
     net_income: { type: Number, required: true },
     allocation: { type: Object, required: true },
     can_close: { type: Boolean, default: false },
@@ -36,11 +37,11 @@ const selectedYear = ref(String(props.year));
 const syncing = ref(false);
 const forceRewrite = ref(false);
 
-/** periods | year | allocate */
+/** periods | trial_balance | allocate */
 const tab = ref('periods');
 const tabs = [
     { key: 'periods', label: '1. Periode', short: 'Periode' },
-    { key: 'year', label: '2. Saldo awal', short: 'Saldo awal' },
+    { key: 'trial_balance', label: '2. Neraca Saldo', short: 'Neraca Saldo' },
     { key: 'allocate', label: '3. Alokasi laba', short: 'Alokasi' },
 ];
 
@@ -63,35 +64,41 @@ watch(selectedYear, (value) => {
 });
 
 const money = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
+const moneyDecimal = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 function formatMoney(v) {
     return money.format(Number(v || 0));
+}
+function formatMoneyDecimal(v) {
+    return moneyDecimal.format(Number(v || 0));
 }
 
 const yearForm = useForm({ year: props.year, force: false });
 
-function closeMonth(month) {
+const { confirm: confirmAction, showAlert } = useConfirm();
+
+async function closeMonth(month) {
     if (!allowClose.value) return;
-    if (!confirm(`Tutup periode ${String(month).padStart(2, '0')}/${props.year}? Jurnal draft harus kosong.`)) return;
+    if (!await confirmAction({ title: 'Tutup Periode', message: `Tutup periode ${String(month).padStart(2, '0')}/${props.year}? Jurnal draft harus kosong.`, confirmLabel: 'Tutup Periode', variant: 'primary' })) return;
     router.post(`/accounting/period-close/${props.year}/${month}/close`, {}, { preserveScroll: true });
 }
 
-function reopenMonth(month) {
+async function reopenMonth(month) {
     if (!allowClose.value) return;
-    if (!confirm(`Buka kembali periode ${String(month).padStart(2, '0')}/${props.year}?`)) return;
+    if (!await confirmAction({ title: 'Buka Kembali Periode', message: `Buka kembali periode ${String(month).padStart(2, '0')}/${props.year}?`, confirmLabel: 'Buka Periode', variant: 'primary' })) return;
     router.post(`/accounting/period-close/${props.year}/${month}/reopen`, {}, { preserveScroll: true });
 }
 
-function closeYear() {
+async function closeYear() {
     if (!allowClose.value) return;
     const msg =
         props.next_year_openings_exist && !forceRewrite.value
             ? `Saldo awal ${props.next_year} dari tutup buku sudah ada. Aktifkan "Paksa tulis ulang" dulu, atau batalkan.`
             : `Tutup seluruh tahun ${props.year} dan tulis saldo awal ${props.next_year}?`;
     if (props.next_year_openings_exist && !forceRewrite.value) {
-        alert(msg);
+        await showAlert({ title: 'Perhatian', message: msg });
         return;
     }
-    if (!confirm(msg)) return;
+    if (!await confirmAction({ title: 'Tutup Buku Tahun', message: msg, confirmLabel: 'Tutup Buku', variant: 'primary' })) return;
     yearForm.year = props.year;
     yearForm.force = forceRewrite.value;
     yearForm.post('/accounting/period-close/year', { preserveScroll: true });
@@ -99,9 +106,6 @@ function closeYear() {
 
 const statusTone = { open: 'success', closed: 'neutral', missing: 'warning' };
 const statusLabel = { open: 'Terbuka', closed: 'Ditutup', missing: 'Belum ada' };
-
-const previewDebit = computed(() => props.year_end_preview.reduce((s, r) => s + Number(r.debit || 0), 0));
-const previewCredit = computed(() => props.year_end_preview.reduce((s, r) => s + Number(r.credit || 0), 0));
 
 function emptyCommunity() {
     const o = {};
@@ -176,25 +180,17 @@ function formatPeriodDate(v) {
     return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(d);
 }
 
-const typeLabels = {
-    asset: 'Aset',
-    liability: 'Kewajiban',
-    equity: 'Ekuitas',
-    revenue: 'Pendapatan',
-    expense: 'Beban',
-};
-
-function submitAllocation() {
+async function submitAllocation() {
     if (!allowClose.value) return;
     if (allocTotal.value <= 0) {
-        alert('Isi minimal satu pos alokasi.');
+        await showAlert({ title: 'Perhatian', message: 'Isi minimal satu pos alokasi.' });
         return;
     }
     if (allocOver.value) {
-        alert('Total alokasi melebihi sisa laba.');
+        await showAlert({ title: 'Perhatian', message: 'Total alokasi melebihi sisa laba.' });
         return;
     }
-    if (!confirm(`Simpan alokasi laba ${props.year} total ${formatMoney(allocTotal.value)}?`)) return;
+    if (!await confirmAction({ title: 'Simpan Alokasi Laba', message: `Simpan alokasi laba ${props.year} total ${formatMoney(allocTotal.value)}?`, confirmLabel: 'Simpan', variant: 'primary' })) return;
     allocForm.year = props.year;
     allocForm.post('/accounting/period-close/allocate', { preserveScroll: true });
 }
@@ -332,70 +328,84 @@ function submitAllocation() {
                 </div>
             </AppCard>
 
-            <!-- TAB 2: year close — aksi di bawah (sama seperti tab lain) -->
-            <AppCard v-show="tab === 'year'" class="overflow-hidden p-0">
-                <div class="border-b border-outline-variant px-4 py-3">
-                    <h2 class="text-sm font-bold text-primary">
-                        Tutup tahun {{ year }} → saldo awal {{ next_year }}
-                    </h2>
-                    <p class="mt-1 text-xs text-on-surface-variant">
-                        Preview akun aset/kewajiban/ekuitas yang akan jadi saldo awal tahun
-                        {{ next_year }}. Pendapatan &amp; beban di-nolkan; laba/rugi ke 3.2.02.01.
-                        Ini bukan laporan Neraca — lihat
-                        <a href="/accounting/reports/balance-sheet" class="font-semibold text-primary hover:underline">Pelaporan → Neraca</a>.
-                    </p>
-                </div>
-
-                <div
-                    v-if="next_year_openings_exist"
-                    class="border-b border-outline-variant bg-surface-container-low/50 px-4 py-2 text-sm text-on-surface-variant"
-                >
-                    Saldo awal {{ next_year }} dari tutup buku sudah ada.
+            <!-- TAB 2: Neraca Saldo -->
+            <AppCard v-show="tab === 'trial_balance'" class="overflow-hidden p-0">
+                <div class="flex flex-wrap items-start justify-between gap-2 border-b border-outline-variant px-4 py-3">
+                    <div>
+                        <h2 class="text-sm font-bold text-primary">Neraca Saldo per 31-12-{{ year }}</h2>
+                        <p class="text-xs text-on-surface-variant">
+                            Saldo akun pada akhir tahun buku — debit/kredit seimbang sebagai syarat tutup tahun.
+                        </p>
+                    </div>
+                    <AppBadge :tone="trial_balance.balanced ? 'success' : 'error'">
+                        {{ trial_balance.balanced ? 'Seimbang' : 'Tidak seimbang' }}
+                    </AppBadge>
                 </div>
 
                 <div class="max-h-[28rem] overflow-auto">
                     <table class="min-w-full text-sm">
                         <thead class="sticky top-0 z-10 bg-surface-container-low text-xs uppercase tracking-wide text-on-surface-variant">
                             <tr>
-                                <th class="px-3 py-2 text-left">Kode</th>
-                                <th class="px-3 py-2 text-left">Akun</th>
-                                <th class="px-3 py-2 text-left">Tipe</th>
+                                <th class="px-3 py-2 text-left" rowspan="2">Rekening</th>
+                                <th class="px-3 py-2 text-center" colspan="2">Neraca Saldo</th>
+                                <th class="px-3 py-2 text-center" colspan="2">Laba Rugi</th>
+                                <th class="px-3 py-2 text-center" colspan="2">Neraca</th>
+                            </tr>
+                            <tr>
+                                <th class="px-3 py-2 text-right">Debit</th>
+                                <th class="px-3 py-2 text-right">Kredit</th>
+                                <th class="px-3 py-2 text-right">Debit</th>
+                                <th class="px-3 py-2 text-right">Kredit</th>
                                 <th class="px-3 py-2 text-right">Debit</th>
                                 <th class="px-3 py-2 text-right">Kredit</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-if="year_end_preview.length === 0">
-                                <td colspan="5" class="px-3 py-8 text-center text-on-surface-variant">
-                                    Tidak ada saldo akun yang dibawa ke tahun berikutnya.
+                            <tr v-if="trial_balance.rows.length === 0">
+                                <td colspan="7" class="px-3 py-8 text-center text-on-surface-variant">
+                                    Belum ada akun dengan saldo.
                                 </td>
                             </tr>
                             <tr
-                                v-for="row in year_end_preview"
-                                :key="row.code"
+                                v-for="row in trial_balance.rows"
+                                :key="row.row_id"
                                 class="border-t border-outline-variant/40"
                             >
-                                <td class="px-3 py-2 font-mono text-xs">{{ row.code }}</td>
-                                <td class="px-3 py-2">{{ row.name }}</td>
-                                <td class="px-3 py-2 text-on-surface-variant">
-                                    {{ typeLabels[row.account_type] || row.account_type }}
+                                <td class="px-3 py-2">
+                                    <span class="font-medium">{{ row.code }}</span>
+                                    <span class="text-on-surface-variant"> · {{ row.name }}</span>
                                 </td>
-                                <td class="px-3 py-2 text-right tabular-nums">
-                                    {{ row.debit ? formatMoney(row.debit) : '—' }}
-                                </td>
-                                <td class="px-3 py-2 text-right tabular-nums">
-                                    {{ row.credit ? formatMoney(row.credit) : '—' }}
-                                </td>
+                                <td class="px-3 py-2 text-right tabular-nums">{{ formatMoneyDecimal(row.ns_debit) }}</td>
+                                <td class="px-3 py-2 text-right tabular-nums">{{ formatMoneyDecimal(row.ns_credit) }}</td>
+                                <td class="px-3 py-2 text-right tabular-nums">{{ formatMoneyDecimal(row.lr_debit) }}</td>
+                                <td class="px-3 py-2 text-right tabular-nums">{{ formatMoneyDecimal(row.lr_credit) }}</td>
+                                <td class="px-3 py-2 text-right tabular-nums">{{ formatMoneyDecimal(row.bs_debit) }}</td>
+                                <td class="px-3 py-2 text-right tabular-nums">{{ formatMoneyDecimal(row.bs_credit) }}</td>
                             </tr>
                         </tbody>
-                        <tfoot v-if="year_end_preview.length">
+                        <tfoot v-if="trial_balance.rows.length">
                             <tr class="border-t-2 border-outline bg-surface-container-low font-semibold">
-                                <td class="px-3 py-2" colspan="3">Jumlah preview saldo awal</td>
-                                <td class="px-3 py-2 text-right tabular-nums">{{ formatMoney(previewDebit) }}</td>
-                                <td class="px-3 py-2 text-right tabular-nums">{{ formatMoney(previewCredit) }}</td>
+                                <td class="px-3 py-2">Jumlah</td>
+                                <td class="px-3 py-2 text-right tabular-nums">{{ formatMoneyDecimal(trial_balance.totals.ns_debit) }}</td>
+                                <td class="px-3 py-2 text-right tabular-nums">{{ formatMoneyDecimal(trial_balance.totals.ns_credit) }}</td>
+                                <td class="px-3 py-2 text-right tabular-nums">{{ formatMoneyDecimal(trial_balance.totals.lr_debit) }}</td>
+                                <td class="px-3 py-2 text-right tabular-nums">{{ formatMoneyDecimal(trial_balance.totals.lr_credit) }}</td>
+                                <td class="px-3 py-2 text-right tabular-nums">{{ formatMoneyDecimal(trial_balance.totals.bs_debit) }}</td>
+                                <td class="px-3 py-2 text-right tabular-nums">{{ formatMoneyDecimal(trial_balance.totals.bs_credit) }}</td>
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+
+                <p class="border-t border-outline-variant/40 px-4 py-2 text-xs text-on-surface-variant">
+                    Laba/Rugi berjalan: <span class="font-semibold text-on-surface">{{ formatMoneyDecimal(trial_balance.net_income) }}</span>
+                </p>
+
+                <div
+                    v-if="next_year_openings_exist"
+                    class="border-t border-outline-variant bg-surface-container-low/50 px-4 py-2 text-sm text-on-surface-variant"
+                >
+                    Saldo awal {{ next_year }} dari tutup buku sudah ada.
                 </div>
 
                 <div class="space-y-3 border-t border-outline-variant px-4 py-3">
@@ -410,12 +420,15 @@ function submitAllocation() {
                             variant="primary"
                             size="compact"
                             :loading="yearForm.processing"
-                            :disabled="!can_close_year || yearForm.processing"
+                            :disabled="!can_close_year || yearForm.processing || !trial_balance.balanced"
                             @click="closeYear"
                         >
                             Tutup tahun {{ year }}
                         </AppButton>
                     </div>
+                    <p v-if="allowClose && !trial_balance.balanced" class="text-xs text-error">
+                        NS belum seimbang. Perbaiki jurnal sebelum menutup tahun.
+                    </p>
                 </div>
             </AppCard>
 

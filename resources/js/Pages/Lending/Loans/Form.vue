@@ -12,6 +12,7 @@ import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
 const props = defineProps({
     products: { type: Array, required: true },
     groups: { type: Array, required: true },
+    committee_members: { type: Array, required: true },
 });
 
 const path = '/lending/loans';
@@ -102,11 +103,7 @@ const beneficiaryCandidateOptions = computed(() => {
     return beneficiaryOptions.value.filter((option) => !exclude.has(String(option.value)));
 });
 
-const committeeOption = (position) => {
-    const officer = selectedGroup.value?.[position];
-    if (!officer) return [];
-    return [{ value: officer.member_row_id, label: officer.name ?? `Pengurus ${position}` }];
-};
+const committeeOption = computed(() => props.committee_members);
 
 const periodPreview = computed(() => {
     const months = Number(form.term_months);
@@ -146,25 +143,24 @@ watch(selectedGroupId, (value) => {
     form.beneficiary_amounts = {};
     const group = selectedGroup.value;
     if (group) {
-        if (group.chair) form.chair_id = String(group.chair.member_row_id);
-        if (group.secretary) form.secretary_id = String(group.secretary.member_row_id);
-        if (group.treasurer) form.treasurer_id = String(group.treasurer.member_row_id);
         form.beneficiary_ids = (group.members || []).map((member) => String(member.value));
         const perBene = Math.round((Number(form.principal_amount) || 0) / Math.max(1, form.beneficiary_ids.length));
         const amounts = {};
         form.beneficiary_ids.forEach((id) => { amounts[id] = perBene || 0; });
         form.beneficiary_amounts = amounts;
-    } else {
-        form.chair_id = '';
-        form.secretary_id = '';
-        form.treasurer_id = '';
     }
+    form.chair_id = '';
+    form.secretary_id = '';
+    form.treasurer_id = '';
 });
 watch(selectedProductId, (value) => {
     form.loan_product_id = value;
     fillDefaults();
 });
 watch([() => form.term_months, () => form.principal_frequency], () => fillDefaults());
+watch(memberOptions, () => {
+    if (selectedGroupId.value) searchBeneficiaries('');
+});
 
 function submit() {
     form.post(path);
@@ -275,9 +271,18 @@ function addBeneficiary() {
                         <h2 class="font-semibold text-primary">Struktur Kelompok (Snapshot)</h2>
                         <p class="mt-1 text-sm text-on-surface-variant">Pengurus saat proposal didaftarkan. Disimpan sebagai snapshot.</p>
                         <div class="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                            <SmartSelect v-model="form.chair_id" label="Ketua" :options="committeeOption('chair')" :disabled="!selectedGroup" :placeholder="selectedGroup?.chair ? undefined : 'Pilih kelompok dulu'" required :error="form.errors.chair_id" />
-                            <SmartSelect v-model="form.secretary_id" label="Sekretaris" :options="committeeOption('secretary')" :disabled="!selectedGroup" :placeholder="selectedGroup?.secretary ? undefined : 'Pilih kelompok dulu'" required :error="form.errors.secretary_id" />
-                            <SmartSelect v-model="form.treasurer_id" label="Bendahara" :options="committeeOption('treasurer')" :disabled="!selectedGroup" :placeholder="selectedGroup?.treasurer ? undefined : 'Pilih kelompok dulu'" required :error="form.errors.treasurer_id" />
+                            <div>
+                                <SmartSelect v-model="form.chair_id" label="Ketua" :options="committeeOption" placeholder="Cari anggota aktif" searchable required :error="form.errors.chair_id" />
+                                <p v-if="selectedGroup?.chair?.name" class="mt-1 text-xs text-on-surface-variant">Pengurus saat ini: {{ selectedGroup.chair.name }}</p>
+                            </div>
+                            <div>
+                                <SmartSelect v-model="form.secretary_id" label="Sekretaris" :options="committeeOption" placeholder="Cari anggota aktif" searchable required :error="form.errors.secretary_id" />
+                                <p v-if="selectedGroup?.secretary?.name" class="mt-1 text-xs text-on-surface-variant">Pengurus saat ini: {{ selectedGroup.secretary.name }}</p>
+                            </div>
+                            <div>
+                                <SmartSelect v-model="form.treasurer_id" label="Bendahara" :options="committeeOption" placeholder="Cari anggota aktif" searchable required :error="form.errors.treasurer_id" />
+                                <p v-if="selectedGroup?.treasurer?.name" class="mt-1 text-xs text-on-surface-variant">Pengurus saat ini: {{ selectedGroup.treasurer.name }}</p>
+                            </div>
                         </div>
                     </section>
 

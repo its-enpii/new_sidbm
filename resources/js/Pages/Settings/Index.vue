@@ -1,4 +1,5 @@
 <script setup>
+import { useConfirm } from '../../composables/useConfirm';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import AppBadge from '../../Components/AppBadge.vue';
@@ -10,7 +11,6 @@ import AppInput from '../../Components/AppInput.vue';
 import AppSwitch from '../../Components/AppSwitch.vue';
 import AppTextarea from '../../Components/AppTextarea.vue';
 import SmartSelect from '../../Components/SmartSelect.vue';
-import ThemePicker from '../../Components/ThemePicker.vue';
 import AppRichEditor from '../../Components/AppRichEditor.vue';
 import AuthenticatedLayout from '../../Layouts/AuthenticatedLayout.vue';
 
@@ -32,7 +32,6 @@ const tabs = [
     { key: 'logo', label: 'Logo Lembaga', icon: 'image' },
     { key: 'whatsapp', label: 'WhatsApp Gateway', icon: 'chat' },
     { key: 'signatures', label: 'Tanda Tangan', icon: 'draw' },
-    { key: 'appearance', label: 'Tampilan', icon: 'palette' },
 ];
 
 const activeTab = ref(getInitialTab());
@@ -111,8 +110,10 @@ function submitLogo() {
         onSuccess: () => logoForm.reset(),
     });
 }
-function destroyLogo() {
-    if (!confirm('Hapus logo?')) return;
+const { confirm: confirmAction } = useConfirm();
+
+async function destroyLogo() {
+    if (!await confirmAction({ title: 'Hapus Logo', message: 'Hapus logo organisasi?' })) return;
     router.delete('/settings/logo', { preserveScroll: true });
 }
 
@@ -213,7 +214,7 @@ function applySignatureStarter() {
         <div class="mx-auto max-w-7xl space-y-6">
             <header>
                 <h1 class="text-2xl font-bold text-primary sm:text-3xl">Pengaturan</h1>
-                <p class="mt-1 text-on-surface-variant">Konfigurasi lembaga, pinjaman, logo, WhatsApp, tanda tangan, dan tampilan.</p>
+                <p class="mt-1 text-on-surface-variant">Konfigurasi lembaga, pinjaman, logo, WhatsApp, dan tanda tangan.</p>
             </header>
 
             <AppCard v-if="flash">
@@ -476,14 +477,6 @@ function applySignatureStarter() {
                                 </AppButton>
                             </div>
                         </form>
-                    </AppCard>
-
-                    <AppCard v-show="activeTab === 'appearance'" bordered>
-                        <h2 class="mb-1 text-lg font-bold text-primary">Tampilan</h2>
-                        <p class="mb-5 text-sm text-on-surface-variant">
-                            Pilih tema warna aplikasi. Disimpan di perangkat ini (bukan per lembaga).
-                        </p>
-                        <ThemePicker />
                     </AppCard>
                 </div>
             </div>

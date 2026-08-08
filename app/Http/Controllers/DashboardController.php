@@ -11,6 +11,8 @@ use Inertia\Response;
 
 final class DashboardController
 {
+    private const PIPELINE_MODAL_KEYS = ['proposal', 'verifikasi', 'waiting', 'aktif'];
+
     public function __construct(
         private readonly DashboardService $dashboard,
     ) {
@@ -27,9 +29,26 @@ final class DashboardController
 
         $payload = $this->dashboard->build();
 
+        $pipelineKey = $this->resolvePipelineKey($request);
+        $pipelineModal = $pipelineKey !== null
+            ? $this->dashboard->loansByStatus($pipelineKey)
+            : null;
+
         return Inertia::render('Dashboard', [
             'unitName' => $membership?->tenant?->name ?? $payload['unit_name'],
             ...$payload,
+            'pipeline_modal' => $pipelineModal,
+            'pipeline_modal_key' => $pipelineKey,
         ]);
+    }
+
+    private function resolvePipelineKey(Request $request): ?string
+    {
+        $key = (string) $request->query('pipeline', '');
+        if ($key === '' || ! in_array($key, self::PIPELINE_MODAL_KEYS, true)) {
+            return null;
+        }
+
+        return $key;
     }
 }

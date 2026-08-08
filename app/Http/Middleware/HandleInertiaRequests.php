@@ -6,7 +6,6 @@ namespace App\Http\Middleware;
 
 use App\Domain\Access\Services\PermissionChecker;
 use App\Domain\Membership\Models\OrganizationProfile;
-use App\Support\AssistantSettingsResolver;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -89,14 +88,14 @@ final class HandleInertiaRequests extends Middleware
      */
     private function resolveAssistant(Request $request): array
     {
-        $enabled = AssistantSettingsResolver::widgetEnabled()
-            && AssistantSettingsResolver::orchestratorBaseUrl() !== ''
-            && AssistantSettingsResolver::sharedSecret() !== ''
-            && $request->user() !== null;
+        // In-process: widget is always available when the user is authenticated
+        // and has access. No URL/secret checks needed (orchestrator runs inside SIDBM).
+        $enabled = $request->user() !== null
+            && app(PermissionChecker::class)->allows($request->user(), 'assistant.use');
 
         return [
             'enabled' => $enabled,
-            'public_url' => $enabled ? AssistantSettingsResolver::orchestratorPublicUrl() : null,
+            'public_url' => $enabled ? url('/') : null,
         ];
     }
 

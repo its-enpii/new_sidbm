@@ -4,8 +4,10 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AppButton from '../Components/AppButton.vue';
 import AppIcon from '../Components/AppIcon.vue';
 import AppModal from '../Components/AppModal.vue';
+import AppConfirmDialog from '../Components/AppConfirmDialog.vue';
 import AppToast from '../Components/AppToast.vue';
 import AssistantWidget from '../Components/AssistantWidget.vue';
+import ThemeMenu from '../Components/ThemeMenu.vue';
 
 const props = defineProps({ unitName: { type: String, default: null } });
 
@@ -333,6 +335,7 @@ function openActiveGroups(items) {
 watch(currentPath, () => visibleSections.value.forEach((section) => openActiveGroups(section.items)), { immediate: true });
 
 const logoutOpen = ref(false);
+const themeOpen = ref(false);
 
 function askLogout() {
     logoutOpen.value = true;
@@ -463,12 +466,25 @@ function logout() {
             </button>
             <p v-if="props.unitName" class="ml-6 hidden items-center gap-2 text-sm font-bold text-primary xl:flex"><AppIcon name="location_on" class="text-secondary" />{{ props.unitName }}</p>
             <div class="ml-auto flex items-center gap-1 pl-3">
+                <button
+                    type="button"
+                    data-theme-trigger
+                    class="grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary"
+                    :class="themeOpen && 'bg-surface-container text-primary'"
+                    aria-label="Pilih tema tampilan"
+                    aria-haspopup="menu"
+                    :aria-expanded="themeOpen"
+                    @click="themeOpen = !themeOpen"
+                >
+                    <AppIcon name="palette" class="text-2xl leading-none" />
+                </button>
                 <button type="button" disabled class="grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant" aria-label="Notifikasi belum tersedia"><AppIcon name="notifications" class="text-2xl leading-none" /></button>
                 <Link href="/profile" class="grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary" aria-label="Profil"><AppIcon name="account_circle" class="text-2xl leading-none" /></Link>
             </div>
         </header>
         <main class="p-4 sm:p-6 lg:ml-64 lg:p-8"><slot /></main>
         <AssistantWidget v-if="assistantEnabled" />
+        <AppConfirmDialog />
         <AppToast />
 
         <AppModal v-model="logoutOpen" title="Keluar dari aplikasi?" size="sm">
@@ -481,6 +497,8 @@ function logout() {
                 <AppButton variant="danger" icon="logout" :loading="logoutForm.processing" @click="logout">Keluar</AppButton>
             </template>
         </AppModal>
+
+        <ThemeMenu v-model="themeOpen" />
 
         <Teleport to="body">
             <Transition name="cmdk">

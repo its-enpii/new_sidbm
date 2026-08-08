@@ -468,6 +468,18 @@ final class LoanController
                     'label' => ($membership->member?->person?->full_name ?? '—').' · '.$membership->member?->member_number,
                 ])->values()->all(),
             ])->values()->all(),
+            'committee_members' => Member::query()
+                ->where('status', 'active')
+                ->with('person')
+                ->orderBy('member_number')
+                ->limit(500)
+                ->get()
+                ->map(fn (Member $member): array => [
+                    'value' => (int) $member->row_id,
+                    'label' => ($member->person?->full_name ?? '—').' · '.$member->member_number,
+                ])
+                ->values()
+                ->all(),
         ];
     }
 

@@ -1,39 +1,55 @@
-@extends('reports.pdf.layout', ['title' => 'Catatan Atas Laporan Keuangan (CALK)', 'identity' => $identity, 'period' => $period])
+﻿@extends('reports.pdf.layout', ['title' => 'Catatan Atas Laporan Keuangan (CALK)', 'identity' => $identity, 'period' => $period])
 
 @section('content')
-    <p class="muted" style="margin-bottom:10px">
-        {{ $identity['legal_name'] ?? '' }}
-        @if(!empty($identity['address'])) · {{ $identity['address'] }}@endif
-    </p>
+<table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px;">
+    <tr>
+        <td colspan="2" align="center">
+            <div style="font-size: 18px;"><b>CATATAN ATAS LAPORAN KEUANGAN (CALK)</b></div>
+            <div style="font-size: 16px;"><b>{{ strtoupper($period['period_label'] ?? '') }}</b></div>
+        </td>
+    </tr>
+    <tr><td colspan="2" height="5"></td></tr>
+    <tr style="background: rgb(232, 232, 232); font-weight: bold;">
+        <td height="20">Ringkasan posisi</td>
+        <td align="right">Jumlah</td>
+    </tr>
+    @foreach($highlights as $h)
+        <tr style="background: {{ $loop->iteration % 2 == 1 ? 'rgb(230, 230, 230)' : 'rgba(255, 255, 255)' }};">
+            <td>{{ $h['label'] }}</td>
+            <td align="right">
+                @if(($h['amount'] ?? 0) < 0)
+                    ({{ number_format(abs($h['amount']), 2) }})
+                @else
+                    {{ number_format($h['amount'], 2) }}
+                @endif
+            </td>
+        </tr>
+    @endforeach
+</table>
 
-    <table style="margin-bottom:14px">
-        <thead>
-            <tr>
-                <th>Ringkasan posisi</th>
-                <th class="num">Jumlah</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($highlights as $h)
-                <tr>
-                    <td>{{ $h['label'] }}</td>
-                    <td class="num {{ ($h['amount'] ?? 0) < 0 ? 'neg' : '' }}">
-                        {{ number_format($h['amount'], 0, ',', '.') }}
-                    </td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
+<table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px; margin-top: 14px;">
+    <tr>
+        <td style="font-weight: bold; font-size: 12px; padding-bottom: 4px;">Kebijakan akuntansi</td>
+    </tr>
+    <tr>
+        <td>
+            <ol style="margin: 0 0 12px 18px; padding: 0;">
+                @foreach($policies as $p)
+                    <li style="margin-bottom: 4px;">{{ $p }}</li>
+                @endforeach
+            </ol>
+        </td>
+    </tr>
+</table>
 
-    <p class="bold" style="margin:10px 0 4px">Kebijakan akuntansi</p>
-    <ol style="margin:0 0 12px 18px;padding:0">
-        @foreach($policies as $p)
-            <li style="margin-bottom:4px">{{ $p }}</li>
-        @endforeach
-    </ol>
-
-    <p class="bold" style="margin:10px 0 4px">Catatan tambahan</p>
-    <div style="white-space:pre-wrap;border:1px solid #ccc;padding:8px;min-height:60px">
-        {{ $notes !== '' ? $notes : 'Tidak ada catatan tambahan.' }}
-    </div>
+<table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px; margin-top: 10px;">
+    <tr>
+        <td style="font-weight: bold; font-size: 12px; padding-bottom: 4px;">Catatan tambahan</td>
+    </tr>
+    <tr>
+        <td>
+            <div style="white-space: pre-wrap; border: 1px solid #999; padding: 8px; min-height: 60px;">{{ $notes !== '' ? $notes : 'Tidak ada catatan tambahan.' }}</div>
+        </td>
+    </tr>
+</table>
 @endsection

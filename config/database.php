@@ -79,6 +79,24 @@ return [
                 PDO::ATTR_EMULATE_PREPARES => false,
             ]) : [],
         ],
+
+        // enpii/assistant package — vector store for RAG embeddings.
+        // ai_* tables live here so pgvector HNSW index gives sub-ms cosine search.
+        // Falls back to a same-as-platform copy when unset (sqlite/mysql embed
+        // vector as JSON; semantic search still works, just slower).
+        'rag' => [
+            'driver' => env('RAG_DB_CONNECTION', 'pgsql'),
+            'host' => env('RAG_DB_HOST', '127.0.0.1'),
+            'port' => env('RAG_DB_PORT', '5432'),
+            'database' => env('RAG_DB_DATABASE', 'assistant'),
+            'username' => env('RAG_DB_USERNAME', 'assistant'),
+            'password' => env('RAG_DB_PASSWORD', 'assistant'),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => env('RAG_DB_SSLMODE', 'prefer'),
+        ],
     ],
 
     'migrations' => [

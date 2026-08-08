@@ -1,33 +1,81 @@
+@php
+    $legalName = strtoupper($identity['legal_name'] ?? $identity['short_name'] ?? config('app.name'));
+    $district = $identity['district_name'] ?? '';
+    $regency = $identity['regency_name'] ?? '';
+    $locationLine = trim(($district !== '' ? 'Kec. ' . $district : '') . ' ' . ($regency !== '' ? 'Kab. ' . $regency : ''));
+    $registration = $identity['registration_number'] ?? '';
+    $address = $identity['address'] ?? '';
+    $phone = $identity['phone'] ?? '';
+    $email = $identity['email'] ?? '';
+    $logoUrl = $identity['logo_url'] ?? null;
+
+    $infoLine = $address;
+    if ($address !== '' && $phone !== '') {
+        $infoLine .= ', Telp. ' . $phone;
+    } elseif ($phone !== '') {
+        $infoLine = 'Telp. ' . $phone;
+    }
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>{{ $title ?? 'Laporan' }}</title>
     <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #111; }
-        h1 { font-size: 16px; margin: 0 0 2px; text-align: center; }
-        h2 { font-size: 13px; margin: 0 0 12px; text-align: center; font-weight: normal; }
-        .meta { text-align: center; margin-bottom: 12px; color: #444; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 3px 5px; vertical-align: top; }
-        th { background: #e8eef4; border-bottom: 1px solid #999; font-size: 10px; text-transform: uppercase; }
-        td { border-bottom: 1px solid #eee; }
-        .num { text-align: right; white-space: nowrap; }
-        .ctr { text-align: center; }
-        .bold { font-weight: bold; }
-        .section { background: #d0d7de; font-weight: bold; }
-        .sub { background: #eef2f5; font-weight: bold; }
-        .total { background: #f5f5f5; font-weight: bold; border-top: 1px solid #333; }
-        .neg { color: #a00; }
-        .muted { color: #666; font-size: 10px; }
+        * { font-family: Arial, Helvetica, sans-serif; }
+        html { margin: 75px; margin-left: 94px; }
+        body { font-size: 12px; color: #111; }
+        header {
+            position: fixed;
+            top: -10px;
+            left: 0;
+            right: 0;
+        }
+        table { border-collapse: collapse; }
+        table tr th, table tr td { padding: 2px 4px; }
+        table tr td table tr td { padding: 0 !important; }
+        .break { page-break-after: always; }
+        .l { border-left: 1px solid #000; }
+        .t { border-top: 1px solid #000; }
+        .r { border-right: 1px solid #000; }
+        .b { border-bottom: 1px solid #000; }
     </style>
 </head>
 <body>
-    <div class="meta">
-        <div class="bold">{{ $identity['legal_name'] ?? $identity['short_name'] ?? config('app.name') }}</div>
-    </div>
-    <h1>{{ $title }}</h1>
-    <h2>{{ $period['period_label'] ?? '' }}</h2>
-    @yield('content')
+    <header>
+        <table width="100%" style="border-bottom: 1px solid grey;">
+            <tr>
+                @if (! empty($logoUrl))
+                    <td width="30">
+                        <img src="{{ $logoUrl }}" width="40" alt="Logo">
+                    </td>
+                @endif
+                <td>
+                    <div style="font-size: 12px;">{{ $legalName }}</div>
+                    <div style="font-size: 12px;">
+                        <b>{{ strtoupper($locationLine) }}</b>
+                    </div>
+                </td>
+            </tr>
+        </table>
+        <table width="100%" style="position: relative; top: -10px;">
+            <tr>
+                <td>
+                    <span style="font-size: 8px; color: grey;">
+                        <i>{{ $registration !== '' ? 'SK Kemenkumham RI No. ' . $registration : '' }}</i>
+                    </span>
+                </td>
+                <td align="right">
+                    <span style="font-size: 8px; color: grey;">
+                        <i>{{ $infoLine }}</i>
+                    </span>
+                </td>
+            </tr>
+        </table>
+    </header>
+
+    <main style="position: relative; top: 60px; font-size: 12px; padding-bottom: 38px;">
+        @yield('content')
+    </main>
 </body>
 </html>

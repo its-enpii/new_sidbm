@@ -1,4 +1,5 @@
 <script setup>
+import { useConfirm } from '../../composables/useConfirm';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import AppButton from '../../Components/AppButton.vue';
@@ -112,8 +113,10 @@ function submitPhoto() {
     });
 }
 
-function destroyPhoto() {
-    if (!confirm('Hapus foto profil?')) return;
+const { confirm: confirmAction } = useConfirm();
+
+async function destroyPhoto() {
+    if (!await confirmAction({ title: 'Hapus Foto', message: 'Hapus foto profil?' })) return;
     router.delete('/profile/photo', { preserveScroll: true });
 }
 </script>

@@ -1,4 +1,5 @@
 <script setup>
+import { useConfirm } from '../../composables/useConfirm';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppBadge from '../../Components/AppBadge.vue';
 import AppButton from '../../Components/AppButton.vue';
@@ -19,8 +20,10 @@ function formatMoney(v) {
     return money.format(Number(v || 0));
 }
 
-function destroy() {
-    if (!confirm(`Hapus inventaris "${props.asset.name}"?`)) return;
+const { confirm: confirmAction } = useConfirm();
+
+async function destroy() {
+    if (!await confirmAction({ title: 'Hapus Inventaris', message: `Hapus inventaris "${props.asset.name}"?` })) return;
     router.delete(`/accounting/assets/${props.asset.row_id}`);
 }
 </script>

@@ -90,4 +90,4 @@ docker compose exec \
 
 Docker Compose ini untuk development. Jangan gunakan password contoh, bind mount, Vite dev server, atau credential JSON pada production. Backup cron server existing tetap menjadi mekanisme backup; aplikasi tidak menjadwalkan backup duplikat.
 
-Dokumentasi arsitektur: [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md). Struktur database: [`docs/DATABASE_STRUCTURE.md`](docs/DATABASE_STRUCTURE.md).
+Dokumentasi arsitektur: [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md). Struktur database: [`docs/DATABASE_STRUCTURE.md`](docs/DATABASE_STRUCTURE.md). Tracker Dokumen Pinjaman: [`docs/LOAN_DOCUMENTS_PROGRESS.md`](docs/LOAN_DOCUMENTS_PROGRESS.md).

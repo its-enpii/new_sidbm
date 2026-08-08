@@ -11,6 +11,22 @@ final class OrganizationProfile extends TenantModel
 {
     protected $table = 'organization_profiles';
 
+    protected $fillable = [
+        'legal_name',
+        'short_name',
+        'registration_number',
+        'tax_number',
+        'address',
+        'district_name',
+        'regency_name',
+        'phone',
+        'email',
+        'website',
+        'logo_path',
+        'timezone',
+        'operational_start_date',
+    ];
+
     protected function casts(): array
     {
         return [

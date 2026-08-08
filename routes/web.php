@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Assistant\SessionTokenController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Accounting\TaxEstimateController;
 use App\Http\Controllers\Budgeting\BudgetController;
@@ -91,8 +90,23 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
         Route::post('/orchestrator/test', [\App\Http\Controllers\Admin\IntegrationController::class, 'test'])->name('orchestrator.test');
         Route::post('/orchestrator/chat', [\App\Http\Controllers\Admin\IntegrationController::class, 'chat'])->name('orchestrator.chat');
         Route::post('/orchestrator/upload', [\App\Http\Controllers\Admin\IntegrationController::class, 'upload'])->name('orchestrator.upload');
-        Route::post('/orchestrator/personas', [\App\Http\Controllers\Admin\IntegrationController::class, 'personas'])->name('orchestrator.personas');
-        Route::post('/orchestrator/documents', [\App\Http\Controllers\Admin\IntegrationController::class, 'documents'])->name('orchestrator.documents');
+
+        Route::match(['get', 'post'], '/orchestrator/personas', [\App\Http\Controllers\Admin\IntegrationController::class, 'personas'])->name('orchestrator.personas');
+        Route::post('/orchestrator/personas/store', [\App\Http\Controllers\Admin\IntegrationController::class, 'storePersona'])->name('orchestrator.personas.store');
+        Route::put('/orchestrator/personas/{id}', [\App\Http\Controllers\Admin\IntegrationController::class, 'updatePersona'])->name('orchestrator.personas.update');
+        Route::delete('/orchestrator/personas/{id}', [\App\Http\Controllers\Admin\IntegrationController::class, 'deletePersona'])->name('orchestrator.personas.delete');
+        Route::post('/orchestrator/personas/{id}/toggle', [\App\Http\Controllers\Admin\IntegrationController::class, 'togglePersonaStatus'])->name('orchestrator.personas.toggle');
+
+        Route::match(['get', 'post'], '/orchestrator/documents', [\App\Http\Controllers\Admin\IntegrationController::class, 'documents'])->name('orchestrator.documents');
+        Route::get('/orchestrator/documents/{id}', [\App\Http\Controllers\Admin\IntegrationController::class, 'documentDetail'])->name('orchestrator.documents.detail');
+        Route::delete('/orchestrator/documents/{id}', [\App\Http\Controllers\Admin\IntegrationController::class, 'deleteDocument'])->name('orchestrator.documents.delete');
+
+        Route::match(['get', 'post'], '/orchestrator/tools', [\App\Http\Controllers\Admin\IntegrationController::class, 'tools'])->name('orchestrator.tools');
+        Route::post('/orchestrator/tools/sync', [\App\Http\Controllers\Admin\IntegrationController::class, 'syncTools'])->name('orchestrator.tools.sync');
+        Route::put('/orchestrator/tools/{id}', [\App\Http\Controllers\Admin\IntegrationController::class, 'updateTool'])->name('orchestrator.tools.update');
+
+        Route::get('/orchestrator/conversations', [\App\Http\Controllers\Admin\IntegrationController::class, 'conversations'])->name('orchestrator.conversations');
+        Route::get('/orchestrator/audit-logs', [\App\Http\Controllers\Admin\IntegrationController::class, 'auditLogs'])->name('orchestrator.audit_logs');
     });
 });
 
@@ -101,8 +115,10 @@ Route::redirect('/superadmin/tenants/create', '/admin/tenants/create');
 Route::redirect('/superadmin', '/admin');
 
 Route::middleware(['auth', 'tenant'])->group(function (): void {
-    Route::get('/api/assistant/session-token', SessionTokenController::class)
-        ->name('assistant.session-token');
+    // enpii/assistant package routes (in-process chat orchestrator)
+    Route::prefix('assistant')->group(function (): void {
+        require base_path('packages/assistant/routes/api.php');
+    });
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -161,6 +177,9 @@ Route::middleware(['auth', 'tenant'])->group(function (): void {
     Route::post('/lending/loans', [LoanController::class, 'store'])->name('lending.loans.store');
     Route::get('/lending/loans/{loan}', [LoanController::class, 'show'])->name('lending.loans.show');
     Route::get('/lending/loans/{loan}/card', [LoanController::class, 'card'])->name('lending.loans.card');
+    Route::get('/lending/loans/{loan}/documents/{type}', [\App\Http\Controllers\Lending\LoanDocumentController::class, 'document'])
+        ->where('type', '[a-z_]+')
+        ->name('lending.loans.documents.print');
     Route::put('/lending/loans/{loan}', [LoanController::class, 'update'])->name('lending.loans.update');
     Route::delete('/lending/loans/{loan}/beneficiaries/{member}', [LoanController::class, 'removeBeneficiary'])->name('lending.loans.beneficiaries.destroy');
     Route::patch('/lending/loans/{loan}/verify', [LoanController::class, 'verify'])->name('lending.loans.verify');
@@ -181,6 +200,14 @@ Route::middleware(['auth', 'tenant'])->group(function (): void {
     Route::prefix('accounting')->name('accounting.')->group(function (): void {
         Route::get('/journals', [\App\Http\Controllers\Accounting\JournalBrowseController::class, 'index'])->name('journals.index');
         Route::post('/journals/{entry}/reverse', [\App\Http\Controllers\Accounting\JournalBrowseController::class, 'reverse'])->name('journals.reverse');
+
+        // Bukti Kas (BKM/BKK/BM) — cetak PDF bukti dari JournalEntry.
+        // kind opsional; bila kosong, kind ditentukan otomatis dari heuristic debit/kredit.
+        Route::get('/journals/{entry}/cash-evidence-kind', [\App\Http\Controllers\Accounting\CashEvidenceController::class, 'kind'])->name('journals.cash-evidence.kind');
+        Route::get('/journals/{entry}/cash-evidence', [\App\Http\Controllers\Accounting\CashEvidenceController::class, 'document'])->name('journals.cash-evidence');
+        Route::get('/journals/{entry}/cash-evidence/{kind}', [\App\Http\Controllers\Accounting\CashEvidenceController::class, 'document'])
+            ->where('kind', '[A-Z]{3}')
+            ->name('journals.cash-evidence.kind-explicit');
         Route::get('/journal-entries/create', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'create'])->name('journal-entries.create');
         Route::post('/journal-entries', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'store'])->name('journal-entries.store');
         Route::get('/journal-entries/installment', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'installment'])->name('journal-entries.installment');

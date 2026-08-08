@@ -56,6 +56,15 @@ function formatDate(v) {
     return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(d);
 }
 
+const cashEvidenceLabels = {
+    BKM: 'BKM',
+    BKK: 'BKK',
+    BM: 'BM',
+};
+function cashEvidenceLabel(kind) {
+    return cashEvidenceLabels[kind] || 'Bukti';
+}
+
 function apply(page = 1) {
     if (syncing.value) return;
     router.get(
@@ -191,6 +200,16 @@ function submitReverse() {
                                             class="rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/10"
                                         >
                                             Bukti
+                                        </a>
+                                        <a
+                                            v-if="! row.receipt_url && row.cash_evidence_url"
+                                            :href="row.cash_evidence_url"
+                                            target="_blank"
+                                            rel="noopener"
+                                            class="rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/10"
+                                            :title="`Cetak ${cashEvidenceLabel(row.cash_evidence_kind)}`"
+                                        >
+                                            {{ cashEvidenceLabel(row.cash_evidence_kind) }}
                                         </a>
                                         <button
                                             v-if="allowReverse && row.can_reverse"

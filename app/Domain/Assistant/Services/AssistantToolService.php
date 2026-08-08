@@ -44,6 +44,9 @@ final class AssistantToolService
     }
 
     /**
+     * Run a tool by name. Used by ToolHandler classes (one per tool) and
+     * by the legacy AssistantToolController — kept as the single entry point.
+     *
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */
@@ -74,10 +77,38 @@ final class AssistantToolService
     }
 
     /**
+     * Same as dispatch() but without permission check — used by Sidbm
+     * handlers where permissions are already enforced upstream.
+     *
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    public function execute(string $tool, array $params, User $actor): array
+    {
+        return match ($tool) {
+            'search_members' => $this->searchMembers($params),
+            'search_groups' => $this->searchGroups($params),
+            'groups_with_loans' => $this->groupsWithLoans($params),
+            'search_loans' => $this->searchLoans($params),
+            'get_loan' => $this->getLoan($params),
+            'list_accounts' => $this->listAccounts($params),
+            'search_journals' => $this->searchJournals($params),
+            'search_assets' => $this->searchAssets($params),
+            'get_asset' => $this->getAsset($params),
+            'list_due_billing' => $this->listDueBilling($params),
+            'create_journal_entry' => $this->createJournalEntry($params, $actor),
+            'reverse_journal' => $this->reverseJournal($params, $actor),
+            'record_installment' => $this->recordInstallment($params, $actor),
+            'send_billing_notices' => $this->sendBillingNotices($params),
+            default => throw new RuntimeException("Unknown tool: {$tool}"),
+        };
+    }
+
+    /**
      * @param  array<string, mixed>  $params
      * @return array{items: list<array<string, mixed>>, match_count: int, needs_clarification: bool}
      */
-    private function searchAssets(array $params): array
+    public function searchAssets(array $params): array
     {
         $q = trim((string) ($params['query'] ?? $params['name'] ?? $params['asset_name'] ?? ''));
         if (mb_strlen($q) < 2) {
@@ -140,7 +171,7 @@ final class AssistantToolService
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */
-    private function getAsset(array $params): array
+    public function getAsset(array $params): array
     {
         $rowId = (int) ($params['asset_row_id'] ?? $params['row_id'] ?? 0);
         if ($rowId <= 0) {
@@ -165,7 +196,7 @@ final class AssistantToolService
      * @param  array<string, mixed>  $params
      * @return array{items: list<array<string, mixed>>, match_count: int, needs_clarification: bool}
      */
-    private function searchMembers(array $params): array
+    public function searchMembers(array $params): array
     {
         $q = trim((string) ($params['query'] ?? ''));
         if (mb_strlen($q) < 2) {
@@ -232,7 +263,7 @@ final class AssistantToolService
      * @param  array<string, mixed>  $params
      * @return array{items: list<array<string, mixed>>, match_count: int, needs_clarification: bool}
      */
-    private function searchGroups(array $params): array
+    public function searchGroups(array $params): array
     {
         $q = trim((string) ($params['query'] ?? ''));
         if (mb_strlen($q) < 2) {
@@ -272,7 +303,7 @@ final class AssistantToolService
      * @param  array<string, mixed>  $params
      * @return array{items: list<array<string, mixed>>, match_count: int, needs_clarification: bool}
      */
-    private function groupsWithLoans(array $params): array
+    public function groupsWithLoans(array $params): array
     {
         $q = trim((string) ($params['query'] ?? $params['name'] ?? ''));
         $includeInactive = filter_var($params['include_inactive_groups'] ?? true, FILTER_VALIDATE_BOOLEAN);
@@ -368,7 +399,7 @@ final class AssistantToolService
      * @param  array<string, mixed>  $params
      * @return array{items: list<array<string, mixed>>, match_count: int, needs_clarification: bool}
      */
-    private function searchLoans(array $params): array
+    public function searchLoans(array $params): array
     {
         $groupQ = trim((string) ($params['group_query'] ?? $params['group_name'] ?? ''));
         $memberQ = trim((string) ($params['member_query'] ?? $params['member_name'] ?? ''));
@@ -568,7 +599,7 @@ final class AssistantToolService
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */
-    private function getLoan(array $params): array
+    public function getLoan(array $params): array
     {
         $loanId = (int) ($params['loan_row_id'] ?? $params['loan_id'] ?? 0);
         if ($loanId <= 0) {
@@ -631,7 +662,7 @@ final class AssistantToolService
      * @param  array<string, mixed>  $params
      * @return array{items: list<array<string, mixed>>, match_count: int, needs_clarification: bool}
      */
-    private function listAccounts(array $params): array
+    public function listAccounts(array $params): array
     {
         $prefix = isset($params['code_prefix']) ? trim((string) $params['code_prefix']) : '';
         $nameQ = trim((string) ($params['query'] ?? $params['name'] ?? ''));
@@ -689,7 +720,7 @@ final class AssistantToolService
      * @param  array<string, mixed>  $params
      * @return array{due_date:string,items:list<array<string,mixed>>}
      */
-    private function listDueBilling(array $params): array
+    public function listDueBilling(array $params): array
     {
         $due = isset($params['due_date'])
             ? CarbonImmutable::createFromFormat('Y-m-d', (string) $params['due_date'])->startOfDay()
@@ -708,7 +739,7 @@ final class AssistantToolService
      * @param  array<string, mixed>  $params
      * @return array{items: list<array<string, mixed>>, match_count: int, needs_clarification: bool}
      */
-    private function searchJournals(array $params): array
+    public function searchJournals(array $params): array
     {
         $tenantId = $this->context->id();
         $dateFrom = trim((string) ($params['date_from'] ?? $params['transaction_date'] ?? ''));
@@ -908,7 +939,7 @@ final class AssistantToolService
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */
-    private function reverseJournal(array $params, User $actor): array
+    public function reverseJournal(array $params, User $actor): array
     {
         $resolved = $this->resolveJournalForReverse($params);
         if (($resolved['needs_clarification'] ?? false) === true) {
@@ -1484,7 +1515,7 @@ final class AssistantToolService
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */
-    private function createJournalEntry(array $params, User $actor): array
+    public function createJournalEntry(array $params, User $actor): array
     {
         $tenantId = $this->context->id();
         $types = JournalEntryRequest::TRANSACTION_TYPES;
@@ -1514,6 +1545,23 @@ final class AssistantToolService
         if ($type === '' && $this->looksLikeCashTransfer($hintName, $params)) {
             $type = 'pemindahan_saldo';
             $params['transaction_type'] = $type;
+        }
+        if ($type === '' && ! empty($params['debit_account_row_id']) && ! empty($params['credit_account_row_id'])) {
+            $type = 'pemindahan_saldo';
+            $params['transaction_type'] = $type;
+        }
+        if (empty($params['description'])) {
+            $debitName = ! empty($params['debit_account_row_id'])
+                ? Account::query()->where('row_id', (int) $params['debit_account_row_id'])->value('name')
+                : null;
+            $creditName = ! empty($params['credit_account_row_id'])
+                ? Account::query()->where('row_id', (int) $params['credit_account_row_id'])->value('name')
+                : null;
+            if ($debitName && $creditName) {
+                $params['description'] = sprintf('Pemindahan saldo dari %s ke %s', $creditName, $debitName);
+            } else {
+                $params['description'] = 'Pencatatan jurnal transaksi';
+            }
         }
         $isInventory = JournalEntryOptionResolver::isAssetPurchase($type);
         $isTransfer = $type === 'pemindahan_saldo';
@@ -1858,7 +1906,7 @@ final class AssistantToolService
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */
-    private function recordInstallment(array $params, User $actor): array
+    public function recordInstallment(array $params, User $actor): array
     {
         $resolved = $this->normalizeInstallmentParams($params);
         if (($resolved['needs_clarification'] ?? false) === true) {
@@ -2341,7 +2389,7 @@ final class AssistantToolService
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */
-    private function sendBillingNotices(array $params): array
+    public function sendBillingNotices(array $params): array
     {
         $data = Validator::make($params, [
             'due_date' => ['required', 'date_format:Y-m-d'],

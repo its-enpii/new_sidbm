@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Accounting;
 use App\Domain\Access\Services\PermissionChecker;
 use App\Domain\Accounting\Services\FiscalPeriodCloseService;
 use App\Domain\Accounting\Services\ProfitAllocationService;
+use App\Domain\Accounting\Services\Reports\TrialBalanceService;
 use Carbon\CarbonImmutable;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +21,7 @@ final class PeriodCloseController
         private readonly PermissionChecker $permissions,
         private readonly FiscalPeriodCloseService $closer,
         private readonly ProfitAllocationService $allocation,
+        private readonly TrialBalanceService $trialBalance,
     ) {
     }
 
@@ -53,6 +55,7 @@ final class PeriodCloseController
         return Inertia::render('Accounting/PeriodClose/Index', [
             ...$payload,
             'allocation' => $allocation,
+            'trial_balance' => $this->trialBalance->build($year, 12),
             'can_close' => $this->permissions->allows($request->user(), 'period_close.manage'),
             'year_options' => $this->yearOptions($year),
         ]);

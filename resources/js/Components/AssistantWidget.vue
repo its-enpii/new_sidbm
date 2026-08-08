@@ -24,12 +24,15 @@ if (!window.__assistantState__) {
         messages: [],
         pendingConfirmation: null,
         persona: null,
-        sessionToken: null,
-        endpoint: null,
         conversationId: null,
-        expiresAt: null,
         msgSeq: 0,
     });
+} else {
+    // Migration: drop legacy session-token fields if a stale shape exists
+    // from previous orchestrator-microservice versions of this widget.
+    delete window.__assistantState__.sessionToken;
+    delete window.__assistantState__.endpoint;
+    delete window.__assistantState__.expiresAt;
 }
 const shared = window.__assistantState__;
 
@@ -61,15 +64,14 @@ watch(messages, (v) => (shared.messages = v), { deep: true });
 watch(pendingConfirmation, (v) => (shared.pendingConfirmation = v), { deep: true });
 watch(persona, (v) => (shared.persona = v), { deep: true });
 
-const sessionToken = ref(shared.sessionToken);
-const endpoint = ref(shared.endpoint);
-let conversationId = shared.conversationId;
-const expiresAt = ref(shared.expiresAt);
+let conversationId = shared.conversationId || null;
 let msgSeq = shared.msgSeq;
 
-watch(sessionToken, (v) => (shared.sessionToken = v));
-watch(endpoint, (v) => (shared.endpoint = v));
-watch(expiresAt, (v) => (shared.expiresAt = v));
+watch(() => shared.conversationId, (v) => (conversationId = v));
+
+function csrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+}
 
 function displayName() {
     return persona.value?.name || FALLBACK_NAME;
@@ -91,7 +93,7 @@ function onDocumentPointerDown(event) {
 
 document.addEventListener('pointerdown', onDocumentPointerDown, true);
 onMounted(() => {
-    // intentionally empty — placeholder if future init needed
+    ensureSession();
 });
 
 function pickGreeting() {
@@ -108,41 +110,33 @@ function pickGreeting() {
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
-function sessionValid() {
-    if (!sessionToken.value || !endpoint.value) return false;
-    if (!expiresAt.value) return true;
-    return Date.parse(expiresAt.value) > Date.now() + 30_000;
-}
+// In-process mode: backend resolves tenant + user from the authenticated
+// session via SidbmSessionResolver. No separate session token dance.
+let personaPromise = null;
 
-async function ensureSession() {
-    if (sessionValid()) return;
-    loading.value = true;
-    error.value = null;
-    try {
-        const res = await fetch('/api/assistant/session-token', {
+function ensureSession() {
+    if (persona.value?.name) return Promise.resolve();
+    if (!personaPromise) {
+        personaPromise = fetch('/assistant/persona', {
             credentials: 'same-origin',
             headers: { Accept: 'application/json' },
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || data.detail || `HTTP ${res.status}`);
-        sessionToken.value = data.session_token;
-        endpoint.value = String(data.endpoint || '').replace(/\/$/, '');
-        expiresAt.value = data.expires_at || null;
-        if (data.conversation_id) {
-            conversationId = data.conversation_id;
-            shared.conversationId = conversationId;
-        }
-        if (data.persona && typeof data.persona === 'object') {
-            persona.value = {
-                id: data.persona.id || null,
-                slug: data.persona.slug || null,
-                name: data.persona.name || FALLBACK_NAME,
-            };
-        }
-        if (!endpoint.value || !sessionToken.value) throw new Error('Session orchestrator tidak lengkap.');
-    } finally {
-        loading.value = false;
+        })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+                if (data?.persona) {
+                    persona.value = {
+                        id: data.persona.id || null,
+                        slug: data.persona.slug || null,
+                        name: data.persona.name || FALLBACK_NAME,
+                    };
+                }
+            })
+            .catch(() => {})
+            .finally(() => {
+                personaPromise = null;
+            });
     }
+    return personaPromise;
 }
 
 async function scrollBottom() {
@@ -342,12 +336,13 @@ async function sendContent(content) {
     scrollBottom();
     try {
         await ensureSession();
-        const res = await fetch(`${endpoint.value}/api/v1/chat`, {
+        const res = await fetch('/assistant/chat', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 Accept: 'text/event-stream',
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${sessionToken.value}`,
+                'X-CSRF-TOKEN': csrfToken(),
             },
             body: JSON.stringify({
                 conversation_id: conversationId,
@@ -384,12 +379,13 @@ async function decideConfirmation(decision) {
     scrollBottom();
     try {
         await ensureSession();
-        const res = await fetch(`${endpoint.value}/api/v1/confirmations/${conf.execution_id}`, {
+        const res = await fetch(`/assistant/confirmations/${conf.execution_id}`, {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 Accept: 'text/event-stream',
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${sessionToken.value}`,
+                'X-CSRF-TOKEN': csrfToken(),
             },
             body: JSON.stringify({ decision }),
         });
@@ -412,17 +408,14 @@ async function decideConfirmation(decision) {
     }
 }
 
-async function toggle() {
+function toggle() {
     open.value = !open.value;
     if (open.value) {
         if (!messages.value.length) {
             pushMessage({ role: 'assistant', content: pickGreeting() });
         }
-        try {
-            await ensureSession();
-        } catch (e) {
-            error.value = e?.message || 'Gagal menghubungkan asisten.';
-        }
+        ensureSession();
+        nextTick(scrollBottom);
     }
 }
 

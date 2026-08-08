@@ -2,8 +2,8 @@
   "tabs": [
     {
       "id": "cf18f007-8675-49cb-b517-d6d5949e7e42",
-      "title": "Google",
-      "url": "https://www.google.com/",
+      "title": "Masuk - SIDBM Next",
+      "url": "http://localhost:8080/login",
       "ready": false,
       "loading": false,
       "canBack": false,
@@ -14,10 +14,40 @@
   "bookmarks": [],
   "history": [
     {
+      "id": "0cd89859-6be9-413b-b8c6-e151570e5799",
+      "title": "Masuk - SIDBM Next",
+      "url": "http://localhost:8080/login",
+      "visitedAt": 1786005941124
+    },
+    {
+      "id": "fe2318a5-bf83-45ef-bd02-f8da260f9db9",
+      "title": "Integrasi Orchestrator - SIDBM Next",
+      "url": "http://localhost:8080/admin/integrations/orchestrator",
+      "visitedAt": 1785832460811
+    },
+    {
+      "id": "6f920859-7120-43a1-a3fe-0606975d2cce",
+      "title": "Admin - SIDBM Next",
+      "url": "http://localhost:8080/admin",
+      "visitedAt": 1785813832132
+    },
+    {
+      "id": "87609fe3-a5b7-4fef-b2d8-8b94e75f1d14",
+      "title": "Masuk - SIDBM Next",
+      "url": "http://localhost:8080/login",
+      "visitedAt": 1785813801345
+    },
+    {
+      "id": "a9a569fb-c66b-4975-a50c-c1dddeab2b08",
+      "title": "Beranda - SIDBM Next",
+      "url": "http://localhost:8080/",
+      "visitedAt": 1785813793881
+    },
+    {
       "id": "6dffcbf6-3416-4f8d-8225-fd2fd1e79338",
       "title": "Google",
       "url": "https://www.google.com/",
-      "visitedAt": 1785543721206
+      "visitedAt": 1785813775775
     },
     {
       "id": "c7bd6afd-39ca-45dc-9160-ee5043037ce6",

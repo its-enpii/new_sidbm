@@ -1,11 +1,12 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { computed, ref, watch } from 'vue';
 import AppBadge from '../Components/AppBadge.vue';
 import AppButton from '../Components/AppButton.vue';
 import AppCard from '../Components/AppCard.vue';
 import AppEmptyState from '../Components/AppEmptyState.vue';
 import AppIcon from '../Components/AppIcon.vue';
+import AppModal from '../Components/AppModal.vue';
 import TrendBarChart from '../Components/TrendBarChart.vue';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout.vue';
 
@@ -19,6 +20,8 @@ const props = defineProps({
     upcoming_due: { type: Array, required: true },
     overdue_summary: { type: Object, required: true },
     counts: { type: Object, required: true },
+    pipeline_modal: { type: Object, default: null },
+    pipeline_modal_key: { type: String, default: null },
 });
 
 const money = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
@@ -41,6 +44,88 @@ function formatDate(value) {
 }
 
 const pipelineTotal = computed(() => props.pipeline.reduce((sum, row) => sum + Number(row.count || 0), 0));
+
+// Two independent states:
+//   `pendingKey`  — set the moment the user clicks a pipeline card. The
+//                   dialog MUST NOT open until data arrives.
+//   `open`        — gated by props.pipeline_modal arrival. Becomes true only
+//                   after the server payload lands, so the modal never shows
+//                   empty/stale content.
+//
+// Closing is instant: `closePipeline()` flips `open=false` directly and fires
+// a fire-and-forget server cleanup.
+const pendingKey = ref(null);
+const open = ref(false);
+
+function hasPipelineQuery() {
+    if (typeof window === 'undefined') return false;
+    return new URL(window.location.href).searchParams.has('pipeline');
+}
+
+// Auto-open when the URL requests a modal AND the data has arrived. This
+// covers the deep-link / refresh case.
+function syncOpenFromServer() {
+    if (props.pipeline_modal_key !== null && props.pipeline_modal !== null && hasPipelineQuery()) {
+        open.value = true;
+        pendingKey.value = null;
+    }
+}
+
+watch(() => [props.pipeline_modal_key, props.pipeline_modal], () => {
+    syncOpenFromServer();
+}, { immediate: true });
+
+function openPipeline(stage) {
+    pendingKey.value = stage.key ?? stage.status;
+    router.get('/dashboard', { pipeline: pendingKey.value }, {
+        preserveState: true,
+        preserveScroll: true,
+        only: ['pipeline_modal', 'pipeline_modal_key'],
+        onFinish: () => {
+            // If the response didn't bring a modal payload (e.g. invalid key),
+            // clear pending so we don't sit on a stale request.
+            if (props.pipeline_modal_key === null) pendingKey.value = null;
+        },
+    });
+}
+
+function closePipeline() {
+    open.value = false;
+    pendingKey.value = null;
+    // Force-clear any leftover overflow lock from AppModal's own watcher
+    // before the server roundtrip completes. Otherwise the page stays
+    // un-scrollable until Inertia finishes its partial visit.
+    if (typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+    }
+    if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('pipeline')) {
+            url.searchParams.delete('pipeline');
+            window.history.replaceState({}, '', url.toString());
+        }
+    }
+    router.get('/dashboard', {}, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+        only: ['pipeline_modal', 'pipeline_modal_key'],
+        onFinish: () => {
+            if (props.pipeline_modal_key === null) pendingKey.value = null;
+        },
+    });
+}
+
+function amountForRow(row) {
+    if (row.allocated_amount !== null && row.allocated_amount !== undefined) return row.allocated_amount;
+    if (row.verification_amount !== null && row.verification_amount !== undefined) return row.verification_amount;
+    if (row.proposed_amount !== null && row.proposed_amount !== undefined) return row.proposed_amount;
+    return row.principal_amount;
+}
+
+function dateForRow(row) {
+    return row.disbursed_at ?? row.funded_at ?? row.verified_at ?? row.proposed_at ?? null;
+}
 
 const quickActions = [
     { label: 'Register Proposal', href: '/lending/loans/create', icon: 'assignment_add' },
@@ -125,18 +210,19 @@ const sourceLabel = {
                         <AppBadge tone="primary">{{ pipelineTotal }}</AppBadge>
                     </header>
                     <div class="flex flex-1 flex-col justify-between gap-3">
-                        <Link
+                        <button
                             v-for="stage in pipeline"
                             :key="stage.status"
-                            :href="`/lending/loans?tab=${stage.status === 'draft' ? 'proposal' : stage.status === 'verified' ? 'verifikasi' : stage.status === 'waiting' ? 'waiting' : 'aktif'}`"
-                            class="flex items-center justify-between rounded-xl border border-outline-variant px-4 py-3 transition hover:bg-surface-container-low"
+                            type="button"
+                            class="flex items-center justify-between rounded-xl border border-outline-variant px-4 py-3 text-left transition hover:bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-primary-container/30"
+                            @click="openPipeline(stage)"
                         >
                             <div>
                                 <p class="font-semibold text-primary">{{ stage.label }}</p>
                                 <p class="text-xs text-on-surface-variant">{{ formatMoney(stage.amount) }}</p>
                             </div>
                             <p class="text-xl font-bold text-primary">{{ stage.count }}</p>
-                        </Link>
+                        </button>
                     </div>
                 </section>
             </div>
@@ -244,5 +330,77 @@ const sourceLabel = {
                 </div>
             </section>
         </div>
+
+        <AppModal
+            :model-value="open"
+            :title="`Pinjaman · ${pipeline_modal?.label ?? ''}`"
+            size="lg"
+            @update:model-value="(value) => { if (!value) closePipeline(); }"
+        >
+            <div v-if="pipeline_modal" class="space-y-4">
+                <p class="text-sm text-on-surface-variant">
+                    Menampilkan
+                    <span class="font-semibold text-primary">{{ pipeline_modal.rows.length }}</span>
+                    dari
+                    <span class="font-semibold text-primary">{{ pipeline_modal.total }}</span>
+                    pinjaman pada tahap
+                    <span class="font-semibold text-primary">{{ pipeline_modal.label }}</span>.
+                </p>
+
+                <div v-if="pipeline_modal.rows.length" class="overflow-hidden rounded-xl border border-outline-variant">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-surface-container-low text-on-surface-variant">
+                            <tr>
+                                <th class="px-4 py-3 font-semibold">Kelompok &amp; Desa</th>
+                                <th class="px-4 py-3 font-semibold">Tgl</th>
+                                <th class="px-4 py-3 text-right font-semibold">Nominal</th>
+                                <th class="px-4 py-3 text-right font-semibold">Sisa Pokok</th>
+                                <th class="px-4 py-3 text-right font-semibold">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="row in pipeline_modal.rows"
+                                :key="row.row_id"
+                                class="border-t border-outline-variant"
+                            >
+                                <td class="px-4 py-3 align-top">
+                                    <p class="font-semibold text-primary">{{ row.group_name }}</p>
+                                    <p v-if="row.group_address" class="mt-0.5 text-xs text-on-surface-variant">{{ row.group_address }}</p>
+                                    <p class="mt-0.5 text-[10px] uppercase tracking-wider text-outline">#{{ row.id }} · {{ row.product_code || '—' }}</p>
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-3 align-top text-on-surface-variant">{{ formatDate(dateForRow(row)) }}</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-right align-top font-semibold text-primary">{{ formatMoney(amountForRow(row)) }}</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-right align-top">
+                                    <span v-if="row.principal_remaining > 0" class="font-semibold text-primary">{{ formatMoney(row.principal_remaining) }}</span>
+                                    <span v-else class="text-on-surface-variant">—</span>
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-3 text-right align-top">
+                                    <Link :href="`/lending/loans/${row.row_id}`" class="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/10">Detail →</Link>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <AppEmptyState
+                    v-else
+                    icon="inbox"
+                    title="Belum ada pinjaman"
+                    :description="`Tidak ada pinjaman pada tahap ${pipeline_modal.label}.`"
+                />
+
+                <p v-if="pipeline_modal.total > pipeline_modal.limit" class="text-xs text-on-surface-variant">
+                    Preview terbatas {{ pipeline_modal.limit }} baris. Buka halaman penuh untuk melihat semua data.
+                </p>
+            </div>
+
+            <template #footer>
+                <Link v-if="pipeline_modal_key" :href="`/lending/loans?tab=${pipeline_modal_key}`">
+                    <AppButton variant="secondary" icon="open_in_new">Lihat semua di Tahapan Perguliran</AppButton>
+                </Link>
+                <AppButton variant="primary" @click="closePipeline">Tutup</AppButton>
+            </template>
+        </AppModal>
     </AuthenticatedLayout>
 </template>

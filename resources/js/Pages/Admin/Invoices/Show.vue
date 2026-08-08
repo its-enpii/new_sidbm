@@ -1,4 +1,5 @@
 <script setup>
+import { useConfirm } from '../../../composables/useConfirm';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
@@ -53,8 +54,10 @@ function initiateTripay() {
     tripayForm.post(`/admin/invoices/${props.invoice.row_id}/payments/tripay`, { preserveScroll: true });
 }
 
-function voidInvoice() {
-    if (!confirm('Batalkan invoice ini?')) return;
+const { confirm: confirmAction } = useConfirm();
+
+async function voidInvoice() {
+    if (!await confirmAction({ title: 'Batalkan Invoice', message: 'Batalkan invoice ini? Tindakan ini tidak dapat dibatalkan.' })) return;
     voidForm.post(`/admin/invoices/${props.invoice.row_id}/void`, { preserveScroll: true });
 }
 </script>

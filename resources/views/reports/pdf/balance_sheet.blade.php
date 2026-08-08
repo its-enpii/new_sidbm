@@ -1,62 +1,64 @@
-@extends('reports.pdf.layout', ['title' => 'Neraca', 'identity' => $identity, 'period' => $period])
+﻿@extends('reports.pdf.layout', ['title' => 'Neraca', 'identity' => $identity, 'period' => $period])
 
 @section('content')
-<table>
-    <thead>
-        <tr>
-            <th width="15%">Kode</th>
-            <th>Nama Akun</th>
-            <th class="num" width="20%">Saldo</th>
+<table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px;">
+    <tr>
+        <td colspan="3" align="center">
+            <div style="font-size: 18px;"><b>NERACA</b></div>
+            <div style="font-size: 16px;"><b>{{ strtoupper($period['period_label'] ?? '') }}</b></div>
+        </td>
+    </tr>
+    <tr><td colspan="3" height="5"></td></tr>
+    <tr style="background: #000; color: #fff; font-weight: bold;">
+        <td width="10%" align="center" height="20">Kode</td>
+        <td width="70%">Nama Akun</td>
+        <td width="20%" align="right">Saldo</td>
+    </tr>
+    @foreach($sections as $l1)
+        <tr style="background: rgb(74, 74, 74); color: #fff;">
+            <td colspan="3" align="center" height="20"><b>{{ $l1['code'] }}. {{ $l1['name'] }}</b></td>
         </tr>
-    </thead>
-    <tbody>
-        @foreach($sections as $l1)
-            <tr class="section">
-                <td colspan="3">{{ $l1['code'] }}. {{ $l1['name'] }}</td>
+        @foreach($l1['children'] as $l2)
+            <tr style="background: rgb(167, 167, 167); font-weight: bold;">
+                <td>{{ $l2['code'] }}</td>
+                <td colspan="2">{{ $l2['name'] }}</td>
             </tr>
-            @foreach($l1['children'] as $l2)
-                <tr class="sub">
-                    <td>{{ $l2['code'] }}</td>
-                    <td colspan="2">{{ $l2['name'] }}</td>
+            @foreach($l2['children'] as $idx => $l3)
+                <tr style="background: {{ $idx % 2 === 0 ? 'rgb(230, 230, 230)' : 'rgba(255, 255, 255)' }};">
+                    <td>{{ $l3['code'] }}</td>
+                    <td>{{ $l3['name'] }}</td>
+                    <td align="right">
+                        @if($l3['balance'] < 0)
+                            ({{ number_format(abs($l3['balance']), 2) }})
+                        @else
+                            {{ number_format($l3['balance'], 2) }}
+                        @endif
+                    </td>
                 </tr>
-                @foreach($l2['children'] as $l3)
-                    <tr>
-                        <td>{{ $l3['code'] }}</td>
-                        <td>{{ $l3['name'] }}</td>
-                        <td class="num @if($l3['balance'] < 0) neg @endif">
-                            @if($l3['balance'] < 0)
-                                ({{ number_format(abs($l3['balance']), 2, ',', '.') }})
-                            @else
-                                {{ number_format($l3['balance'], 2, ',', '.') }}
-                            @endif
-                        </td>
-                    </tr>
-                @endforeach
             @endforeach
-            @php
-                $sectionLabel = match ($l1['account_type'] ?? '') {
-                    'asset' => 'Jumlah Aset',
-                    'liability' => 'Jumlah Utang',
-                    'equity' => 'Jumlah Modal',
-                    default => 'Jumlah '.$l1['name'],
-                };
-            @endphp
-            <tr class="total">
-                <td colspan="2">{{ $sectionLabel }}</td>
-                <td class="num @if(($l1['balance'] ?? 0) < 0) neg @endif">
-                    @if(($l1['balance'] ?? 0) < 0)
-                        ({{ number_format(abs($l1['balance']), 2, ',', '.') }})
-                    @else
-                        {{ number_format($l1['balance'] ?? 0, 2, ',', '.') }}
-                    @endif
-                </td>
-            </tr>
         @endforeach
-        <tr class="total">
-            <td colspan="2">Jumlah Liabilitas + Ekuitas</td>
-            <td class="num">{{ number_format($totals['liabilities_equity'], 2, ',', '.') }}</td>
+        @php
+            $sectionLabel = match ($l1['account_type'] ?? '') {
+                'asset' => 'Jumlah Aset',
+                'liability' => 'Jumlah Utang',
+                'equity' => 'Jumlah Modal',
+                default => 'Jumlah '.$l1['name'],
+            };
+        @endphp
+        <tr style="background: rgb(167, 167, 167); font-weight: bold;">
+            <td colspan="2">{{ $sectionLabel }}</td>
+            <td align="right">
+                @if(($l1['balance'] ?? 0) < 0)
+                    ({{ number_format(abs($l1['balance']), 2) }})
+                @else
+                    {{ number_format($l1['balance'] ?? 0, 2) }}
+                @endif
+            </td>
         </tr>
-    </tbody>
+    @endforeach
+    <tr style="background: rgb(200, 200, 200); font-weight: bold;">
+        <td colspan="2">Jumlah Liabilitas + Ekuitas</td>
+        <td align="right">{{ number_format($totals['liabilities_equity'], 2) }}</td>
+    </tr>
 </table>
-<p class="muted">Laba berjalan: {{ number_format($totals['net_income'], 2, ',', '.') }} · Seimbang: {{ $balanced ? 'Ya' : 'Tidak' }}</p>
 @endsection

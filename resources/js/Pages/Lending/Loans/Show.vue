@@ -1,10 +1,12 @@
 <script setup>
+import { useConfirm } from '../../../composables/useConfirm';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import AppCurrencyInput from '../../../Components/AppCurrencyInput.vue';
+import AppEmptyState from '../../../Components/AppEmptyState.vue';
 import AppDatePicker from '../../../Components/AppDatePicker.vue';
 import AppIcon from '../../../Components/AppIcon.vue';
 import AppInput from '../../../Components/AppInput.vue';
@@ -199,8 +201,10 @@ const beneficiaryColumnCount = computed(() => 1 + 1 + (canShowVerifiedAmount.val
 const verifiedTotalColspan = computed(() => beneficiaryColumnCount.value - 1);
 const removeError = ref('');
 
-function confirmRemoveBeneficiary(beneficiary) {
-    if (!window.confirm(`Hapus ${beneficiary.name} dari daftar pemanfaat?`)) return;
+const { confirm: confirmAction } = useConfirm();
+
+async function confirmRemoveBeneficiary(beneficiary) {
+    if (!await confirmAction({ title: 'Hapus Pemanfaat', message: `Hapus ${beneficiary.name} dari daftar pemanfaat?` })) return;
     removeError.value = '';
     router.delete(`/lending/loans/${props.loan.row_id}/beneficiaries/${beneficiary.member_row_id}`, {
         preserveScroll: true,
@@ -255,6 +259,116 @@ const isActiveLoan = computed(() => ['active', 'disbursed'].includes(props.loan.
 const canReschedule = computed(() => can('loans.manage') && isActiveLoan.value && Number(props.loan.principal_remaining) > 0);
 const canWriteOff = computed(() => can('loans.manage') && isActiveLoan.value && Number(props.loan.principal_remaining) > 0);
 const canDisburseAction = computed(() => can('loans.disburse'));
+const canPrintDocument = computed(() => can('loans.view'));
+
+// Stage → status loan (harus sinkron dengan LoanDocumentService::STAGE_ALLOWED_STATUS di backend).
+const STAGE_PROPOSAL = ['draft', 'verified', 'waiting', 'approved', 'active', 'disbursed', 'completed'];
+const STAGE_VERIFICATION = ['verified', 'waiting', 'approved', 'active', 'disbursed', 'completed'];
+const STAGE_DISBURSEMENT = ['waiting', 'approved', 'active', 'disbursed', 'completed'];
+
+const LOAN_DOCUMENTS = [
+    { key: 'cover_proposal',               label: 'Cover Proposal',                stage: 'proposal',     icon: 'auto_stories' },
+    { key: 'pengajuan_kredit',             label: 'Surat Pengajuan Kredit',         stage: 'proposal',     icon: 'mail' },
+    { key: 'profil_kelompok',              label: 'Profil Kelompok',                stage: 'proposal',     icon: 'groups' },
+    { key: 'susunan_pengurus',             label: 'Susunan Pengurus Kelompok',      stage: 'proposal',     icon: 'badge' },
+    { key: 'daftar_pemanfaat',             label: 'Daftar Pemanfaat & Alokasi',     stage: 'proposal',     icon: 'list_alt' },
+    { key: 'pernyataan_tanggung_renteng',  label: 'Pernyataan Tanggung Renteng',    stage: 'proposal',     icon: 'handshake' },
+    { key: 'check',                        label: 'Checklist Proposal',             stage: 'proposal',     icon: 'checklist' },
+    { key: 'anggota',                      label: 'Daftar Anggota Kelompok',        stage: 'proposal',     icon: 'people' },
+    { key: 'ktp',                          label: 'Cetak KTP Pemanfaat',           stage: 'proposal',     icon: 'badge' },
+    { key: 'catatan_bimbingan',            label: 'Catatan Bimbingan Kelompok',    stage: 'proposal',     icon: 'support_agent' },
+    { key: 'rekomendasi_kredit',           label: 'Surat Rekomendasi Kredit',       stage: 'verification', icon: 'verified' },
+    { key: 'ba_musyawarah',                label: 'Berita Acara Musyawarah',        stage: 'verification', icon: 'groups' },
+    { key: 'surat_verifikasi',             label: 'Surat Undangan Verifikasi',      stage: 'verification', icon: 'mark_email_read' },
+    { key: 'surat_kelayakan',              label: 'Surat Kelayakan Piutang',        stage: 'verification', icon: 'verified_user' },
+    { key: 'form_verifikasi',              label: 'Form Verifikasi Kelompok',       stage: 'verification', icon: 'assignment' },
+    { key: 'form_verifikasi_anggota',      label: 'Form Verifikasi Anggota',        stage: 'verification', icon: 'assignment_ind' },
+    { key: 'daftar_hadir_verifikasi',     label: 'Daftar Hadir Verifikasi',       stage: 'verification', icon: 'event_available' },
+    { key: 'cover_pencairan',              label: 'Cover Pencairan',                stage: 'disbursement', icon: 'auto_stories' },
+    { key: 'spk',                          label: 'Surat Perjanjian Kredit (SPK)',  stage: 'disbursement', icon: 'gavel' },
+    { key: 'berita_acara_pencairan',       label: 'Berita Acara Pencairan',         stage: 'disbursement', icon: 'fact_check' },
+    { key: 'ba_pendanaan',                 label: 'BA Rapat Pendanaan',             stage: 'disbursement', icon: 'fact_check' },
+    { key: 'rencana_angsuran',             label: 'Rencana Angsuran',               stage: 'disbursement', icon: 'calendar_month' },
+    { key: 'kartu_angsuran_anggota',       label: 'Kartu Angsuran per Anggota',     stage: 'disbursement', icon: 'credit_card' },
+    { key: 'pemberitahuan_desa',           label: 'Pemberitahuan ke Desa',          stage: 'disbursement', icon: 'campaign' },
+    { key: 'peserta_asuransi',             label: 'Daftar Peserta Asuransi',        stage: 'disbursement', icon: 'health_and_safety' },
+    { key: 'tanda_terima',                 label: 'Tanda Terima Dana',              stage: 'disbursement', icon: 'task_alt' },
+    { key: 'kuitansi_pencairan',           label: 'Kuitansi Pencairan',             stage: 'disbursement', icon: 'receipt_long' },
+    { key: 'kuitansi_anggota',             label: 'Kuitansi per Anggota',           stage: 'disbursement', icon: 'receipt' },
+    { key: 'tagihan',                      label: 'Surat Tagihan',                  stage: 'disbursement', icon: 'request_quote' },
+    { key: 'surat_ahli_waris',             label: 'Surat Pernyataan Ahli Waris',    stage: 'disbursement', icon: 'family_restroom' },
+    { key: 'surat_kuasa',                  label: 'Surat Kuasa SPK',                stage: 'disbursement', icon: 'assignment_late' },
+    { key: 'tanggung_renteng_kematian',    label: 'Surat Pernyataan TR Kematian',   stage: 'disbursement', icon: 'volunteer_activism' },
+    { key: 'iptw',                         label: 'Daftar Penerima IPTW',          stage: 'disbursement', icon: 'savings' },
+    { key: 'rekening_koran',               label: 'Rekening Koran Pinjaman',       stage: 'disbursement', icon: 'account_balance' },
+    { key: 'pernyataan_peminjam',          label: 'Surat Pengakuan Utang Peminjam','stage': 'disbursement', icon: 'history_edu' },
+    { key: 'daftar_hadir_pencairan',       label: 'Daftar Hadir Pencairan',        stage: 'disbursement', icon: 'event_available' },
+];
+
+// Tab state
+const activeTab = ref('overview');
+const docStageFilter = ref('all');
+const docSearch = ref('');
+
+const STAGE_META = {
+    proposal:     { label: 'Proposal',     description: 'Dokumen yang disiapkan pada tahap pengajuan proposal.', tone: 'warning' },
+    verification: { label: 'Verifikasi',   description: 'Dokumen yang disiapkan pada tahap verifikasi lapangan.', tone: 'primary' },
+    disbursement: { label: 'Pencairan',    description: 'Dokumen yang disiapkan pada tahap pencairan & penyaluran.', tone: 'success' },
+};
+
+const STAGE_ICON = {
+    proposal:     'inventory_2',
+    verification: 'task_alt',
+    disbursement: 'payments',
+};
+
+const STAGE_ICON_BG = {
+    proposal:     'bg-warning-container text-on-warning-container',
+    verification: 'bg-primary-container text-on-primary-container',
+    disbursement: 'bg-success-container text-on-success-container',
+};
+
+const availableDocuments = computed(() => {
+    const status = props.loan.status;
+    const stageAllowed = (stage) => {
+        if (stage === 'proposal') return STAGE_PROPOSAL.includes(status);
+        if (stage === 'verification') return STAGE_VERIFICATION.includes(status);
+        if (stage === 'disbursement') return STAGE_DISBURSEMENT.includes(status);
+        return false;
+    };
+    return LOAN_DOCUMENTS
+        .filter((d) => stageAllowed(d.stage))
+        .map((d) => ({
+            ...d,
+            url: `/lending/loans/${props.loan.row_id}/documents/${d.key}`,
+        }));
+});
+
+const documentsByStage = computed(() => {
+    const docs = availableDocuments.value;
+    const query = docSearch.value.trim().toLowerCase();
+    const filtered = query
+        ? docs.filter((d) => d.label.toLowerCase().includes(query) || d.key.includes(query))
+        : docs;
+    const buckets = { proposal: [], verification: [], disbursement: [] };
+    for (const d of filtered) {
+        if (docStageFilter.value !== 'all' && docStageFilter.value !== d.stage) continue;
+        buckets[d.stage].push(d);
+    }
+    return buckets;
+});
+
+const visibleStageKeys = computed(() => {
+    return ['proposal', 'verification', 'disbursement'].filter(
+        (stage) => documentsByStage.value[stage].length > 0,
+    );
+});
+
+const documentStageCounts = computed(() => {
+    const counts = { proposal: 0, verification: 0, disbursement: 0 };
+    for (const d of availableDocuments.value) counts[d.stage] += 1;
+    return counts;
+});
 const canCommitteeSave = computed(() => can('loans.manage'));
 const canShowVerifyForm = computed(() => can('loans.verify') && props.loan.status === 'draft');
 const canShowApproveForm = computed(() => can('loans.approve') && props.loan.status === 'verified');
@@ -398,6 +512,47 @@ function setAllocatedAmount(memberRowId, value) {
                 </div>
             </header>
 
+            <nav class="border-b border-outline-variant" aria-label="Bagian detail pinjaman">
+                <div class="-mb-px flex flex-wrap gap-x-6 gap-y-1" role="tablist">
+                    <button
+                        type="button"
+                        role="tab"
+                        :aria-selected="activeTab === 'overview'"
+                        class="flex items-center gap-2 border-b-2 px-1 pb-3 pt-2 text-sm font-medium transition-colors"
+                        :class="activeTab === 'overview'
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-on-surface-variant hover:border-outline hover:text-on-surface'"
+                        @click="activeTab = 'overview'"
+                    >
+                        <AppIcon name="dashboard" class="text-base" />
+                        <span>Ringkasan</span>
+                    </button>
+                    <button
+                        v-if="canPrintDocument"
+                        type="button"
+                        role="tab"
+                        :aria-selected="activeTab === 'documents'"
+                        class="flex items-center gap-2 border-b-2 px-1 pb-3 pt-2 text-sm font-medium transition-colors"
+                        :class="activeTab === 'documents'
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-on-surface-variant hover:border-outline hover:text-on-surface'"
+                        @click="activeTab = 'documents'"
+                    >
+                        <AppIcon name="description" class="text-base" />
+                        <span>Dokumen Cetak</span>
+                        <span
+                            class="rounded-full px-2 py-0.5 text-xs font-semibold"
+                            :class="activeTab === 'documents'
+                                ? 'bg-primary text-on-primary'
+                                : 'bg-surface-container-high text-on-surface-variant'"
+                        >
+                            {{ availableDocuments.length }}
+                        </span>
+                    </button>
+                </div>
+            </nav>
+
+            <div v-if="activeTab === 'overview'" class="space-y-6">
             <section class="overflow-hidden rounded-2xl shadow-md" :class="heroToneClass">
                 <div class="grid gap-6 p-6 sm:grid-cols-2 sm:p-8">
                     <div class="space-y-2">
@@ -527,6 +682,118 @@ function setAllocatedAmount(memberRowId, value) {
                     </div>
                 </div>
             </AppCard>
+            </div>
+
+            <div v-if="activeTab === 'documents' && canPrintDocument" class="space-y-6">
+                <AppCard>
+                    <template #header>
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <h2 class="text-lg font-semibold text-primary">Dokumen Cetak</h2>
+                                <p class="mt-1 text-sm text-on-surface-variant">
+                                    Pilih dokumen untuk membuka PDF di tab baru. Dokumen mengikuti tahap pinjamanan saat ini
+                                    (<strong>{{ statusMeta.label }}</strong>) — total tersedia
+                                    <strong>{{ availableDocuments.length }}</strong> dokumen.
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <AppInput
+                                    v-model="docSearch"
+                                    type="search"
+                                    icon="search"
+                                    label="Cari dokumen"
+                                    :hide-label="true"
+                                    placeholder="Cari dokumen..."
+                                    class="w-56"
+                                />
+                            </div>
+                        </div>
+                    </template>
+
+                    <div class="flex flex-wrap gap-2 border-b border-outline-variant pb-3">
+                        <button
+                            type="button"
+                            class="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
+                            :class="docStageFilter === 'all'
+                                ? 'bg-primary text-on-primary'
+                                : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container'"
+                            @click="docStageFilter = 'all'"
+                        >
+                            Semua ({{ availableDocuments.length }})
+                        </button>
+                        <button
+                            v-for="stage in ['proposal', 'verification', 'disbursement']"
+                            :key="stage"
+                            type="button"
+                            class="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
+                            :class="docStageFilter === stage
+                                ? 'bg-primary text-on-primary'
+                                : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container'"
+                            :disabled="documentStageCounts[stage] === 0"
+                            @click="docStageFilter = stage"
+                        >
+                            {{ STAGE_META[stage].label }} ({{ documentStageCounts[stage] }})
+                        </button>
+                    </div>
+                </AppCard>
+
+                <AppCard v-for="stage in visibleStageKeys" :key="stage" :data-stage="stage">
+                    <template #header>
+                        <div class="flex items-center gap-3">
+                            <span
+                                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                                :class="STAGE_ICON_BG[stage]"
+                            >
+                                <AppIcon :name="STAGE_ICON[stage]" class="text-lg" />
+                            </span>
+                            <div class="min-w-0 flex-1">
+                                <h3 class="text-base font-semibold text-on-surface">{{ STAGE_META[stage].label }}</h3>
+                                <p class="text-xs text-on-surface-variant">{{ STAGE_META[stage].description }}</p>
+                            </div>
+                            <span class="text-sm font-semibold text-primary">{{ documentsByStage[stage].length }}</span>
+                        </div>
+                    </template>
+
+                    <ul class="divide-y divide-outline-variant">
+                        <li v-for="doc in documentsByStage[stage]" :key="doc.key" class="group">
+                            <a
+                                :href="doc.url"
+                                target="_blank"
+                                rel="noopener"
+                                class="flex items-center gap-3 py-2.5 px-1 -mx-1 rounded-md transition-colors hover:bg-surface-container-low focus:bg-surface-container-low focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                            >
+                                <AppIcon :name="doc.icon" class="text-lg text-on-surface-variant group-hover:text-primary shrink-0" />
+                                <span class="min-w-0 flex-1 truncate text-sm text-on-surface group-hover:text-primary">
+                                    {{ doc.label }}
+                                </span>
+                                <span class="hidden text-xs uppercase tracking-wider text-on-surface-variant sm:inline">
+                                    PDF
+                                </span>
+                                <AppIcon name="chevron_right" class="text-base text-on-surface-variant group-hover:text-primary shrink-0" />
+                            </a>
+                        </li>
+                    </ul>
+                </AppCard>
+
+                <p v-if="visibleStageKeys.length === 0 && availableDocuments.length > 0" class="rounded-xl border border-outline-variant bg-surface-container-low p-6 text-center text-sm text-on-surface-variant">
+                    Tidak ada dokumen yang cocok dengan filter. Coba reset filter di atas.
+                </p>
+
+                <AppEmptyState
+                    v-if="availableDocuments.length === 0"
+                    icon="description"
+                    title="Belum ada dokumen untuk tahap ini"
+                    :description="`Pinjamankan status '${statusMeta.label}' belum memiliki dokumen yang tersedia.`"
+                />
+                <AppEmptyState
+                    v-else-if="documentsByStage.proposal.length === 0
+                        && documentsByStage.verification.length === 0
+                        && documentsByStage.disbursement.length === 0"
+                    icon="search_off"
+                    title="Tidak ada dokumen cocok"
+                    :description="`Pencarian '${docSearch}' tidak menemukan dokumen pada tahap yang dipilih.`"
+                />
+            </div>
 
             <AppModal v-model="committeeConfirmOpen" title="Simpan pengurus?">
                 <p class="text-sm text-on-surface">
@@ -542,14 +809,6 @@ function setAllocatedAmount(memberRowId, value) {
                     <AppButton :loading="committeeForm.processing" @click="submitCommittee">Ya, simpan</AppButton>
                 </template>
             </AppModal>
-
-            <AppCard v-if="status === 'draft'">
-                <template #header>
-                    <h2 class="text-lg font-bold text-primary">Hasil Verifikasi</h2>
-                    <p class="text-sm text-on-surface-variant">Belum ada hasil verifikasi untuk proposal ini.</p>
-                </template>
-                <p class="text-sm text-on-surface-variant">Pemeriksaan lapangan, kelengkapan dokumen, dan catatan verifikasi akan dicatat di sini setelah verifikasi dilakukan.</p>
-            </AppCard>
 
             <AppCard v-if="status === 'verified'">
                 <template #header>
@@ -735,11 +994,11 @@ function setAllocatedAmount(memberRowId, value) {
                 </div>
             </AppCard>
 
-            <AppCard>
+            <AppCard v-if="paymentRows.length">
                 <template #header>
                     <h2 class="text-lg font-bold text-primary">Tabel Pembayaran</h2>
                 </template>
-                <div v-if="paymentRows.length" class="overflow-x-auto">
+                <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm">
                         <thead class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">
                             <tr>
@@ -765,7 +1024,6 @@ function setAllocatedAmount(memberRowId, value) {
                         </tbody>
                     </table>
                 </div>
-                <AppEmptyState v-else icon="payments" title="Belum ada pembayaran" description="Pembayaran angsuran akan tampil di sini." />
             </AppCard>
 
             <AppCard>

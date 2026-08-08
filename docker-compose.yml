@@ -16,11 +16,30 @@ services:
       TENANT_DB_HOST: mysql
       REDIS_HOST: redis
       REDIS_CLIENT: predis
+      # enpii/assistant package — vector/RAG store
+      RAG_DB_CONNECTION: pgsql
+      RAG_DB_HOST: postgres
+      RAG_DB_PORT: 5432
+      RAG_DB_DATABASE: ${PGDATABASE:-assistant}
+      RAG_DB_USERNAME: ${PGUSER:-assistant}
+      RAG_DB_PASSWORD: ${PGPASSWORD:-assistant}
+      # Embedding base URL points at the in-cluster ollama service. If you
+      # want to talk to an ollama running on the host machine, override
+      # EMBEDDING_BASE_URL=http://host.docker.internal:11434/v1 in .env.
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-http://ollama:11434/v1}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-768}
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+      ollama-init:
+        condition: service_completed_successfully
 
   nginx:
     image: nginx:1.29-alpine
@@ -59,21 +78,73 @@ services:
       timeout: 3s
       retries: 10
 
-  node:
-    image: node:24-alpine
-    working_dir: /var/www/html
-    command: sh -c "npm install && npm run dev"
-    environment:
-      VITE_PORT: ${VITE_PORT:-5173}
+  # enpii/assistant — vector store for RAG embeddings (pgvector).
+  # Runs alongside MySQL; package's ai_* tables live here so the HNSW index
+  # gives sub-millisecond cosine similarity over document chunks.
+  postgres:
+    image: pgvector/pgvector:pg16
     ports:
-      - "${VITE_PORT:-5173}:5173"
+      - "${PGPORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${PGDATABASE:-assistant}
+      POSTGRES_USER: ${PGUSER:-assistant}
+      POSTGRES_PASSWORD: ${PGPASSWORD:-assistant}
     volumes:
-      - .:/var/www/html
-      - node-modules:/var/www/html/node_modules
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # enpii/assistant — local LLM + embedding server. The init container pulls
+  # the embedding model on first boot; afterwards the image is reused and
+  # models stay in the `ollama-data` named volume.
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  ollama-init:
+    image: ollama/ollama:latest
     depends_on:
-      - app
+      ollama:
+        condition: service_started
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        echo "Waiting for Ollama..."
+        i=0
+        until ollama list >/dev/null 2>&1; do
+          i=$$((i+1))
+          if [ "$$i" -gt 60 ]; then echo "Ollama not ready"; exit 1; fi
+          sleep 2
+        done
+        MODEL="$${EMBEDDING_MODEL:-nomic-embed-text}"
+        echo "Pulling $$MODEL..."
+        ollama pull "$$MODEL"
+        echo "Model ready."
+    restart: "no"
+
+  # Vite dev server runs on host (not in container). Run `npm install` once,
+  # then `npm run dev` whenever you want HMR. Or `npm run build` for prod assets
+  # into public/build/.
 
 volumes:
   mysql-data:
   redis-data:
-  node-modules:
+  pg-data:
+  ollama-data:

@@ -29,6 +29,19 @@ final class DashboardService
         'active' => 'Aktif',
     ];
 
+    private const PIPELINE_MODAL_LIMIT = 25;
+
+    /**
+     * Map pipeline tab key (Indeks di URL) ke daftar status yang harus dicakup.
+     * Disengaja reuse dengan {@see \App\Http\Controllers\Lending\LoanController::index()}.
+     */
+    private const PIPELINE_STATUS_MAP = [
+        'proposal' => ['draft'],
+        'verifikasi' => ['verified'],
+        'waiting' => ['waiting', 'approved'],
+        'aktif' => ['active', 'disbursed'],
+    ];
+
     public function __construct(
         private readonly TenantContext $context,
     ) {
@@ -211,7 +224,7 @@ final class DashboardService
     }
 
     /**
-     * @return list<array{status:string,label:string,count:int,amount:float}>
+     * @return list<array{status:string,key:string,label:string,count:int,amount:float}>
      */
     private function pipeline(): array
     {
@@ -223,10 +236,13 @@ final class DashboardService
             ->keyBy('status');
 
         $out = [];
-        foreach (self::PIPELINE as $status => $label) {
-            $row = $rows->get($status);
+        foreach (self::PIPELINE_STATUS_MAP as $key => $statuses) {
+            $primary = $statuses[0];
+            $label = self::PIPELINE[$primary] ?? $primary;
+            $row = $rows->get($primary);
             $out[] = [
-                'status' => $status,
+                'status' => $primary,
+                'key' => $key,
                 'label' => $label,
                 'count' => (int) ($row->cnt ?? 0),
                 'amount' => round((float) ($row->amt ?? 0), 2),
@@ -234,6 +250,126 @@ final class DashboardService
         }
 
         return $out;
+    }
+
+    /**
+     * Daftar pinjaman ringkas (maks {@see self::PIPELINE_MODAL_LIMIT}) untuk modal
+     * pipeline dashboard. Hanya menampilkan kolom yang relevan dengan status.
+     *
+     * Mapping status diselaraskan dengan {@see \App\Http\Controllers\Lending\LoanController::index()}.
+     *
+     * @return null|array{key:string,label:string,total:int,limit:int,rows:list<array<string,mixed>>}
+     */
+    public function loansByStatus(string $key): ?array
+    {
+        if (! array_key_exists($key, self::PIPELINE_STATUS_MAP)) {
+            return null;
+        }
+
+        $label = self::PIPELINE[$this->pipelineKeyToStatus($key)] ?? null;
+        if ($label === null) {
+            return null;
+        }
+
+        $statuses = self::PIPELINE_STATUS_MAP[$key];
+
+        $base = Loan::query()
+            ->whereIn('status', $statuses)
+            ->with([
+                'product:row_id,code,name',
+                'borrower.group:row_id,name,address,organization_unit_row_id',
+                'borrower.group.village:row_id,name',
+                'installments',
+                'statusHistories' => fn ($q) => $q->orderBy('changed_at'),
+            ]);
+
+        if ($key === 'aktif') {
+            $base->whereHas('installments', function ($q): void {
+                $q->whereRaw('principal_due > principal_paid');
+            });
+        }
+
+        $total = (clone $base)->count();
+
+        $loans = $base
+            ->orderByDesc('proposed_at')
+            ->orderByDesc('row_id')
+            ->limit(self::PIPELINE_MODAL_LIMIT)
+            ->get();
+
+        $rows = $loans->map(fn (Loan $loan): array => $this->presentLoanForModal($loan, $key))->all();
+
+        return [
+            'key' => $key,
+            'label' => $label,
+            'total' => (int) $total,
+            'limit' => self::PIPELINE_MODAL_LIMIT,
+            'rows' => $rows,
+        ];
+    }
+
+    /**
+     * Pipeline key di URL (`proposal`/`verifikasi`/`waiting`/`aktif`) → status Loan (`draft`/`verified`/`waiting`/`active`).
+     */
+    private function pipelineKeyToStatus(string $key): string
+    {
+        return match ($key) {
+            'proposal' => 'draft',
+            'verifikasi' => 'verified',
+            'waiting' => 'waiting',
+            'aktif' => 'active',
+            default => $key,
+        };
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function presentLoanForModal(Loan $loan, string $key): array
+    {
+        $principalRemaining = 0.0;
+        $nextDue = null;
+
+        foreach ($loan->installments as $installment) {
+            $principalRemaining += (float) $installment->principal_due - (float) $installment->principal_paid;
+            if ($nextDue === null && (float) $installment->principal_due > (float) $installment->principal_paid) {
+                $nextDue = $installment->due_date;
+            }
+        }
+
+        $histories = $loan->statusHistories->keyBy('to_status');
+        $snapshot = function (string $fromKey) use ($histories, $loan): ?float {
+            $row = $histories->get($fromKey);
+            $value = $row?->principal_amount;
+            if ($value === null) {
+                $value = $loan->principal_amount;
+            }
+            return $value !== null ? (float) $value : null;
+        };
+
+        $group = $loan->borrower?->group;
+
+        return [
+            'row_id' => (int) $loan->row_id,
+            'id' => (int) $loan->id,
+            'loan_number' => $loan->loan_number ?? '—',
+            'status' => $loan->status,
+            'proposed_at' => $loan->proposed_at?->format('Y-m-d'),
+            'verified_at' => $loan->verified_at?->format('Y-m-d'),
+            'approved_at' => $loan->approved_at?->format('Y-m-d'),
+            'funded_at' => $loan->funded_at?->format('Y-m-d'),
+            'disbursed_at' => $loan->disbursed_at?->format('Y-m-d'),
+            'principal_amount' => (float) $loan->principal_amount,
+            'principal_remaining' => round($principalRemaining, 2),
+            'next_due_date' => $nextDue?->format('Y-m-d'),
+            'proposed_amount' => $snapshot('draft'),
+            'verification_amount' => $snapshot('verified'),
+            'allocated_amount' => $snapshot('active') ?? $snapshot('disbursed'),
+            'product_code' => $loan->product?->code,
+            'product_name' => $loan->product?->name,
+            'group_name' => $group?->name ?? '—',
+            'group_address' => trim(($group?->address ?? '').' '.($group?->village?->name ?? '')),
+        ];
     }
 
     /**
