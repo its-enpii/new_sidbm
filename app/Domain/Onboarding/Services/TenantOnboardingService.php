@@ -6,7 +6,7 @@ namespace App\Domain\Onboarding\Services;
 
 use App\Domain\Accounting\Models\Account;
 use App\Domain\Accounting\Models\JournalEntry;
-use App\Domain\Accounting\Models\JournalEntryLine;
+use App\Domain\Accounting\Models\JournalLine;
 use App\Domain\Lending\Models\Loan;
 use App\Domain\Lending\Models\LoanInstallment;
 use App\Domain\Lending\Models\LoanProduct;
@@ -69,17 +69,17 @@ final class TenantOnboardingService
             $entry = JournalEntry::query()->create([
                 'transaction_date' => $asOfDate,
                 'transaction_type' => 'pemindahan_saldo',
-                'description' => 'Posting Saldo Awal Keuangan Tenant Baru (Opening Balances)',
-                'reference' => 'SALDO-AWAL-' . date('Ymd', strtotime($asOfDate)),
-                'amount' => $totalDebit,
+                'description' => 'Posting Saldo Awal Keuangan Tenant Baru (Opening Balances - ' . $asOfDate . ')',
                 'status' => 'posted',
                 'posted_at' => now(),
-                'created_by' => $userId,
+                'created_by_user_id' => $userId,
             ]);
 
+            $lineNumber = 1;
             foreach ($validLines as $l) {
-                JournalEntryLine::query()->create([
+                JournalLine::query()->create([
                     'journal_entry_row_id' => $entry->row_id,
+                    'line_number' => $lineNumber++,
                     'account_row_id' => $l['account_row_id'],
                     'debit' => $l['debit'],
                     'credit' => $l['credit'],
