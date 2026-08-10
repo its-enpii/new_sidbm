@@ -2,34 +2,24 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\Accounting\TaxEstimateController;
-use App\Http\Controllers\Budgeting\BudgetController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Lending\LoanController;
-use App\Http\Controllers\Lending\LoanReportController;
-use App\Http\Controllers\MasterData\GroupController;
-use App\Http\Controllers\MasterData\MemberController;
-use App\Http\Controllers\MasterData\OtherInstitutionController;
-use App\Http\Controllers\Assets\AssetController;
-use App\Http\Controllers\MasterData\VillageController;
-use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\IntegrationController as AdminIntegrationController;
 use App\Http\Controllers\Admin\InvoiceController as AdminInvoiceController;
 use App\Http\Controllers\Admin\InvoicePaymentController as AdminInvoicePaymentController;
+use App\Http\Controllers\Admin\MigrationController as AdminMigrationController;
 use App\Http\Controllers\Admin\PlanController as AdminPlanController;
 use App\Http\Controllers\Admin\TenantController as AdminTenantController;
 use App\Http\Controllers\Admin\TenantUserController as AdminTenantUserController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Billing\InvoiceController as TenantInvoiceController;
+use App\Http\Controllers\Regency\RegencyDashboardController;
+use App\Http\Controllers\Regency\RegencyReportController;
 use App\Http\Controllers\RegionalCodeController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Webhooks\TripayWebhookController;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\Regency\RegencyDashboardController;
-use App\Http\Controllers\Regency\RegencyReportController;
-
 
 Route::get('/', fn () => Inertia::render('Home', [
     'name' => config('app.name'),
@@ -83,235 +73,102 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::post('/invoices/{invoice}/payments/tripay', [AdminInvoicePaymentController::class, 'storeTripay'])->name('invoices.payments.tripay');
     Route::post('/subscriptions/{subscription}/invoices', [AdminInvoiceController::class, 'generateFromSubscription'])->name('subscriptions.invoices.store');
 
+    Route::get('/migrations', [AdminMigrationController::class, 'index'])->name('migrations.index');
+    Route::post('/migrations', [AdminMigrationController::class, 'store'])->name('migrations.store');
+    Route::get('/migrations/{run}', [AdminMigrationController::class, 'show'])->name('migrations.show');
+
     Route::get('/regional/provinces', [RegionalCodeController::class, 'provinces'])->name('regional.provinces');
     Route::get('/regional/regencies/{province}', [RegionalCodeController::class, 'regencies'])->name('regional.regencies');
-    Route::get('/regional/districts/{regency}', [RegionalCodeController::class, 'districts'])->name('regional.districts');
-
-    Route::prefix('integrations')->name('integrations.')->group(function (): void {
-        Route::get('/orchestrator', [\App\Http\Controllers\Admin\IntegrationController::class, 'index'])->name('orchestrator');
-        Route::put('/orchestrator', [\App\Http\Controllers\Admin\IntegrationController::class, 'update'])->name('orchestrator.update');
-        Route::post('/orchestrator/test', [\App\Http\Controllers\Admin\IntegrationController::class, 'test'])->name('orchestrator.test');
-        Route::post('/orchestrator/chat', [\App\Http\Controllers\Admin\IntegrationController::class, 'chat'])->name('orchestrator.chat');
-        Route::post('/orchestrator/upload', [\App\Http\Controllers\Admin\IntegrationController::class, 'upload'])->name('orchestrator.upload');
-
-        Route::match(['get', 'post'], '/orchestrator/personas', [\App\Http\Controllers\Admin\IntegrationController::class, 'personas'])->name('orchestrator.personas');
-        Route::post('/orchestrator/personas/store', [\App\Http\Controllers\Admin\IntegrationController::class, 'storePersona'])->name('orchestrator.personas.store');
-        Route::put('/orchestrator/personas/{id}', [\App\Http\Controllers\Admin\IntegrationController::class, 'updatePersona'])->name('orchestrator.personas.update');
-        Route::delete('/orchestrator/personas/{id}', [\App\Http\Controllers\Admin\IntegrationController::class, 'deletePersona'])->name('orchestrator.personas.delete');
-        Route::post('/orchestrator/personas/{id}/toggle', [\App\Http\Controllers\Admin\IntegrationController::class, 'togglePersonaStatus'])->name('orchestrator.personas.toggle');
-
-        Route::match(['get', 'post'], '/orchestrator/documents', [\App\Http\Controllers\Admin\IntegrationController::class, 'documents'])->name('orchestrator.documents');
-        Route::get('/orchestrator/documents/{id}', [\App\Http\Controllers\Admin\IntegrationController::class, 'documentDetail'])->name('orchestrator.documents.detail');
-        Route::delete('/orchestrator/documents/{id}', [\App\Http\Controllers\Admin\IntegrationController::class, 'deleteDocument'])->name('orchestrator.documents.delete');
-
-        Route::match(['get', 'post'], '/orchestrator/tools', [\App\Http\Controllers\Admin\IntegrationController::class, 'tools'])->name('orchestrator.tools');
-        Route::post('/orchestrator/tools/sync', [\App\Http\Controllers\Admin\IntegrationController::class, 'syncTools'])->name('orchestrator.tools.sync');
-        Route::put('/orchestrator/tools/{id}', [\App\Http\Controllers\Admin\IntegrationController::class, 'updateTool'])->name('orchestrator.tools.update');
-
-        Route::get('/orchestrator/conversations', [\App\Http\Controllers\Admin\IntegrationController::class, 'conversations'])->name('orchestrator.conversations');
-        Route::get('/orchestrator/audit-logs', [\App\Http\Controllers\Admin\IntegrationController::class, 'auditLogs'])->name('orchestrator.audit_logs');
-    });
+    Route::get('/integrations', [AdminIntegrationController::class, 'index'])->name('integrations.index');
+    Route::post('/integrations/tripay', [AdminIntegrationController::class, 'updateTripay'])->name('integrations.tripay');
+    Route::post('/integrations/tripay/test', [AdminIntegrationController::class, 'testTripay'])->name('integrations.tripay.test');
+    Route::post('/integrations/whatsapp', [AdminIntegrationController::class, 'updateWhatsapp'])->name('integrations.whatsapp');
+    Route::post('/integrations/whatsapp/pair', [AdminIntegrationController::class, 'pairWhatsapp'])->name('integrations.whatsapp.pair');
+    Route::post('/integrations/whatsapp/test', [AdminIntegrationController::class, 'testWhatsapp'])->name('integrations.whatsapp.test');
+    Route::post('/integrations/ai', [AdminIntegrationController::class, 'updateAi'])->name('integrations.ai');
+    Route::post('/integrations/ai/sync-sources', [AdminIntegrationController::class, 'syncKnowledgeSources'])->name('integrations.ai.sync-sources');
 });
 
-Route::redirect('/superadmin/tenants', '/admin/tenants');
-Route::redirect('/superadmin/tenants/create', '/admin/tenants/create');
-Route::redirect('/superadmin', '/admin');
+Route::middleware(['auth'])->group(function (): void {
+    Route::get('/dashboard', fn () => TenantContext::getTenant()
+        ? app(\App\Http\Controllers\DashboardController::class)($this->app->request)
+        : redirect()->route('admin.dashboard')
+    )->name('dashboard');
 
-Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function (): void {
-    // enpii/assistant package routes (in-process chat orchestrator)
-    Route::prefix('assistant')->group(function (): void {
-        require base_path('packages/assistant/routes/api.php');
+    Route::prefix('regency')->name('regency.')->middleware(['regency.user'])->group(function (): void {
+        Route::get('/dashboard', [RegencyDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/reports/balance-sheet', [RegencyReportController::class, 'balanceSheet'])->name('reports.balance-sheet');
+        Route::get('/reports/income-statement', [RegencyReportController::class, 'incomeStatement'])->name('reports.income-statement');
+        Route::get('/reports/general-ledger', [RegencyReportController::class, 'generalLedger'])->name('reports.general-ledger');
+        Route::get('/reports/cash-flow', [RegencyReportController::class, 'cashFlow'])->name('reports.cash-flow');
+        Route::get('/reports/calk', [RegencyReportController::class, 'calk'])->name('reports.calk');
     });
-
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/search', SearchController::class)->name('search');
 
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::put('/profile', [ProfileController::class, 'updateProfile'])->name('profile.update');
-    Route::put('/profile/account', [ProfileController::class, 'updateAccount'])->name('profile.account.update');
-    Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
-    Route::delete('/profile/photo', [ProfileController::class, 'destroyPhoto'])->name('profile.photo.destroy');
+    Route::get('/billing/invoices', [TenantInvoiceController::class, 'index'])->name('billing.invoices.index');
+    Route::get('/billing/invoices/{invoice}', [TenantInvoiceController::class, 'show'])->name('billing.invoices.show');
+    Route::post('/billing/invoices/{invoice}/checkout/tripay', [TenantInvoiceController::class, 'checkoutTripay'])->name('billing.invoices.checkout.tripay');
 
-    // Legacy path → accounting namespace
-    Route::redirect('/assets', '/accounting/assets', 301);
-    Route::get('/assets/{asset}', fn (string $asset) => redirect("/accounting/assets/{$asset}", 301));
-    Route::get('/assets/{asset}/edit', fn (string $asset) => redirect("/accounting/assets/{$asset}/edit", 301));
+    Route::get('/membership/members', [\App\Http\Controllers\Membership\MemberController::class, 'index'])->name('membership.members.index');
+    Route::get('/membership/members/create', [\App\Http\Controllers\Membership\MemberController::class, 'create'])->name('membership.members.create');
+    Route::post('/membership/members', [\App\Http\Controllers\Membership\MemberController::class, 'store'])->name('membership.members.store');
+    Route::get('/membership/members/{member}', [\App\Http\Controllers\Membership\MemberController::class, 'show'])->name('membership.members.show');
+    Route::get('/membership/members/{member}/edit', [\App\Http\Controllers\Membership\MemberController::class, 'edit'])->name('membership.members.edit');
+    Route::put('/membership/members/{member}', [\App\Http\Controllers\Membership\MemberController::class, 'update'])->name('membership.members.update');
 
-    Route::get('/master-data/members', [MemberController::class, 'index'])->name('master-data.members.index');
-    Route::get('/master-data/members/create', [MemberController::class, 'create'])->name('master-data.members.create');
-    Route::get('/master-data/members/lookup', [MemberController::class, 'lookup'])->name('master-data.members.lookup');
-    Route::get('/master-data/members/export', [MemberController::class, 'export'])->name('master-data.members.export');
-    Route::post('/master-data/members/import', [MemberController::class, 'import'])->name('master-data.members.import');
-    Route::post('/master-data/members', [MemberController::class, 'store'])->name('master-data.members.store');
-    Route::get('/master-data/members/{member}', [MemberController::class, 'show'])->name('master-data.members.show');
-    Route::get('/master-data/members/{member}/edit', [MemberController::class, 'edit'])->name('master-data.members.edit');
-    Route::put('/master-data/members/{member}', [MemberController::class, 'update'])->name('master-data.members.update');
-    Route::delete('/master-data/members/{member}', [MemberController::class, 'destroy'])->name('master-data.members.destroy');
+    Route::get('/membership/groups', [\App\Http\Controllers\Membership\GroupController::class, 'index'])->name('membership.groups.index');
+    Route::get('/membership/groups/create', [\App\Http\Controllers\Membership\GroupController::class, 'create'])->name('membership.groups.create');
+    Route::post('/membership/groups', [\App\Http\Controllers\Membership\GroupController::class, 'store'])->name('membership.groups.store');
+    Route::get('/membership/groups/{group}', [\App\Http\Controllers\Membership\GroupController::class, 'show'])->name('membership.groups.show');
+    Route::get('/membership/groups/{group}/edit', [\App\Http\Controllers\Membership\GroupController::class, 'edit'])->name('membership.groups.edit');
+    Route::put('/membership/groups/{group}', [\App\Http\Controllers\Membership\GroupController::class, 'update'])->name('membership.groups.update');
 
-    Route::get('/master-data/groups', [GroupController::class, 'index'])->name('master-data.groups.index');
-    Route::get('/master-data/groups/create', [GroupController::class, 'create'])->name('master-data.groups.create');
-    Route::get('/master-data/groups/member-options', [GroupController::class, 'memberOptions'])->name('master-data.groups.member-options');
-    Route::get('/master-data/groups/export', [GroupController::class, 'export'])->name('master-data.groups.export');
-    Route::post('/master-data/groups/import', [GroupController::class, 'import'])->name('master-data.groups.import');
-    Route::post('/master-data/groups/members', [GroupController::class, 'storeMember'])->name('master-data.groups.members.store');
-    Route::post('/master-data/groups', [GroupController::class, 'store'])->name('master-data.groups.store');
-    Route::get('/master-data/groups/{group}', [GroupController::class, 'show'])->name('master-data.groups.show');
-    Route::get('/master-data/groups/{group}/edit', [GroupController::class, 'edit'])->name('master-data.groups.edit');
-    Route::put('/master-data/groups/{group}', [GroupController::class, 'update'])->name('master-data.groups.update');
-    Route::delete('/master-data/groups/{group}', [GroupController::class, 'destroy'])->name('master-data.groups.destroy');
+    Route::get('/lending/proposals', [\App\Http\Controllers\Lending\LoanProposalController::class, 'index'])->name('lending.proposals.index');
+    Route::get('/lending/proposals/create', [\App\Http\Controllers\Lending\LoanProposalController::class, 'create'])->name('lending.proposals.create');
+    Route::post('/lending/proposals', [\App\Http\Controllers\Lending\LoanProposalController::class, 'store'])->name('lending.proposals.store');
+    Route::get('/lending/proposals/{proposal}', [\App\Http\Controllers\Lending\LoanProposalController::class, 'show'])->name('lending.proposals.show');
+    Route::get('/lending/proposals/{proposal}/edit', [\App\Http\Controllers\Lending\LoanProposalController::class, 'edit'])->name('lending.proposals.edit');
+    Route::put('/lending/proposals/{proposal}', [\App\Http\Controllers\Lending\LoanProposalController::class, 'update'])->name('lending.proposals.update');
+    Route::post('/lending/proposals/{proposal}/submit', [\App\Http\Controllers\Lending\LoanProposalController::class, 'submit'])->name('lending.proposals.submit');
+    Route::post('/lending/proposals/{proposal}/approve', [\App\Http\Controllers\Lending\LoanProposalController::class, 'approve'])->name('lending.proposals.approve');
+    Route::post('/lending/proposals/{proposal}/reject', [\App\Http\Controllers\Lending\LoanProposalController::class, 'reject'])->name('lending.proposals.reject');
 
-    Route::get('/master-data/villages', [VillageController::class, 'index'])->name('master-data.villages.index');
-    Route::get('/master-data/villages/{village}/edit', [VillageController::class, 'edit'])->name('master-data.villages.edit');
-    Route::put('/master-data/villages/{village}', [VillageController::class, 'update'])->name('master-data.villages.update');
+    Route::get('/lending/loans', [\App\Http\Controllers\Lending\LoanController::class, 'index'])->name('lending.loans.index');
+    Route::get('/lending/loans/{loan}', [\App\Http\Controllers\Lending\LoanController::class, 'show'])->name('lending.loans.show');
+    Route::post('/lending/loans/{loan}/disburse', [\App\Http\Controllers\Lending\LoanController::class, 'disburse'])->name('lending.loans.disburse');
 
-    Route::get('/master-data/institutions', [OtherInstitutionController::class, 'index'])->name('master-data.institutions.index');
-    Route::get('/master-data/institutions/create', [OtherInstitutionController::class, 'create'])->name('master-data.institutions.create');
-    Route::get('/master-data/institutions/export', [OtherInstitutionController::class, 'export'])->name('master-data.institutions.export');
-    Route::post('/master-data/institutions/import', [OtherInstitutionController::class, 'import'])->name('master-data.institutions.import');
-    Route::post('/master-data/institutions', [OtherInstitutionController::class, 'store'])->name('master-data.institutions.store');
-    Route::get('/master-data/institutions/{institution}', [OtherInstitutionController::class, 'show'])->name('master-data.institutions.show');
-    Route::get('/master-data/institutions/{institution}/edit', [OtherInstitutionController::class, 'edit'])->name('master-data.institutions.edit');
-    Route::put('/master-data/institutions/{institution}', [OtherInstitutionController::class, 'update'])->name('master-data.institutions.update');
+    Route::get('/lending/payments/create', [\App\Http\Controllers\Lending\LoanPaymentController::class, 'create'])->name('lending.payments.create');
+    Route::post('/lending/payments', [\App\Http\Controllers\Lending\LoanPaymentController::class, 'store'])->name('lending.payments.store');
 
-    Route::get('/lending/loans', [LoanController::class, 'index'])->name('lending.loans.index');
-    Route::get('/lending/loans/create', [LoanController::class, 'create'])->name('lending.loans.create');
-    Route::get('/lending/loans/beneficiary-options', [LoanController::class, 'beneficiaryOptions'])->name('lending.loans.beneficiary-options');
-    Route::post('/lending/loans', [LoanController::class, 'store'])->name('lending.loans.store');
-    Route::get('/lending/loans/{loan}', [LoanController::class, 'show'])->name('lending.loans.show');
-    Route::get('/lending/loans/{loan}/card', [LoanController::class, 'card'])->name('lending.loans.card');
-    Route::get('/lending/loans/{loan}/documents/{type}', [\App\Http\Controllers\Lending\LoanDocumentController::class, 'document'])
-        ->where('type', '[a-z_]+')
-        ->name('lending.loans.documents.print');
-    Route::put('/lending/loans/{loan}', [LoanController::class, 'update'])->name('lending.loans.update');
-    Route::delete('/lending/loans/{loan}/beneficiaries/{member}', [LoanController::class, 'removeBeneficiary'])->name('lending.loans.beneficiaries.destroy');
-    Route::patch('/lending/loans/{loan}/verify', [LoanController::class, 'verify'])->name('lending.loans.verify');
-    Route::patch('/lending/loans/{loan}/approve', [LoanController::class, 'approve'])->name('lending.loans.approve');
-    Route::patch('/lending/loans/{loan}/disburse', [LoanController::class, 'disburse'])->name('lending.loans.disburse');
-    Route::patch('/lending/loans/{loan}/revert', [LoanController::class, 'revert'])->name('lending.loans.revert');
-    Route::patch('/lending/loans/{loan}/committee', [LoanController::class, 'setCommittee'])->name('lending.loans.committee');
-    Route::post('/lending/loans/{loan}/reschedule', [LoanController::class, 'reschedule'])->name('lending.loans.reschedule');
-    Route::post('/lending/loans/{loan}/write-off', [LoanController::class, 'writeOff'])->name('lending.loans.write-off');
+    Route::get('/lending/reports/portfolio', [\App\Http\Controllers\Lending\LoanReportController::class, 'portfolio'])->name('lending.reports.portfolio');
 
-    Route::prefix('lending/reports')->name('lending.reports.')->group(function (): void {
-        Route::get('/portfolio', [LoanReportController::class, 'portfolio'])->name('portfolio');
-        Route::get('/portfolio/pdf', [LoanReportController::class, 'portfolioPdf'])->name('portfolio.pdf');
-        Route::get('/schedule-vs-actual', [LoanReportController::class, 'scheduleVsActual'])->name('schedule-vs-actual');
-        Route::get('/schedule-vs-actual/pdf', [LoanReportController::class, 'scheduleVsActualPdf'])->name('schedule-vs-actual.pdf');
-    });
+    Route::get('/accounting/journal-entries', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'index'])->name('accounting.journal-entries.index');
+    Route::get('/accounting/journal-entries/create', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'create'])->name('accounting.journal-entries.create');
+    Route::post('/accounting/journal-entries', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'store'])->name('accounting.journal-entries.store');
+    Route::get('/accounting/journal-entries/{journalEntry}', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'show'])->name('accounting.journal-entries.show');
+    Route::post('/accounting/journal-entries/{journalEntry}/post', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'post'])->name('accounting.journal-entries.post');
+    Route::post('/accounting/journal-entries/{journalEntry}/reverse', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'reverse'])->name('accounting.journal-entries.reverse');
 
-    Route::prefix('accounting')->name('accounting.')->group(function (): void {
-        Route::get('/journals', [\App\Http\Controllers\Accounting\JournalBrowseController::class, 'index'])->name('journals.index');
-        Route::post('/journals/{entry}/reverse', [\App\Http\Controllers\Accounting\JournalBrowseController::class, 'reverse'])->name('journals.reverse');
+    Route::get('/accounting/reports/balance-sheet', [\App\Http\Controllers\Accounting\ReportController::class, 'balanceSheet'])->name('accounting.reports.balance-sheet');
+    Route::get('/accounting/reports/income-statement', [\App\Http\Controllers\Accounting\ReportController::class, 'incomeStatement'])->name('accounting.reports.income-statement');
+    Route::get('/accounting/reports/general-ledger', [\App\Http\Controllers\Accounting\ReportController::class, 'generalLedger'])->name('accounting.reports.general-ledger');
+    Route::get('/accounting/reports/cash-flow', [\App\Http\Controllers\Accounting\ReportController::class, 'cashFlow'])->name('accounting.reports.cash-flow');
+    Route::get('/accounting/reports/calk', [\App\Http\Controllers\Accounting\ReportController::class, 'calk'])->name('accounting.reports.calk');
+    Route::get('/accounting/reports/export/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'exportPdf'])->name('accounting.reports.export.pdf');
 
-        // Bukti Kas (BKM/BKK/BM) — cetak PDF bukti dari JournalEntry.
-        // kind opsional; bila kosong, kind ditentukan otomatis dari heuristic debit/kredit.
-        Route::get('/journals/{entry}/cash-evidence-kind', [\App\Http\Controllers\Accounting\CashEvidenceController::class, 'kind'])->name('journals.cash-evidence.kind');
-        Route::get('/journals/{entry}/cash-evidence', [\App\Http\Controllers\Accounting\CashEvidenceController::class, 'document'])->name('journals.cash-evidence');
-        Route::get('/journals/{entry}/cash-evidence/{kind}', [\App\Http\Controllers\Accounting\CashEvidenceController::class, 'document'])
-            ->where('kind', '[A-Z]{3}')
-            ->name('journals.cash-evidence.kind-explicit');
-        Route::get('/journal-entries/create', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'create'])->name('journal-entries.create');
-        Route::post('/journal-entries', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'store'])->name('journal-entries.store');
-        Route::get('/journal-entries/installment', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'installment'])->name('journal-entries.installment');
-        Route::post('/journal-entries/installment', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'storeInstallment'])->name('journal-entries.installment.store');
-        Route::get('/journal-entries/{entry}/installment-receipt', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'installmentReceipt'])->name('journal-entries.installment.receipt');
-        Route::get('/loans/{loan}/group-detail', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'loanGroupDetail'])->name('loans.group-detail');
-        Route::get('/loans/{loan}/installment-history', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'loanInstallmentHistory'])->name('loans.installment-history');
-        Route::get('/loans/{loan}/member-options', [\App\Http\Controllers\Accounting\JournalEntryController::class, 'groupMemberOptions'])->name('loans.member-options');
-        Route::get('/chart-of-accounts', [\App\Http\Controllers\Accounting\ChartOfAccountsController::class, 'index'])->name('chart-of-accounts.index');
-        // Register inventaris (nilai buku / status). Beli = journal-entries type pembelian_inventaris.
-        Route::get('/assets', [AssetController::class, 'index'])->name('assets.index');
-        Route::get('/assets/{asset}', [AssetController::class, 'show'])->name('assets.show');
-        Route::get('/assets/{asset}/edit', [AssetController::class, 'edit'])->name('assets.edit');
-        Route::put('/assets/{asset}', [AssetController::class, 'update'])->name('assets.update');
-        Route::delete('/assets/{asset}', [AssetController::class, 'destroy'])->name('assets.destroy');
-        Route::get('/period-close', [\App\Http\Controllers\Accounting\PeriodCloseController::class, 'index'])->name('period-close.index');
-        Route::post('/period-close/{year}/{month}/close', [\App\Http\Controllers\Accounting\PeriodCloseController::class, 'closeMonth'])
-            ->whereNumber(['year', 'month'])
-            ->name('period-close.month.close');
-        Route::post('/period-close/{year}/{month}/reopen', [\App\Http\Controllers\Accounting\PeriodCloseController::class, 'reopenMonth'])
-            ->whereNumber(['year', 'month'])
-            ->name('period-close.month.reopen');
-        Route::post('/period-close/year', [\App\Http\Controllers\Accounting\PeriodCloseController::class, 'closeYear'])->name('period-close.year');
-        Route::post('/period-close/allocate', [\App\Http\Controllers\Accounting\PeriodCloseController::class, 'allocate'])->name('period-close.allocate');
-    });
+    Route::get('/accounting/accounts', [\App\Http\Controllers\Accounting\AccountController::class, 'index'])->name('accounting.accounts.index');
+    Route::get('/accounting/accounts/create', [\App\Http\Controllers\Accounting\AccountController::class, 'create'])->name('accounting.accounts.create');
+    Route::post('/accounting/accounts', [\App\Http\Controllers\Accounting\AccountController::class, 'store'])->name('accounting.accounts.store');
+    Route::get('/accounting/accounts/{account}/edit', [\App\Http\Controllers\Accounting\AccountController::class, 'edit'])->name('accounting.accounts.edit');
+    Route::put('/accounting/accounts/{account}', [\App\Http\Controllers\Accounting\AccountController::class, 'update'])->name('accounting.accounts.update');
 
-    Route::prefix('budgeting')->name('budgeting.')->group(function (): void {
-        Route::get('/', [BudgetController::class, 'index'])->name('index');
-        Route::put('/{year}/{month}', [BudgetController::class, 'save'])->whereNumber(['year', 'month'])->name('save');
-        Route::post('/{year}/{month}/copy-previous', [BudgetController::class, 'copyPrevious'])->whereNumber(['year', 'month'])->name('copy-previous');
-        Route::post('/{year}/approve', [BudgetController::class, 'approve'])->whereNumber('year')->name('approve');
-        Route::post('/{year}/reopen', [BudgetController::class, 'reopen'])->whereNumber('year')->name('reopen');
-    });
-
-    Route::get('/accounting/tax-estimate', [TaxEstimateController::class, 'index'])->name('accounting.tax-estimate');
-
-    Route::prefix('accounting/reports')->name('accounting.reports.')->group(function (): void {
-        Route::get('/', [\App\Http\Controllers\Accounting\ReportController::class, 'index'])->name('index');
-        Route::get('/journals', [\App\Http\Controllers\Accounting\ReportController::class, 'journals'])->name('journals');
-        Route::get('/journals/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'journalsPdf'])->name('journals.pdf');
-        Route::get('/trial-balance', [\App\Http\Controllers\Accounting\ReportController::class, 'trialBalance'])->name('trial-balance');
-        Route::get('/trial-balance/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'trialBalancePdf'])->name('trial-balance.pdf');
-        Route::get('/balance-sheet', [\App\Http\Controllers\Accounting\ReportController::class, 'balanceSheet'])->name('balance-sheet');
-        Route::get('/balance-sheet/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'balanceSheetPdf'])->name('balance-sheet.pdf');
-        Route::get('/income-statement', [\App\Http\Controllers\Accounting\ReportController::class, 'incomeStatement'])->name('income-statement');
-        Route::get('/income-statement/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'incomeStatementPdf'])->name('income-statement.pdf');
-        Route::get('/cash-flow', [\App\Http\Controllers\Accounting\ReportController::class, 'cashFlow'])->name('cash-flow');
-        Route::get('/cash-flow/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'cashFlowPdf'])->name('cash-flow.pdf');
-        Route::get('/equity-change', [\App\Http\Controllers\Accounting\ReportController::class, 'equityChange'])->name('equity-change');
-        Route::get('/equity-change/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'equityChangePdf'])->name('equity-change.pdf');
-        Route::get('/calk', [\App\Http\Controllers\Accounting\ReportController::class, 'calk'])->name('calk');
-        Route::get('/calk/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'calkPdf'])->name('calk.pdf');
-        Route::put('/calk/notes', [\App\Http\Controllers\Accounting\ReportController::class, 'saveCalkNotes'])->name('calk.notes');
-        Route::get('/general-ledger', [\App\Http\Controllers\Accounting\ReportController::class, 'generalLedger'])->name('general-ledger');
-        Route::get('/general-ledger/pdf', [\App\Http\Controllers\Accounting\ReportController::class, 'generalLedgerPdf'])->name('general-ledger.pdf');
-    });
-
-    Route::prefix('notifications')->name('notifications.')->group(function (): void {
-        Route::get('/billing', [\App\Http\Controllers\Notifications\BillingNoticeController::class, 'index'])->name('billing');
-        Route::post('/billing/send', [\App\Http\Controllers\Notifications\BillingNoticeController::class, 'send'])->name('billing.send');
-    });
-
-    Route::prefix('billing')->name('billing.')->group(function (): void {
-        Route::get('/invoices', [TenantInvoiceController::class, 'index'])->name('invoices.index');
-        Route::get('/invoices/{invoice}', [TenantInvoiceController::class, 'show'])->name('invoices.show');
-        Route::post('/invoices/{invoice}/pay', [TenantInvoiceController::class, 'pay'])->name('invoices.pay');
-        Route::post('/invoices/{invoice}/check-status', [TenantInvoiceController::class, 'checkStatus'])->name('invoices.check-status');
-    });
-
-    Route::prefix('settings')->name('settings.')->group(function (): void {
-        Route::get('/', [\App\Http\Controllers\Settings\SettingsController::class, 'index'])->name('index');
-        Route::put('/identity', [\App\Http\Controllers\Settings\SettingsController::class, 'updateIdentity'])->name('identity.update');
-        Route::put('/lending-system', [\App\Http\Controllers\Settings\SettingsController::class, 'updateLendingSystem'])->name('lending-system.update');
-        Route::post('/logo', [\App\Http\Controllers\Settings\SettingsController::class, 'updateLogo'])->name('logo.update');
-        Route::delete('/logo', [\App\Http\Controllers\Settings\SettingsController::class, 'destroyLogo'])->name('logo.destroy');
-        Route::put('/whatsapp', [\App\Http\Controllers\Settings\SettingsController::class, 'updateWhatsapp'])->name('whatsapp.update');
-        Route::post('/whatsapp/test', [\App\Http\Controllers\Settings\SettingsController::class, 'testWhatsapp'])->name('whatsapp.test');
-        Route::post('/whatsapp/pair', [\App\Http\Controllers\Settings\SettingsController::class, 'pairWhatsapp'])->name('whatsapp.pair');
-        Route::put('/signatures', [\App\Http\Controllers\Settings\SettingsController::class, 'updateSignatures'])->name('signatures.update');
-    });
-});
-
-Route::middleware(['auth', 'tenant'])
-    ->prefix('t/{tenant}')
-    ->get('/health', fn () => response()->json([
-        'tenant_id' => app(TenantContext::class)->id(),
-        'tenant_code' => app(TenantContext::class)->tenant()->code,
-        'shard' => app(TenantContext::class)->shard()->code,
-    ]));
-
-
-Route::middleware(['auth', 'regency'])->prefix('regency')->name('regency.')->group(function (): void {
-    Route::get('/', [RegencyDashboardController::class, 'index'])->name('dashboard');
-    Route::get('/dashboard', [RegencyDashboardController::class, 'index'])->name('dashboard.index');
-
-    Route::prefix('reports')->name('reports.')->group(function (): void {
-        Route::get('/balance-sheet', [RegencyReportController::class, 'balanceSheet'])->name('balance-sheet');
-        Route::get('/income-statement', [RegencyReportController::class, 'incomeStatement'])->name('income-statement');
-        Route::get('/general-ledger', [RegencyReportController::class, 'generalLedger'])->name('general-ledger');
-        Route::get('/cash-flow', [RegencyReportController::class, 'cashFlow'])->name('cash-flow');
-        Route::get('/calk', [RegencyReportController::class, 'calk'])->name('calk');
-        Route::get('/{type}/pdf', [RegencyReportController::class, 'pdf'])->name('pdf');
-    });
+    Route::get('/assets', [\App\Http\Controllers\AssetController::class, 'index'])->name('assets.index');
+    Route::get('/assets/create', [\App\Http\Controllers\AssetController::class, 'create'])->name('assets.create');
+    Route::post('/assets', [\App\Http\Controllers\AssetController::class, 'store'])->name('assets.store');
+    Route::get('/assets/{asset}', [\App\Http\Controllers\AssetController::class, 'show'])->name('assets.show');
+    Route::get('/assets/{asset}/edit', [\App\Http\Controllers\AssetController::class, 'edit'])->name('assets.edit');
+    Route::put('/assets/{asset}', [\App\Http\Controllers\AssetController::class, 'update'])->name('assets.update');
+    Route::post('/assets/{asset}/depreciate', [\App\Http\Controllers\AssetController::class, 'depreciate'])->name('assets.depreciate');
+    Route::post('/assets/{asset}/dispose', [\App\Http\Controllers\AssetController::class, 'dispose'])->name('assets.dispose');
 });

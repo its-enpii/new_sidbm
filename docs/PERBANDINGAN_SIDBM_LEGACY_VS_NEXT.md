@@ -50,7 +50,7 @@
 - **Efisiensi Dev & Maintenance**: Menghilangkan hambatan pemeliharaan puluhan ribu tabel dinamis, mengurangi waktu *bug fixing* hingga 80%.
 
 ### 🎙️ Naskah Presentasi ke Atasan (Talking Points for Boss):
-> *"Bapak/Ibu Pimpinan, rapat arsitektur internal hari ini membedah hasil akhir perancangan **SIDBM Next**. Keputusan merancang ulang aplikasi dari nol (*rewrite*) didasari oleh fakta bahwa skema legacy melanggar standar arsitektur basis data modern. Dengan SIDBM Next, kita mengganti 15.000+ tabel dinamis menjadi Platform DB & Shard DB yang seragam, meningkatkan kecepatan laporan kabupaten menjadi real-time, dan mengintegrasikan otomatisasi billing SaaS serta AI RAG internal."*
+> *"Bapak/Ibu Pimpinan, rapat arsitektur internal hari ini membedah hasil akhir perancangan **SIDBM Next**. Keputusan merancang ulang aplikasi dari nol (*rewrite*) didasari oleh fakta bahwa skema legacy melanggar standar arsitektur basis data modern. Dengan SIDBM Next, kita mengganti 5.500+ tabel dinamis menjadi Platform DB & Shard DB yang seragam, meningkatkan kecepatan laporan kabupaten menjadi real-time, dan mengintegrasikan otomatisasi billing SaaS serta AI RAG internal."*
 
 ### ❓ Q&A Internal Atasan:
 - **Pertanyaan (CTO/Director)**: *"Mengapa kita tidak refactor saja kode legacy Laravel 10 yang lama?"*
@@ -67,18 +67,18 @@
 │                         ANALISIS UTANG TEKNIS (SIDBM LEGACY)                           │
 ├──────────────────────────┬──────────────────────────────┬──────────────────────────────┤
 │ 💥 DATABASE EXPLOSION    │ 💥 TRANSAKSI STRING VARCHAR  │ 💥 BOTTLENECK /kab RUNTIME   │
-│ 500 Tenant = 15.000+ DDL │ Uang disimpan VARCHAR text,  │ Aggregasi meloop puluhan DB  │
+│ 500 Tenant = 5.500+ DDL  │ Uang disimpan VARCHAR text,  │ Aggregasi meloop puluhan DB  │
 │ Tables (	ransaksi_1).  │ trigger MySQL sering lock.   │ secara dynamic connection.   │
 └──────────────────────────┴──────────────────────────────┴──────────────────────────────┘
 `
 
 ### 📌 Detail Teknis untuk Tim Developer:
-1. **Schema Drift Risk**: Eksekusi DDL ALTER TABLE ke 15.000 tabel sering terputus di pertengahan (*network timeout*), menyebabkan skema antar-tenant tidak seragam.
+1. **Schema Drift Risk**: Eksekusi DDL ALTER TABLE ke 5.500 tabel dinamis sering terputus di pertengahan (*network timeout*), menyebabkan skema antar-tenant tidak seragam.
 2. **Ketiadaan FK Constraints**: Relasi antar nggota, kelompok, pinjaman, dan 	ransaksi hanya dijaga pada controller, memicu *orphan records* masif.
 3. **Trigger Lock Contention**: Trigger MySQL pada saldo_{tenant} mengunci tabel saat terjadi update transaksi historis.
 
 ### 🎙️ Naskah Presentasi ke Atasan:
-> *"Ini adalah bukti teknis mengapa sistem lama harus diganti. Pada legacy, setiap ada tenant baru, Laravel menjalankan SQL DDL untuk membuat tabel baru. Ketika aplikasi melayani 500 tenant, MySQL terbeban oleh 15.000 lebih tabel. Ketika tim dev merilis kolom baru, kita harus meloop DDL ke 15.000 tabel tersebut. Jika koneksi terputus di tabel ke-500, terjadi ketidakseragaman skema (*schema drift*) yang fatal. Di SIDBM Next, masalah ini 100% tuntas."*
+> *"Ini adalah bukti teknis mengapa sistem lama harus diganti. Pada legacy, setiap ada tenant baru, Laravel menjalankan SQL DDL untuk membuat tabel baru. Ketika aplikasi melayani 500 tenant, MySQL terbeban oleh 5.500 lebih tabel dinamis. Ketika tim dev merilis kolom baru, kita harus meloop DDL ke 5.500 tabel dinamis tersebut. Jika koneksi terputus di tabel ke-500, terjadi ketidakseragaman skema (*schema drift*) yang fatal. Di SIDBM Next, masalah ini 100% tuntas."*
 
 ---
 
