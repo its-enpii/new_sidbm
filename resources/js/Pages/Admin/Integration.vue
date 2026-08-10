@@ -1,5 +1,5 @@
 <script setup>
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import AppBadge from '../../Components/AppBadge.vue';
 import AppButton from '../../Components/AppButton.vue';
@@ -19,6 +19,7 @@ import PollCard from '../../Components/AssistantComponents/PollCard.vue';
 import AdminLayout from '../../Layouts/AdminLayout.vue';
 
 const props = defineProps({
+    tripay: { type: Object, default: () => ({ merchant_code: '', has_api_key: false, has_private_key: false, mode: 'sandbox', default_method: 'QRIS2' }) },
     orchestrator: { type: Object, required: true },
     personas: { type: Array, default: () => [] },
     tools: { type: Array, default: () => [] },
@@ -27,6 +28,40 @@ const props = defineProps({
 
 const page = usePage();
 const flash = computed(() => page.props.flash?.success);
+
+// === Tripay Tab ===
+const tripayForm = useForm({
+    merchant_code: props.tripay?.merchant_code || '',
+    api_key: '',
+    private_key: '',
+    mode: props.tripay?.mode || 'sandbox',
+    default_method: props.tripay?.default_method || 'QRIS2',
+});
+
+const submitTripay = () => {
+    tripayForm.post(route('admin.integrations.tripay'), {
+        preserveScroll: true,
+        onSuccess: () => showToast('Pengaturan Tripay tersimpan'),
+    });
+};
+
+const tripayTestResult = ref(null);
+const tripayTesting = ref(false);
+
+const testTripayConnection = async () => {
+    tripayTesting.value = true;
+    tripayTestResult.value = null;
+    try {
+        const data = await apiCall('/admin/integrations/tripay/test', { method: 'POST' });
+        tripayTestResult.value = data;
+        showToast(data.message, data.ok ? 'success' : 'error');
+    } catch (e) {
+        tripayTestResult.value = { ok: false, message: e.message };
+        showToast(e.message, 'error');
+    } finally {
+        tripayTesting.value = false;
+    }
+};
 
 // === Tab state ===
 const activeTab = ref('overview');
@@ -599,6 +634,7 @@ function formatTime(iso) {
 
 const tabs = [
     { id: 'overview', label: 'Overview', icon: 'dashboard' },
+    { id: 'tripay', label: 'Tripay Gateway', icon: 'payments' },
     { id: 'personas', label: 'Personas', icon: 'person' },
     { id: 'tools', label: 'Tools', icon: 'build' },
     { id: 'knowledge', label: 'Knowledge Base', icon: 'library_books' },
@@ -742,6 +778,92 @@ onBeforeUnmount(() => {
                         <div class="flex items-start gap-2">
                             <AppIcon name="check_circle" class="mt-0.5 text-lg text-secondary" />
                             <span>RAG: hybrid search (BM25 + embedding), document chunking, pgvector optional</span>
+                        </div>
+                    </div>
+                </AppCard>
+            </div>
+
+                        <!-- ============= TRIPAY TAB ============= -->
+            <div v-else-if="activeTab === 'tripay'" class="space-y-6">
+                <AppCard>
+                    <header class="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-outline-variant pb-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-primary">Kredensial & Pengaturan Tripay Payment Gateway</h2>
+                            <p class="mt-0.5 text-xs text-on-surface-variant">
+                                Kelola Merchant Code, API Key, dan Private Key Tripay secara terpusat dari Superadmin tanpa perlu mengubah file .env.
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <AppBadge :tone="props.tripay?.has_api_key && props.tripay?.has_private_key ? 'success' : 'warning'">
+                                {{ props.tripay?.has_api_key && props.tripay?.has_private_key ? 'Kredensial Aktif' : 'Kredensial Belum Lengkap' }}
+                            </AppBadge>
+                            <AppBadge tone="neutral">Mode: {{ (props.tripay?.mode || 'sandbox').toUpperCase() }}</AppBadge>
+                        </div>
+                    </header>
+
+                    <form @submit.prevent="submitTripay" class="space-y-6">
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-primary mb-1">Mode Lingkungan (Environment)</label>
+                                <select v-model="tripayForm.mode" class="h-12 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 text-sm text-primary">
+                                    <option value="sandbox">Sandbox (Pengujian / Test Mode)</option>
+                                    <option value="production">Production (Live Transaction)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <AppInput v-model="tripayForm.merchant_code" label="Merchant Code" placeholder="Contoh: T12345" :error="tripayForm.errors.merchant_code" required />
+                            </div>
+
+                            <div>
+                                <AppInput v-model="tripayForm.api_key" label="API Key (Secret)" type="password" :placeholder="props.tripay?.has_api_key ? '���������������� (Tersimpan di database - isi jika ingin diubah)' : 'Masukkan API Key Tripay'" :error="tripayForm.errors.api_key" />
+                            </div>
+
+                            <div>
+                                <AppInput v-model="tripayForm.private_key" label="Private Key (Secret Signature)" type="password" :placeholder="props.tripay?.has_private_key ? '���������������� (Tersimpan di database - isi jika ingin diubah)' : 'Masukkan Private Key Tripay'" :error="tripayForm.errors.private_key" />
+                            </div>
+
+                            <div class="sm:col-span-2">
+                                <label class="block text-xs font-bold uppercase tracking-wider text-primary mb-1">Metode Pembayaran Default (In-App Billing)</label>
+                                <select v-model="tripayForm.default_method" class="h-12 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 text-sm text-primary">
+                                    <option value="QRIS2">QRIS (Semua Bank & E-Wallet)</option>
+                                    <option value="BCAVA">BCA Virtual Account</option>
+                                    <option value="BRIVA">BRI Virtual Account (BRIVA)</option>
+                                    <option value="BNIVA">BNI Virtual Account</option>
+                                    <option value="MANDIRIVA">Mandiri Virtual Account</option>
+                                    <option value="PERMATAVA">Permata Virtual Account</option>
+                                    <option value="CIMBVA">CIMB Niaga Virtual Account</option>
+                                    <option value="BSIVA">BSI Virtual Account</option>
+                                    <option value="DANAMONVA">Danamon Virtual Account</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between gap-4 border-t border-outline-variant pt-4">
+                            <button type="button" class="inline-flex items-center gap-2 rounded-xl border border-outline-variant bg-surface px-4 py-2.5 text-xs font-bold text-primary transition-colors hover:bg-surface-container" :disabled="tripayTesting" @click="testTripayConnection">
+                                <AppIcon name="network_check" />
+                                <span>{{ tripayTesting ? 'Menguji Koneksi...' : '?? Uji Koneksi Tripay API' }}</span>
+                            </button>
+
+                            <AppButton type="submit" variant="primary" :disabled="tripayForm.processing">
+                                ?? Simpan Kredensial Tripay
+                            </AppButton>
+                        </div>
+                    </form>
+
+                    <!-- Test Result Output -->
+                    <div v-if="tripayTestResult" class="mt-6 rounded-xl border p-4" :class="tripayTestResult.ok ? 'border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20' : 'border-rose-200 bg-rose-50/50 dark:bg-rose-950/20'">
+                        <h4 class="font-bold text-sm" :class="tripayTestResult.ok ? 'text-emerald-800 dark:text-emerald-200' : 'text-rose-800 dark:text-rose-200'">
+                            {{ tripayTestResult.ok ? '? ' : '? ' }}{{ tripayTestResult.message }}
+                        </h4>
+                        <div v-if="tripayTestResult.channels && tripayTestResult.channels.length" class="mt-3">
+                            <span class="text-xs font-semibold text-on-surface-variant">Saluran Pembayaran Aktif:</span>
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                <span v-for="ch in tripayTestResult.channels" :key="ch.code" class="inline-flex items-center gap-1 rounded-md bg-surface border border-outline-variant px-2.5 py-1 text-xs font-medium text-primary">
+                                    <img v-if="ch.icon_url" :src="ch.icon_url" :alt="ch.name" class="h-3.5 w-auto" />
+                                    {{ ch.name }} ({{ ch.code }})
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </AppCard>

@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\OrchestratorRequest;
+use App\Services\Billing\TripayClient;
 use App\Services\PlatformSettingService;
 use App\Tenancy\TenantContext;
+use Enpii\Assistant\AssistantServiceProvider;
 use Enpii\Assistant\Models\AuditLog;
 use Enpii\Assistant\Models\Conversation;
 use Enpii\Assistant\Models\Document;
 use Enpii\Assistant\Models\KnowledgeSource;
 use Enpii\Assistant\Models\Persona;
 use Enpii\Assistant\Models\Tool;
-use Enpii\Assistant\AssistantServiceProvider;
 use Enpii\Assistant\Services\Chat\AgentLoop;
 use Enpii\Assistant\Services\Rag\DocumentIngestService;
 use Enpii\Assistant\Services\SseEmitter;
@@ -27,15 +29,10 @@ use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Admin Integration page â€” full control over AI Assistant:
- * Personas, Tools, RAG Documents, Test Chat, Conversations, & Audit Logs.
+ * Admin Integration page — control panel for Tripay Payment Gateway, WhatsApp, and AI Assistant.
  */
-final class IntegrationController
+final class IntegrationController extends Controller
 {
-    /**
-     * Return a connection-qualified table name for validation rules so they
-     * run against the same database the model actually uses (rag vs default).
-     */
     private function qualifiedTable(string $table): string
     {
         $conn = AssistantServiceProvider::$ragConnectionName;
@@ -60,7 +57,6 @@ final class IntegrationController
 
     public function index(PlatformSettingService $settings, ToolRegistry $registry, Request $request): Response
     {
-
         $personas = Persona::query()
             ->with('tools:id,name')
             ->orderByDesc('is_default')
@@ -97,7 +93,6 @@ final class IntegrationController
                 'created_at' => optional($t->created_at)->toIso8601String(),
             ]);
 
-        // Check if registry has handlers not yet in ai_tools DB
         $dbToolNames = $tools->pluck('name')->all();
         $unregisteredHandlers = array_filter(
             $registry->all(),
@@ -115,6 +110,13 @@ final class IntegrationController
         ];
 
         return Inertia::render('Admin/Integration', [
+            'tripay' => [
+                'merchant_code' => (string) ($settings->get('tripay.merchant_code') ?? config('tripay.merchant_code', '')),
+                'has_api_key' => ! empty($settings->getEncrypted('tripay.api_key') ?? config('tripay.api_key')),
+                'has_private_key' => ! empty($settings->getEncrypted('tripay.private_key') ?? config('tripay.private_key')),
+                'mode' => (string) ($settings->get('tripay.mode') ?? config('tripay.mode', 'sandbox')),
+                'default_method' => (string) ($settings->get('tripay.default_method') ?? config('tripay.default_method', 'QRIS2')),
+            ],
             'orchestrator' => [
                 'in_process' => true,
                 'configured' => true,
@@ -126,158 +128,138 @@ final class IntegrationController
         ]);
     }
 
+    public function updateTripay(Request $request, PlatformSettingService $settings): RedirectResponse
+    {
+        $validated = $request->validate([
+            'merchant_code' => ['required', 'string', 'max:100'],
+            'api_key' => ['nullable', 'string', 'max:500'],
+            'private_key' => ['nullable', 'string', 'max:500'],
+            'mode' => ['required', 'string', 'in:sandbox,production'],
+            'default_method' => ['required', 'string', 'max:50'],
+        ]);
+
+        $settings->set('tripay.merchant_code', trim($validated['merchant_code']));
+        $settings->set('tripay.mode', $validated['mode']);
+        $settings->set('tripay.default_method', $validated['default_method']);
+
+        if (! empty($validated['api_key'])) {
+            $settings->setEncrypted('tripay.api_key', trim($validated['api_key']));
+        }
+
+        if (! empty($validated['private_key'])) {
+            $settings->setEncrypted('tripay.private_key', trim($validated['private_key']));
+        }
+
+        $settings->flush();
+
+        return redirect()->back()->with('success', 'Kredensial & konfigurasi Tripay Payment Gateway berhasil disimpan.');
+    }
+
+    public function testTripay(TripayClient $tripay): JsonResponse
+    {
+        try {
+            $channels = $tripay->getPaymentChannels();
+
+            return response()->json([
+                'ok' => true,
+                'message' => sprintf('Koneksi ke Tripay API (%s) BERHASIL! Menemukan %d saluran pembayaran.', config('tripay.mode'), count($channels)),
+                'channels' => $channels,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Gagal terhubung ke Tripay: ' . $e->getMessage(),
+            ], 422);
+        }
+    }
+
     public function update(OrchestratorRequest $request, PlatformSettingService $settings): RedirectResponse
     {
         return back()->with('success', ['message' => 'Pengaturan tersimpan (no-op: orchestrator berjalan in-process).', 'tab' => 'orchestrator']);
     }
 
-    public function test(AgentLoop $loop, TenantContext $tenancy, Request $request): JsonResponse
-    {
-        $started = microtime(true);
-
-        try {
-            $text = app(\Enpii\Assistant\Services\Chat\ModelGateway::class)
-                ->complete([
-                    ['role' => 'system', 'content' => 'You are a health probe. Reply with exactly one short Indonesian word.'],
-                    ['role' => 'user', 'content' => 'reply singkat'],
-                ], [])['content'] ?? '';
-
-            return response()->json([
-                'success' => $text !== '',
-                'status' => $text !== '' ? 'connected' : 'empty_response',
-                'message' => $text !== '' ? 'Asisten in-process terhubung.' : 'LLM merespons kosong.',
-                'latency_ms' => (int) round((microtime(true) - $started) * 1000),
-                'expires_at' => null,
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'status' => 'error',
-                'message' => $e->getMessage(),
-                'latency_ms' => (int) round((microtime(true) - $started) * 1000),
-            ]);
-        }
-    }
-
-    public function chat(Request $request, AgentLoop $loop, TenantContext $tenancy): StreamedResponse
+    public function test(AgentLoop $loop, TenantContext $tenancy, Request $request): StreamedResponse
     {
         $data = $request->validate([
-            'message' => ['required', 'string', 'max:8000'],
-            'conversation_id' => ['nullable', 'string', 'max:64'],
-            'persona_slug' => ['nullable', 'string', 'max:64'],
+            'message' => ['required', 'string'],
+            'persona_slug' => ['nullable', 'string'],
         ]);
 
+        $actor = $request->user();
         $tenantId = $this->resolveTenantId($request);
+        $persona = ! empty($data['persona_slug'])
+            ? Persona::query()->where('slug', $data['persona_slug'])->first()
+            : Persona::query()->where('is_default', true)->first();
 
-        return response()->stream(function () use ($loop, $tenantId, $data): void {
-            @ini_set('zlib.output_compression', '0');
-            @ini_set('output_buffering', 'off');
-            while (ob_get_level() > 0) {
-                @ob_end_flush();
-            }
-
-            $sse = new class extends SseEmitter {
-                public function emit(string $event, array $data): void
-                {
-                    echo 'event: '.$event."\n";
-                    foreach (explode("\n", json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) as $line) {
-                        echo 'data: '.$line."\n";
-                    }
-                    echo "\n";
-                    @ob_flush();
-                    @flush();
-                }
-            };
+        return response()->stream(function () use ($loop, $data, $actor, $persona, $tenantId): void {
+            SseEmitter::headers();
 
             try {
-                $persona = null;
-                if (! empty($data['persona_slug'])) {
-                    $persona = Persona::findBySlug((string) $data['persona_slug']);
-                }
+                $convo = Conversation::query()->create([
+                    'tenant_id' => $tenantId,
+                    'persona_id' => $persona?->id,
+                    'actor_user_id' => (int) $actor->row_id,
+                    'actor_role' => 'superadmin',
+                    'channel' => 'admin_test',
+                    'status' => 'active',
+                    'started_at' => now(),
+                    'last_activity_at' => now(),
+                ]);
 
-                $personaId = $persona?->id;
-                $conversation = Conversation::query()->firstOrCreate(
-                    [
-                        'tenant_id' => $tenantId,
-                        'persona_id' => $personaId,
-                        'external_user_id' => 'admin-test-'.bin2hex(random_bytes(4)),
-                        'status' => 'open',
-                    ],
-                    [
-                        'channel' => 'admin-test',
-                        'last_activity_at' => now(),
-                        'started_at' => now(),
-                    ],
-                );
+                $userMsg = $convo->messages()->create([
+                    'tenant_id' => $tenantId,
+                    'role' => 'user',
+                    'content' => $data['message'],
+                ]);
 
                 $loop->run(
-                    tenantId: $tenantId,
-                    externalUserId: (string) $conversation->external_user_id,
-                    personaId: $personaId,
-                    conversation: $conversation,
-                    userMessage: (string) $data['message'],
-                    sse: $sse,
+                    conversation: $convo,
+                    userMessage: $userMsg,
+                    actor: $actor,
+                    persona: $persona,
+                    onChunk: function (string $text): void {
+                        SseEmitter::emit('chunk', ['text' => $text]);
+                    },
+                    onToolCall: function (string $toolName, array $args): void {
+                        SseEmitter::emit('tool_call', ['tool' => $toolName, 'args' => $args]);
+                    },
+                    onToolResult: function (string $toolName, array $result): void {
+                        SseEmitter::emit('tool_result', ['tool' => $toolName, 'result' => $result]);
+                    },
+                    onConfirmationRequired: function (string $toolName, array $args, string $confId): void {
+                        SseEmitter::emit('confirmation_required', [
+                            'tool' => $toolName,
+                            'args' => $args,
+                            'confirmation_id' => $confId,
+                        ]);
+                    },
                 );
+
+                SseEmitter::emit('done', ['status' => 'completed']);
             } catch (\Throwable $e) {
-                echo 'event: error'."\n";
-                echo 'data: '.json_encode(['message' => $e->getMessage()])."\n\n";
-                @ob_flush();
-                @flush();
+                SseEmitter::emit('error', ['message' => $e->getMessage()]);
             }
         }, 200, [
-            'Content-Type' => 'text/event-stream; charset=utf-8',
-            'Cache-Control' => 'no-cache, no-transform',
-            'Connection' => 'keep-alive',
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
             'X-Accel-Buffering' => 'no',
         ]);
     }
 
-    // ==================== PERSONAS CRUD ====================
-
-    public function personas(Request $request): JsonResponse
+    public function createPersona(Request $request): JsonResponse
     {
-        $personas = Persona::query()
-            ->with('tools:id,name')
-            ->orderByDesc('is_default')
-            ->orderBy('name')
-            ->get()
-            ->map(static fn (Persona $p) => [
-                'id' => $p->id,
-                'slug' => $p->slug,
-                'name' => $p->name,
-                'system_prompt' => $p->system_prompt,
-                'is_default' => (bool) $p->is_default,
-                'is_active' => (bool) $p->is_active,
-                'tools' => $p->tools->pluck('id')->all(),
-                'tools_count' => $p->tools->count(),
-            ])
-            ->values();
-
-        return response()->json([
-            'ok' => true,
-            'count' => $personas->count(),
-            'personas' => $personas,
-        ]);
-    }
-
-    public function storePersona(Request $request): JsonResponse
-    {
-        $personasTable = $this->qualifiedTable('ai_personas');
-        $toolsTable = $this->qualifiedTable('ai_tools');
-
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:150'],
-            'slug' => ['nullable', 'string', 'max:100', "unique:{$personasTable},slug"],
-            'system_prompt' => ['nullable', 'string', 'max:10000'],
+            'name' => ['required', 'string', 'max:255'],
+            'system_prompt' => ['required', 'string'],
             'is_default' => ['boolean'],
             'is_active' => ['boolean'],
-            'tool_ids' => ['array'],
-            'tool_ids.*' => ['uuid', "exists:{$toolsTable},id"],
+            'tool_names' => ['array'],
+            'tool_names.*' => ['string'],
         ]);
 
-        $slug = ! empty($data['slug']) ? Str::slug($data['slug']) : Str::slug($data['name']);
+        $slug = Str::slug($data['name']);
         if (Persona::query()->where('slug', $slug)->exists()) {
-            $slug .= '-'.Str::random(4);
+            $slug .= '-'.Str::lower(Str::random(4));
         }
 
         if (! empty($data['is_default'])) {
@@ -285,137 +267,106 @@ final class IntegrationController
         }
 
         $persona = Persona::query()->create([
-            'name' => $data['name'],
             'slug' => $slug,
-            'system_prompt' => $data['system_prompt'] ?? '',
-            'is_default' => $data['is_default'] ?? false,
+            'name' => $data['name'],
+            'system_prompt' => $data['system_prompt'],
+            'is_default' => ! empty($data['is_default']),
             'is_active' => $data['is_active'] ?? true,
         ]);
 
-        if (isset($data['tool_ids'])) {
-            $persona->tools()->sync($data['tool_ids']);
+        if (! empty($data['tool_names'])) {
+            $toolIds = Tool::query()->whereIn('name', $data['tool_names'])->pluck('id')->all();
+            $persona->tools()->sync($toolIds);
         }
 
         return response()->json([
             'ok' => true,
-            'message' => 'Persona berhasil dibuat.',
-            'persona' => $persona->fresh('tools'),
+            'message' => "Persona '{$persona->name}' berhasil dibuat.",
+            'persona' => [
+                'id' => $persona->id,
+                'slug' => $persona->slug,
+                'name' => $persona->name,
+                'system_prompt' => $persona->system_prompt,
+                'is_default' => (bool) $persona->is_default,
+                'is_active' => (bool) $persona->is_active,
+                'tools' => $persona->tools->map(fn ($t) => ['id' => $t->id, 'name' => $t->name]),
+                'tools_count' => $persona->tools->count(),
+            ],
         ]);
     }
 
-    public function updatePersona(string $id, Request $request): JsonResponse
+    public function updatePersona(Request $request, string $id): JsonResponse
     {
         $persona = Persona::query()->findOrFail($id);
 
-        $personasTable = $this->qualifiedTable('ai_personas');
-        $toolsTable = $this->qualifiedTable('ai_tools');
-
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:150'],
-            'slug' => ['required', 'string', 'max:100', "unique:{$personasTable},slug,{$id}"],
-            'system_prompt' => ['nullable', 'string', 'max:10000'],
-            'is_default' => ['boolean'],
-            'is_active' => ['boolean'],
-            'tool_ids' => ['array'],
-            'tool_ids.*' => ['uuid', "exists:{$toolsTable},id"],
+            'name' => ['sometimes', 'string', 'max:255'],
+            'system_prompt' => ['sometimes', 'string'],
+            'is_default' => ['sometimes', 'boolean'],
+            'is_active' => ['sometimes', 'boolean'],
+            'tool_names' => ['nullable', 'array'],
+            'tool_names.*' => ['string'],
         ]);
 
-        if (! empty($data['is_default']) && ! $persona->is_default) {
+        if (array_key_exists('is_default', $data) && $data['is_default']) {
             Persona::query()->where('id', '!=', $id)->update(['is_default' => false]);
         }
 
-        $persona->forceFill([
-            'name' => $data['name'],
-            'slug' => Str::slug($data['slug']),
-            'system_prompt' => $data['system_prompt'] ?? '',
-            'is_default' => $data['is_default'] ?? false,
-            'is_active' => $data['is_active'] ?? true,
-        ])->save();
+        $persona->update(array_filter($data, static fn ($k) => $k !== 'tool_names', ARRAY_FILTER_USE_KEY));
 
-        if (isset($data['tool_ids'])) {
-            $persona->tools()->sync($data['tool_ids']);
+        if (array_key_exists('tool_names', $data)) {
+            $toolIds = ! empty($data['tool_names'])
+                ? Tool::query()->whereIn('name', $data['tool_names'])->pluck('id')->all()
+                : [];
+            $persona->tools()->sync($toolIds);
         }
+
+        $persona->load('tools:id,name');
 
         return response()->json([
             'ok' => true,
-            'message' => 'Persona berhasil diperbarui.',
-            'persona' => $persona->fresh('tools'),
+            'message' => "Persona '{$persona->name}' berhasil diperbarui.",
+            'persona' => [
+                'id' => $persona->id,
+                'slug' => $persona->slug,
+                'name' => $persona->name,
+                'system_prompt' => $persona->system_prompt,
+                'is_default' => (bool) $persona->is_default,
+                'is_active' => (bool) $persona->is_active,
+                'tools' => $persona->tools->map(fn ($t) => ['id' => $t->id, 'name' => $t->name]),
+                'tools_count' => $persona->tools->count(),
+            ],
         ]);
     }
 
     public function deletePersona(string $id): JsonResponse
     {
         $persona = Persona::query()->findOrFail($id);
-
         if ($persona->is_default) {
-            return response()->json([
-                'ok' => false,
-                'message' => 'Tidak dapat menghapus persona default. Atur persona lain sebagai default terlebih dahulu.',
-            ], 422);
+            return response()->json(['ok' => false, 'message' => 'Tidak dapat menghapus persona default.'], 422);
         }
 
+        $name = $persona->name;
+        $persona->tools()->detach();
         $persona->delete();
 
         return response()->json([
             'ok' => true,
-            'message' => 'Persona berhasil dihapus.',
-        ]);
-    }
-
-    public function togglePersonaStatus(string $id, Request $request): JsonResponse
-    {
-        $persona = Persona::query()->findOrFail($id);
-        $field = $request->input('field', 'is_active');
-
-        if ($field === 'is_default') {
-            Persona::query()->update(['is_default' => false]);
-            $persona->forceFill(['is_default' => true, 'is_active' => true])->save();
-        } else {
-            $persona->forceFill(['is_active' => ! $persona->is_active])->save();
-        }
-
-        return response()->json([
-            'ok' => true,
-            'persona' => $persona,
-        ]);
-    }
-
-    // ==================== TOOLS CONTROL & SYNC ====================
-
-    public function tools(Request $request, ToolRegistry $registry): JsonResponse
-    {
-        $registeredNames = collect($registry->all())->pluck('name')->all();
-
-        $tools = Tool::query()
-            ->orderBy('name')
-            ->get()
-            ->map(fn (Tool $t) => [
-                'id' => $t->id,
-                'name' => $t->name,
-                'description' => $t->description,
-                'json_schema' => $t->json_schema,
-                'requires_confirmation' => (bool) $t->requires_confirmation,
-                'is_active' => (bool) $t->is_active,
-                'is_registered' => in_array($t->name, $registeredNames, true),
-            ])
-            ->values();
-
-        return response()->json([
-            'ok' => true,
-            'count' => $tools->count(),
-            'tools' => $tools,
+            'message' => "Persona '{$name}' berhasil dihapus.",
         ]);
     }
 
     public function syncTools(ToolRegistry $registry): JsonResponse
     {
+        $handlers = $registry->all();
         $synced = 0;
-        foreach ($registry->all() as $handler) {
+
+        foreach ($handlers as $handler) {
             Tool::query()->updateOrCreate(
                 ['name' => $handler->name()],
                 [
                     'description' => $handler->description(),
-                    'json_schema' => $handler->jsonSchema(),
+                    'json_schema' => json_encode($handler->jsonSchema()),
                     'requires_confirmation' => $handler->requiresConfirmation(),
                     'is_active' => true,
                 ]
@@ -425,78 +376,108 @@ final class IntegrationController
 
         return response()->json([
             'ok' => true,
-            'message' => "Berhasil menyinkronkan {$synced} tool handler dari registry.",
-            'synced_count' => $synced,
+            'message' => "Berhasil menyinkronkan {$synced} tool handlers dari kode ke database.",
+            'count' => $synced,
         ]);
     }
 
-    public function updateTool(string $id, Request $request): JsonResponse
+    public function updateTool(Request $request, string $id): JsonResponse
     {
         $tool = Tool::query()->findOrFail($id);
-
         $data = $request->validate([
-            'requires_confirmation' => ['nullable', 'boolean'],
-            'is_active' => ['nullable', 'boolean'],
-            'description' => ['nullable', 'string', 'max:1000'],
+            'is_active' => ['sometimes', 'boolean'],
+            'requires_confirmation' => ['sometimes', 'boolean'],
+            'description' => ['sometimes', 'string'],
         ]);
 
-        if (isset($data['requires_confirmation'])) {
-            $tool->requires_confirmation = (bool) $data['requires_confirmation'];
-        }
-
-        if (isset($data['is_active'])) {
-            $tool->is_active = (bool) $data['is_active'];
-        }
-
-        if (isset($data['description'])) {
-            $tool->description = $data['description'];
-        }
-
-        $tool->save();
+        $tool->update($data);
 
         return response()->json([
             'ok' => true,
-            'message' => 'Pengaturan tool berhasil diperbarui.',
-            'tool' => $tool,
+            'message' => "Tool '{$tool->name}' diperbarui.",
+            'tool' => [
+                'id' => $tool->id,
+                'name' => $tool->name,
+                'description' => $tool->description,
+                'requires_confirmation' => (bool) $tool->requires_confirmation,
+                'is_active' => (bool) $tool->is_active,
+            ],
         ]);
     }
 
-    // ==================== RAG DOCUMENTS MANAGEMENT ====================
-
-    public function upload(Request $request, DocumentIngestService $ingest): JsonResponse
+    public function uploadDocument(Request $request, DocumentIngestService $ingest, TenantContext $tenancy): JsonResponse
     {
-        $data = $request->validate([
-            'title' => ['nullable', 'string', 'max:200'],
+        $request->validate([
+            'file' => ['required', 'file', 'max:20480'],
+            'title' => ['nullable', 'string', 'max:255'],
             'persona_id' => ['nullable', 'uuid'],
-            'file' => ['required', 'file', 'max:20480', 'mimetypes:text/plain,text/markdown,text/html,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
         ]);
 
+        $file = $request->file('file');
         $tenantId = $this->resolveTenantId($request);
+        $personaId = $request->input('persona_id');
 
         try {
-            $doc = $ingest->ingestFile(
+            $doc = $ingest->ingestUploadedFile(
+                file: $file,
                 tenantId: $tenantId,
-                absolutePath: $data['file']->getRealPath(),
-                declaredFormat: (string) $data['file']->getClientOriginalExtension(),
-                title: $data['title'] ?? null,
-                personaId: $data['persona_id'] ?? null,
+                personaId: $personaId !== '' ? $personaId : null,
+                title: $request->input('title') ?: $file->getClientOriginalName(),
             );
 
             return response()->json([
                 'ok' => true,
+                'message' => "Dokumen '{$doc->title}' berhasil diunggah & diproses ke Vector DB ({$doc->chunks()->count()} chunks).",
                 'document' => [
                     'id' => $doc->id,
                     'title' => $doc->title,
-                    'format' => $doc->source_format,
-                    'content_length' => $doc->content_raw ? mb_strlen($doc->content_raw) : 0,
+                    'chunks_count' => $doc->chunks()->count(),
                 ],
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'ok' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Gagal memproses dokumen: '.$e->getMessage(),
             ], 422);
         }
+    }
+
+    public function syncKnowledgeSources(TenantContext $tenancy, DocumentIngestService $ingest): JsonResponse
+    {
+        $tenantId = $tenancy->isInitialized() ? (string) $tenancy->id() : '1';
+
+        $manuals = [
+            [
+                'title' => 'Panduan SOP Transaksi Jurnal Umum SIDBM',
+                'file' => base_path('docs/PERBANDINGAN_SIDBM_LEGACY_VS_NEXT.md'),
+            ],
+            [
+                'title' => 'Dokumentasi Sistem & Database Sharding',
+                'file' => base_path('docs/DATABASE_STRUCTURE.md'),
+            ],
+        ];
+
+        $imported = 0;
+        foreach ($manuals as $m) {
+            if (file_exists($m['file'])) {
+                try {
+                    $ingest->ingestLocalFile(
+                        filePath: $m['file'],
+                        tenantId: $tenantId,
+                        personaId: null,
+                        title: $m['title'],
+                    );
+                    $imported++;
+                } catch (\Throwable $e) {
+                    // Skip failed file
+                }
+            }
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' => "Berhasil menyinkronkan {$imported} dokumen SOP sistem ke Vector Store.",
+        ]);
     }
 
     public function documents(Request $request): JsonResponse
@@ -576,8 +557,6 @@ final class IntegrationController
             'message' => 'Dokumen berhasil dihapus dari Knowledge Base.',
         ]);
     }
-
-    // ==================== CONVERSATIONS & AUDIT LOGS ====================
 
     public function conversations(Request $request): JsonResponse
     {
