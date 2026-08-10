@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\EnsureRegencySupervisor;
+use App\Http\Middleware\EnsureSubscriptionActive;
 use App\Http\Middleware\EnsureSuperadmin;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ResolveAssistantActor;
@@ -31,21 +33,30 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->validateCsrfTokens(except: [
             'tripay/callback',
+            'api/billing/tripay/callback',
         ]);
 
-        // Logged-in users hitting /login: superadmin → /admin (NOT /dashboard —
-        // platform superadmin has no tenant membership → ResolveTenant 403 → looks like login loop).
+        // Logged-in users hitting /login: superadmin → /admin, regency → /regency, tenant → /dashboard
         $middleware->redirectUsersTo(function (\Illuminate\Http\Request $request): string {
             $user = $request->user();
 
-            return ($user !== null && $user->is_superadmin === true)
-                ? route('admin.dashboard')
-                : route('dashboard');
+            if ($user !== null) {
+                if ($user->is_superadmin === true) {
+                    return route('admin.dashboard');
+                }
+                if ($user->isRegencyUser()) {
+                    return route('regency.dashboard');
+                }
+            }
+
+            return route('dashboard');
         });
 
         $middleware->alias([
             'tenant' => ResolveTenant::class,
             'superadmin' => EnsureSuperadmin::class,
+            'regency' => EnsureRegencySupervisor::class,
+            'subscription.active' => EnsureSubscriptionActive::class,
             'orchestrator.signature' => VerifyOrchestratorSignature::class,
             'assistant.signature' => VerifyOrchestratorSignature::class,
             'assistant.actor' => ResolveAssistantActor::class,

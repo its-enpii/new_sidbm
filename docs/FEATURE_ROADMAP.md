@@ -148,3 +148,11 @@ Script: `docker exec new_sidbm-app-1 php scripts/smoke_pilot_local.php`
 | 2026-07-29 | **P3.1** search global header (`GlobalSearchService` + omnibox). |
 | 2026-07-29 | **Admin platform:** provision lengkap (COA + fiscal + loan products + system roles + role `admin` user pertama); assign role user tenant; `TenantWorkbench` + tombol **Lengkapi provision**. |
 
+
+---
+
+## Update Prioritas (2026-08-09)
+
+- **Prioritas Utama (Aktif)**: Integrasi Tripay (Scan QRIS/VA), automatisasi generate invoice langganan, dan penonaktifan tenant overdue. Spesifikasi lengkap di [`docs/BILLING_TRIPAY_AUTOMATION.md`](docs/BILLING_TRIPAY_AUTOMATION.md).
+- **Prioritas Berikutnya**: User level Kabupaten & laporan konsolidasi multi-kecamatan.
+- **Prioritas Terakhir**: Melengkapi sisa laporan legacy sekunder.

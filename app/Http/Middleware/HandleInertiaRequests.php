@@ -56,6 +56,9 @@ final class HandleInertiaRequests extends Middleware
                     'email',
                     'status',
                     'is_superadmin',
+                    'is_regency_user',
+                    'regency_code',
+                    'regency_name',
                 ]),
                 'permissions' => $this->resolvePermissions($request),
                 'nav_map' => config('permissions.nav_map', []),
@@ -76,10 +79,18 @@ final class HandleInertiaRequests extends Middleware
             return [];
         }
 
+        if ($user->is_superadmin === true) {
+            return ['*'];
+        }
+
+        if ($user->is_regency_user === true) {
+            return ['regency.view_reports'];
+        }
+
         try {
             return app(PermissionChecker::class)->listFor($user);
         } catch (Throwable) {
-            return $user->is_superadmin === true ? ['*'] : [];
+            return [];
         }
     }
 
@@ -88,8 +99,6 @@ final class HandleInertiaRequests extends Middleware
      */
     private function resolveAssistant(Request $request): array
     {
-        // In-process: widget is always available when the user is authenticated
-        // and has access. No URL/secret checks needed (orchestrator runs inside SIDBM).
         $enabled = $request->user() !== null
             && app(PermissionChecker::class)->allows($request->user(), 'assistant.use');
 

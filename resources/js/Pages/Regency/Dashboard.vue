@@ -1,0 +1,197 @@
+<script setup>
+import { Head, Link, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import AppBadge from '../../Components/AppBadge.vue';
+import AppButton from '../../Components/AppButton.vue';
+import AppCard from '../../Components/AppCard.vue';
+import AppIcon from '../../Components/AppIcon.vue';
+import RegencyLayout from '../../Layouts/RegencyLayout.vue';
+
+const props = defineProps({
+    metrics: { type: Object, required: true },
+    year: { type: Number, required: true },
+    month: { type: Number, required: true },
+    regency_name: { type: String, default: 'Kabupaten' },
+    regency_code: { type: String, default: '' },
+});
+
+const selectedYear = ref(props.year);
+const selectedMonth = ref(props.month);
+
+const monthNames = [
+    'Semua Bulan (Tahunan)',
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+];
+
+function money(value) {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value || 0));
+}
+
+function applyFilter() {
+    router.get('/regency/dashboard', {
+        year: selectedYear.value,
+        month: selectedMonth.value || '',
+    }, { preserveState: true });
+}
+</script>
+
+<template>
+    <Head :title="`Dashboard - ${regency_name}`" />
+    <RegencyLayout>
+        <div class="space-y-6">
+            <!-- Header -->
+            <div class="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-primary">Dashboard Kabupaten {{ regency_name }}</h1>
+                    <p class="mt-1 text-sm text-on-surface-variant">
+                        Rekapitulasi dan monitoring keuangan gabungan seluruh kecamatan (UPK DBM).
+                    </p>
+                </div>
+
+                <!-- Filters -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <select
+                        v-model.number="selectedMonth"
+                        class="rounded-xl border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface shadow-sm focus:border-primary focus:outline-none"
+                        @change="applyFilter"
+                    >
+                        <option v-for="(name, idx) in monthNames" :key="idx" :value="idx === 0 ? '' : idx">
+                            {{ name }}
+                        </option>
+                    </select>
+
+                    <select
+                        v-model.number="selectedYear"
+                        class="rounded-xl border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface shadow-sm focus:border-primary focus:outline-none"
+                        @change="applyFilter"
+                    >
+                        <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
+                    </select>
+
+                    <AppButton variant="secondary" icon="refresh" @click="applyFilter">Muat Ulang</AppButton>
+                </div>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <AppCard class="relative overflow-hidden">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-semibold text-on-surface-variant">Total Kas & Bank</span>
+                        <span class="grid size-9 place-items-center rounded-lg bg-primary/10 text-primary">
+                            <AppIcon name="account_balance_wallet" />
+                        </span>
+                    </div>
+                    <p class="mt-3 text-2xl font-bold text-primary">{{ money(metrics.summary.total_cash) }}</p>
+                    <p class="mt-1 text-xs text-on-surface-variant">Gabungan {{ metrics.summary.total_kecamatans }} Kecamatan</p>
+                </AppCard>
+
+                <AppCard class="relative overflow-hidden">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-semibold text-on-surface-variant">Pinjaman Aktif (Pokok)</span>
+                        <span class="grid size-9 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600">
+                            <AppIcon name="credit_score" />
+                        </span>
+                    </div>
+                    <p class="mt-3 text-2xl font-bold text-primary">{{ money(metrics.summary.active_loan_principal) }}</p>
+                    <p class="mt-1 text-xs text-on-surface-variant">{{ metrics.summary.active_loans_count }} Pinjaman Berjalan</p>
+                </AppCard>
+
+                <AppCard class="relative overflow-hidden">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-semibold text-on-surface-variant">Pendapatan Ops (YTD)</span>
+                        <span class="grid size-9 place-items-center rounded-lg bg-blue-500/10 text-blue-600">
+                            <AppIcon name="savings" />
+                        </span>
+                    </div>
+                    <p class="mt-3 text-2xl font-bold text-primary">{{ money(metrics.summary.revenue_ops_ytd) }}</p>
+                    <p class="mt-1 text-xs text-on-surface-variant">Beban Ops: {{ money(metrics.summary.expense_ops_ytd) }}</p>
+                </AppCard>
+
+                <AppCard class="relative overflow-hidden">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-semibold text-on-surface-variant">Laba Bersih YTD</span>
+                        <span class="grid size-9 place-items-center rounded-lg" :class="metrics.summary.net_income_ytd >= 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-600'">
+                            <AppIcon name="trending_up" />
+                        </span>
+                    </div>
+                    <p class="mt-3 text-2xl font-bold" :class="metrics.summary.net_income_ytd >= 0 ? 'text-emerald-700' : 'text-red-700'">
+                        {{ money(metrics.summary.net_income_ytd) }}
+                    </p>
+                    <p class="mt-1 text-xs text-on-surface-variant">Setelah Pajak & Non-Ops</p>
+                </AppCard>
+            </div>
+
+            <!-- Quick Links to Consolidated Reports -->
+            <AppCard>
+                <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                    <div>
+                        <h2 class="font-bold text-primary">Laporan Keuangan Konsolidasi</h2>
+                        <p class="text-xs text-on-surface-variant">Buka laporan detail gabungan seluruh kecamatan atau filter per kecamatan.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <Link :href="`/regency/reports/balance-sheet?year=${selectedYear}&month=${selectedMonth || ''}`">
+                            <AppButton variant="secondary" icon="account_balance">Neraca</AppButton>
+                        </Link>
+                        <Link :href="`/regency/reports/income-statement?year=${selectedYear}&month=${selectedMonth || ''}`">
+                            <AppButton variant="secondary" icon="trending_up">Laba Rugi</AppButton>
+                        </Link>
+                        <Link :href="`/regency/reports/general-ledger?year=${selectedYear}&month=${selectedMonth || ''}`">
+                            <AppButton variant="secondary" icon="menu_book">Buku Besar</AppButton>
+                        </Link>
+                        <Link :href="`/regency/reports/cash-flow?year=${selectedYear}&month=${selectedMonth || ''}`">
+                            <AppButton variant="secondary" icon="payments">Arus Kas</AppButton>
+                        </Link>
+                        <Link :href="`/regency/reports/calk?year=${selectedYear}&month=${selectedMonth || ''}`">
+                            <AppButton variant="secondary" icon="description">CALK</AppButton>
+                        </Link>
+                    </div>
+                </div>
+            </AppCard>
+
+            <!-- Table Recap per Kecamatan -->
+            <AppCard :padded="false">
+                <div class="border-b border-outline-variant px-6 py-4">
+                    <h2 class="font-bold text-primary">Rekapitulasi Kinerja per Kecamatan</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-surface-container-low text-xs text-on-surface-variant uppercase">
+                            <tr>
+                                <th class="px-6 py-3">Kode</th>
+                                <th class="px-6 py-3">Nama Kecamatan</th>
+                                <th class="px-6 py-3 text-right">Kas & Bank</th>
+                                <th class="px-6 py-3 text-right">Pinjaman Aktif</th>
+                                <th class="px-6 py-3 text-right">Sisa Pokok</th>
+                                <th class="px-6 py-3 text-right">Kelompok</th>
+                                <th class="px-6 py-3 text-right">Anggota</th>
+                                <th class="px-6 py-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-outline-variant">
+                            <tr v-for="kec in metrics.kecamatans" :key="kec.tenant_id" class="hover:bg-surface-container-low/50">
+                                <td class="px-6 py-3 font-mono text-xs">{{ kec.district_code || kec.code }}</td>
+                                <td class="px-6 py-3 font-bold text-primary">{{ kec.name }}</td>
+                                <td class="px-6 py-3 text-right font-semibold text-primary">{{ money(kec.cash) }}</td>
+                                <td class="px-6 py-3 text-right">{{ kec.active_loans }}</td>
+                                <td class="px-6 py-3 text-right">{{ money(kec.active_principal) }}</td>
+                                <td class="px-6 py-3 text-right">{{ kec.groups_count }}</td>
+                                <td class="px-6 py-3 text-right">{{ kec.members_count }}</td>
+                                <td class="px-6 py-3 text-center">
+                                    <Link :href="`/regency/reports/balance-sheet?tenant_id=${kec.tenant_id}&year=${selectedYear}&month=${selectedMonth || ''}`" class="text-xs font-semibold text-primary hover:underline">
+                                        Lihat Neraca →
+                                    </Link>
+                                </td>
+                            </tr>
+                            <tr v-if="!metrics.kecamatans.length">
+                                <td colspan="8" class="px-6 py-8 text-center text-on-surface-variant">
+                                    Belum ada kecamatan yang terdaftar pada database shard kabupaten ini.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </AppCard>
+        </div>
+    </RegencyLayout>
+</template>

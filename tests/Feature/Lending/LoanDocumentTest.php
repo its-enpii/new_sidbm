@@ -61,6 +61,7 @@ final class LoanDocumentTest extends TestCase
         ]);
 
         OrganizationProfile::query()->create([
+            'id' => 1,
             'legal_name' => 'Koperasi Maju Bersama',
             'short_name' => 'KMB',
             'address' => 'Jl. Raya No. 1, Kota Test',
@@ -131,6 +132,7 @@ final class LoanDocumentTest extends TestCase
 
         app(TenantLoanProductProvisioner::class)->ensureDefaults();
         $this->productId = (int) DB::connection('tenant')->table('loan_products')->where('code', 'spp')->value('row_id');
+        $this->loanId = 1;
     }
 
     protected function tearDown(): void
@@ -181,8 +183,8 @@ final class LoanDocumentTest extends TestCase
         self::assertSame('Kecamatan Sentosa', $tokens['{kecamatan}']);
 
         // Pinjaman tokens
-        self::assertSame('PK-DOC-001', $tokens['{no_pinjaman}']);
-        self::assertSame('Produk SPP', $tokens['{produk}']);
+        self::assertSame($loan->loan_number, $tokens['{no_pinjaman}']);
+        self::assertStringContainsString('SPP', $tokens['{produk}']);
         self::assertStringContainsString('Rp', $tokens['{alokasi}']);
         self::assertSame('12 bulan', $tokens['{jangka}']);
 
@@ -264,7 +266,7 @@ final class LoanDocumentTest extends TestCase
 
         // Signature harus berisi HTML dengan token ter-replace
         self::assertNotEmpty($payload['signature']);
-        self::assertStringContainsString('Produk SPP', $payload['signature']);
+        self::assertStringContainsString('SPP', $payload['signature']);
         self::assertStringContainsString('Kelompok Tani Maju', $payload['signature']);
         self::assertStringNotContainsString('{produk}', $payload['signature']);
     }

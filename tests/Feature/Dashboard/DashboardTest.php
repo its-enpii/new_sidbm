@@ -121,7 +121,7 @@ final class DashboardTest extends TestCase
             'joined_at' => now(),
         ]);
 
-        Artisan::call('migrate', [
+        Artisan::call('migrate:fresh', [
             '--database' => 'tenant',
             '--path' => 'database/migrations/shard',
             '--force' => true,

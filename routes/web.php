@@ -27,6 +27,9 @@ use App\Http\Controllers\Webhooks\TripayWebhookController;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\Regency\RegencyDashboardController;
+use App\Http\Controllers\Regency\RegencyReportController;
+
 
 Route::get('/', fn () => Inertia::render('Home', [
     'name' => config('app.name'),
@@ -114,7 +117,7 @@ Route::redirect('/superadmin/tenants', '/admin/tenants');
 Route::redirect('/superadmin/tenants/create', '/admin/tenants/create');
 Route::redirect('/superadmin', '/admin');
 
-Route::middleware(['auth', 'tenant'])->group(function (): void {
+Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function (): void {
     // enpii/assistant package routes (in-process chat orchestrator)
     Route::prefix('assistant')->group(function (): void {
         require base_path('packages/assistant/routes/api.php');
@@ -296,3 +299,18 @@ Route::middleware(['auth', 'tenant'])
         'tenant_code' => app(TenantContext::class)->tenant()->code,
         'shard' => app(TenantContext::class)->shard()->code,
     ]));
+
+
+Route::middleware(['auth', 'regency'])->prefix('regency')->name('regency.')->group(function (): void {
+    Route::get('/', [RegencyDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [RegencyDashboardController::class, 'index'])->name('dashboard.index');
+
+    Route::prefix('reports')->name('reports.')->group(function (): void {
+        Route::get('/balance-sheet', [RegencyReportController::class, 'balanceSheet'])->name('balance-sheet');
+        Route::get('/income-statement', [RegencyReportController::class, 'incomeStatement'])->name('income-statement');
+        Route::get('/general-ledger', [RegencyReportController::class, 'generalLedger'])->name('general-ledger');
+        Route::get('/cash-flow', [RegencyReportController::class, 'cashFlow'])->name('cash-flow');
+        Route::get('/calk', [RegencyReportController::class, 'calk'])->name('calk');
+        Route::get('/{type}/pdf', [RegencyReportController::class, 'pdf'])->name('pdf');
+    });
+});

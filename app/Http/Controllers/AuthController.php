@@ -41,7 +41,7 @@ final class AuthController
             ]);
         }
 
-        if ($user->tenant_id === null) {
+        if ($user->tenant_id === null && ! $user->is_superadmin && ! $user->isRegencyUser()) {
             $membership = $user->memberships()->where('status', 'active')->first();
             $user->forceFill(['tenant_id' => $membership?->tenant_id])->save();
         }
@@ -58,8 +58,17 @@ final class AuthController
             return redirect()->route('admin.dashboard');
         }
 
+        if ($user->isRegencyUser()) {
+            $request->session()->forget('url.intended');
+
+            return redirect()->route('regency.dashboard');
+        }
+
         $intended = $request->session()->pull('url.intended');
-        if (is_string($intended) && str_contains(parse_url($intended, PHP_URL_PATH) ?? '', '/admin')) {
+        if (is_string($intended) && (
+            str_contains(parse_url($intended, PHP_URL_PATH) ?? '', '/admin') ||
+            str_contains(parse_url($intended, PHP_URL_PATH) ?? '', '/regency')
+        )) {
             $intended = null;
         }
 

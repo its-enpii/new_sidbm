@@ -49,6 +49,8 @@ return [
         // Tenant SaaS billing (pay platform invoices)
         'billing.view',
         'billing.pay',
+        // Regency supervisory permissions
+        'regency.view_reports',
         // Settings / assistant
         'settings.manage',
         'assistant.use',
@@ -117,12 +119,14 @@ return [
                 'assistant.use',
             ],
         ],
+        'regency_supervisor' => [
+            'name' => 'Supervisor Kabupaten',
+            'is_system' => true,
+            'permissions' => [
+                'regency.view_reports',
+            ],
+        ],
     ],
-
-    /*
-     * Admin role already has '*'. Kasir/verifikator/viewer do not get reports.manage
-     * or period_close.manage by default — assign admin or custom later.
-     */
 
     /**
      * Nav path prefix → permission required to show the link.
@@ -151,6 +155,7 @@ return [
         '/notifications/billing' => 'messages.send',
         '/billing/invoices' => 'billing.view',
         '/settings' => 'settings.manage',
+        '/regency' => 'regency.view_reports',
     ],
 
     /**

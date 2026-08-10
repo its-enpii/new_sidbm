@@ -32,9 +32,15 @@ final class User extends Authenticatable
             'password' => 'hashed',
             'last_login_at' => 'datetime',
             'is_superadmin' => 'boolean',
+            'is_regency_user' => 'boolean',
             'birth_date' => 'date',
             'appointed_at' => 'date',
         ];
+    }
+
+    public function isRegencyUser(): bool
+    {
+        return $this->is_regency_user === true;
     }
 
     public function tenant(): BelongsTo

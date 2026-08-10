@@ -17,7 +17,7 @@ A Laravel package extracted from the orchestrator at `enpii/assistant`. Runs **i
 ```bash
 # in host app's composer.json
 "repositories": [
-  { "type": "path", "url": "./packages/enpii/assistant", "options": { "symlink": true } }
+  { "type": "path", "url": "./packages/assistant", "options": { "symlink": true } }
 ],
 "require": { "arafi/enpii/assistant": "@dev" }
 ```

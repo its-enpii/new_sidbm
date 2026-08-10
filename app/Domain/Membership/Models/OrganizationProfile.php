@@ -12,6 +12,8 @@ final class OrganizationProfile extends TenantModel
     protected $table = 'organization_profiles';
 
     protected $fillable = [
+        'id',
+        'tenant_id',
         'legal_name',
         'short_name',
         'registration_number',

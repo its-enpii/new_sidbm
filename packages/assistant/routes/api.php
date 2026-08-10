@@ -9,7 +9,7 @@ use Enpii\Assistant\Http\Controllers\PersonaInfoController;
 
 // Host app registers these under a prefix and authentication middleware:
 //   Route::middleware(['web', 'auth'])->prefix('assistant')->group(function () {
-//       require base_path('packages/enpii/assistant/routes/api.php');
+//       require base_path('packages/assistant/routes/api.php');
 //   });
 
 Route::get('/persona', [PersonaInfoController::class, 'show']);

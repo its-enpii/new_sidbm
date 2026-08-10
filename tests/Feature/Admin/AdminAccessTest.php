@@ -41,7 +41,7 @@ final class AdminAccessTest extends TestCase
 
         $this->actingAs($user)
             ->get('/admin')
-            ->assertForbidden();
+            ->assertRedirect(route('login'));
     }
 
     public function test_superadmin_can_open_admin_dashboard(): void

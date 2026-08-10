@@ -8,3 +8,7 @@ use Illuminate\Support\Facades\Schedule;
 // Add application-level housekeeping schedules below when needed.
 
 Schedule::command('model:prune')->dailyAt('02:30');
+
+// Otomatisasi Billing & Langganan
+Schedule::command('subscriptions:generate-invoices')->dailyAt('01:00');
+Schedule::command('subscriptions:check-overdue')->dailyAt('01:30');

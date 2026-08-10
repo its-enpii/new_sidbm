@@ -97,7 +97,15 @@ final readonly class InvoiceService
                 'paid_at' => $invoice->paid_at ?? now(),
             ])->save();
 
-            return $invoice->fresh();
+            $fresh = $invoice->fresh();
+            if ($fresh->subscription_id !== null) {
+                $subscription = Subscription::query()->find($fresh->subscription_id);
+                if ($subscription !== null) {
+                    app(SubscriptionService::class)->renewFromPaidInvoice($subscription, $fresh);
+                }
+            }
+
+            return $fresh;
         }
 
         $invoice->forceFill([
