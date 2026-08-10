@@ -160,6 +160,7 @@ final class WhatsappNotificationService
         $results = [];
         $sent = $failed = $skipped = 0;
 
+        $toSend = [];
         foreach ($items as $item) {
             if (! $item['can_send'] || $item['phone'] === null) {
                 $skipped++;
@@ -184,28 +185,47 @@ final class WhatsappNotificationService
                 'produk' => '',
             ]);
 
-            try {
-                $result = $this->gateway->sendText($item['phone'], $message);
-                if ($result['success']) {
-                    $sent++;
-                } else {
-                    $failed++;
+            $toSend[] = [
+                'item' => $item,
+                'payload' => ['number' => $item['phone'], 'text' => $message],
+            ];
+        }
+
+        if (count($toSend) > 1) {
+            $bulkPayload = array_column($toSend, 'payload');
+            $bulkRes = $this->gateway->sendMessages($bulkPayload);
+            if ($bulkRes['success']) {
+                $sent += count($toSend);
+                foreach ($toSend as $entry) {
+                    $results[] = [
+                        'installment_row_id' => $entry['item']['installment_row_id'],
+                        'success' => true,
+                        'message' => 'Pesan massal terkirim.',
+                        'phone' => $entry['item']['phone'],
+                    ];
                 }
-                $results[] = [
-                    'installment_row_id' => $item['installment_row_id'],
-                    'success' => $result['success'],
-                    'message' => $result['message'],
-                    'phone' => $item['phone'],
-                ];
-            } catch (\Throwable $e) {
-                $failed++;
-                $results[] = [
-                    'installment_row_id' => $item['installment_row_id'],
-                    'success' => false,
-                    'message' => $e->getMessage(),
-                    'phone' => $item['phone'],
-                ];
+            } else {
+                foreach ($toSend as $entry) {
+                    $res = $this->gateway->sendText($entry['item']['phone'], $entry['payload']['text']);
+                    if ($res['success']) { $sent++; } else { $failed++; }
+                    $results[] = [
+                        'installment_row_id' => $entry['item']['installment_row_id'],
+                        'success' => $res['success'],
+                        'message' => $res['message'],
+                        'phone' => $entry['item']['phone'],
+                    ];
+                }
             }
+        } elseif (count($toSend) === 1) {
+            $entry = $toSend[0];
+            $res = $this->gateway->sendText($entry['item']['phone'], $entry['payload']['text']);
+            if ($res['success']) { $sent++; } else { $failed++; }
+            $results[] = [
+                'installment_row_id' => $entry['item']['installment_row_id'],
+                'success' => $res['success'],
+                'message' => $res['message'],
+                'phone' => $entry['item']['phone'],
+            ];
         }
 
         return compact('sent', 'failed', 'skipped', 'results');

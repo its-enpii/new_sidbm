@@ -119,11 +119,93 @@ async function destroyLogo() {
 
 // === WhatsApp ===
 const whatsappForm = useForm({
-    pairing_phone: props.whatsapp.pairing_phone ?? '',
     template_billing: props.whatsapp.template_billing ?? '',
     template_installment: props.whatsapp.template_installment ?? '',
     is_enabled: props.whatsapp.is_enabled ?? false,
 });
+const testResult = ref(null);
+const testLoading = ref(false);
+const createResult = ref(null);
+const createLoading = ref(false);
+const qrCode = ref(props.whatsapp.connection?.qr ?? null);
+const instanceStatus = ref(props.whatsapp.connection?.state || props.whatsapp.connection?.status || 'unknown');
+let pollTimer = null;
+
+async function createInstance() {
+    createLoading.value = true;
+    createResult.value = null;
+    try {
+        const response = await fetch('/settings/whatsapp/create', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken(),
+            },
+            credentials: 'same-origin',
+        });
+        const res = await response.json();
+        createResult.value = res;
+        if (res.qr) qrCode.value = res.qr;
+        if (res.state) instanceStatus.value = res.state;
+        startPolling();
+    } catch (e) {
+        createResult.value = { success: false, message: e.message };
+    } finally {
+        createLoading.value = false;
+    }
+}
+
+async function deleteInstance() {
+    if (!await confirmAction({ title: 'Hapus Session WhatsApp', message: 'Apakah Anda yakin ingin menghapus session WhatsApp ini?' })) return;
+    try {
+        const response = await fetch('/settings/whatsapp/delete', {
+            method: 'DELETE',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken(),
+            },
+            credentials: 'same-origin',
+        });
+        const res = await response.json();
+        qrCode.value = null;
+        instanceStatus.value = 'missing';
+        createResult.value = { success: true, message: res.message || 'Session dihapus.' };
+        stopPolling();
+    } catch (e) {
+        createResult.value = { success: false, message: e.message };
+    }
+}
+
+function startPolling() {
+    stopPolling();
+    pollTimer = setInterval(async () => {
+        try {
+            const response = await fetch('/settings/whatsapp/state', {
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            });
+            const res = await response.json();
+            if (res.qr) qrCode.value = res.qr;
+            if (res.state || res.status) instanceStatus.value = res.state || res.status;
+            if (['open', 'connected'].includes(instanceStatus.value.toLowerCase())) {
+                stopPolling();
+                qrCode.value = null;
+            }
+        } catch {
+            // ignore
+        }
+    }, 3000);
+}
+
+function stopPolling() {
+    if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+    }
+}
 const testResult = ref(null);
 const testLoading = ref(false);
 const pairResult = ref(null);
@@ -330,42 +412,50 @@ function applySignatureStarter() {
                             </AppBadge>
                         </div>
 
-                        <form class="space-y-5" @submit.prevent="submitWhatsapp">
-                            <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
-                                <div class="min-w-0 flex-1">
-                                    <AppInput
-                                        v-model="whatsappForm.pairing_phone"
-                                        label="Nomor WhatsApp"
-                                        placeholder="08xxxxxxxxxx"
-                                        :error="whatsappForm.errors.pairing_phone"
-                                    />
+                        <!-- Panel Buat Instance & QR Scan -->
+                        <div class="mb-6 rounded-xl border border-outline-variant bg-surface-container-low p-4 space-y-3">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <p class="font-bold text-primary">Aktifasi & Scan QR</p>
+                                    <p class="text-xs text-on-surface-variant">
+                                        Klik "Buat Instance" untuk mendapatkan QR Code scan WhatsApp Business.
+                                    </p>
                                 </div>
-                                <AppButton
-                                    type="button"
-                                    variant="secondary"
-                                    size="large"
-                                    class="h-14 shrink-0"
-                                    icon="qr_code_2"
-                                    :loading="pairLoading"
-                                    :disabled="pairLoading || !whatsappForm.pairing_phone || !props.whatsapp.configured"
-                                    @click="pairDevice"
-                                >
-                                    Pairing Code
-                                </AppButton>
+                                <div class="flex items-center gap-2">
+                                    <AppButton
+                                        type="button"
+                                        variant="secondary"
+                                        icon="qr_code_scanner"
+                                        :loading="createLoading"
+                                        :disabled="createLoading || !props.whatsapp.configured"
+                                        @click="createInstance"
+                                    >
+                                        Buat Instance
+                                    </AppButton>
+                                    <AppButton
+                                        type="button"
+                                        variant="danger"
+                                        icon="delete"
+                                        :disabled="!props.whatsapp.configured"
+                                        @click="deleteInstance"
+                                    >
+                                        Hapus Instance
+                                    </AppButton>
+                                </div>
                             </div>
 
-                            <div v-if="pairResult" class="rounded-xl border border-outline-variant bg-surface-container-low p-4">
-                                <p class="font-bold" :class="pairResult.success ? 'text-primary' : 'text-error'">
-                                    {{ pairResult.success ? 'Pairing' : 'Gagal pair' }}
-                                </p>
-                                <p class="mt-1 text-sm text-on-surface-variant">{{ pairResult.message }}</p>
-                                <p v-if="pairResult.pairing_code" class="mt-3 font-mono text-3xl font-bold tracking-[0.3em] text-primary">
-                                    {{ pairResult.pairing_code }}
-                                </p>
-                                <p v-if="pairResult.pairing_code" class="mt-2 text-xs text-on-surface-variant">
-                                    WhatsApp → Perangkat tertaut → Tautkan perangkat → tautkan dengan nomor telepon.
-                                </p>
+                            <div v-if="qrCode" class="mt-4 flex flex-col items-center justify-center p-4 bg-white rounded-lg border border-outline-variant">
+                                <p class="mb-2 text-xs font-bold text-gray-700">Scan QR Code ini menggunakan WhatsApp di HP Anda:</p>
+                                <img :src="qrCode" alt="QR Code WhatsApp" class="size-64 object-contain" />
+                                <p class="mt-2 text-xs text-gray-500 animate-pulse">Menunggu scan QR... (auto-refresh status tiap 3 detik)</p>
                             </div>
+
+                            <div v-if="createResult" class="mt-2 text-xs" :class="createResult.success ? 'text-primary font-semibold' : 'text-error font-semibold'">
+                                {{ createResult.message }}
+                            </div>
+                        </div>
+
+                        <form class="space-y-5" @submit.prevent="submitWhatsapp">
 
                             <div class="grid gap-4 sm:grid-cols-2">
                                 <AppTextarea

@@ -30,6 +30,23 @@ const page = usePage();
 const flash = computed(() => page.props.flash?.success);
 
 // === Tripay Tab ===
+const tripayModeOptions = [
+    { value: 'sandbox', label: 'Sandbox (Pengujian / Test Mode)' },
+    { value: 'production', label: 'Production (Live Transaction)' },
+];
+
+const tripayMethodOptions = [
+    { value: 'QRIS2', label: 'QRIS (Semua Bank & E-Wallet)' },
+    { value: 'BCAVA', label: 'BCA Virtual Account' },
+    { value: 'BRIVA', label: 'BRI Virtual Account (BRIVA)' },
+    { value: 'BNIVA', label: 'BNI Virtual Account' },
+    { value: 'MANDIRIVA', label: 'Mandiri Virtual Account' },
+    { value: 'PERMATAVA', label: 'Permata Virtual Account' },
+    { value: 'CIMBVA', label: 'CIMB Niaga Virtual Account' },
+    { value: 'BSIVA', label: 'BSI Virtual Account' },
+    { value: 'DANAMONVA', label: 'Danamon Virtual Account' },
+];
+
 const tripayForm = useForm({
     merchant_code: props.tripay?.merchant_code || '',
     api_key: '',
@@ -804,11 +821,13 @@ onBeforeUnmount(() => {
                     <form @submit.prevent="submitTripay" class="space-y-6">
                         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                             <div>
-                                <label class="block text-xs font-bold uppercase tracking-wider text-primary mb-1">Mode Lingkungan (Environment)</label>
-                                <select v-model="tripayForm.mode" class="h-12 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 text-sm text-primary">
-                                    <option value="sandbox">Sandbox (Pengujian / Test Mode)</option>
-                                    <option value="production">Production (Live Transaction)</option>
-                                </select>
+                                <SmartSelect
+                                    v-model="tripayForm.mode"
+                                    label="Mode Lingkungan (Environment)"
+                                    :options="tripayModeOptions"
+                                    :error="tripayForm.errors.mode"
+                                    required
+                                />
                             </div>
 
                             <div>
@@ -824,26 +843,21 @@ onBeforeUnmount(() => {
                             </div>
 
                             <div class="sm:col-span-2">
-                                <label class="block text-xs font-bold uppercase tracking-wider text-primary mb-1">Metode Pembayaran Default (In-App Billing)</label>
-                                <select v-model="tripayForm.default_method" class="h-12 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 text-sm text-primary">
-                                    <option value="QRIS2">QRIS (Semua Bank & E-Wallet)</option>
-                                    <option value="BCAVA">BCA Virtual Account</option>
-                                    <option value="BRIVA">BRI Virtual Account (BRIVA)</option>
-                                    <option value="BNIVA">BNI Virtual Account</option>
-                                    <option value="MANDIRIVA">Mandiri Virtual Account</option>
-                                    <option value="PERMATAVA">Permata Virtual Account</option>
-                                    <option value="CIMBVA">CIMB Niaga Virtual Account</option>
-                                    <option value="BSIVA">BSI Virtual Account</option>
-                                    <option value="DANAMONVA">Danamon Virtual Account</option>
-                                </select>
+                                <SmartSelect
+                                    v-model="tripayForm.default_method"
+                                    label="Metode Pembayaran Default (In-App Billing)"
+                                    :options="tripayMethodOptions"
+                                    :error="tripayForm.errors.default_method"
+                                    required
+                                />
                             </div>
                         </div>
 
                         <div class="flex flex-wrap items-center justify-between gap-4 border-t border-outline-variant pt-4">
-                            <button type="button" class="inline-flex items-center gap-2 rounded-xl border border-outline-variant bg-surface px-4 py-2.5 text-xs font-bold text-primary transition-colors hover:bg-surface-container" :disabled="tripayTesting" @click="testTripayConnection">
-                                <AppIcon name="network_check" />
+                            <AppButton type="button" variant="secondary" :disabled="tripayTesting" @click="testTripayConnection">
+                                <AppIcon name="network_check" class="mr-1" />
                                 <span>{{ tripayTesting ? 'Menguji Koneksi...' : '?? Uji Koneksi Tripay API' }}</span>
-                            </button>
+                            </AppButton>
 
                             <AppButton type="submit" variant="primary" :disabled="tripayForm.processing">
                                 ?? Simpan Kredensial Tripay

@@ -119,18 +119,20 @@ final class SettingsController
     public function updateLendingSystem(LendingSystemRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $now = now();
-        $hasRounding = DB::connection('tenant')->getSchemaBuilder()->hasColumn('loan_products', 'rounding_method');
+        $rows = $data['products'] ?? [];
 
-        foreach ($data['products'] as $row) {
+        foreach ($rows as $row) {
             $update = [
-                'default_interest_rate' => (float) $row['default_interest_rate'],
-                'default_term_months' => (int) $row['default_term_months'],
-                'updated_at' => $now,
+                'default_interest_rate' => $row['default_interest_rate'],
+                'default_term_months' => $row['default_term_months'],
+                'is_active' => (bool) ($row['is_active'] ?? true),
+                'updated_at' => now(),
             ];
-            if ($hasRounding) {
-                $update['rounding_method'] = $row['rounding_method'];
+
+            if (DB::connection('tenant')->getSchemaBuilder()->hasColumn('loan_products', 'rounding_method')) {
+                $update['rounding_method'] = $row['rounding_method'] ?? 'decimal_2';
             }
+
             DB::connection('tenant')->table('loan_products')
                 ->where('row_id', $row['row_id'])
                 ->update($update);
@@ -185,15 +187,21 @@ final class SettingsController
     {
         $data = $request->validated();
 
-        if (array_key_exists('pairing_phone', $data) && is_string($data['pairing_phone'])) {
-            $gateway->setPairingPhone($data['pairing_phone']);
-        }
-
         $settings->set('whatsapp.template_billing', $data['template_billing'] ?? '');
         $settings->set('whatsapp.template_installment', $data['template_installment'] ?? '');
         $gateway->setEnabled((bool) ($data['is_enabled'] ?? false));
 
         return $this->flashRedirect('Pengaturan WhatsApp berhasil disimpan.', 'whatsapp');
+    }
+
+    public function createWhatsappInstance(WhatsappGatewayService $gateway): JsonResponse
+    {
+        return response()->json($gateway->createInstance());
+    }
+
+    public function deleteWhatsappInstance(WhatsappGatewayService $gateway): JsonResponse
+    {
+        return response()->json($gateway->deleteInstance());
     }
 
     public function updateSignatures(SignaturesRequest $request, SignatureTemplateService $signatures): RedirectResponse
@@ -204,18 +212,26 @@ final class SettingsController
         return $this->flashRedirect('Template tanda tangan berhasil disimpan.', 'signatures');
     }
 
-    public function testWhatsapp(WhatsappGatewayService $gateway): JsonResponse
+    public function testWhatsapp(Request $request, WhatsappGatewayService $gateway): JsonResponse
     {
+        if (! $gateway->isConfigured()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gateway WA_GATEWAY_BASE / WA_GATEWAY_API_KEY belum dikonfigurasi.',
+            ]);
+        }
+
+        $phone = $request->input('phone');
+        if (is_string($phone) && trim($phone) !== '') {
+            return response()->json($gateway->sendText($phone, 'Tes koneksi WhatsApp Gateway SIDBM.'));
+        }
+
         return response()->json($gateway->connectionState());
     }
 
-    public function pairWhatsapp(Request $request, WhatsappGatewayService $gateway): JsonResponse
+    public function instanceState(WhatsappGatewayService $gateway): JsonResponse
     {
-        $validated = $request->validate([
-            'pairing_phone' => ['required', 'string', 'max:20'],
-        ]);
-
-        return response()->json($gateway->pairWithPhone($validated['pairing_phone']));
+        return response()->json($gateway->connectionState());
     }
 
     /**
@@ -228,13 +244,13 @@ final class SettingsController
             : [
                 'success' => false,
                 'status' => 'unconfigured',
-                'message' => 'EVOLUTION_URL / EVOLUTION_API_KEY belum diisi di environment server.',
                 'state' => null,
+                'qr' => null,
+                'message' => 'WA_GATEWAY_BASE / WA_GATEWAY_API_KEY belum diisi di environment server.',
                 'instance' => $gateway->getInstance(),
             ];
 
         return [
-            'pairing_phone' => $gateway->getPairingPhone(),
             'instance' => $gateway->getInstance(),
             'configured' => $gateway->isConfigured(),
             'template_billing' => (string) ($settings->get('whatsapp.template_billing', '') ?: ''),
@@ -243,6 +259,7 @@ final class SettingsController
             'connection' => [
                 'status' => $state['status'] ?? 'unknown',
                 'state' => $state['state'] ?? null,
+                'qr' => $state['qr'] ?? null,
                 'message' => $state['message'] ?? null,
             ],
         ];

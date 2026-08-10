@@ -12,11 +12,14 @@ use App\Http\Controllers\Admin\TenantController as AdminTenantController;
 use App\Http\Controllers\Admin\TenantUserController as AdminTenantUserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Billing\InvoiceController as TenantInvoiceController;
+use App\Http\Controllers\Notifications\BillingNoticeController;
 use App\Http\Controllers\Regency\RegencyDashboardController;
 use App\Http\Controllers\Regency\RegencyReportController;
 use App\Http\Controllers\RegionalCodeController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\Settings\SettingsController;
 use App\Http\Controllers\Webhooks\TripayWebhookController;
+use App\Http\Controllers\WhatsappController;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -71,22 +74,16 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::post('/invoices/{invoice}/void', [AdminInvoiceController::class, 'void'])->name('invoices.void');
     Route::post('/invoices/{invoice}/payments/manual', [AdminInvoicePaymentController::class, 'storeManual'])->name('invoices.payments.manual');
     Route::post('/invoices/{invoice}/payments/tripay', [AdminInvoicePaymentController::class, 'storeTripay'])->name('invoices.payments.tripay');
-    Route::post('/subscriptions/{subscription}/invoices', [AdminInvoiceController::class, 'generateFromSubscription'])->name('subscriptions.invoices.store');
 
-    Route::get('/migrations', [AdminMigrationController::class, 'index'])->name('migrations.index');
-    Route::post('/migrations', [AdminMigrationController::class, 'store'])->name('migrations.store');
-    Route::get('/migrations/{run}', [AdminMigrationController::class, 'show'])->name('migrations.show');
+    Route::get('/migration', [AdminMigrationController::class, 'index'])->name('migration.index');
+    Route::post('/migration/preview', [AdminMigrationController::class, 'preview'])->name('migration.preview');
+    Route::post('/migration/run', [AdminMigrationController::class, 'run'])->name('migration.run');
 
-    Route::get('/regional/provinces', [RegionalCodeController::class, 'provinces'])->name('regional.provinces');
-    Route::get('/regional/regencies/{province}', [RegionalCodeController::class, 'regencies'])->name('regional.regencies');
     Route::get('/integrations', [AdminIntegrationController::class, 'index'])->name('integrations.index');
     Route::post('/integrations/tripay', [AdminIntegrationController::class, 'updateTripay'])->name('integrations.tripay');
-    Route::post('/integrations/tripay/test', [AdminIntegrationController::class, 'testTripay'])->name('integrations.tripay.test');
     Route::post('/integrations/whatsapp', [AdminIntegrationController::class, 'updateWhatsapp'])->name('integrations.whatsapp');
     Route::post('/integrations/whatsapp/pair', [AdminIntegrationController::class, 'pairWhatsapp'])->name('integrations.whatsapp.pair');
     Route::post('/integrations/whatsapp/test', [AdminIntegrationController::class, 'testWhatsapp'])->name('integrations.whatsapp.test');
-    Route::post('/integrations/ai', [AdminIntegrationController::class, 'updateAi'])->name('integrations.ai');
-    Route::post('/integrations/ai/sync-sources', [AdminIntegrationController::class, 'syncKnowledgeSources'])->name('integrations.ai.sync-sources');
 });
 
 Route::middleware(['auth'])->group(function (): void {
@@ -176,4 +173,35 @@ Route::middleware(['auth'])->group(function (): void {
     Route::put('/assets/{asset}', [\App\Http\Controllers\AssetController::class, 'update'])->name('assets.update');
     Route::post('/assets/{asset}/depreciate', [\App\Http\Controllers\AssetController::class, 'depreciate'])->name('assets.depreciate');
     Route::post('/assets/{asset}/dispose', [\App\Http\Controllers\AssetController::class, 'dispose'])->name('assets.dispose');
+
+    // Settings
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::put('/settings/identity', [SettingsController::class, 'updateIdentity'])->name('settings.identity.update');
+    Route::put('/settings/lending-system', [SettingsController::class, 'updateLendingSystem'])->name('settings.lending-system.update');
+    Route::post('/settings/logo', [SettingsController::class, 'updateLogo'])->name('settings.logo.update');
+    Route::delete('/settings/logo', [SettingsController::class, 'destroyLogo'])->name('settings.logo.destroy');
+    Route::put('/settings/whatsapp', [SettingsController::class, 'updateWhatsapp'])->name('settings.whatsapp.update');
+    Route::post('/settings/whatsapp/create', [SettingsController::class, 'createWhatsappInstance'])->name('settings.whatsapp.create');
+    Route::delete('/settings/whatsapp/delete', [SettingsController::class, 'deleteWhatsappInstance'])->name('settings.whatsapp.delete');
+    Route::get('/settings/whatsapp/state', [SettingsController::class, 'instanceState'])->name('settings.whatsapp.state');
+    Route::post('/settings/whatsapp/test', [SettingsController::class, 'testWhatsapp'])->name('settings.whatsapp.test');
+    Route::put('/settings/signatures', [SettingsController::class, 'updateSignatures'])->name('settings.signatures.update');
+
+    // Notifications (Billing Notice)
+    Route::get('/notifications/billing', [BillingNoticeController::class, 'index'])->name('notifications.billing');
+    Route::post('/notifications/billing/send', [BillingNoticeController::class, 'send'])->name('notifications.billing.send');
+
+    // WhatsApp Gateway API routes
+    Route::prefix('wa')->name('wa.')->group(function (): void {
+        Route::post('/send', [WhatsappController::class, 'sendMessage'])->name('send');
+        Route::post('/send-bulk', [WhatsappController::class, 'sendMessages'])->name('send-bulk');
+        Route::get('/history', [WhatsappController::class, 'historyMessage'])->name('history');
+        Route::get('/instance-state', [WhatsappController::class, 'instanceState'])->name('instance-state');
+    });
+
+    Route::prefix('pengaturan/whatsapp')->name('pengaturan.whatsapp.')->group(function (): void {
+        Route::post('/save_device', [WhatsappController::class, 'createInstance'])->name('save_device');
+        Route::get('/instance_state', [WhatsappController::class, 'instanceState'])->name('instance_state');
+        Route::post('/delete_session', [WhatsappController::class, 'deleteInstance'])->name('delete_session');
+    });
 });
