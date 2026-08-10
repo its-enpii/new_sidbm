@@ -5,6 +5,9 @@ import AppBadge from '../../Components/AppBadge.vue';
 import AppButton from '../../Components/AppButton.vue';
 import AppCard from '../../Components/AppCard.vue';
 import AppIcon from '../../Components/AppIcon.vue';
+import SmartSelect from '../../Components/SmartSelect.vue';
+import { useMoney } from '../../composables/useMoney';
+import { usePeriodOptions } from '../../composables/usePeriodOptions';
 import RegencyLayout from '../../Layouts/RegencyLayout.vue';
 
 const props = defineProps({
@@ -15,18 +18,11 @@ const props = defineProps({
     regency_code: { type: String, default: '' },
 });
 
+const { money } = useMoney();
+const { monthOptions, yearOptions } = usePeriodOptions();
+
 const selectedYear = ref(props.year);
-const selectedMonth = ref(props.month);
-
-const monthNames = [
-    'Semua Bulan (Tahunan)',
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
-];
-
-function money(value) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value || 0));
-}
+const selectedMonth = ref(props.month || '');
 
 function applyFilter() {
     router.get('/regency/dashboard', {
@@ -51,23 +47,29 @@ function applyFilter() {
 
                 <!-- Filters -->
                 <div class="flex flex-wrap items-center gap-3">
-                    <select
-                        v-model.number="selectedMonth"
-                        class="rounded-xl border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface shadow-sm focus:border-primary focus:outline-none"
-                        @change="applyFilter"
-                    >
-                        <option v-for="(name, idx) in monthNames" :key="idx" :value="idx === 0 ? '' : idx">
-                            {{ name }}
-                        </option>
-                    </select>
+                    <div class="w-60">
+                        <SmartSelect
+                            v-model="selectedMonth"
+                            :options="monthOptions"
+                            label="Bulan"
+                            value-key="value"
+                            label-key="label"
+                            hide-label
+                            @update:model-value="applyFilter"
+                        />
+                    </div>
 
-                    <select
-                        v-model.number="selectedYear"
-                        class="rounded-xl border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface shadow-sm focus:border-primary focus:outline-none"
-                        @change="applyFilter"
-                    >
-                        <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
-                    </select>
+                    <div class="w-36">
+                        <SmartSelect
+                            v-model="selectedYear"
+                            :options="yearOptions"
+                            label="Tahun"
+                            value-key="value"
+                            label-key="label"
+                            hide-label
+                            @update:model-value="applyFilter"
+                        />
+                    </div>
 
                     <AppButton variant="secondary" icon="refresh" @click="applyFilter">Muat Ulang</AppButton>
                 </div>

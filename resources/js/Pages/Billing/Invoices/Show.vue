@@ -6,9 +6,12 @@ import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import AppIcon from '../../../Components/AppIcon.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import AppRadioGroup from '../../../Components/AppRadioGroup.vue';
 import { useCan } from '../../../composables/useCan';
+import { useMoney } from '../../../composables/useMoney';
 
 const { can } = useCan();
+const { money } = useMoney();
 
 const props = defineProps({
     invoice: { type: Object, required: true },
@@ -30,6 +33,11 @@ const purposeLabels = {
 const selectedCategory = ref('qris'); // 'qris' | 'virtual_account'
 const selectedMethod = ref('QRIS2');
 const copiedField = ref('');
+
+const categoryOptions = [
+    { value: 'qris', label: 'QRIS (Scan Langsung)', icon: 'qr_code_scanner' },
+    { value: 'virtual_account', label: 'Virtual Account Bank (VA)', icon: 'account_balance' },
+];
 
 const qrisChannels = computed(() => props.channels.filter((c) => c.group === 'qris' || c.code.includes('QRIS')));
 const vaChannels = computed(() => props.channels.filter((c) => c.group === 'virtual_account' || c.code.endsWith('VA')));
@@ -78,9 +86,6 @@ function copyToClipboard(text, fieldName) {
     }, 2500);
 }
 
-function money(value, currency = 'IDR') {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency, maximumFractionDigits: 0 }).format(Number(value || 0));
-}
 
 function tone(status) {
     if (status === 'paid') return 'success';
@@ -309,25 +314,11 @@ function methodLabel(payment) {
                         </p>
                     </div>
 
-                    <!-- Tabs Category -->
-                    <div class="flex gap-2 border-b border-outline-variant pb-2">
-                        <button
-                            type="button"
-                            class="rounded-xl px-4 py-2 text-sm font-bold transition"
-                            :class="selectedCategory === 'qris' ? 'bg-primary text-white shadow-sm' : 'bg-surface-container text-on-surface hover:bg-surface-container-high'"
-                            @click="selectedCategory = 'qris'"
-                        >
-                            QRIS (Scan Langsung)
-                        </button>
-                        <button
-                            type="button"
-                            class="rounded-xl px-4 py-2 text-sm font-bold transition"
-                            :class="selectedCategory === 'virtual_account' ? 'bg-primary text-white shadow-sm' : 'bg-surface-container text-on-surface hover:bg-surface-container-high'"
-                            @click="selectedCategory = 'virtual_account'"
-                        >
-                            Virtual Account Bank (VA)
-                        </button>
-                    </div>
+                    <AppRadioGroup
+                        v-model="selectedCategory"
+                        :options="categoryOptions"
+                        label="Kategori Pembayaran"
+                    />
 
                     <!-- Category 1: QRIS List -->
                     <div v-if="selectedCategory === 'qris'" class="space-y-3">

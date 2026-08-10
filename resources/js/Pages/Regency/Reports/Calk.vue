@@ -1,10 +1,14 @@
-<script setup>
+﻿<script setup>
 import { Head, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed, watch } from 'vue';
 import AppBadge from '../../../Components/AppBadge.vue';
-import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
+import ReportPeriodFilter from '../../../Components/ReportPeriodFilter.vue';
+import SmartSelect from '../../../Components/SmartSelect.vue';
 import RegencyLayout from '../../../Layouts/RegencyLayout.vue';
+import { useMoney } from '../../../composables/useMoney';
+
+const { money } = useMoney();
 
 const props = defineProps({
     report: { type: Object, required: true },
@@ -14,36 +18,23 @@ const props = defineProps({
     regency_name: { type: String, default: 'Kabupaten' },
 });
 
-const selectedYear = ref(props.year);
-const selectedMonth = ref(props.month || '');
 const selectedTenant = ref(props.selected_tenant_id || '');
 
-const monthNames = [
-    'Semua Bulan (Tahunan)',
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
-];
+const tenantOptions = computed(() => [
+    { value: '', label: 'Semua Kecamatan (Gabungan)' },
+    ...(props.report.kecamatans || []).map(kec => ({
+        value: kec.tenant_id,
+        label: kec.name,
+    })),
+]);
 
-function money(value) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value || 0));
-}
-
-function applyFilter() {
+watch(selectedTenant, () => {
     router.get('/regency/reports/calk', {
-        year: selectedYear.value,
-        month: selectedMonth.value || '',
+        year: props.year,
+        month: props.month || '',
         tenant_id: selectedTenant.value || '',
     }, { preserveState: true });
-}
-
-function downloadPdf() {
-    const params = new URLSearchParams({
-        year: String(selectedYear.value),
-        month: String(selectedMonth.value || ''),
-        tenant_id: String(selectedTenant.value || ''),
-    });
-    window.open(`/regency/reports/calk/pdf?${params.toString()}`, '_blank');
-}
+});
 </script>
 
 <template>
@@ -58,40 +49,24 @@ function downloadPdf() {
                         Kabupaten {{ regency_name }} · {{ report.period?.period_label }} · {{ report.is_consolidated ? 'Gabungan Seluruh Kecamatan' : 'Kecamatan Terpilih' }}
                     </p>
                 </div>
-
-                <div class="flex flex-wrap items-center gap-3">
-                    <select
-                        v-model="selectedTenant"
-                        class="rounded-xl border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface shadow-sm focus:border-primary focus:outline-none"
-                        @change="applyFilter"
-                    >
-                        <option value="">Semua Kecamatan (Gabungan)</option>
-                        <option v-for="kec in report.kecamatans" :key="kec.tenant_id" :value="kec.tenant_id">
-                            {{ kec.name }}
-                        </option>
-                    </select>
-
-                    <select
-                        v-model="selectedMonth"
-                        class="rounded-xl border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface shadow-sm focus:border-primary focus:outline-none"
-                        @change="applyFilter"
-                    >
-                        <option v-for="(name, idx) in monthNames" :key="idx" :value="idx === 0 ? '' : idx">
-                            {{ name }}
-                        </option>
-                    </select>
-
-                    <select
-                        v-model.number="selectedYear"
-                        class="rounded-xl border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface shadow-sm focus:border-primary focus:outline-none"
-                        @change="applyFilter"
-                    >
-                        <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
-                    </select>
-
-                    <AppButton variant="secondary" icon="picture_as_pdf" @click="downloadPdf">Cetak PDF</AppButton>
-                </div>
             </div>
+
+            <ReportPeriodFilter :year="year" :month="month"
+                baseUrl="/regency/reports/calk"
+                pdfUrl="/regency/reports/calk/pdf"
+                :extra="{ tenant_id: selectedTenant || '' }"
+            >
+                <template #extra>
+                    <SmartSelect
+                        v-model="selectedTenant"
+                        :options="tenantOptions"
+                        label="Kecamatan"
+                        value-key="value"
+                        label-key="label"
+                        hide-label
+                    />
+                </template>
+            </ReportPeriodFilter>
 
             <!-- Highlights -->
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -1,10 +1,10 @@
-services:
+﻿services:
   app:
     build:
       context: .
       args:
-        UID: ${UID:-1000}
-        GID: ${GID:-1000}
+        UID: 
+        GID: 
     working_dir: /var/www/html
     volumes:
       - .:/var/www/html
@@ -20,15 +20,15 @@ services:
       RAG_DB_CONNECTION: pgsql
       RAG_DB_HOST: postgres
       RAG_DB_PORT: 5432
-      RAG_DB_DATABASE: ${PGDATABASE:-assistant}
-      RAG_DB_USERNAME: ${PGUSER:-assistant}
-      RAG_DB_PASSWORD: ${PGPASSWORD:-assistant}
+      RAG_DB_DATABASE: 
+      RAG_DB_USERNAME: 
+      RAG_DB_PASSWORD: 
       # Embedding base URL points at the in-cluster ollama service. If you
       # want to talk to an ollama running on the host machine, override
       # EMBEDDING_BASE_URL=http://host.docker.internal:11434/v1 in .env.
-      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-http://ollama:11434/v1}
-      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
-      EMBEDDING_DIM: ${EMBEDDING_DIM:-768}
+      EMBEDDING_BASE_URL: 
+      EMBEDDING_MODEL: 
+      EMBEDDING_DIM: 
     depends_on:
       mysql:
         condition: service_healthy
@@ -36,15 +36,33 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
-      ollama:
-        condition: service_started
-      ollama-init:
-        condition: service_completed_successfully
+
+  queue:
+    build:
+      context: .
+      args:
+        UID: 
+        GID: 
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    command: php artisan queue:work redis --tries=3 --timeout=90
+    environment:
+      APP_ENV: local
+      PLATFORM_DB_HOST: mysql
+      TENANT_DB_HOST: mysql
+      REDIS_HOST: redis
+      REDIS_CLIENT: predis
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   nginx:
     image: nginx:1.29-alpine
     ports:
-      - "${APP_PORT:-8080}:80"
+      - ":80"
     volumes:
       - .:/var/www/html:ro
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
@@ -54,9 +72,9 @@ services:
   mysql:
     image: mysql:8.4
     ports:
-      - "${FORWARD_DB_PORT:-3307}:3306"
+      - ":3306"
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_ROOT_PASSWORD: 
     volumes:
       - mysql-data:/var/lib/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
@@ -69,7 +87,7 @@ services:
   redis:
     image: redis:8-alpine
     ports:
-      - "${FORWARD_REDIS_PORT:-6379}:6379"
+      - ":6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -84,15 +102,15 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     ports:
-      - "${PGPORT:-5432}:5432"
+      - ":5432"
     environment:
-      POSTGRES_DB: ${PGDATABASE:-assistant}
-      POSTGRES_USER: ${PGUSER:-assistant}
-      POSTGRES_PASSWORD: ${PGPASSWORD:-assistant}
+      POSTGRES_DB: 
+      POSTGRES_USER: 
+      POSTGRES_PASSWORD: 
     volumes:
       - pg-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U {POSTGRES_USER} -d {POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -100,11 +118,11 @@ services:
 
   # enpii/assistant — local LLM + embedding server. The init container pulls
   # the embedding model on first boot; afterwards the image is reused and
-  # models stay in the `ollama-data` named volume.
+  # models stay in the ollama-data named volume.
   ollama:
     image: ollama/ollama:latest
     ports:
-      - "${OLLAMA_PORT:-11434}:11434"
+      - ":11434"
     volumes:
       - ollama-data:/root/.ollama
     healthcheck:
@@ -118,30 +136,20 @@ services:
     image: ollama/ollama:latest
     depends_on:
       ollama:
-        condition: service_started
+        condition: service_healthy
     environment:
       OLLAMA_HOST: http://ollama:11434
-      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      EMBEDDING_MODEL: 
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
         set -e
         echo "Waiting for Ollama..."
-        i=0
-        until ollama list >/dev/null 2>&1; do
-          i=$$((i+1))
-          if [ "$$i" -gt 60 ]; then echo "Ollama not ready"; exit 1; fi
-          sleep 2
-        done
-        MODEL="$${EMBEDDING_MODEL:-nomic-embed-text}"
-        echo "Pulling $$MODEL..."
-        ollama pull "$$MODEL"
+        MODEL="{EMBEDDING_MODEL:-nomic-embed-text}"
+        echo "Pulling MODEL..."
+        OLLAMA_HOST=http://ollama:11434 ollama pull "MODEL"
         echo "Model ready."
     restart: "no"
-
-  # Vite dev server runs on host (not in container). Run `npm install` once,
-  # then `npm run dev` whenever you want HMR. Or `npm run build` for prod assets
-  # into public/build/.
 
 volumes:
   mysql-data:

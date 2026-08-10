@@ -1,55 +1,51 @@
-# Spesifikasi Integrasi Tripay, Auto-Invoice & Auto-Deactivation Tenant
+﻿# Spesifikasi & Dokumentasi Integrasi Tripay, Auto-Invoice & Auto-Deactivation Tenant
 
-Document ID: `docs/BILLING_TRIPAY_AUTOMATION.md`  
-Tanggal Keputusan: 2026-08-09  
-Status: Active / In Development
+Document ID: docs/BILLING_TRIPAY_AUTOMATION.md  
+Tanggal Pembaruan: 2026-08-10  
+Status: **COMPLETED / IN PRODUCTION**
 
 ---
 
-## 1. Keputusan Prioritas
+## 1. Status Implementasi
 
-Berdasarkan evaluasi dampak bisnis, kesiapan kode (*codebase readiness* ~75%), dan kebutuhan SaaS multi-tenant:
+Seluruh item pada arsitektur billing, pembayaran otomatis, dan pembatasan tenant overdue telah **selesai diimplementasikan dan diuji secara menyeluruh**:
 
-1. **Prioritas 1 (Aktif)**: Integrasi Tripay (Scan QRIS / VA langsung dari aplikasi), otomatisasi generate invoice langganan aplikasi, dan automatisasi penonaktifan tenant saat melewati tenggat bayar langganan (*overdue*).
-2. **Prioritas 2**: Implementasi role/user level Kabupaten (Supervisory read-only dashboard & laporan keuangan konsolidasi per kecamatan & gabungan kabupaten).
-3. **Prioritas 3**: Melengkapi varian laporan legacy penunjang yang tersisa.
+- ✅ **Tripay Payment Gateway Integration (TripayClient)**: Mendukung QRIS (display QR langsung in-app) dan Bank Virtual Accounts (BCA, BRI, BNI, Mandiri, Permata, CIMB, BSI, Danamon).
+- ✅ **In-App Payment Interface (esources/js/Pages/Billing/Invoices/Show.vue)**: Pilihan channel interaktif, instruksi transfer, tombol copy nominal/kode bayar, dan indikator countdown waktu kadaluarsa.
+- ✅ **Automated Subscription Invoices (subscriptions:generate-invoices)**: Scheduler harian untuk membuat tagihan otomatis menjelang masa perpanjangan langganan.
+- ✅ **Overdue Grace Period & Enforcement (subscriptions:check-overdue & EnsureSubscriptionActive)**: Deteksi tagihan menunggak setelah grace-period (3 hari), penangguhan otomatis langganan (suspended), dan pembatasan akses modul operasional secara otomatis via middleware.
+- ✅ **Real-Time Webhook & Status Sync (InvoicePaymentService)**: Pemrosesan callback HMAC-SHA256 dari Tripay, perpanjangan otomatis masa aktif Subscription, dan tombol manual "Cek Status Pembayaran".
 
 ---
 
 ## 2. Arsitektur Billing & Tripay
 
 ### 2.1 Alur Pembayaran Tripay
-- Tenant / Admin mengakses menu Billing (`/billing/invoices` atau `/admin/invoices/{invoice}`).
-- Klik **Bayar via Tripay** / **Generate QRIS**.
-- Application memanggil `InvoicePaymentService::initiateTripay($invoice)`.
-- System membuat record `InvoicePayment` dengan `method='tripay'`, `status='pending'`, dan meminta transaction payload ke Tripay API (`TripayClient`).
-- Mengembalikan checkout URL / QR code ke frontend Vue untuk ditampilkan ke user.
-- Webhook Callback Tripay diterima di endpoint `POST /api/billing/tripay/callback` (tanpa middleware auth CSRF, diverifikasi menggunakan Tripay Signature HMAC-SHA256).
-- `InvoicePaymentService::handleTripayCallback()` memproses update status:
-  - `PAID` -> mengupdate status `InvoicePayment` menjadi `paid`, mengupdate `amount_paid` pada `Invoice`, merefresh status `Invoice` (`paid` / `partially_paid`), dan memperbarui tanggal aktif `Subscription`.
+1. Tenant / Admin membuka detail tagihan (/billing/invoices/{invoice}).
+2. Memilih channel pembayaran (QRIS atau Virtual Account Bank tertentu) dan mengklik **Dapatkan Kode Pembayaran**.
+3. Controller memanggil InvoicePaymentService::initiateTripay(, , ).
+4. Sistem membuat record InvoicePayment (method='tripay', status='pending') dan meminta payload transaksi dari Tripay API (TripayClient::createTransaction()).
+5. Frontend Vue menampilkan QR code / Nomor Virtual Account beserta petunjuk pembayaran secara langsung (tanpa perlu redirect keluar aplikasi).
+6. Saat pembayaran selesai, Tripay memanggil webhook POST /api/billing/tripay/callback (diverifikasi dengan Signature HMAC-SHA256).
+7. InvoicePaymentService::handleTripayCallback() memproses update:
+   - PAID -> mengupdate status InvoicePayment menjadi paid, menambah mount_paid pada Invoice, merefresh status Invoice (paid), dan memperbarui tanggal aktif Subscription via SubscriptionService::renewFromPaidInvoice().
 
 ---
 
-## 3. Otomatisasi Generate Invoice Langganan
+## 3. Command Scheduler & Automation
 
-- **Command Artisan**: `php artisan subscriptions:generate-invoices`
-- **Jadwal**: Dijalankan harian via Laravel Scheduler (`routes/console.php` / `app/Console/Kernel.php`).
-- **Logika**:
-  - Mencari seluruh `Subscription` dengan status `active` yang periode tagihannya akan jatuh dalam $N$ hari (misal 7 hari sebelum `next_billing_at` atau tepat pada hari H).
-  - Memeriksa apakah invoice periode tersebut sudah pernah dibuat (mencegah duplikasi).
-  - Memanggil `InvoiceService::generateFromSubscription($subscription)`.
-  - Mengirim notifikasi invoice baru (opsional/log).
+- php artisan subscriptions:generate-invoices --days=7
+  - Dijalankan harian pada pukul 01:00.
+  - Memeriksa langganan ctive yang mendekati jatuh tempo dan belum memiliki invoice terbuka.
+- php artisan subscriptions:check-overdue --grace-days=3
+  - Dijalankan harian pada pukul 01:30.
+  - Mengubah status tagihan menjadi overdue dan menangguhkan langganan tenant (status = suspended).
 
 ---
 
-## 4. Automatisasi Penonaktifan Tenant Overdue
+## 4. Pengujian (Testing)
 
-### 4.1 Definisi Tenant Overdue & Inactive
-- Invoice berstatus `overdue` apabila `due_at < NOW()` dan `amount_paid < amount`.
-- Jika tenant memiliki invoice `overdue` yang melewati *grace period* (misal: 3 hari setelah `due_at`), maka `Subscription` atau status `Tenant` dinyatakan `suspended` / `overdue_restricted`.
-
-### 4.2 Restriksi Akses (Middleware)
-- **Middleware**: `EnsureTenantActive` / `EnsureSubscriptionActive`.
-- **Aturan**:
-  - Mengizinkan akses ke route Billing (`/billing/invoices`, `/billing/invoices/*`, `/login`, `/logout`).
-  - Memblokir akses ke modul operasional (`/accounting/*`, `/lending/*`, `/master-data/*`) dan menampilkan halaman peringatan *"Langganan Anda telah melewati batas waktu pembayaran. Silakan lakukan pembayaran tagihan untuk melanjutkan penggunaan aplikasi."*
+Semua skenario billing dan otomatisasi diuji dalam test suite:
+- Tests\Feature\Billing\InAppPaymentChannelTest (3 tests — channel display, VA initiation, status sync)
+- Tests\Feature\Billing\SubscriptionAutomationAndEnforcementTest (4 tests — invoice generation, overdue suspension, route blocking middleware, subscription renewal)
+- Tests\Feature\Billing\TenantInvoicePortalTest (4 tests — multi-tenant isolation pada invoice portal)

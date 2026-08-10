@@ -1,29 +1,21 @@
-# SIDBM Database Redesign Package
+﻿# Dokumentasi Proyek SIDBM Next
 
-Paket ini terdiri dari tiga deliverable utama:
+Indeks dokumentasi lengkap untuk arsitektur, basis data, billing, modul supervisi kabupaten, asisten AI, dan migrasi data SIDBM Next:
 
-1. `PROJECT_OVERVIEW.md` — gambaran proyek, arsitektur, tahapan migrasi, risiko, dan acceptance criteria.
-2. `DATABASE_STRUCTURE.md` — rancangan detail platform database dan tenant shard database, termasuk pemetaan legacy.
-3. `laravel-boilerplate/` — overlay boilerplate untuk proyek Laravel 13 baru.
+1. [PERBANDINGAN_SIDBM_LEGACY_VS_NEXT.md](PERBANDINGAN_SIDBM_LEGACY_VS_NEXT.md) — Dokumen analisis komparatif menyeluruh antara SIDBM Legacy (/sidbm) vs SIDBM Next (/new_sidbm), mencakup alasan upgrade, perbedaan arsitektur, basis data, modul kabupaten, SaaS billing, AI RAG, hingga infrastruktur.
+2. [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) — Gambaran umum proyek, prinsip arsitektur multi-tenant sharding, sasaran, risiko, dan kriteria penyelesaian (*definition of done*).
+3. [DATABASE_STRUCTURE.md](DATABASE_STRUCTURE.md) — Struktur detail skema database platform dan shard multi-tenant, pemetaan tabel legacy, serta pembentukan identitas ganda (ow_id vs legacy id).
+4. [BILLING_TRIPAY_AUTOMATION.md](BILLING_TRIPAY_AUTOMATION.md) — Spesifikasi integrasi Payment Gateway Tripay (QRIS & Virtual Accounts), automatisasi tagihan perpanjangan, dan middleware pembatasan tenant overdue.
+5. [ASSISTANT_INTEGRATION.md](ASSISTANT_INTEGRATION.md) — Spesifikasi integrasi Asisten AI (enpii/assistant), pgvector store RAG, Ollama embedding server, dan komponen chat interaktif.
+6. [FEATURE_ROADMAP.md](FEATURE_ROADMAP.md) — Status implementasi fitur harian, laporan akuntansi, inventaris, billing, modul kabupaten, dan changelog rilis.
+7. [CUTOVER_RUNBOOK.md](CUTOVER_RUNBOOK.md) — Panduan teknis migrasi dan cutover data per tenant dari database legacy ke SIDBM Next.
+8. [RBAC_MATRIX.md](RBAC_MATRIX.md) — Matriks hak akses (*Role-Based Access Control*) dan permission granular modul tenant & platform.
 
-## Keputusan inti
+## Keputusan Arsitektur Inti
 
-- platform database + beberapa tenant shard;
-- shared table menggunakan `tenant_id`;
-- `row_id` hanya untuk internal;
-- `id` lama dipertahankan untuk laporan;
-- ID baru memakai sequence per tenant;
-- composite foreign key mencegah relasi lintas tenant;
-- accounting menggunakan journal entries dan journal lines;
-- saldo bulanan dihitung ulang sebagai projection;
-- sistem backup cron existing tetap digunakan.
-
-Baca `laravel-boilerplate/VALIDATION.md` sebelum mencoba migration pada MySQL.
-
-## Cutover (Phase 5)
-
-- `CUTOVER_RUNBOOK.md` — urutan load 1 tenant, checklist acceptance, command `legacy:cutover-tenant`.
-
-## Fitur / paritas harian
-
-- `FEATURE_ROADMAP.md` — prioritas P0–P2 agar Next ganti legacy di kerja harian (bukan mirror semua laporan). Gap vs legacy `sidbm` + workstream docs.
+- **Topologi**: Platform Database + Multi-Tenant Shard Database (	enant_id column-based isolation).
+- **Identitas**: ow_id sebagai PK internal teknis, id lama dipertahankan utuh untuk laporan & audit.
+- **Akuntansi**: Double-entry journal (journal_entries & journal_lines) yang seimbang dan bersifat *immutable*.
+- **Supervisi Kabupaten**: Dashboard & laporan keuangan konsolidasi real-time lintas kecamatan (Neraca, LR, BB, Arus Kas, CALK, PDF).
+- **SaaS Billing**: Integrasi Tripay (Scan QRIS & 8 Virtual Account Bank) dengan scheduler auto-invoice & penangguhan otomatis tenant overdue.
+- **Infrastruktur**: Stack Dockerized lengkap (PHP-FPM 8.4, Nginx 1.29, MySQL 8.4, Redis Cache/Session/Queue Worker, PostgreSQL pgvector 16, Ollama LLM).

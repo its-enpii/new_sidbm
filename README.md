@@ -1,19 +1,28 @@
-# SIDBM Next
+﻿# SIDBM Next
 
-Aplikasi pembaruan SIDBM berbasis Laravel 13, Vue 3, Inertia, Tailwind CSS, MySQL multi-tenant shard, Redis, dan Docker.
+Aplikasi pembaruan SIDBM berbasis Laravel 13, Vue 3, Inertia 2, Tailwind CSS 4, MySQL multi-tenant shard, Redis (Cache, Session, Queue), PostgreSQL (pgvector RAG), Ollama LLM, dan Docker.
 
-## Stack
+## Stack Utama
 
-- PHP 8.4 + Laravel 13
-- Vue 3 + Inertia 2
-- Tailwind CSS 4 + Vite 7
-- MySQL 8.4: satu database platform dan beberapa tenant shard
-- Redis 8
-- Nginx + PHP-FPM
+- **Backend**: PHP 8.4 + Laravel 13
+- **Frontend**: Vue 3.5 + Inertia 2.0 + Tailwind CSS 4 + Vite 7
+- **Database Utama**: MySQL 8.4 — 1 database platform + multiple 	enant shard
+- **Vector Store (RAG)**: PostgreSQL 16 + pgvector
+- **Cache, Session & Queue**: Redis 8 (predis) + Background Queue Worker
+- **AI Engine**: Local Ollama LLM / Embeddings (
+omic-embed-text)
+- **Server / Proxy**: Nginx 1.29 + PHP-FPM 8.4
+
+## Modul Utama
+
+1. **Multi-Tenant Sharding Engine** — Penanganan multi-tenant skala besar (500+ tenant) tanpa suffix tabel dinamis.
+2. **Portal Pengawasan Kabupaten (Regency Supervisory)** — Konsolidasi keuangan gabungan seluruh kecamatan (Neraca, Laba Rugi, Buku Besar, Arus Kas, CALK, PDF).
+3. **Automatisasi SaaS Billing & Tripay Payment** — Pembayaran tagihan langganan via QRIS & Virtual Account Bank (BCA, BRI, BNI, Mandiri, Permata, CIMB, BSI, Danamon), auto-invoice scheduler, dan pembatasan otomatis tenant *overdue*.
+4. **AI Assistant & Embedded RAG** — Asisten AI internal (enpii/assistant) dengan pencarian vektor dokumen RAG dan komponen interaktif chat.
 
 ## Menjalankan dengan Docker
 
-```bash
+`ash
 cp .env.example .env
 docker compose up --build -d
 docker compose exec app php artisan key:generate
@@ -21,73 +30,50 @@ docker compose exec app php artisan migrate \
   --database=platform \
   --path=database/migrations/platform --force
 docker compose exec app php artisan sidbm:bootstrap-local --password='change-me'
-```
+`
 
-`sidbm:bootstrap-local` idempotent: daftarkan shard+tenant `local`, migrate shard, sync registry, import COA, buka fiscal periods, seed master data/loan products, provision user `dev`.
+sidbm:bootstrap-local bersifat idempotent: mendaftarkan shard+tenant local, migrasi shard, sinkronisasi registry, import COA, buka periode fiskal, seed master data/produk pinjaman, dan provision user dev.
 
-Aplikasi: <http://localhost:8080/login> (ubah `APP_PORT` jika perlu)  
-Vite HMR: port `VITE_PORT` (default 5173; contoh env memakai 5174)  
-Login dev: `dev` / password yang di-set di bootstrap.
+Aplikasi: <http://localhost:8080/login> (atau port APP_PORT di .env)  
+Vite HMR: port VITE_PORT (default 5173 / 5174)  
+Login dev: dev / change-me (atau password bootstrap).
 
-MySQL host port default **3307** (`FORWARD_DB_PORT`) agar tidak bentrok Laragon MySQL di 3306. Di dalam Docker, app tetap ke `mysql:3306`.
+MySQL host port default **3307** (FORWARD_DB_PORT) agar tidak bentrok dengan Laragon MySQL di 3306. Di dalam Docker, app terhubung ke mysql:3306.
 
-Entrypoint memasang Composer bila `vendor` kosong. Service Node memasang NPM lalu Vite.
+## Frontend & Build
 
-## Database lokal (manual)
-
-MySQL init membuat: `sidbm_platform`, `sidbm_shard_local`, `sidbm_platform_test`, `sidbm_shard_test`.
-
-Tanpa bootstrap, urutan manual:
-
-```bash
-docker compose exec app php artisan migrate --database=platform --path=database/migrations/platform --force
-# daftarkan shard code=local → sidbm_shard_local, credential_reference=local
-docker compose exec app php artisan tenancy:migrate-shards --shard=local --force
-docker compose exec app php artisan tenancy:sync-registry --shard=local
-docker compose exec app php artisan tenancy:import-legacy-chart-of-accounts local
-docker compose exec app php artisan sidbm:provision-dev-user --password='change-me' --tenant=local
-```
-
-`TENANCY_SHARD_CREDENTIALS_JSON` di `.env` untuk credential reference `local`/`test` (dev only).
-
-## Frontend
-
-```bash
-docker compose logs -f node
-# atau dari host:
-npm install
-npm run dev
+`ash
+# Menjalankan build frontend untuk produksi:
 npm run build
-```
 
-Entry frontend: `resources/js/app.js`. Halaman Inertia: `resources/js/Pages/`.
+# Menjalankan dev server Vite:
+npm run dev
 
-## Pengujian
+# Menjalankan E2E Test (Playwright):
+npm run e2e
+`
 
-Test standar melewati integration test MySQL kecuali flag diaktifkan:
+## Pengujian Automated (PHPUnit & Integration)
 
-```bash
+Pengujian standar tanpa integrasi MySQL:
+
+`ash
 docker compose exec app php artisan test
-```
+`
 
-Integration test tenancy memakai database test disposable:
+Pengujian integrasi tenancy & konsolidasi kabupaten (menggunakan database test):
 
-```bash
+`ash
 docker compose exec \
   -e RUN_TENANCY_INTEGRATION_TESTS=true \
-  -e PLATFORM_DB_DATABASE=sidbm_platform_test \
-  -e TENANT_DB_DATABASE=sidbm_shard_test \
-  app php artisan test --configuration=phpunit.tenancy.xml.example
-```
+  app php artisan test
+`
 
-## Endpoint
+## Dokumentasi Terkait
 
-- `/` — halaman Inertia/Vue.
-- `/up` — health check Laravel.
-- `/t/{tenant}/health` — health tenant; membutuhkan autentikasi dan membership aktif.
-
-## Catatan produksi
-
-Docker Compose ini untuk development. Jangan gunakan password contoh, bind mount, Vite dev server, atau credential JSON pada production. Backup cron server existing tetap menjadi mekanisme backup; aplikasi tidak menjadwalkan backup duplikat.
-
-Dokumentasi arsitektur: [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md). Struktur database: [`docs/DATABASE_STRUCTURE.md`](docs/DATABASE_STRUCTURE.md). Tracker Dokumen Pinjaman: [`docs/LOAN_DOCUMENTS_PROGRESS.md`](docs/LOAN_DOCUMENTS_PROGRESS.md).
+- **Dokumen Perbandingan dengan SIDBM Legacy**: [docs/PERBANDINGAN_SIDBM_LEGACY_VS_NEXT.md](docs/PERBANDINGAN_SIDBM_LEGACY_VS_NEXT.md)
+- **Arsitektur & Topologi Database**: [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md) & [docs/DATABASE_STRUCTURE.md](docs/DATABASE_STRUCTURE.md)
+- **Billing Automation & Tripay**: [docs/BILLING_TRIPAY_AUTOMATION.md](docs/BILLING_TRIPAY_AUTOMATION.md)
+- **Asisten AI & RAG**: [docs/ASSISTANT_INTEGRATION.md](docs/ASSISTANT_INTEGRATION.md)
+- **Matrix RBAC & Hak Akses**: [docs/RBAC_MATRIX.md](docs/RBAC_MATRIX.md)
+- **Runbook Migrasi Data**: [docs/CUTOVER_RUNBOOK.md](docs/CUTOVER_RUNBOOK.md)
