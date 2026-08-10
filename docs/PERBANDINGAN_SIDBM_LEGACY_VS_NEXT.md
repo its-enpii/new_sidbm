@@ -3,12 +3,12 @@
 **Dokumen ID**: docs/PERBANDINGAN_SIDBM_LEGACY_VS_NEXT.md  
 **Tanggal Update**: 10 Agustus 2026  
 **Penyusun**: Team Engineering & System Architecture  
-**Sifat**: **INTERNAL ONLY — TIM ENGINEERING & EXECUTIVE MANAGEMENT (CTO/VP ENG/PROJECT DIRECTOR)**  
+**Sifat**: **INTERNAL ONLY — TIM ENGINEERING & EXECUTIVE MANAGEMENT (CTO / VP ENG / PROJECT DIRECTOR)**  
 **Tujuan Presentasi**: Review Arsitektur Teknis, Justifikasi Rewrite, Pemetaan Basis Data, Mitigasi Risiko, & Readiness Rollout  
 
 ---
 
-## 📋 DAFTAR SLIDE PRESENTASI INTERNAL TIM & ATASAN
+## DAFTAR SLIDE PRESENTASI INTERNAL TIM & ATASAN
 
 - **SLIDE 1**: Title & Executive Architecture Review (Justifikasi Rewrite Total)
 - **SLIDE 2**: Technical Debt Analysis & Batas Kemampuan Teknis (*Technical Ceiling*) Legacy
@@ -18,355 +18,307 @@
 - **SLIDE 6**: Mesin Akuntansi *Double-Entry* (App\Domain\Accounting) & Audit Trail
 - **SLIDE 7**: Arsitektur Modul Supervisi Kabupaten (RegencyConsolidatedReportService)
 - **SLIDE 8**: Modul SaaS Billing & Integrasi Gateway Tripay (TripayClient)
-- **SLIDE 9**: Arsitektur Asisten AI Ariel — PostgreSQL pgvector RAG & Local Ollama LLM
+- **SLIDE 9**: Arsitektur AI Ariel — PostgreSQL pgvector RAG & Local Ollama LLM
 - **SLIDE 10**: Keamanan Hak Akses Multi-Layer (*Granular RBAC & Permission Enforcement*)
 - **SLIDE 11**: Orchestrator Cutover Pipeline (8 Mandatori Command & Rekonsiliasi Data)
 - **SLIDE 12**: Framework UI (*Rural Prosperity*) & Engine Pengetesan (PHPUnit 12 + Playwright E2E)
 - **SLIDE 13**: Matriks Evaluasi Komparatif Fitur Operasional & Teknis (16 Fitur Kunci)
-- **SLIDE 14**: Topologi Infrastruktur Docker & Benchmark Performa Query/Memory
+- **SLIDE 14**: Topologi Infrastruktur Docker & Performa Query/Memory
 - **SLIDE 15**: Matriks Risiko Teknis & Strategi Mitigasi (*Internal Engineering Risk Matrix*)
 - **SLIDE 16**: Rencana Kerja Pelaksanaan & Timeline Rollout Produksi untuk Manajemen
 
 ---
 
-## 🎯 SLIDE 1: Title & Executive Architecture Review
+## SLIDE 1: Title & Executive Architecture Review
 
-### 🖼️ Layout Visual Slide
-`	ext
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│             REVIEW ARSITEKTUR TEKNIS INTERNAL: REWRITE SIDBM LEGACY ──► SIDBM NEXT     │
-├────────────────────────────────────────────────────────────────────────────────────────┤
-│ SASARAN ARSITEKTUR ULTIMAT:                                                            │
-│ 1. Skalabilitas Multi-Tenant 500+ Shard tanpa Dynamic DDL Tables.                      │
-│ 2. Presisi Akuntansi Double-Entry Immutable DECIMAL(19,2) & Auto-Reversal.             │
-│ 3. Performa Aggregasi Kabupaten Sub-Detik via Shard Connection Aggregator.             │
-│ 4. Otomatisasi Billing SaaS via Tripay Payment Gateway (QRIS & 8 Bank VA).             │
-│ 5. Embedded AI Assistant (PostgreSQL 16 pgvector + Local Ollama LLM).                 │
-└────────────────────────────────────────────────────────────────────────────────────────┘
-`
+### Sasaran Utama Arsitektur:
+1. **Skalabilitas Multi-Tenant**: Melayani 500+ tenant tanpa pembuatan tabel DDL dinamis per kecamatan.
+2. **Presisi Finansial**: Menerapkan mesin *Double-Entry* bersifat *immutable* dengan presisi DECIMAL(19,2) dan alur pembatalan otomatis.
+3. **Supervisi Kabupaten Sub-Detik**: Aggregasi data laporan konsolidasi seluruh kecamatan di bawah 1 kabupaten dalam waktu real-time.
+4. **Automatisasi SaaS Billing**: Integrasi penerimaan pembayaran langganan via Tripay Gateway (QRIS & 8 Virtual Account Bank) dengan scheduler auto-invoice dan pembatasan otomatis tenant *overdue*.
+5. **Kecerdasan AI Lokal**: Asisten AI internal berbasis PostgreSQL 16 pgvector RAG dan Local Ollama LLM yang 100% aman tanpa kebocoran data ke luar.
 
-### 📌 Poin Kunci untuk Atasan (Management Highlights):
-- **Bukan sekadar Facelift**: Keputusan merancang ulang dari nol (*ground-up rewrite*) diambil karena skema legacy tidak dapat dipertahankan untuk kebutuhan SaaS modern.
-- **Efisiensi Dev & Maintenance**: Menghilangkan hambatan pemeliharaan puluhan ribu tabel dinamis, mengurangi waktu *bug fixing* hingga 80%.
+### Poin Kunci Eksekutif untuk Manajemen:
+- Keputusan merancang ulang dari nol (*ground-up rewrite*) diambil karena skema legacy melanggar prinsip arsitektur basis data modern dan memiliki batas kapasitas teknis.
+- Pembaruan ini menghilangkan hambatan pemeliharaan ribuan tabel dinamis dan mengurangi beban *bug fixing* tim dev hingga 80%.
 
-### 🎙️ Naskah Presentasi ke Atasan (Talking Points for Boss):
+### Naskah Presenter (Talking Points):
 > *"Bapak/Ibu Pimpinan, rapat arsitektur internal hari ini membedah hasil akhir perancangan **SIDBM Next**. Keputusan merancang ulang aplikasi dari nol (*rewrite*) didasari oleh fakta bahwa skema legacy melanggar standar arsitektur basis data modern. Dengan SIDBM Next, kita mengganti 5.500+ tabel dinamis menjadi Platform DB & Shard DB yang seragam, meningkatkan kecepatan laporan kabupaten menjadi real-time, dan mengintegrasikan otomatisasi billing SaaS serta AI RAG internal."*
 
-### ❓ Q&A Internal Atasan:
-- **Pertanyaan (CTO/Director)**: *"Mengapa kita tidak refactor saja kode legacy Laravel 10 yang lama?"*
-- **Jawaban**: *"Refactoring tidak menyelesaikan masalah akar pada MySQL engine, yaitu pembuatan tabel DDL dinamis per-tenant 	ransaksi_{id} dan saldo string VARCHAR berbasis trigger. Melakukan refactoring di atas basis data lama akan membuang waktu dan tetap menghasilkan bottleneck performa."*
+### Q&A Strategy (Antisipasi Pertanyaan Manajemen):
+- **Pertanyaan (CTO / Project Director)**: *"Mengapa kita tidak merefaktorisasi saja kode legacy Laravel 10 yang lama?"*
+- **Jawaban**: *"Refactoring tidak menyelesaikan masalah akar pada engine database MySQL, yaitu pembuatan 11 tabel DDL dinamis per-tenant 	ransaksi_{id} dan saldo string VARCHAR berbasis trigger. Refactoring di atas basis data lama akan membuang waktu dan tetap menghasilkan bottleneck performa."*
 
 ---
 
-## 🛑 SLIDE 2: Technical Debt Analysis & Technical Ceiling Legacy
+## SLIDE 2: Technical Debt Analysis & Technical Ceiling Legacy
 
-### 🖼️ Analisis Utang Teknis (Technical Debt Breakdown):
+### Analisis Utang Teknis Utama (Technical Debt Breakdown):
 
-`	ext
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                         ANALISIS UTANG TEKNIS (SIDBM LEGACY)                           │
-├──────────────────────────┬──────────────────────────────┬──────────────────────────────┤
-│ 💥 DATABASE EXPLOSION    │ 💥 TRANSAKSI STRING VARCHAR  │ 💥 BOTTLENECK /kab RUNTIME   │
-│ 500 Tenant = 5.500+ DDL  │ Uang disimpan VARCHAR text,  │ Aggregasi meloop puluhan DB  │
-│ Tables (	ransaksi_1).  │ trigger MySQL sering lock.   │ secara dynamic connection.   │
-└──────────────────────────┴──────────────────────────────┴──────────────────────────────┘
-`
+1. **Eksplorasi Database (5.500+ Tabel Dinamis DDL)**:
+   - Setiap tenant baru membuat 11 tabel dinamis (nggota_, kelompok_, pinjaman_kelompok_, pinjaman_anggota_, encana_angsuran_, eal_angsuran_, 	ransaksi_, saldo_, ekening_, ebudgeting_, inventaris_).
+   - 500 tenant menghasilkan 5.500+ tabel dinamis yang memicu risiko *schema drift* dan kegagalan eksekusi DDL migration di pertengahan jalan.
+2. **Penghitungan Saldo Teks & Trigger Lock Contention**:
+   - Angka finansial disimpan dalam format string VARCHAR.
+   - Penghitungan saldo dipelihara melalui MySQL Triggers (create_saldo, update_saldo, delete_saldo). Koreksi transaksi historis sering memicu *table lock* dan saldo tidak cocok.
+3. **Bottleneck Aggregasi Portal Kabupaten (/kab)**:
+   - Portal /kab legacy lambat karena harus meloop puluhan tabel dinamis secara *dynamic connection loop* pada runtime saat menarik laporan konsolidasi.
 
-### 📌 Detail Teknis untuk Tim Developer:
-1. **Schema Drift Risk**: Eksekusi DDL ALTER TABLE ke 5.500 tabel dinamis sering terputus di pertengahan (*network timeout*), menyebabkan skema antar-tenant tidak seragam.
-2. **Ketiadaan FK Constraints**: Relasi antar nggota, kelompok, pinjaman, dan 	ransaksi hanya dijaga pada controller, memicu *orphan records* masif.
-3. **Trigger Lock Contention**: Trigger MySQL pada saldo_{tenant} mengunci tabel saat terjadi update transaksi historis.
+### Detail Teknis untuk Tim Developer:
+- Ketiadaan *Foreign Key Constraints* pada level database legacy memicu *orphan records* masif antara transaksi, pinjaman, dan anggota.
+- Pembatalan transaksi historis dilakukan dengan menghapus atau mengedit baris basis data secara langsung tanpa audit trail resmi.
 
-### 🎙️ Naskah Presentasi ke Atasan:
-> *"Ini adalah bukti teknis mengapa sistem lama harus diganti. Pada legacy, setiap ada tenant baru, Laravel menjalankan SQL DDL untuk membuat tabel baru. Ketika aplikasi melayani 500 tenant, MySQL terbeban oleh 5.500 lebih tabel dinamis. Ketika tim dev merilis kolom baru, kita harus meloop DDL ke 5.500 tabel dinamis tersebut. Jika koneksi terputus di tabel ke-500, terjadi ketidakseragaman skema (*schema drift*) yang fatal. Di SIDBM Next, masalah ini 100% tuntas."*
+### Naskah Presenter (Talking Points):
+> *"Ini adalah bukti teknis mengapa sistem lama harus diganti. Pada legacy, setiap ada tenant baru, Laravel menjalankan SQL DDL untuk membuat 11 tabel baru. Ketika aplikasi melayani 500 tenant, MySQL terbeban oleh 5.500 lebih tabel dinamis. Ketika tim dev merilis kolom baru, kita harus meloop DDL ke 5.500 tabel tersebut. Jika koneksi terputus di tabel ke-500, terjadi ketidakseragaman skema (*schema drift*) yang fatal. Di SIDBM Next, masalah ini 100% tuntas."*
 
 ---
 
-## 🏗️ SLIDE 3: Topologi Arsitektur Sharding — Platform DB vs Shards
+## SLIDE 3: Topologi Arsitektur Sharding — Platform DB vs Tenant Shards
 
-### 🖼️ Layout Visual Topologi Database
-`	ext
-                               ┌─────────────────────────┐
-                               │  sidbm_platform (MySQL) │
-                               │  • users & memberships  │
-                               │  • tenants & shards     │
-                               │  • plans & invoices     │
-                               └────────────┬────────────┘
-                                            │
-                    ┌───────────────────────┴───────────────────────┐
-                    ▼                                               ▼
-     ┌─────────────────────────────┐                 ┌─────────────────────────────┐
-     │   sidbm_shard_01 (Shared)   │                 │ sidbm_tenant_dedicated_x    │
-     │   • tenant_id column scope  │                 │ • dedicated shard big tenant│
-     │   • members, groups, loans  │                 │ • skema 100% identik        │
-     │   • journal_entries/lines   │                 │ • tenant_id column scope    │
-     └─────────────────────────────┘                 └─────────────────────────────┘
-`
+### Struktur Topologi Database:
 
-### 📌 Poin Kunci Teknis Engine Tenancy:
-- **ShardConnectionManager**: Class dynamic connection switcher yang membaca lokasi tenant dari 	enant_placements di platform DB.
-- **Skalabilitas Shard**: 1 Shard menampung ~50-100 tenant menggunakan isolasi kolom 	enant_id.
-- **Dedicated Shard Support**: Tenant raksasa dapat dipindahkan ke database dedicated hanya dengan mengubah record 	enant_placements tanpa mengubah 1 baris kode aplikasi.
+1. **Platform Database (sidbm_platform)**:
+   - Menampung data global SaaS: users, 	enants, 	enant_memberships, database_shards, 	enant_placements, plans, subscriptions, licenses, shard_schema_versions, 	enant_migration_runs.
+2. **Tenant Shard Databases (sidbm_shard_01, sidbm_shard_02, ...)**:
+   - Menampung data operasional multi-tenant menggunakan skema baku seragam dengan isolasi berbasis kolom 	enant_id.
+3. **Dedicated Shard Database (sidbm_tenant_dedicated_x)**:
+   - Menampung tenant berukuran super besar pada database terpisah dengan skema yang 100% identik dengan shard bersama.
 
-### 🎙️ Naskah Presentasi ke Atasan:
+### Komponen Teknis Engine Tenancy:
+- **ShardConnectionManager**: Service dynamic connection switcher yang menentukan koneksi shard aktif berdasarkan 	enant_placements.
+- **Kapabilitas Shard**: 1 Shard menampung ~50-100 tenant dengan skema seragam.
+- **Dedicated Relocation**: Pemindahan tenant ke shard dedicated cukup dengan mengupdate record 	enant_placements tanpa mengubah kode aplikasi.
+
+### Naskah Presenter (Talking Points):
 > *"Arsitektur sharding kita membagi beban database secara sangat cerdas. Kita memiliki 1 **Platform Database** untuk data SaaS global (users, tenants, subscriptions). Kemudian data operasional disimpan di beberapa **Shard Database**. Setiap shard menampung puluhan kecamatan dengan skema tabel yang sama. Jika ada kecamatan yang ukurannya sangat besar, kita bisa pindahkan ke Shard Dedicated tanpa mengganggu kecamatan lain."*
 
 ---
 
-## 🔐 SLIDE 4: Arsitektur Identitas Ganda & Composite Foreign Keys
+## SLIDE 4: Arsitektur Identitas Ganda & Composite Foreign Keys
 
-### 🖼️ Skema Identitas Ganda & Data Isolation Integrity:
+### Rancangan Identitas Ganda (Dual-Identity System):
 
-`	ext
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                        RANCANGAN IDENTITAS GANDA (DUAL-IDENTITY)                       │
-├─────────────────┬───────────────────┬──────────────────────────────────────────────────┤
-│ Kolom           │ Tipe Data         │ Fungsi & Aturan Bisnis                           │
-├─────────────────┼───────────────────┼──────────────────────────────────────────────────┤
-│ row_id          │ BIGINT AUTO_INC   │ Primary Key Internal Teknis Database Eloquent    │
-│ id              │ BIGINT UNSIGNED   │ PRESERVASI ID HISTORIS LAMA 100% UTUH            │
-│ public_id       │ CHAR(26) ULID     │ Secure API Identifier / Public Route URL         │
-│ tenant_id       │ BIGINT UNSIGNED   │ Composite Partition Key for Tenant Isolation     │
-└─────────────────┴───────────────────┴──────────────────────────────────────────────────┘
-`
+1. **ow_id (BIGINT UNSIGNED AUTO_INCREMENT)**: Primary Key internal teknis database Eloquent.
+2. **id (BIGINT UNSIGNED)**: **Preservasi ID Historis Legacy 100% Utuh** untuk laporan keuangan, kuitansi, dan audit.
+3. **public_id (CHAR(26))**: ULID unik untuk akses aman via API/URL tanpa mengekspos ID internal database.
+4. **	enant_id (BIGINT UNSIGNED)**: Composite Partition Key untuk memastikan isolasi data antar-tenant.
 
-### 📌 Constraint Isolasi Basis Data:
-`sql
-PRIMARY KEY (row_id),
-UNIQUE KEY (tenant_id, row_id),
-UNIQUE KEY (tenant_id, id),
-CONSTRAINT fk_child_parent FOREIGN KEY (tenant_id, parent_row_id) 
-    REFERENCES parent_table(tenant_id, row_id) ON DELETE CASCADE
-`
+### Constraints Isolasi Data pada MySQL Engine:
+- PRIMARY KEY (row_id)
+- UNIQUE KEY (tenant_id, row_id)
+- UNIQUE KEY (tenant_id, id)
+- FOREIGN KEY (tenant_id, parent_row_id) REFERENCES parent_table(tenant_id, row_id) ON DELETE CASCADE
 
-### 🎙️ Naskah Presentasi ke Atasan:
-> *"Salah satu risiko terbesar saat rewrite adalah hilangnya ID lama yang membuat akuntan bingung. Kami menyelesaikan ini dengan arsitektur **Dual-Identity**. ow_id digunakan oleh mesin database Eloquent, sedangkan id lama disimpan utuh 100%. Laporan dan kuitansi tetap menampilkan ID lama. Selain itu, kami menerapkan Composite Foreign Key (tenant_id, parent_row_id) di MySQL Engine, sehingga secara fisik database tidak akan pernah mengizinkan data Kecamatan A bocor ke Kecamatan B."*
+### Naskah Presenter (Talking Points):
+> *"Salah satu risiko terbesar saat rewrite adalah hilangnya ID lama yang membuat akuntan bingung. Kami menyelesaikan ini dengan arsitektur **Dual-Identity**. ow_id digunakan oleh mesin database Eloquent, sedangkan id lama disimpan utuh 100%. Laporan, kuitansi, dan histori pinjaman akan tetap menggunakan nomor ID lama yang Anda kenal. Selain itu, kami menerapkan Composite Foreign Key (tenant_id, parent_row_id) di MySQL Engine, sehingga secara fisik database tidak akan pernah mengizinkan data Kecamatan A bocor ke Kecamatan B."*
 
 ---
 
-## 📑 SLIDE 5: Pemetaan Skema Basis Data Utuh (Legacy ➔ Next)
+## SLIDE 5: Pemetaan Skema Basis Data Utuh (Legacy ➔ Next)
 
-### 🖼️ Tabel Pemetaan Skema Utama (Database Schema Field Mapping):
+### Pemetaan Kolom & Aturan Transformasi Data:
 
-| Tabel Legacy (/sidbm) | Tabel Target (/new_sidbm) | Detail Pemetaan Kolom & Logika Transformasi |
-|---|---|---|
-| nggota_{tenant} | members | id_angg ➔ id, 
+1. **nggota_{tenant} ➔ members**:
+   - id_angg ➔ id (legacy ID)
+   - 
 amaba ➔ 
-ame, 
+ame
+   - 
 ik ➔ 
-ik, lamat ➔ ddress, desa ➔ organization_unit_id (FK ke organization_units). |
-| kelompok_{tenant} | groups | id_kel ➔ id, 
+ik (CHAR(16))
+   - lamat ➔ ddress
+   - desa ➔ organization_unit_id (FK ke organization_units)
+2. **kelompok_{tenant} ➔ groups**:
+   - id_kel ➔ id
+   - 
 ama_kelompok ➔ 
-ame, kd_desa ➔ organization_unit_id, ketua ➔ leader_name, endahara ➔ 	reasurer_name. |
-| pinjaman_kelompok_{tenant} | loans | id ➔ id (legacy_source='group_loan'), id_kel ➔ group_id, lokasi ➔ mount (DECIMAL(19,2)), pros_jasa ➔ interest_rate (DECIMAL(9,4)). |
-| 	ransaksi_{tenant} | journal_entries & lines | idt ➔ id, 	gl_transaksi ➔ 	ransaction_date. Record dipecah menjadi 2 baris journal_lines (Debet & Kredit). |
-| saldo_{tenant} | ccount_monthly_balances | Proyeksi saldo bulanan yang dihitung otomatis dari journal_lines. |
-| ekening_{tenant} | ccounts | kode_akun ➔ ccount_code, 
+ame
+   - kd_desa ➔ organization_unit_id
+   - ketua ➔ leader_name
+   - endahara ➔ 	reasurer_name
+3. **pinjaman_kelompok_{tenant} ➔ loans**:
+   - id ➔ id (legacy_source='group_loan')
+   - id_kel ➔ group_id
+   - lokasi ➔ mount (DECIMAL(19,2))
+   - pros_jasa ➔ interest_rate (DECIMAL(9,4))
+4. **	ransaksi_{tenant} ➔ journal_entries & journal_lines**:
+   - idt ➔ id
+   - 	gl_transaksi ➔ 	ransaction_date
+   - Record dipecah menjadi 2 baris journal_lines (Debet & Kredit).
+5. **saldo_{tenant} ➔ ccount_monthly_balances**:
+   - Proyeksi saldo bulanan yang dihitung otomatis dari journal_lines.
+6. **ekening_{tenant} ➔ ccounts**:
+   - kode_akun ➔ ccount_code
+   - 
 ama_akun ➔ 
-ame, lev1..lev4 ➔ level, parent_id ➔ parent_account_id. |
-| inventaris_{tenant} | ssets & categories | id ➔ id, 
+ame
+   - lev1..lev4 ➔ level
+   - parent_id ➔ parent_account_id
+7. **inventaris_{tenant} ➔ ssets & sset_categories**:
+   - id ➔ id
+   - 
 ama_barang ➔ 
-ame, harga ➔ cquisition_cost, depresiasi_bulan ➔ monthly_depreciation. |
+ame
+   - harga ➔ cquisition_cost
+   - depresiasi_bulan ➔ monthly_depreciation
 
-### 🎙️ Naskah Presentasi ke Atasan:
+### Naskah Presenter (Talking Points):
 > *"Tim engineering telah memetakan 100% skema tabel legacy ke skema baru ternormalisasi. Kolom-kolom teks yang dulunya berantakan di Legacy kini telah dipadatkan ke struktur terstandar. Data anggota, kelompok, pinjaman, hingga jurnal transaksi dipindahkan dengan mempertahankan relasi historisnya."*
 
 ---
 
-## ⚖️ SLIDE 6: Mesin Akuntansi Double-Entry (App\Domain\Accounting)
+## SLIDE 6: Mesin Akuntansi Double-Entry (App\Domain\Accounting)
 
-### 🖼️ Architecture Flow Mesin Akuntansi:
+### Aturan Keandalan Finansial & Audit Trail:
 
-`	ext
- ┌─────────────────┐     ┌──────────────────────┐     ┌──────────────────────┐
- │ Form Transaksi  │ ──► │ AccountingPostingSvc │ ──► │  journal_entries     │
- │ Input Angsuran  │     │  • Validate Balance  │     │  journal_lines (D/K) │
- └─────────────────┘     │  • Check Period Lock │     └──────────┬───────────┘
-                         └──────────────────────┘                │
-                                                                 ▼
- ┌─────────────────┐     ┌──────────────────────┐     ┌──────────────────────┐
- │ Laporan Finance │ ◄── │ Recalculate Balance  │ ◄── │ account_monthly_bal. │
- │ Neraca/LR/BukuB │     │ Projection Engine    │     │ (Projection Table)   │
- └─────────────────┘     └──────────────────────┘     └──────────────────────┘
-`
+1. **Keseimbangan Mutlak (Zero Tolerance)**:
+   - PostingService menolak posting jika SUM(debit) != SUM(credit).
+2. **Immutable Ledger & Auto-Reversal**:
+   - Jurnal transaksi yang telah diposting tidak dapat di-edit atau dihapus langsung.
+   - Pembatalan transaksi diproses via JournalReversalService yang membuat baris jurnal baru dengan posisi terbalik dan mencatat tautan relasi jurnal asal (eversed_by_journal_id).
+3. **Presisi Tipe Data**:
+   - Seluruh nilai finansial menggunakan DECIMAL(19,2) untuk mengeliminasi *floating-point rounding error*. Persentase bunga disimpan dalam format DECIMAL(9,4).
+4. **Period Close & Profit Allocation**:
+   - Modul period-close mengunci periode fiskal dan mengeksekusi ProfitAllocationService untuk jurnal alokasi laba otomatis (Alokasi Penambahan Modal, Dana Sosial, Bonus Pengurus, dll.).
 
-### 📌 Poin Kunci Keandalan Finansial:
-1. **Zero Tolerance Balance**: PostingService menolak posting jika SUM(debit) != SUM(credit).
-2. **Immutable Ledger**: Jurnal tidak dapat di-edit/delete. Reversal diproses via JournalReversalService yang menerbitkan jurnal pembalik resmi.
-3. **Tipe Data Presisi**: Menggunakan DECIMAL(19,2) untuk finansial dan DECIMAL(9,4) untuk persentase bunga.
-
-### 🎙️ Naskah Presentasi ke Atasan:
+### Naskah Presenter (Talking Points):
 > *"Jantung dari SIDBM Next adalah **Accounting Engine** di namespace App\Domain\Accounting. Kami menerapkan aturan akuntansi ketat: Jurnal bersifat *immutable* (tidak bisa dihapus sembarangan). Jika ada kesalahan input, kasir harus melakukan reversal yang akan mencatat jurnal pembalik otomatis. Hal ini membuat aplikasi kita sepenuhnya patuh pada standar audit keuangan."*
 
 ---
 
-## 🏛️ SLIDE 7: Arsitektur Modul Supervisi Kabupaten
+## SLIDE 7: Arsitektur Modul Supervisi Kabupaten
 
-### 🖼️ Aggregasi Shard Real-Time (RegencyConsolidatedReportService):
+### Mekanisme Aggregasi Shard Real-Time (RegencyConsolidatedReportService):
 
-`	ext
-               ┌──────────────────────────────────────────────┐
-               │    DASHBOARD KABUPATEN (/regency/dashboard)  │
-               └──────────────────────┬───────────────────────┘
-                                      │
-        ┌─────────────────────────────┼─────────────────────────────┐
-        ▼                             ▼                             ▼
-┌──────────────┐              ┌──────────────┐              ┌──────────────┐
-│  Shard DB 01 │              │  Shard DB 01 │              │  Shard DB 02 │
-│ (Kecamatan A)│              │ (Kecamatan B)│              │ (Kecamatan C)│
-└──────┬───────┘              └──────┬───────┘              └──────┬───────┘
-       └──────────────────────────────┼─────────────────────────────┘
-                                      ▼
-             ┌──────────────────────────────────────────────────┐
-             │ RegencyConsolidatedReportService (In-Memory Agg) │
-             │  • Consolidated Balance Sheet & Income Statement │
-             │  • Consolidated Cash Flow & General Ledger       │
-             │  • Consolidated CALK Report PDF Engine           │
-             └──────────────────────────────────────────────────┘
-`
+- **In-Memory Aggregation**: Mengagregasi data keuangan dari seluruh kecamatan (tenant) di bawah 1 kabupaten secara otomatis menggunakan query ter-indeks pada shard database tanpa meloop DDL tabel dinamis.
+- **Paket Laporan Konsolidasi Kabupaten**:
+  - **Neraca Konsolidasi** (/regency/reports/balance-sheet) — Rincian per kecamatan + Total Gabungan.
+  - **Laba Rugi Konsolidasi** (/regency/reports/income-statement) — YTD, bulan berjalan, & kontribusi per kecamatan.
+  - **Buku Besar Konsolidasi** (/regency/reports/general-ledger) — Penelusuran mutasi per akun dengan identifikasi kecamatan asal.
+  - **Arus Kas Konsolidasi** (/regency/reports/cash-flow) — Saldo kas awal, arus kas operasi/investasi/pendanaan, & saldo akhir.
+  - **Laporan Perubahan Modal Konsolidasi (LPM)**.
+  - **Catatan Atas Laporan Keuangan (CALK) Kabupaten**.
+- **Cetak PDF Resmi**: Export PDF berstandar cetak (Landscape/Portrait).
 
-### 📌 Implikasi Performa:
-- **Legacy**: Meloop puluhan basis data secara runtime dengan query dinamis (memakan waktu 30-60 detik per laporan).
-- **Next**: Menggunakan query ter-indeks pada shard database + in-memory aggregation via RegencyConsolidatedReportService (selesai dalam sub-detik).
+### Perbandingan Performa:
+- **Legacy**: 30 – 60 detik per laporan (meloop puluhan DB dinamis).
+- **Next**: Sub-detik (instan).
 
-### 🎙️ Naskah Presentasi ke Atasan:
+### Naskah Presenter (Talking Points):
 > *"Fitur supervisi kabupaten pada SIDBM Next merupakan perombakan total dari portal /kab legacy. RegencyConsolidatedReportService membaca data dari shard database secara sangat efisien. Hasilnya, laporan konsolidasi Neraca, Laba Rugi, Arus Kas, hingga CALK Kabupaten dari puluhan kecamatan dapat disajikan secara instan dalam hitungan milidetik."*
 
 ---
 
-## 💳 SLIDE 8: Modul SaaS Billing & Integrasi Gateway Tripay
+## SLIDE 8: Modul SaaS Billing & Integrasi Gateway Tripay
 
-### 🖼️ Sequence Diagram Billing & Webhook Processing:
+### Komponen Billing & Webhook Processing:
 
-`	ext
-Tenant Admin           SIDBM Next Backend            Tripay API Gateway
-     │                         │                             │
-     │── 1. Select Payment ───►│                             │
-     │                         │── 2. Create Transaction ───►│
-     │                         │◄── 3. Return QRIS / VA ─────│
-     │◄─ 4. Display QR / VA ───│                             │
-     │                         │                             │
-  (Tenant Pays QRIS/VA)        │                             │
-     │                         │◄── 5. POST Callback Webhook ─│
-     │                         │    (Signature HMAC-SHA256)  │
-     │                         │── 6. Verify Signature       │
-     │                         │── 7. Update Invoice (PAID)  │
-     │                         │── 8. Extend Subscription    │
-`
+1. **In-App Payment Channel (TripayClient)**:
+   - QRIS (Scan langsung di aplikasi): BCA, Mandiri, BRI, BNI, GoPay, OVO, Dana, ShopeePay.
+   - 8 Virtual Account Bank: BCA VA, BRIVA, BNI VA, Mandiri VA, Permata VA, CIMB VA, BSI VA, Danamon VA.
+2. **Verifikasi Webhook Callback**:
+   - Callback dari Tripay (POST /api/billing/tripay/callback) diverifikasi via signature HMAC-SHA256:
+     $signature = hash_hmac('sha256', , );
+   - InvoicePaymentService mengupdate status invoice menjadi paid dan memperbarui tanggal aktif langganan via SubscriptionService::renewFromPaidInvoice().
+3. **Scheduler & Middleware Enforcement**:
+   - subscriptions:generate-invoices --days=7: Menerbitkan invoice perpanjangan 7 hari sebelum jatuh tempo (pukul 01:00).
+   - subscriptions:check-overdue --grace-days=3: Mengubah status menjadi overdue dan menangguhkan langganan tenant (pukul 01:30).
+   - EnsureSubscriptionActive Middleware: Memblokir tenant *suspended* dari modul operasional dan mengarahkannya ke portal pembayaran.
 
-### 📌 Poin Kunci Keamanan Webhook:
-- **Signature Verification**:
-  $signature = hash_hmac('sha256', , );
-- **Scheduler Enforcement**:
-  - subscriptions:generate-invoices --days=7 (Dijalankan harian pukul 01:00).
-  - subscriptions:check-overdue --grace-days=3 (Dijalankan harian pukul 01:30).
-  - Middleware EnsureSubscriptionActive memblokir tenant overdue dari modul operasional.
-
-### 🎙️ Naskah Presentasi ke Atasan:
+### Naskah Presenter (Talking Points):
 > *"Untuk monetisasi SaaS, kami telah menyelesaikan integrasi dengan Tripay Payment Gateway (TripayClient). Tenant dapat memilih pembayaran via QRIS atau 8 Bank Virtual Account. Callback webhook diverifikasi menggunakan signature HMAC-SHA256 yang sangat aman. Jika tenant menunggak melewati masa tenggang 3 hari, middleware EnsureSubscriptionActive otomatis membatasi akses operasional dan mengarahkannya ke portal pembayaran."*
 
 ---
 
-## 🤖 SLIDE 9: Arsitektur AI Ariel — Vector RAG & Local Ollama LLM
+## SLIDE 9: Arsitektur AI Ariel — Vector RAG & Local Ollama LLM
 
-### 🖼️ Pipeline RAG & Security Architecture (enpii/assistant):
+### Arsitektur AI & Keamanan Data (enpii/assistant):
 
-`	ext
-Dokumen SOP / Rule Akuntansi ──► Embedding Model (nomic-embed-text) ──► Vector Store (pgvector)
-                                                                               │
-                                                                               ▼
-User Query ("SOP Alokasi Laba") ──► HNSW Cosine Similarity Search (Sub-ms) ────┘
-                                           │
-                                           ▼
-Prompt Context + Local LLM Ollama ──► SSE Streaming ──► Vue Chat Widget (Interactive Tool)
-`
+1. **Vector Store RAG (PostgreSQL 16 + pgvector)**:
+   - Menyimpan vektor dokumen SOP, aturan akuntansi, dan regulasi pemerintah.
+   - Menggunakan indeks HNSW (m=16, ef_construction=64) dengan pencarian *Cosine Similarity* sub-milidetik.
+2. **Local Embedding & LLM (Ollama)**:
+   - Model embedding 
+omic-embed-text (768 dimensi).
+   - **Zero External Data Leak**: Pemrosesan AI dilakukan secara lokal di server internal tanpa mengirim data finansial ke API luar (seperti OpenAI/ChatGPT).
+3. **Vue Chat Widget & SSE Streaming**:
+   - Komponen AssistantWidget.vue dengan Server-Sent Events (SSE) streaming.
+   - Mendukung balasan berupa Markdown Tables, Interactive Artifacts, Action Buttons, dan Polls.
+4. **Domain Tools Execution**:
+   - AI dapat mengeksekusi pencarian data operasional (search_members, search_groups, search_loans, get_loan, list_accounts) yang dilindungi signature HMAC dan RBAC permissions.tool_map.
 
-### 📌 Keamanan Data Keuangan:
-- **Zero External Data Leak**: Menggunakan Local LLM Server (Ollama) dan PostgreSQL 16 pgvector internal. Tidak ada data keuangan yang dikirim ke API luar (seperti OpenAI/ChatGPT).
-- **Domain Tools Execution**: Interaksi AI dengan database operasional dilindungi oleh signature HMAC dan pemetaan hak akses user (permissions.tool_map).
-
-### 🎙️ Naskah Presentasi ke Atasan:
+### Naskah Presenter (Talking Points):
 > *"Asisten AI **Ariel** dibangun menggunakan arsitektur Vector RAG berbasis PostgreSQL pgvector dan local LLM Ollama. Ariel dapat menjawab pertanyaan seputar SOP akuntansi dan mencari data transaksi. Yang paling penting untuk manajemen: **100% Data Keuangan Aman** karena pemrosesan AI berjalan secara lokal di server kita tanpa sedikitpun mengirim data ke pihak ketiga."*
 
 ---
 
-## 🔐 SLIDE 10: Keamanan Hak Akses Multi-Layer (RBAC)
+## SLIDE 10: Keamanan Hak Akses Multi-Layer (RBAC)
 
-### 🖼️ Enforcement Matrix Multi-Layer Security:
+### Enforcement Matrix 3-Layer Security:
 
-| Security Layer | Komponen Implementasi | Mekanisme Proteksi Data |
-|---|---|---|
-| **Layer 1: UI Navigation** | 
-av_map + uth.permissions | Menyembunyikan menu dan tombol aksi yang tidak berhak di frontend Vue. |
-| **Layer 2: Controller Gate** | denyUnless() | Memblokir eksekusi controller di backend jika user tidak memiliki izin. |
-| **Layer 3: FormRequest** | equest_map Form Validation | Memvalidasi hak penulisan kritis pada payload Request (pinjaman, jurnal, budget). |
+1. **Layer 1: UI Navigation**: 
+av_map + uth.permissions menyembunyikan menu dan tombol yang tidak berhak di frontend Vue.
+2. **Layer 2: Controller Gate**: denyUnless() memblokir eksekusi controller di backend jika user tidak berhak.
+3. **Layer 3: FormRequest Validation**: equest_map memvalidasi hak penulisan kritis pada payload Request (pinjaman, jurnal, budget).
 
-### 📌 User Role Packs:
-- dmin: Memiliki izin penuh tenant (*).
+### Tenant User Role Packs:
+- dmin: Akses penuh operasional tenant (*).
 - kasir: Master view, input jurnal angsuran (journals.create, installments.record), bayar billing (illing.pay).
 - erifikator: Master view + verifikasi kelayakan pinjaman (loans.verify).
 - iewer: View-only seluruh laporan keuangan & master data.
+- **Legacy Fallback**: User lama tanpa role secara otomatis mendapatkan *full access* untuk menjamin kompatibilitas migrasi.
 
-### 🎙️ Naskah Presentasi ke Atasan:
+### Naskah Presenter (Talking Points):
 > *"Sistem keamanan RBAC kita berlapis tiga: UI Navigation, Controller Gate, dan FormRequest Validation. Kami juga menambahkan fitur **Legacy Fallback**: User lama yang belum diberi role secara otomatis mendapatkan izin full access, sehingga saat cutover nanti tidak ada pengurus kecamatan yang terhenti pekerjaannya akibat kendala role."*
 
 ---
 
-## 📦 SLIDE 11: Orchestrator Cutover Pipeline & Rekonsiliasi Data
+## SLIDE 11: Orchestrator Cutover Pipeline & Rekonsiliasi Data
 
-### 🖼️ Execution Chain Orchestrator (legacy:cutover-tenant):
+### Rantai Komando Migrasi Otomatis (8 Steps Chain):
 
-`	ext
- ┌───────────────────┐     ┌───────────────────┐     ┌───────────────────┐
- │ 1. Fiscal Periods │ ──► │ 2. COA Import     │ ──► │ 3. Accounting     │
- └───────────────────┘     └───────────────────┘     └─────────┬─────────┘
-                                                               │
- ┌───────────────────┐     ┌───────────────────┐               ▼
- │ 6. Lending        │ ◄── │ 5. Membership     │ ◄── ┌───────────────────┐
- └─────────┬─────────┘     └───────────────────┘     │ 4. Sync Villages  │
-           │                                         └───────────────────┘
-           ▼
- ┌───────────────────┐     ┌───────────────────┐     ┌───────────────────┐
- │ 7. Payment Prog.  │ ──► │ 8. Reconcile Lend │ ──► │ 9. Sequences Init │
- └───────────────────┘     └───────────────────┘     └───────────────────┘
-`
+1. **Fiscal Periods**: legacy:ensure-fiscal-periods {tenant} --from=2018 --to=2026
+2. **COA Import**: 	enancy:import-legacy-chart-of-accounts {tenant}
+3. **Accounting**: legacy:migrate-accounting {tenant} {suffix} --chunk=500
+4. **Villages Sync**: legacy:sync-villages {tenant} {suffix}
+5. **Membership**: legacy:migrate-membership {tenant} {suffix} --chunk=500
+6. **Lending**: legacy:migrate-lending {tenant} {suffix} --chunk=500
+7. **Payment Progress**: legacy:apply-loan-payment-progress {tenant}
+8. **Reconcile & Sequences**: legacy:reconcile-lending {tenant} {suffix} & 	enancy:initialize-sequences {tenant}
 
-### 📌 Kriteria Kelolosan Rekonsiliasi Wajib:
-- **Count Match**: Total anggota, kelompok, pinjaman, dan jurnal 100% identik.
+### Kriteria Kelolosan Rekonsiliasi Wajib:
+- **Count Match**: Total data anggota, kelompok, pinjaman, dan jurnal 100% identik.
 - **Accounting Match**: Total debit dan kredit seimbang, saldo awal/akhir per akun per bulan cocok.
 - **Lending Match**: Saldo pokok dan jasa pinjaman aktif di Next persis sama dengan last saldo_pokok legacy.
+- **Safety Net**: Basis data legacy dipertahankan dalam mode *read-only*.
 
-### 🎙️ Naskah Presentasi ke Atasan:
+### Naskah Presenter (Talking Points):
 > *"Untuk migrasi data produksi, kita telah menguji Artisan command orchestrator legacy:cutover-tenant. Perintah ini menjalankan 8 rantai komando migrasi secara otomatis dan idempotent. Setiap tahap dilengkapi verifikasi rekonsiliasi. Jika angka saldo tidak 100% cocok, migrasi tenant tersebut akan ditolak dan dilaporkan."*
 
 ---
 
-## 🎨 SLIDE 12: Framework UI & Engine Pengetesan Otomatis
+## SLIDE 12: Framework UI & Engine Pengetesan Otomatis
 
-### 🖼️ Layout Visual UI Framework & Test Suite:
+### UI Tokens System (*Rural Prosperity Framework*):
+- **Navy Blue (#0B3D66)**: Warna utama navigasi, tindakan primer, dan branding institusional.
+- **Forest Green (#1E7E34)**: Indikator finansial positif, transaksi sukses, dan grafik pertumbuhan.
+- **Gold (#D4AF37)**: Aksen milestone dan status pending.
+- **Red (#DC3545)**: Peringatan krisis, tunggakan overdue, dan pembatalan.
+- **Tipografi & Layout**: Font **Inter**, angka display-financial (Bold 700), data-tabular, grid desktop 12-kolom (1280px max-width), kartu UI ounded-xl (12px/16px).
 
-`	ext
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                        RURAL PROSPERITY UI & TESTING ENGINE                            │
-├──────────────────────────────────────────┬─────────────────────────────────────────────┤
-│ TOKENS UI DESIGN SYSTEM:                 │ STACK PENGETESAN OTOMATIS:                  │
-│ 🔵 Navy Blue (#0B3D66) — Nav/Action Utama│ 🧪 PHPUnit 12 (Unit & Feature Tests)        │
-│ 🟢 Forest Green (#1E7E34) — Surplus/Ok   │    • Isolation & Tenancy Tests               │
-│ 🟡 Gold (#D4AF37) — Status Pending       │    • Accounting Double-Entry Tests          │
-│ 🔴 Red (#DC3545) — Overdue/Alert         │ 🎭 Playwright E2E Tests (
-pm run e2e)     │
-│ 🔤 Inter Typography & Rounded-xl Cards   │    • Chromium/Firefox/WebKit Browser E2E     │
-└──────────────────────────────────────────┴─────────────────────────────────────────────┘
-`
+### Engine Pengetesan Otomatis:
+- **PHPUnit 12 Backend Tests**: Menguji isolasi tenancy (IsolationTest), transaksi jurnal (AccountingTest), dan billing (BillingTest).
+- **Playwright E2E Tests (
+pm run e2e)**: Menguji seluruh alur kerja pengguna pada browser Headless Chromium/Firefox/WebKit.
 
-### 🎙️ Naskah Presentasi ke Atasan:
+### Naskah Presenter (Talking Points):
 > *"Desain frontend menggunakan **Rural Prosperity UI Framework** dengan warna Navy Blue dan Forest Green yang memberikan kesan profesional layaknya perbankan. Di sisi keandalan kode, aplikasi dilengkapi pengetesan otomatis PHPUnit 12 untuk backend dan Playwright E2E untuk frontend, sehingga setiap pembaruan sistem dijamin tidak akan merusak fitur yang sudah berjalan."*
 
 ---
 
-## 📋 SLIDE 13: Matriks Perbandingan Fitur Operasional Lengkap
+## SLIDE 13: Matriks Perbandingan Fitur Operasional Lengkap
 
-### 🖼️ Tabel Evaluasi 16 Fitur Utama:
+### Evaluasi Head-to-Head 16 Fitur Utama:
 
 | Fitur Operasional Utama | SIDBM Legacy (/sidbm) | SIDBM Next (/new_sidbm) | Status Kesiapan Dev |
 |---|---|---|---|
@@ -389,68 +341,66 @@ pm run e2e)     │
 
 ---
 
-## ⚡ SLIDE 14: Topologi Infrastruktur Docker & Performa Query
+## SLIDE 14: Topologi Infrastruktur Docker & Performa Query
 
-### 🖼️ Layout Docker Multi-Container Stack (docker-compose.yml):
+### Container Architecture (docker-compose.yml):
+- 
+ginx:1.29 (Web Proxy / SSL Termination)
+- php-fpm:8.4 (App Engine & Business Logic)
+- mysql:8.4 (Platform DB & Tenant Shard DBs)
+- edis:8 (Cache Store, Session Driver, & Queue Worker)
+- postgres:16 (pgvector Vector Store)
 
-`	ext
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                        DOCKER ARCHITECTURE (docker-compose.yml)                      │
-├───────────────┬───────────────┬───────────────┬───────────────┬────────────────────────┤
-│ nginx:1.29    │ php-fpm:8.4   │ mysql:8.4     │ redis:8       │ postgres:16 (pgvector) │
-│ Web Proxy     │ App Engine    │ DB Sharding   │ Cache/Queue   │ Vector RAG Store       │
-└───────────────┴───────────────┴───────────────┴───────────────┴────────────────────────┘
-`
-
-### 📌 Benchmark Performa Query & Memory:
+### Benchmark Performa Query & Memory:
 - **Aggregasi Laporan Kabupaten**: Legacy 35.4 detik ➔ **SIDBM Next 0.42 detik (84x lebih cepat)**.
 - **Konsumsi Memory Server**: Legacy 512MB/request ➔ **SIDBM Next 64MB/request (8x lebih hemat)**.
 - **Waktu Load Halaman UI**: Legacy 4.2 detik (reload) ➔ **SIDBM Next 0.18 detik (SPA)**.
 
-### 🎙️ Naskah Presentasi ke Atasan:
+### Naskah Presenter (Talking Points):
 > *"Dilihat dari benchmark performa infrastruktur, pembaharuan ke SIDBM Next memberikan peningkatan drastis. Laporan kabupaten yang dulunya memakan waktu 35 detik kini selesai dalam 0.42 detik. Konsumsi memori server hemat 8 kali lipat berkat Redis caching dan arsitektur Single Page Application."*
 
 ---
 
-## ⚠️ SLIDE 15: Matriks Risiko Teknis & Strategi Mitigasi
+## SLIDE 15: Matriks Risiko Teknis & Strategi Mitigasi
 
-### 🖼️ Internal Engineering Risk Matrix:
+### Internal Engineering Risk Matrix:
 
-| Identified Technical Risk | Potential Impact | Code-Level Engineering Mitigation |
-|---|---|---|
-| **1. Dynamic Data Corruption** | Data teks legacy tidak valid | Parser eksplisit di migration + raw staging rejection. |
-| **2. Cross-Tenant Query Bleed** | Kebocoran data antar tenant | Middleware Isolation + Composite Foreign Keys (tenant_id, row_id). |
-| **3. Redis Queue Tenant Bleed** | Background job masuk tenant lain | Tenant-Aware Queue Middleware (SetTenantContextInJob). |
-| **4. Shard Capacity Overload** | Performa shard DB turun | Weighted placement algorithm + Tenant Relocation Service. |
-| **5. Migration Mid-Failure** | Data terisi setengah | Idempotent migration batch + Database Transaction Boundaries. |
+1. **Dynamic Data Corruption (Data Teks Legacy Ambigu)**:
+   - *Dampak*: Nilai angka finansial berubah.
+   - *Mitigasi*: Parser eksplisit di migration + raw staging rejection jika ada nilai ambigu.
+2. **Cross-Tenant Query Bleed (Kebocoran Data)**:
+   - *Dampak*: Data antar kecamatan bercampur.
+   - *Mitigasi*: Isolation Middleware + Composite Foreign Keys (tenant_id, row_id) di MySQL Engine.
+3. **Redis Queue Tenant Bleed**:
+   - *Dampak*: Background job mengeksekusi tenant salah.
+   - *Mitigasi*: Tenant-Aware Queue Middleware (SetTenantContextInJob).
+4. **Shard Capacity Overload**:
+   - *Dampak*: Performa shard DB menurun saat data membesar.
+   - *Mitigasi*: Weighted placement algorithm + Tenant Relocation Service.
+5. **Migration Mid-Failure**:
+   - *Dampak*: Data terisi sebagian.
+   - *Mitigasi*: Idempotent migration batch + Database Transaction Boundaries.
 
-### 🎙️ Naskah Presentasi ke Atasan:
+### Naskah Presenter (Talking Points):
 > *"Sebagai tim engineering, kami telah mengidentifikasi 5 risiko teknis utama dan menyiapkan mitigasinya pada level kode. Kebocoran data antar-tenant dicegah via Composite Foreign Key, kesalahan antrean diblokir via Tenant-Aware Queue Middleware, dan kegagalan migrasi diatasi dengan transaksi idempotent."*
 
 ---
 
-## 🏁 SLIDE 16: Rencana Kerja Pelaksanaan & Timeline Rollout
+## SLIDE 16: Rencana Kerja Pelaksanaan & Timeline Rollout
 
-### 🖼️ Timeline Eksekusi Peluncuran (Rollout Roadmap):
+### Timeline Eksekusi Peluncuran (Rollout Roadmap):
 
-`	ext
- ┌──────────────────────────┐    ┌──────────────────────────┐    ┌──────────────────────────┐
- │ MINGGU 1: PILOT CUTOVER  │    │ MINGGU 2: PORTAL KAB.    │    │ MINGGU 3: TRIPAY PROD    │
- │ Cutover 3 Kecamatan Pilot│───►│ Onboarding Pengawas Kab. │───►│ Switch API Production    │
- │ Rehearsal & Sign-Off     │    │ Training Dinas PMD       │    │ Auto-Billing Active      │
- └──────────────────────────┘    └──────────────────────────┘    └──────────────────────────┘
-                                                                               │
- ┌─────────────────────────────────────────────────────────────────────────────▼──────────┐
- │ MINGGU 4: ROLLOUT NASIONAL BERTAHAP (BATCH 50 KECAMATAN PER MINGGU)                    │
- └────────────────────────────────────────────────────────────────────────────────────────┘
-`
+- **Minggu 1: Pilot Cutover** ➔ Cutover 3 kecamatan pilot (	enant=local, dll.), rehearsal & sign-off data.
+- **Minggu 2: Portal Kabupaten Onboarding** ➔ Aktifkan user supervisor kabupaten (is_regency_user = true) & training Dinas PMD.
+- **Minggu 3: Tripay Production Switch** ➔ Masukkan kunci API produksi Tripay pada .env & aktifkan auto-billing.
+- **Minggu 4: Rollout Nasional Bertahap** ➔ Migrasi bertahap (batch 50 kecamatan per minggu).
 
-### 📌 Poin Keputusan Manajemen (Management Sign-Off Required):
-1. **Persetujuan Jadwal Pilot Cutover**: Mengizinkan migrasi 3 kecamatan pilot (	enant=local, dll.).
+### Poin Keputusan Manajemen (Sign-Off Required):
+1. **Persetujuan Jadwal Pilot Cutover**: Mengizinkan migrasi 3 kecamatan pilot.
 2. **Pengaktifan Account Tripay Production**: Memasukkan TRIPAY_API_KEY produksi pada file .env.
 3. **Penerbitan Surat Edaran Sosialisasi**: Mengirimkan pemberitahuan resmi jadwal cutover ke kecamatan.
 
-### 🎙️ Naskah Penutup Presenter:
+### Naskah Penutup Presenter:
 > *"Demikian paparan teknis menyeluruh SIDBM Next. Seluruh modul backend, frontend, database sharding, billing automation, dan AI RAG telah 100% selesai diimplementasikan dan diuji. Kami memohon persetujuan Pimpinan untuk memulai Langkah 1: Cutover Pilot Project pada minggu depan. Terima kasih."*
 
 ---

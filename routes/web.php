@@ -106,6 +106,11 @@ Route::middleware(['auth'])->group(function (): void {
 
     Route::get('/search', SearchController::class)->name('search');
 
+    Route::get('/onboarding/import', [\App\Http\Controllers\Tenant\TenantOnboardingImportController::class, 'index'])->name('onboarding.import.index');
+    Route::post('/onboarding/opening-balances', [\App\Http\Controllers\Tenant\TenantOnboardingImportController::class, 'saveOpeningBalances'])->name('onboarding.opening-balances.store');
+    Route::post('/onboarding/active-loans', [\App\Http\Controllers\Tenant\TenantOnboardingImportController::class, 'importActiveLoans'])->name('onboarding.active-loans.import');
+    Route::get('/onboarding/templates/{type}', [\App\Http\Controllers\Tenant\TenantOnboardingImportController::class, 'downloadTemplate'])->name('onboarding.templates.download');
+
     Route::get('/billing/invoices', [TenantInvoiceController::class, 'index'])->name('billing.invoices.index');
     Route::get('/billing/invoices/{invoice}', [TenantInvoiceController::class, 'show'])->name('billing.invoices.show');
     Route::post('/billing/invoices/{invoice}/checkout/tripay', [TenantInvoiceController::class, 'checkoutTripay'])->name('billing.invoices.checkout.tripay');
