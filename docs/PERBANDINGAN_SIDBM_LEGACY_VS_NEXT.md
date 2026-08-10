@@ -26,8 +26,8 @@ Mengapa pembaruan aplikasi ini **wajib** dilakukan dan tidak cukup hanya dengan 
    Sistem legacy tidak menggunakan *Foreign Key Constraints* pada level database. Relasi antar data hanya dijaga pada level aplikasi atau trigger. Hal ini sering mengakibatkan *orphan records* (data anggota/pinjaman terhapus tetapi jurnal transaksi tetap ada, atau sebaliknya).
 3. **Penghitungan Saldo Berbasis Trigger & Teks (VARCHAR Uang)**
    Nilai angka finansial pada beberapa tabel legacy disimpan dalam format teks string (VARCHAR). Penghitungan saldo akun dipelihara melalui *MySQL Triggers* yang kompleks. Jika terjadi koreksi transaksi historis, trigger sering memicu penguncian tabel (*table lock*) dan inkonsistensi saldo.
-4. **Ketiadaan Fitur Supervisi & Konsolidasi Keuangan Kabupaten**
-   Sistem legacy didesain strictly untuk 1 kecamatan (1 unit kerja). Pihak Dinas / Kabupaten tidak memiliki dashboard terintegrasi untuk melihat kondisi keuangan konsolidasi gabungan seluruh kecamatan secara real-time.
+4. **Performa Aggregasi & Keterbatasan Portal Kabupaten Legacy**
+   Meskipun SIDBM Legacy telah memiliki modul level Kabupaten (`/kab` dengan guard `auth:kabupaten`), fitur ini terkendala oleh performa aggregasi yang lambat karena harus meloop puluhan tabel dinamis tenant per kecamatan secara runtime, serta keterbatasan visualisasi interaktif & laporan konsolidasi mendalam (seperti CALK konsolidasi kabupaten).
 5. **Proses Bisnis Manual (Tidak Ada Pembayaran Online & Billing Automation)**
    Tagihan biaya langganan aplikasi atau pencatatan pembayaran masih dilakukan secara manual tanpa integrasi Payment Gateway, tanpa penanganan otomatis untuk tenant yang menunggak (*overdue*).
 6. **Keterbatasan Pengujian Automated & Risiko Human Error**
@@ -61,7 +61,8 @@ Mengapa pembaruan aplikasi ini **wajib** dilakukan dan tidak cukup hanya dengan 
   - sidbm_platform: Menyimpan data SaaS global, pengguna (users), tenant (	enants), shard database (database_shards), penempatan tenant (	enant_placements), dan tagihan (invoices).
   - sidbm_shard_XX: Menggunakan skema yang sama untuk seluruh tenant. Setiap baris data operasional memiliki kolom 	enant_id.
 - **Sistem Identitas Ganda (Legacy Compatibility)**:
-  - ow_id: *BIGINT UNSIGNED Auto-Increment* sebagai Primary Key internal teknis database.
+  - 
+ow_id: *BIGINT UNSIGNED Auto-Increment* sebagai Primary Key internal teknis database.
   - id: Mempertahankan ID lokal/historis legacy secara utuh untuk kebutuhan audit dan laporan (Constraint: UNIQUE (tenant_id, id)).
   - public_id: ULID 26 karakter untuk akses aman API/URL tanpa mengekspos ID internal.
 - **Perpindahan Tenant & Scalability**: Tenant berukuran super besar dapat dipindahkan ke database dedicated hanya dengan mengubah record 	enant_placements tanpa mengubah 1 baris pun kode aplikasi.
@@ -84,9 +85,16 @@ Mengapa pembaruan aplikasi ini **wajib** dilakukan dan tidak cukup hanya dengan 
 
 ---
 
+### 5.3 Implementasi Lengkap 17 Skenario Jurnal Umum SOP (JournalEntryOptionResolver)
+Seluruh 17 skenario transaksi jurnal umum dari SOP *Panduan Transaksi SI DBM* telah sepenuhnya diintegrasikan ke dalam resolver jurnal umum (JournalEntryOptionResolver), terbagi menjadi 4 kelompok utama:
+1. **Umum**: Aset Masuk (Penerimaan), Aset Keluar (Pengeluaran/Beban), Pemindahan Saldo (Mutasi Kas/Bank), Investasi Unit Usaha.
+2. **Pembelian Aset & DP**: Pembelian Tanah, Gedung, Kendaraan, Peralatan/Inventaris, Aset Tak Berwujud (Lisensi/Sewa/Asuransi), Uang Muka / Konstruksi Dalam Pengerjaan, dan Pengakuan Aset Tetap dari DP.
+3. **Kewajiban & Modal**: Penerimaan Utang Bank/Pihak ke-3, Pembayaran Utang Bank & Bunga, Penyertaan Modal Desa/Masyarakat, Pembayaran Utang Laba Bagian Desa/Masyarakat, Pembayaran Utang Pajak PPh, dan Pembayaran Utang Bonus Prestasi.
+4. **Penyesuaian & Penyusutan**: Beban Penyusutan Gedung/Kendaraan/Inventaris, Amortisasi Aset Tak Berwujud, Penyisihan Cadangan Kerugian Piutang (CKP Pokok & Jasa SPP/UEP/Lembaga Lain), Pengakuan Utang Laba, Pengakuan Taksiran PPh, Pengakuan Utang Bonus Prestasi, dan Penghapusan Aset Tetap (ATI).
+
 ## 6. Fitur Baru: Portal Pengawasan & Konsolidasi Kabupaten (Regency Module)
 
-Salah satu keunggulan terbesar SIDBM Next yang **tidak pernah ada** pada SIDBM Legacy adalah **Modul Supervisi Kabupaten**.
+Modul Supervisi Kabupaten pada SIDBM Next merupakan perombakan total dari portal /kab pada SIDBM Legacy, menghadirkan performa aggregasi instan dan fitur konsolidasi yang jauh lebih komprehensif.
 
 ### Capabilities Modul Kabupaten:
 1. **Multi-Kecamatan Shard Aggregation (RegencyConsolidatedReportService)**:
@@ -164,8 +172,8 @@ ew_sidbm-queue-1)** |
 | **Laporan Rencana vs Realisasi** | ⚠️ Manual Excel | ✅ Ya (Laporan terintegrasi) |
 | **Tutup Buku & Alokasi Laba** | ⚠️ Manual via script | ✅ Ya (Otomatis dengan jurnal alokasi laba) |
 | **Manajemen Aset Tetap / Inventaris** | ⚠️ Terpisah | ✅ Ya (Register aset, nilai buku, penyusutan) |
-| **Dashboard Supervisi Kabupaten** | ❌ Tidak ada | ✅ Ya (Monitoring konsolidasi multi-kecamatan) |
-| **Laporan Konsolidasi Kabupaten (PDF)** | ❌ Tidak ada | ✅ Ya (Neraca, LR, BB, Arus Kas, CALK Kabupaten) |
+| **Dashboard Supervisi Kabupaten** | ⚠️ Ada (Terbatas & Lambat) | ✅ Ya (Modern SPA, Performa Tinggi, Real-time) |
+| **Laporan Konsolidasi Kabupaten (PDF)** | ⚠️ Ada (Terbatas: Neraca, LR, Arus Kas, LPM) | ✅ Ya (Lengkap: Neraca, LR, BB, Arus Kas, LPM, CALK Kabupaten) |
 | **Integrasi Tripay Payment Gateway** | ❌ Tidak ada | ✅ Ya (QRIS & 8 Virtual Account Bank) |
 | **Otomatisasi Billing & Overdue Lock** | ❌ Tidak ada | ✅ Ya (Scheduler invoice & Suspension Middleware) |
 | **Asisten AI (RAG & Chat Tools)** | ❌ Tidak ada | ✅ Ya (pgvector + Ollama + Interactive Chat Widgets) |
@@ -185,3 +193,4 @@ Pembaruan dari **SIDBM Legacy** ke **SIDBM Next** bukan sekadar pembaruan tampil
 3. **Pengaktifan Tripay Merchant**: Masukkan TRIPAY_API_KEY, TRIPAY_PRIVATE_KEY, dan TRIPAY_MERCHANT_CODE produksi pada .env untuk mengaktifkan penerimaan pembayaran langganan secara otomatis.
 
 Dokumen ini menjadi acuan resmi mengenai keputusan teknis, arsitektur, dan keunggulan SIDBM Next dibanding versi legacy.
+

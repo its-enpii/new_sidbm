@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 declare(strict_types=1);
 
@@ -15,66 +15,54 @@ final class JournalEntryRequest extends FormRequest
 {
     use AuthorizesPermission;
 
-    public const TRANSACTION_TYPES = [
-        'aset_masuk',
-        'aset_keluar',
-        'pemindahan_saldo',
-        'pembelian_aset_tanah',
-        'pembelian_aset_gedung',
-        'pembelian_aset_kendaraan',
-        'pembelian_aset_peralatan',
-        'pembelian_inventaris', // legacy
-        'penyusutan_inventaris',
-        'cadangan_kerugian_piutang',
-    ];
-
     public function rules(): array
     {
-        $tenantId = app(TenantContext::class)->id();
-        $level4Exists = Rule::exists(Account::class, 'row_id')
-            ->where(fn ($query) => $query->where('tenant_id', $tenantId)->where('is_active', true)->where('is_postable', true));
+         = app(TenantContext::class)->id();
+         = Rule::exists(Account::class, 'row_id')
+            ->where(fn () => ->where('tenant_id', )->where('is_active', true)->where('is_postable', true));
 
-        $type = (string) $this->input('transaction_type', '');
-        $inventory = JournalEntryOptionResolver::isAssetPurchase($type);
-        $isLand = $type === 'pembelian_aset_tanah';
+         = (string) ->input('transaction_type', '');
+         = JournalEntryOptionResolver::isAssetPurchase();
+         =  === 'pembelian_aset_tanah';
+         = array_merge(array_keys(JournalEntryOptionResolver::TYPES), ['pembelian_inventaris', 'angsuran']);
 
         return [
             'transaction_date' => ['required', 'date', 'before_or_equal:today'],
-            'transaction_type' => ['required', Rule::in(self::TRANSACTION_TYPES)],
-            'description' => [$inventory ? 'nullable' : 'required', 'string', 'max:500'],
+            'transaction_type' => ['required', Rule::in()],
+            'description' => [ ? 'nullable' : 'required', 'string', 'max:500'],
             'reference' => ['nullable', 'string', 'max:100'],
             'amount' => ['required', 'numeric', 'min:1'],
-            'sumber_dana_row_id' => ['required', 'integer', 'different:disimpan_ke_row_id', $level4Exists],
-            'disimpan_ke_row_id' => ['required', 'integer', 'different:sumber_dana_row_id', $level4Exists],
-            'asset_name' => [$inventory ? 'required' : 'nullable', 'string', 'max:180'],
-            'asset_quantity' => [$inventory ? 'required' : 'nullable', 'integer', 'min:1', 'max:999999'],
-            'asset_unit_cost' => [$inventory ? 'required' : 'nullable', 'numeric', 'min:1'],
+            'sumber_dana_row_id' => ['required', 'integer', 'different:disimpan_ke_row_id', ],
+            'disimpan_ke_row_id' => ['required', 'integer', 'different:sumber_dana_row_id', ],
+            'asset_name' => [ ? 'required' : 'nullable', 'string', 'max:180'],
+            'asset_quantity' => [ ? 'required' : 'nullable', 'integer', 'min:1', 'max:999999'],
+            'asset_unit_cost' => [ ? 'required' : 'nullable', 'numeric', 'min:1'],
             // Tanah: 0 / null = tidak disusutkan; lainnya min 1.
             'asset_useful_life_months' => [
-                $inventory ? 'required' : 'nullable',
+                 ? 'required' : 'nullable',
                 'integer',
-                $isLand ? 'min:0' : 'min:1',
+                 ? 'min:0' : 'min:1',
                 'max:1200',
             ],
         ];
     }
 
-    public function withValidator($validator): void
+    public function withValidator(): void
     {
-        $validator->after(function ($validator): void {
-            if (! JournalEntryOptionResolver::isAssetPurchase((string) $this->input('transaction_type', ''))) {
+        ->after(function (): void {
+            if (! JournalEntryOptionResolver::isAssetPurchase((string) ->input('transaction_type', ''))) {
                 return;
             }
 
-            $qty = (int) $this->input('asset_quantity', 0);
-            $unit = (float) $this->input('asset_unit_cost', 0);
-            $expected = round($qty * $unit, 2);
-            $amount = round((float) $this->input('amount', 0), 2);
+             = (int) ->input('asset_quantity', 0);
+             = (float) ->input('asset_unit_cost', 0);
+             = round( * , 2);
+             = round((float) ->input('amount', 0), 2);
 
-            if ($qty > 0 && $unit > 0 && $amount !== $expected) {
-                $validator->errors()->add(
+            if ( > 0 &&  > 0 &&  !== ) {
+                ->errors()->add(
                     'amount',
-                    'Harga perolehan harus sama dengan jml unit × harga satuan ('.number_format($expected, 0, ',', '.').').',
+                    'Harga perolehan harus sama dengan jml unit × harga satuan ('.number_format(, 0, ',', '.').').',
                 );
             }
         });
