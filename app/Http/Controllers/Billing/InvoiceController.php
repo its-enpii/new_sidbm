@@ -6,7 +6,9 @@ namespace App\Http\Controllers\Billing;
 
 use App\Domain\Access\Services\PermissionChecker;
 use App\Models\Platform\Invoice;
+use App\Models\Platform\InvoicePayment;
 use App\Services\Billing\InvoicePaymentService;
+use App\Services\Billing\TripayClient;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +20,7 @@ final class InvoiceController
 {
     public function __construct(
         private readonly PermissionChecker $permissions,
+        private readonly TripayClient $tripayClient,
     ) {
     }
 
@@ -72,6 +75,33 @@ final class InvoiceController
             'payments' => fn ($q) => $q->latest('row_id'),
         ]);
 
+        $channels = $this->tripayClient->getPaymentChannels();
+
+        // Extract active in-app payment details (if there's a pending Tripay payment)
+        $activeTripayPayment = $invoice->payments->first(
+            fn (InvoicePayment $p) => $p->method === 'tripay' && $p->status === 'pending',
+        );
+
+        $activePaymentDetails = null;
+        if ($activeTripayPayment !== null) {
+            $payload = $activeTripayPayment->tripay_payload ?? [];
+            $activePaymentDetails = [
+                'payment_id' => $activeTripayPayment->row_id,
+                'reference' => $activeTripayPayment->tripay_reference,
+                'method_code' => $payload['payment_method'] ?? 'QRIS2',
+                'payment_name' => $payload['payment_name'] ?? 'Online Payment',
+                'pay_code' => $payload['pay_code'] ?? null,
+                'qr_url' => $payload['qr_url'] ?? null,
+                'qr_string' => $payload['qr_string'] ?? null,
+                'amount' => (int) ($payload['amount'] ?? $activeTripayPayment->amount),
+                'total_amount' => (int) ($payload['amount'] ?? $activeTripayPayment->amount),
+                'fee_customer' => (int) ($payload['fee_customer'] ?? 0),
+                'expired_time' => isset($payload['expired_time']) ? date('Y-m-d H:i:s', (int) $payload['expired_time']) : null,
+                'instructions' => $payload['instructions'] ?? [],
+                'checkout_url' => $activeTripayPayment->tripay_checkout_url,
+            ];
+        }
+
         return Inertia::render('Billing/Invoices/Show', [
             'invoice' => [
                 'row_id' => $invoice->row_id,
@@ -95,6 +125,8 @@ final class InvoiceController
                 ] : null,
                 'is_open' => $invoice->isOpen() && $invoice->status !== 'draft',
             ],
+            'channels' => $channels,
+            'active_payment' => $activePaymentDetails,
             'payments' => $invoice->payments->map(fn ($p) => [
                 'row_id' => $p->row_id,
                 'method' => $p->method,
@@ -104,6 +136,9 @@ final class InvoiceController
                 'reference' => $p->reference,
                 'tripay_reference' => $p->tripay_reference,
                 'tripay_checkout_url' => $p->tripay_checkout_url,
+                'payment_name' => $p->tripay_payload['payment_name'] ?? null,
+                'pay_code' => $p->tripay_payload['pay_code'] ?? null,
+                'qr_url' => $p->tripay_payload['qr_url'] ?? null,
                 'notes' => $p->notes,
             ]),
         ]);
@@ -114,18 +149,31 @@ final class InvoiceController
         $this->permissions->denyUnless($request->user(), 'billing.pay');
         $this->assertTenantOwns($invoice, $context);
 
+        $paymentMethod = (string) $request->input('payment_method', 'QRIS2');
+
         try {
-            $payment = $payments->initiateTripay($invoice, $request->user());
+            $payment = $payments->initiateTripay($invoice, $request->user(), $paymentMethod);
         } catch (RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
 
-        $url = $payment->tripay_checkout_url;
-        if (is_string($url) && $url !== '') {
-            return redirect()->away($url);
+        return back()->with('success', 'Kode pembayaran berhasil dibuat. Silakan selesaikan pembayaran.');
+    }
+
+    public function checkStatus(Request $request, Invoice $invoice, TenantContext $context, InvoicePaymentService $payments): RedirectResponse
+    {
+        $this->permissions->denyUnless($request->user(), 'billing.pay');
+        $this->assertTenantOwns($invoice, $context);
+
+        $activeTripayPayment = $invoice->payments()->where('method', 'tripay')->where('status', 'pending')->latest('row_id')->first();
+        if ($activeTripayPayment !== null) {
+            $updated = $payments->checkAndSyncStatus($activeTripayPayment);
+            if ($updated->status === 'paid') {
+                return back()->with('success', 'Pembayaran berhasil dikonfirmasi! Langganan Anda telah aktif.');
+            }
         }
 
-        return back()->with('warning', 'Transaksi dibuat, tetapi link checkout belum tersedia. Coba lagi sebentar.');
+        return back()->with('info', 'Status pembayaran belum berubah. Silakan lakukan pembayaran jika belum.');
     }
 
     private function assertTenantOwns(Invoice $invoice, TenantContext $context): void

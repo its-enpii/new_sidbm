@@ -58,7 +58,7 @@ final readonly class InvoicePaymentService
         });
     }
 
-    public function initiateTripay(Invoice $invoice, ?User $actor = null): InvoicePayment
+    public function initiateTripay(Invoice $invoice, ?User $actor = null, ?string $paymentMethod = null): InvoicePayment
     {
         if (! $invoice->isOpen() || $invoice->status === 'draft') {
             throw new RuntimeException('Invoice tidak menerima pembayaran.');
@@ -71,6 +71,7 @@ final readonly class InvoicePaymentService
 
         $invoice->loadMissing('tenant');
         $merchantRef = (string) Str::ulid();
+        $selectedMethod = $paymentMethod ?: (string) config('tripay.default_method', 'QRIS2');
 
         $payment = InvoicePayment::query()->create([
             'public_id' => (string) Str::ulid(),
@@ -94,6 +95,7 @@ final readonly class InvoicePaymentService
                 'price' => (int) round((float) $remaining),
                 'quantity' => 1,
             ]],
+            paymentMethod: $selectedMethod,
         );
 
         $payment->forceFill([
@@ -103,6 +105,22 @@ final readonly class InvoicePaymentService
         ])->save();
 
         return $payment->fresh();
+    }
+
+    public function checkAndSyncStatus(InvoicePayment $payment): InvoicePayment
+    {
+        if ($payment->status === 'paid' || $payment->tripay_reference === null) {
+            return $payment;
+        }
+
+        $detail = $this->tripay->checkTransactionStatus($payment->tripay_reference);
+        if ($detail !== null && isset($detail['status'])) {
+            $status = strtoupper((string) $detail['status']);
+            $this->handleTripayCallback(array_merge($payment->tripay_payload ?? [], $detail));
+            return $payment->fresh();
+        }
+
+        return $payment;
     }
 
     public function handleTripayCallback(array $payload): void
@@ -149,7 +167,7 @@ final readonly class InvoicePaymentService
             $payment->forceFill([
                 'status' => $mapped,
                 'tripay_reference' => $tripayRef !== '' ? $tripayRef : $payment->tripay_reference,
-                'tripay_payload' => $payload,
+                'tripay_payload' => array_merge($payment->tripay_payload ?? [], $payload),
                 'paid_at' => $mapped === 'paid' ? now() : $payment->paid_at,
             ])->save();
 

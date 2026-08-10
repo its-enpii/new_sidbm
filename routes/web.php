@@ -277,6 +277,7 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
         Route::get('/invoices', [TenantInvoiceController::class, 'index'])->name('invoices.index');
         Route::get('/invoices/{invoice}', [TenantInvoiceController::class, 'show'])->name('invoices.show');
         Route::post('/invoices/{invoice}/pay', [TenantInvoiceController::class, 'pay'])->name('invoices.pay');
+        Route::post('/invoices/{invoice}/check-status', [TenantInvoiceController::class, 'checkStatus'])->name('invoices.check-status');
     });
 
     Route::prefix('settings')->name('settings.')->group(function (): void {
