@@ -1,10 +1,12 @@
 <script setup>
-import { ref, onUnmounted } from 'vue';
+import { ref, onUnmounted, computed } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppBadge from '../../../Components/AppBadge.vue';
+import AppInput from '../../../Components/AppInput.vue';
+import SmartSelect from '../../../Components/SmartSelect.vue';
 
 const props = defineProps({
     tenants: { type: Array, required: true },
@@ -15,6 +17,13 @@ const showAdvanced = ref(false);
 const selectedRun = ref(null);
 const activeLogModal = ref(false);
 let pollInterval = null;
+
+const tenantOptions = computed(() =>
+    props.tenants.map(t => ({
+        value: t.row_id,
+        label: `${t.name} (Code: ${t.code})`,
+    }))
+);
 
 const form = useForm({
     tenant_id: props.tenants[0]?.row_id ?? '',
@@ -143,50 +152,42 @@ const getStepStatusVariant = (status) => {
 
                         <form @submit.prevent="submitCutover" class="space-y-5">
                             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <!-- Tenant Selection -->
+                                <!-- Tenant Selection via SmartSelect -->
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        Pilih Tenant Target <span class="text-rose-500">*</span>
-                                    </label>
-                                    <select
+                                    <SmartSelect
                                         v-model="form.tenant_id"
-                                        class="mt-1 block w-full rounded-lg border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white sm:text-sm"
-                                        required
-                                    >
-                                        <option v-for="tenant in tenants" :key="tenant.row_id" :value="tenant.row_id">
-                                            {{ tenant.name }} (Code: {{ tenant.code }})
-                                        </option>
-                                    </select>
-                                    <span v-if="form.errors.tenant_id" class="text-xs text-rose-500">{{ form.errors.tenant_id }}</span>
-                                </div>
-
-                                <!-- Suffix Lokasi ID -->
-                                <div>
-                                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        ID Lokasi (Suffix Legacy DB) <span class="text-rose-500">*</span>
-                                    </label>
-                                    <input
-                                        v-model="form.suffix"
-                                        type="number"
-                                        placeholder="Contoh: 1"
-                                        class="mt-1 block w-full rounded-lg border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white sm:text-sm"
+                                        label="Pilih Tenant Target"
+                                        :options="tenantOptions"
+                                        :error="form.errors.tenant_id"
+                                        searchable
                                         required
                                     />
-                                    <span v-if="form.errors.suffix" class="text-xs text-rose-500">{{ form.errors.suffix }}</span>
+                                </div>
+
+                                <!-- Suffix Lokasi ID via AppInput -->
+                                <div>
+                                    <AppInput
+                                        v-model="form.suffix"
+                                        label="ID Lokasi (Suffix Legacy DB)"
+                                        type="number"
+                                        placeholder="Contoh: 1"
+                                        :error="form.errors.suffix"
+                                        required
+                                    />
                                 </div>
                             </div>
 
                             <!-- Mode Toggles -->
-                            <div class="space-y-3 rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50">
+                            <div class="space-y-3 rounded-xl bg-surface-container-low p-4">
                                 <label class="flex items-center space-x-3 cursor-pointer">
                                     <input
                                         type="checkbox"
                                         v-model="form.is_dry_run"
-                                        class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                        class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary-container"
                                     />
                                     <div>
-                                        <span class="text-sm font-medium text-slate-900 dark:text-white">Mode Dry-Run (Simulasi / Uji Coba)</span>
-                                        <p class="text-xs text-slate-500 dark:text-slate-400">Menjalankan simulasi validasi tanpa menyimpan perubahan ke database utama.</p>
+                                        <span class="text-sm font-medium text-primary">Mode Dry-Run (Simulasi / Uji Coba)</span>
+                                        <p class="text-xs text-on-surface-variant">Menjalankan simulasi validasi tanpa menyimpan perubahan ke database utama.</p>
                                     </div>
                                 </label>
 
@@ -194,44 +195,42 @@ const getStepStatusVariant = (status) => {
                                     <input
                                         type="checkbox"
                                         v-model="form.run_immediately"
-                                        class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                        class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary-container"
                                     />
                                     <div>
-                                        <span class="text-sm font-medium text-slate-900 dark:text-white">Eksekusi Langsung (Synchronous Execution)</span>
-                                        <p class="text-xs text-slate-500 dark:text-slate-400">Jalankan langsung di server tanpa menunggu antrean background worker.</p>
+                                        <span class="text-sm font-medium text-primary">Eksekusi Langsung (Synchronous Execution)</span>
+                                        <p class="text-xs text-on-surface-variant">Jalankan langsung di server tanpa menunggu antrean background worker.</p>
                                     </div>
                                 </label>
                             </div>
 
                             <!-- Toggle Opsi Lanjutan -->
                             <div>
-                                <button
+                                <AppButton
                                     type="button"
+                                    variant="ghost"
+                                    size="sm"
                                     @click="showAdvanced = !showAdvanced"
-                                    class="inline-flex items-center text-xs font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
                                 >
-                                    <span>{{ showAdvanced ? '? Sembunyikan Opsi Lanjutan' : '? Tampilkan Opsi Lanjutan (Skipping / Chunk Size)' }}</span>
-                                </button>
+                                    {{ showAdvanced ? '? Sembunyikan Opsi Lanjutan' : '? Tampilkan Opsi Lanjutan (Skipping / Chunk Size)' }}
+                                </AppButton>
                             </div>
 
-                            <div v-if="showAdvanced" class="space-y-4 rounded-lg border border-slate-200 p-4 dark:border-slate-700">
+                            <div v-if="showAdvanced" class="space-y-4 rounded-xl border border-outline-variant p-4">
                                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                                     <div>
-                                        <label class="block text-xs font-medium text-slate-700 dark:text-slate-300">Chunk Size</label>
-                                        <input v-model="form.chunk" type="number" min="10" max="5000" class="mt-1 block w-full rounded-md border-slate-300 sm:text-xs dark:bg-slate-900" />
+                                        <AppInput v-model="form.chunk" label="Chunk Size" type="number" min="10" max="5000" />
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-medium text-slate-700 dark:text-slate-300">Tahun Fiskal Dari</label>
-                                        <input v-model="form.from_year" type="number" min="2000" class="mt-1 block w-full rounded-md border-slate-300 sm:text-xs dark:bg-slate-900" />
+                                        <AppInput v-model="form.from_year" label="Tahun Fiskal Dari" type="number" min="2000" />
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-medium text-slate-700 dark:text-slate-300">Tahun Fiskal Sampai</label>
-                                        <input v-model="form.to_year" type="number" min="2000" class="mt-1 block w-full rounded-md border-slate-300 sm:text-xs dark:bg-slate-900" />
+                                        <AppInput v-model="form.to_year" label="Tahun Fiskal Sampai" type="number" min="2000" />
                                     </div>
                                 </div>
 
                                 <div class="space-y-2">
-                                    <span class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Lompati Step (Optional Skipping):</span>
+                                    <span class="block text-xs font-semibold text-primary">Lompati Step (Optional Skipping):</span>
                                     <div class="grid grid-cols-2 gap-2 text-xs">
                                         <label class="flex items-center space-x-2"><input type="checkbox" v-model="form.skip_fiscal" /> <span>Skip Fiscal Periods</span></label>
                                         <label class="flex items-center space-x-2"><input type="checkbox" v-model="form.skip_coa" /> <span>Skip COA Import</span></label>
@@ -351,9 +350,7 @@ const getStepStatusVariant = (status) => {
                         </h3>
                         <p class="text-xs text-slate-500">Suffix: {{ selectedRun.suffix }} | Mode: {{ selectedRun.is_dry_run ? 'Dry Run' : 'Live' }}</p>
                     </div>
-                    <button @click="closeLogModal" class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800">
-                        ?
-                    </button>
+                    <AppButton variant="ghost" size="xs" @click="closeLogModal">?</AppButton>
                 </div>
 
                 <div class="space-y-4 p-4">
