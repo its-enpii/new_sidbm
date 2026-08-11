@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Membership\Models;
 
+use App\Models\Scopes\VillageScope;
 use App\Models\Tenant\OrganizationUnit;
 use App\Models\Tenant\TenantModel;
 use App\Tenancy\Concerns\HasPublicUlid;
@@ -18,6 +19,11 @@ final class Member extends TenantModel
     use HasPublicUlid;
     use HasTenantLocalId;
     use SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new VillageScope());
+    }
 
     protected function casts(): array
     {

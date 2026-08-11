@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
-use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -25,16 +24,17 @@ final class UpdateTenantUserRequest extends FormRequest
 
     public function rules(): array
     {
-        /** @var User $target */
-        $target = $this->route('user');
+        $userId = $this->route('user')?->row_id;
 
         return [
             'name' => ['required', 'string', 'max:150'],
-            'username' => ['required', 'string', 'max:100', 'alpha_dash', Rule::unique('users', 'username')->ignore($target->row_id, 'row_id')],
-            'email' => ['nullable', 'email', 'max:190', Rule::unique('users', 'email')->ignore($target->row_id, 'row_id')],
+            'username' => ['required', 'string', 'max:100', 'alpha_dash', Rule::unique('users', 'username')->ignore($userId, 'row_id')],
+            'email' => ['nullable', 'email', 'max:190', Rule::unique('users', 'email')->ignore($userId, 'row_id')],
             'password' => ['nullable', 'string', 'confirmed', Password::defaults()],
             'status' => ['required', Rule::in(['active', 'suspended', 'inactive'])],
             'role' => ['nullable', 'string', Rule::in(array_keys(config('permissions.roles', [])))],
+            'is_village_user' => ['nullable', 'boolean'],
+            'village_row_id' => ['nullable', 'integer'],
         ];
     }
 
@@ -47,6 +47,7 @@ final class UpdateTenantUserRequest extends FormRequest
             'password' => 'password',
             'status' => 'status',
             'role' => 'role',
+            'village_row_id' => 'desa',
         ];
     }
 }

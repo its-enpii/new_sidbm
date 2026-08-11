@@ -32,6 +32,8 @@ use App\Http\Controllers\MasterData\VillageController;
 use App\Http\Controllers\Notifications\BillingNoticeController;
 use App\Http\Controllers\Notifications\NotificationCenterController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Province\ProvinceDashboardController;
+use App\Http\Controllers\Province\ProvinceReportController;
 use App\Http\Controllers\Regency\RegencyDashboardController;
 use App\Http\Controllers\Regency\RegencyReportController;
 use App\Http\Controllers\RegionalCodeController;
@@ -59,6 +61,17 @@ Route::post('/logout', [AuthController::class, 'logout'])
     ->name('logout');
 
 Route::post('/tripay/callback', TripayWebhookController::class)->name('tripay.callback');
+
+Route::middleware(['auth', 'province.user'])->prefix('province')->name('province.')->group(function (): void {
+    Route::get('/dashboard', [ProvinceDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/reports/pack', [ProvinceReportController::class, 'pack'])->name('reports.pack');
+    Route::get('/reports/balance-sheet', [ProvinceReportController::class, 'balanceSheet'])->name('reports.balance-sheet');
+    Route::get('/reports/income-statement', [ProvinceReportController::class, 'incomeStatement'])->name('reports.income-statement');
+    Route::get('/reports/cash-flow', [ProvinceReportController::class, 'cashFlow'])->name('reports.cash-flow');
+    Route::get('/reports/equity-changes', [ProvinceReportController::class, 'equityChanges'])->name('reports.equity-changes');
+    Route::get('/reports/calk', [ProvinceReportController::class, 'calk'])->name('reports.calk');
+    Route::get('/reports/pdf', [ProvinceReportController::class, 'pdf'])->name('reports.pdf');
+});
 
 Route::middleware(['auth', 'regency.user'])->prefix('regency')->name('regency.')->group(function (): void {
     Route::get('/dashboard', [RegencyDashboardController::class, 'index'])->name('dashboard');

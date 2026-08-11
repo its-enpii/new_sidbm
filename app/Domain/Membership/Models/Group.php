@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Membership\Models;
 
+use App\Models\Scopes\VillageScope;
 use App\Models\Tenant\ActivityType;
 use App\Models\Tenant\BusinessType;
 use App\Models\Tenant\GroupFunction;
@@ -23,6 +24,11 @@ final class Group extends TenantModel
     use SoftDeletes;
 
     protected $table = 'groups';
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new VillageScope());
+    }
 
     protected function casts(): array
     {

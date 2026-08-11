@@ -7,8 +7,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Requests\Admin\StoreTenantUserRequest;
 use App\Http\Requests\Admin\UpdateTenantUserRequest;
 use App\Models\Platform\Tenant;
+use App\Models\Tenant\OrganizationUnit;
 use App\Models\User;
 use App\Services\Admin\TenantUserService;
+use App\Tenancy\Services\TenantWorkbench;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
@@ -45,6 +47,8 @@ final class TenantUserController
             'username' => $user->username,
             'email' => $user->email,
             'status' => $user->status,
+            'is_village_user' => $user->is_village_user,
+            'village_row_id' => $user->village_row_id,
             'role' => $roleMap[(int) $user->row_id][0] ?? null,
             'roles' => $roleMap[(int) $user->row_id] ?? [],
             'last_login_at' => $user->last_login_at?->toDateTimeString(),
@@ -60,12 +64,15 @@ final class TenantUserController
         ]);
     }
 
-    public function create(Tenant $tenant): Response
+    public function create(Tenant $tenant, TenantWorkbench $workbench): Response
     {
+        $villages = $workbench->run($tenant, fn () => OrganizationUnit::query()->orderBy('name')->get(['row_id', 'name', 'code']));
+
         return Inertia::render('Admin/Tenants/Users/Form', [
             'tenant' => $tenant->only(['row_id', 'code', 'name']),
             'user' => null,
             'roleOptions' => $this->roleOptions(),
+            'villageOptions' => $villages->map(fn ($v) => ['value' => (int) $v->row_id, 'label' => "{$v->code} - {$v->name}"])->all(),
         ]);
     }
 
@@ -76,18 +83,20 @@ final class TenantUserController
         return to_route('admin.tenants.users.index', $tenant)->with('success', 'Pengguna ditambahkan.');
     }
 
-    public function edit(Tenant $tenant, User $user, TenantUserService $users): Response
+    public function edit(Tenant $tenant, User $user, TenantUserService $users, TenantWorkbench $workbench): Response
     {
         $this->assertBelongs($tenant, $user);
         $roles = $users->rolesFor($tenant, $user);
+        $villages = $workbench->run($tenant, fn () => OrganizationUnit::query()->orderBy('name')->get(['row_id', 'name', 'code']));
 
         return Inertia::render('Admin/Tenants/Users/Form', [
             'tenant' => $tenant->only(['row_id', 'code', 'name']),
             'user' => [
-                ...$user->only(['row_id', 'name', 'username', 'email', 'status']),
+                ...$user->only(['row_id', 'name', 'username', 'email', 'status', 'is_village_user', 'village_row_id']),
                 'role' => $roles[0] ?? null,
             ],
             'roleOptions' => $this->roleOptions(),
+            'villageOptions' => $villages->map(fn ($v) => ['value' => (int) $v->row_id, 'label' => "{$v->code} - {$v->name}"])->all(),
         ]);
     }
 

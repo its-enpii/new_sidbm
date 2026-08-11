@@ -24,6 +24,8 @@ final readonly class TenantUserService
     public function create(Tenant $tenant, array $data): User
     {
         $user = DB::connection('platform')->transaction(function () use ($tenant, $data): User {
+            $isVillage = ($data['role'] ?? null) === 'village_operator' || ! empty($data['is_village_user']);
+
             $user = User::query()->create([
                 'public_id' => (string) Str::ulid(),
                 'tenant_id' => $tenant->row_id,
@@ -32,6 +34,8 @@ final readonly class TenantUserService
                 'username' => $data['username'],
                 'password' => Hash::make($data['password']),
                 'status' => $data['status'] ?? 'active',
+                'is_village_user' => $isVillage,
+                'village_row_id' => $isVillage && ! empty($data['village_row_id']) ? (int) $data['village_row_id'] : null,
             ]);
 
             TenantMembership::query()->create([
@@ -52,11 +56,15 @@ final readonly class TenantUserService
     public function update(Tenant $tenant, User $user, array $data): User
     {
         $user = DB::connection('platform')->transaction(function () use ($user, $data): User {
+            $isVillage = ($data['role'] ?? null) === 'village_operator' || ! empty($data['is_village_user']);
+
             $user->forceFill([
                 'name' => $data['name'],
                 'email' => $data['email'] ?? null,
                 'username' => $data['username'],
                 'status' => $data['status'],
+                'is_village_user' => $isVillage,
+                'village_row_id' => $isVillage && ! empty($data['village_row_id']) ? (int) $data['village_row_id'] : null,
             ])->save();
 
             if (! empty($data['password'])) {

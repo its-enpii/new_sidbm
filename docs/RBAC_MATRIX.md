@@ -82,3 +82,14 @@ Dashboard · Tenant CRUD · Users/role · Repair · Plans · Invoices/void/pay �
 | Institutions/villages/billing GET | catalog + nav; controller wire incremental |
 
 Update packs / keys: `config/permissions.php`.
+
+
+## F. Peran Pengawasan Wilayah & Operator Desa (System Roles)
+
+| Peran System | Flag User | Prefix Path | Permission Key | Deskripsi & Scope |
+|---|---|---|---|---|
+| **Superadmin Platform** | is_superadmin = true | /admin/* | * | Manajemen SaaS platform, tenant sharding, subscriptions, billing, pengguna. |
+| **Supervisor Provinsi** | is_province_user = true | /province/* | province.view_reports | Pengawasan keuangan konsolidasi tingkat provinsi (lintas kabupaten & kecamatan). |
+| **Supervisor Kabupaten** | is_regency_user = true | /regency/* | 
+egency.view_reports | Pengawasan keuangan konsolidasi tingkat kabupaten (lintas kecamatan). |
+| **Operator Desa Scoped** | is_village_user = true | Tenant paths | illage_user.access, members.*, groups.*, loans.propose | Pengoperasian tingkat desa, dibatasi secara otomatis oleh global scope VillageScope pada illage_row_id. |

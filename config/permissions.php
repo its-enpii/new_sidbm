@@ -51,6 +51,10 @@ return [
         'billing.pay',
         // Regency supervisory permissions
         'regency.view_reports',
+        // Province supervisory permissions
+        'province.view_reports',
+        // Village operator permissions
+        'village_user.access',
         // Settings / assistant
         'settings.manage',
         'assistant.use',
@@ -126,6 +130,27 @@ return [
                 'regency.view_reports',
             ],
         ],
+        'province_supervisor' => [
+            'name' => 'Supervisor Provinsi',
+            'is_system' => true,
+            'permissions' => [
+                'province.view_reports',
+            ],
+        ],
+        'village_operator' => [
+            'name' => 'Operator Desa',
+            'is_system' => true,
+            'permissions' => [
+                'members.view',
+                'members.manage',
+                'groups.view',
+                'groups.manage',
+                'loans.view',
+                'loans.propose',
+                'reports.view',
+                'village_user.access',
+            ],
+        ],
     ],
 
     /**
@@ -156,6 +181,7 @@ return [
         '/billing/invoices' => 'billing.view',
         '/settings' => 'settings.manage',
         '/regency' => 'regency.view_reports',
+        '/province' => 'province.view_reports',
     ],
 
     /**

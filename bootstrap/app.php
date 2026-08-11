@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\EnsureProvinceSupervisor;
 use App\Http\Middleware\EnsureRegencySupervisor;
 use App\Http\Middleware\EnsureSubscriptionActive;
 use App\Http\Middleware\EnsureSuperadmin;
@@ -36,13 +37,16 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/billing/tripay/callback',
         ]);
 
-        // Logged-in users hitting /login: superadmin → /admin, regency → /regency, tenant → /dashboard
+        // Logged-in users hitting /login: superadmin → /admin, province → /province/dashboard, regency → /regency/dashboard, tenant → /dashboard
         $middleware->redirectUsersTo(function (\Illuminate\Http\Request $request): string {
             $user = $request->user();
 
             if ($user !== null) {
                 if ($user->is_superadmin === true) {
                     return route('admin.dashboard');
+                }
+                if ($user->isProvinceUser()) {
+                    return route('province.dashboard');
                 }
                 if ($user->isRegencyUser()) {
                     return route('regency.dashboard');
@@ -57,6 +61,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'superadmin' => EnsureSuperadmin::class,
             'regency' => EnsureRegencySupervisor::class,
             'regency.user' => EnsureRegencySupervisor::class,
+            'province' => EnsureProvinceSupervisor::class,
+            'province.user' => EnsureProvinceSupervisor::class,
             'subscription.active' => EnsureSubscriptionActive::class,
             'orchestrator.signature' => VerifyOrchestratorSignature::class,
             'assistant.signature' => VerifyOrchestratorSignature::class,

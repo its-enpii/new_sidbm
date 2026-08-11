@@ -31,6 +31,8 @@ final class StoreTenantUserRequest extends FormRequest
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
             'status' => ['required', Rule::in(['active', 'suspended', 'inactive'])],
             'role' => ['nullable', 'string', Rule::in(array_keys(config('permissions.roles', [])))],
+            'is_village_user' => ['nullable', 'boolean'],
+            'village_row_id' => ['nullable', 'integer'],
         ];
     }
 
@@ -43,6 +45,7 @@ final class StoreTenantUserRequest extends FormRequest
             'password' => 'password',
             'status' => 'status',
             'role' => 'role',
+            'village_row_id' => 'desa',
         ];
     }
 }

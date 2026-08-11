@@ -36,3 +36,42 @@ Daftarkan shard `local` pada platform sebelum menjalankan command shard. Jalanka
 - Gunakan image production immutable, reverse proxy TLS, worker queue terpisah, serta kredensial unik.
 
 Jangan menjalankan pipeline migrasi langsung terhadap satu-satunya salinan produksi.
+
+
+---
+
+## Suite Pengujian Otomatis (100% Passed)
+
+### 1. Backend PHPUnit Suite (201 Tests - 1.506 Assertions)
+Menguji logika transaksi akuntansi double-entry, lifecycle pinjaman, isolasi multi-tenant sharding, perpanjangan otomatis Tripay billing, scope operator desa (VillageScope), dan konsolidasi laporan supervisi kabupaten/provinsi:
+`ash
+php artisan test
+`
+
+### 2. Playwright E2E Page & Route Suite (47 Tests)
+Pengujian kelayakan pemuatan halaman (*smoke test*) untuk 47 rute/halaman aplikasi (Admin platform, Tenant operational suite, Master Data, Lending, Accounting, Budgeting, Settings, Profile, dan 40+ laporan legacy PDF/web):
+`ash
+npx playwright test tests/e2e/all_features.spec.ts
+`
+
+### 3. Playwright E2E Interactive CRUD Suite (25 Tests)
+Pengujian otomatis interaktif pada browser nyata (Playwright Chromium) yang mensimulasikan interaksi pengguna secara penuh:
+- Membuka halaman login dan submit kredensial valid.
+- Mengisi form anggota, memilih dropdown SmartSelect, toggle switch, dan submit data.
+- Mengisi form kelompok dan lembaga.
+- Menjalankan proposal pinjaman baru.
+- Membuka modal aksi, memilih opsi tab, dan melakukan pencarian real-time.
+- Memverifikasi error handling, validasi form, dan *redirect after submit*.
+
+`ash
+# Mode Headless (Background)
+npx playwright test tests/e2e/all_interactive_crud.spec.ts
+
+# Mode Headed (Membuka browser nyata di layar secara otomatis)
+npx playwright test tests/e2e/all_interactive_crud.spec.ts --headed --slow-mo=200
+`
+
+### 4. Pengujian Supervisi Provinsi & Kabupaten
+`ash
+npx playwright test tests/e2e/province.spec.ts
+`

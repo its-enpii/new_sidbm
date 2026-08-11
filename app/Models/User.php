@@ -33,6 +33,9 @@ final class User extends Authenticatable
             'last_login_at' => 'datetime',
             'is_superadmin' => 'boolean',
             'is_regency_user' => 'boolean',
+            'is_province_user' => 'boolean',
+            'is_village_user' => 'boolean',
+            'village_row_id' => 'integer',
             'birth_date' => 'date',
             'appointed_at' => 'date',
         ];
@@ -41,6 +44,16 @@ final class User extends Authenticatable
     public function isRegencyUser(): bool
     {
         return $this->is_regency_user === true;
+    }
+
+    public function isProvinceUser(): bool
+    {
+        return $this->is_province_user === true;
+    }
+
+    public function isVillageUser(): bool
+    {
+        return $this->is_village_user === true;
     }
 
     public function tenant(): BelongsTo

@@ -15,18 +15,6 @@ final class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'app';
 
-    /**
-     * Bump this string whenever the frontend asset bundle changes in a way
-     * that the browser cache may serve stale code (e.g. after a `npm run
-     * build`). When Inertia sees a version mismatch, it does a full page
-     * reload instead of an XHR navigation, which picks up the new asset
-     * even when the filename hash is identical to a cached entry.
-     *
-     * Combines:
-     *   - md5 of the Vite manifest (changes when `npm run build` runs)
-     *   - mtime of the Integration chunk (changes on every page edit)
-     *   - APP_VERSION env var (so container restarts invalidate client cache)
-     */
     public function version(Request $request): ?string
     {
         $parts = [];
@@ -59,6 +47,11 @@ final class HandleInertiaRequests extends Middleware
                     'is_regency_user',
                     'regency_code',
                     'regency_name',
+                    'is_province_user',
+                    'province_code',
+                    'province_name',
+                    'is_village_user',
+                    'village_row_id',
                 ]),
                 'permissions' => $this->resolvePermissions($request),
                 'nav_map' => config('permissions.nav_map', []),
@@ -69,9 +62,6 @@ final class HandleInertiaRequests extends Middleware
         ];
     }
 
-    /**
-     * @return list<string>
-     */
     private function resolvePermissions(Request $request): array
     {
         $user = $request->user();
@@ -83,8 +73,25 @@ final class HandleInertiaRequests extends Middleware
             return ['*'];
         }
 
+        if ($user->is_province_user === true) {
+            return ['province.view_reports'];
+        }
+
         if ($user->is_regency_user === true) {
             return ['regency.view_reports'];
+        }
+
+        if ($user->is_village_user === true) {
+            return [
+                'village_user.access',
+                'members.view',
+                'members.manage',
+                'groups.view',
+                'groups.manage',
+                'loans.view',
+                'loans.propose',
+                'reports.view',
+            ];
         }
 
         try {
@@ -94,9 +101,6 @@ final class HandleInertiaRequests extends Middleware
         }
     }
 
-    /**
-     * @return array{enabled: bool, public_url: ?string}
-     */
     private function resolveAssistant(Request $request): array
     {
         $enabled = $request->user() !== null
@@ -108,9 +112,6 @@ final class HandleInertiaRequests extends Middleware
         ];
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     private function resolveFlash(Request $request): array
     {
         $session = $request->hasSession() ? $request->session() : null;
