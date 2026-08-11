@@ -31,14 +31,20 @@ final class LegacyAccountingDiscovery
     public function discover(?string $suffixFilter = null): array
     {
         $db = (string) config('database.connections.legacy.database');
-        $rows = $this->legacy->select(
-            "SELECT table_name AS name
-             FROM information_schema.tables
-             WHERE table_schema = ?
-               AND (table_name LIKE 'transaksi\\_%' OR table_name LIKE 'saldo\\_%')
-             ORDER BY table_name",
-            [$db],
-        );
+        if ($this->legacy->connection()->getDriverName() === 'sqlite') {
+            $rows = $this->legacy->select(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND (name LIKE 'transaksi_%' OR name LIKE 'saldo_%') ORDER BY name"
+            );
+        } else {
+            $rows = $this->legacy->select(
+                "SELECT table_name AS name
+                 FROM information_schema.tables
+                 WHERE table_schema = ?
+                   AND (table_name LIKE 'transaksi\\_%' OR table_name LIKE 'saldo\\_%')
+                 ORDER BY table_name",
+                [$db],
+            );
+        }
 
         $suffixes = [];
         foreach ($rows as $row) {

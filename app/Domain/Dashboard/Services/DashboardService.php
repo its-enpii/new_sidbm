@@ -385,27 +385,29 @@ final class DashboardService
 
         $tenantId = $this->tenantId();
 
+        $isSqlite = DB::connection('tenant')->getDriverName() === 'sqlite';
+        $disbursedExpr = $isSqlite ? "strftime('%Y-%m', disbursed_at)" : "DATE_FORMAT(disbursed_at, '%Y-%m')";
+        $paidExpr = $isSqlite ? "strftime('%Y-%m', paid_at)" : "DATE_FORMAT(paid_at, '%Y-%m')";
+
         $disbursed = DB::connection('tenant')
             ->table('loans')
             ->where('tenant_id', $tenantId)
             ->whereIn('status', [...self::ACTIVE_LOAN_STATUSES, 'completed', 'written_off', 'rescheduled'])
             ->whereNotNull('disbursed_at')
             ->where('disbursed_at', '>=', $start->toDateString())
-            ->selectRaw('YEAR(disbursed_at) as y, MONTH(disbursed_at) as m')
-            ->selectRaw('COALESCE(SUM(principal_amount), 0) as total')
-            ->groupByRaw('YEAR(disbursed_at), MONTH(disbursed_at)')
+            ->selectRaw("{$disbursedExpr} as ym, COALESCE(SUM(principal_amount), 0) as total")
+            ->groupByRaw($disbursedExpr)
             ->get()
-            ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->y, $r->m));
+            ->keyBy('ym');
 
         $collected = DB::connection('tenant')
             ->table('loan_payments')
             ->where('tenant_id', $tenantId)
             ->where('paid_at', '>=', $start->toDateTimeString())
-            ->selectRaw('YEAR(paid_at) as y, MONTH(paid_at) as m')
-            ->selectRaw('COALESCE(SUM(amount), 0) as total')
-            ->groupByRaw('YEAR(paid_at), MONTH(paid_at)')
+            ->selectRaw("{$paidExpr} as ym, COALESCE(SUM(amount), 0) as total")
+            ->groupByRaw($paidExpr)
             ->get()
-            ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->y, $r->m));
+            ->keyBy('ym');
 
         $trend = [];
         for ($i = 0; $i < 6; $i++) {

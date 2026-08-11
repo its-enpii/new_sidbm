@@ -1,4 +1,4 @@
-ï»¿<?php
+<?php
 
 declare(strict_types=1);
 
@@ -212,11 +212,11 @@ final class JournalEntryOptionResolver
         'angsuran:disimpan_ke' => ['all' => true],
     ];
 
-    public static function isAssetPurchase(?string ): bool
+    public static function isAssetPurchase(?string $type): bool
     {
-        return is_string() && (
-            isset(self::ASSET_PURCHASE_TYPES[])
-            ||  === 'pembelian_inventaris'
+        return is_string($type) && (
+            isset(self::ASSET_PURCHASE_TYPES[$type])
+            || $type === 'pembelian_inventaris'
         );
     }
 
@@ -225,16 +225,16 @@ final class JournalEntryOptionResolver
      */
     public function getTransactionTypes(): array
     {
-         = [];
-        foreach (self::TYPES as  => ) {
-             = ['value' => , 'label' => ];
-            if (isset(self::TYPE_GROUPS[])) {
-                ['group'] = self::TYPE_GROUPS[];
+        $types = [];
+        foreach (self::TYPES as $value => $label) {
+            $item = ['value' => $value, 'label' => $label];
+            if (isset(self::TYPE_GROUPS[$value])) {
+                $item['group'] = self::TYPE_GROUPS[$value];
             }
-            [] = ;
+            $types[] = $item;
         }
 
-        return ;
+        return $types;
     }
 
     /**
@@ -248,15 +248,15 @@ final class JournalEntryOptionResolver
     /**
      * @return array{sumber_dana: array<int, array{value: int, label: string}>, disimpan_ke: array<int, array{value: int, label: string}>}
      */
-    public function getOptionsFor(string ): array
+    public function getOptionsFor(string $type): array
     {
-        if (! isset(self::TYPES[])) {
+        if (! isset(self::TYPES[$type])) {
             return ['sumber_dana' => [], 'disimpan_ke' => []];
         }
 
         return [
-            'sumber_dana' => ->filter(->activePostableAccounts(), , 'sumber_dana'),
-            'disimpan_ke' => ->filter(->activePostableAccounts(), , 'disimpan_ke'),
+            'sumber_dana' => $this->filter($this->activePostableAccounts(), $type, 'sumber_dana'),
+            'disimpan_ke' => $this->filter($this->activePostableAccounts(), $type, 'disimpan_ke'),
         ];
     }
 
@@ -265,10 +265,10 @@ final class JournalEntryOptionResolver
      */
     public function getAllAccountOptions(): array
     {
-        return ->activePostableAccounts()
-            ->map(fn (Account ): array => [
-                'value' => (int) ->row_id,
-                'label' => "{->code} Â· {->name} ({->account_type})",
+        return $this->activePostableAccounts()
+            ->map(fn (Account $a): array => [
+                'value' => (int) $a->row_id,
+                'label' => "{$a->code} · {$a->name} ({$a->account_type})",
             ])
             ->values()
             ->all();
@@ -292,69 +292,69 @@ final class JournalEntryOptionResolver
      */
     public function getOptionsForAllTypes(): array
     {
-         = [];
-        foreach (array_keys(self::TYPES) as ) {
-            [] = ->getOptionsFor();
+        $options = [];
+        foreach (array_keys(self::TYPES) as $type) {
+            $options[$type] = $this->getOptionsFor($type);
         }
 
-        return ;
+        return $options;
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, Account>  
+     * @param  \Illuminate\Support\Collection<int, Account>  $accounts
      * @return array<int, array{value: int, label: string}>
      */
-    private function filter(, string , string ): array
+    private function filter($accounts, string $type, string $side): array
     {
-         = self::RULES["{}:{}"] ?? null;
-        if ( === null) {
+        $rule = self::RULES["{$type}:{$side}"] ?? null;
+        if ($rule === null) {
             return [];
         }
 
-         = ->filter(function (Account ) use (): bool {
-            return ->matchesRule((string) ->code, );
+        $filtered = $accounts->filter(function (Account $a) use ($rule): bool {
+            return $this->matchesRule((string) $a->code, $rule);
         });
 
-        return ->map(fn (Account ): array => [
-            'value' => (int) ->row_id,
-            'label' => "{->code} Â· {->name} ({->account_type})",
+        return $filtered->map(fn (Account $a): array => [
+            'value' => (int) $a->row_id,
+            'label' => "{$a->code} · {$a->name} ({$a->account_type})",
         ])->values()->all();
     }
 
     /**
-     * @param  array{starts_with?: array<int, string>, not_starts_with?: array<int, string>, exclude_codes?: array<int, string>, exact?: string, all?: bool}  
+     * @param  array{starts_with?: array<int, string>, not_starts_with?: array<int, string>, exclude_codes?: array<int, string>, exact?: string, all?: bool}  $rule
      */
-    private function matchesRule(string , array ): bool
+    private function matchesRule(string $code, array $rule): bool
     {
-        if ((['all'] ?? false) === true) {
+        if (($rule['all'] ?? false) === true) {
             return true;
         }
 
-        if (isset(['exact']) &&  !== ['exact']) {
+        if (isset($rule['exact']) && $code !== $rule['exact']) {
             return false;
         }
 
-        if (isset(['starts_with']) && ['starts_with'] !== []) {
-             = false;
-            foreach (['starts_with'] as ) {
-                if (str_starts_with(, )) {
-                     = true;
+        if (isset($rule['starts_with']) && $rule['starts_with'] !== []) {
+            $matched = false;
+            foreach ($rule['starts_with'] as $prefix) {
+                if (str_starts_with($code, $prefix)) {
+                    $matched = true;
                     break;
                 }
             }
-            if (! ) {
+            if (! $matched) {
                 return false;
             }
         }
 
-        foreach (['not_starts_with'] ?? [] as ) {
-            if (str_starts_with(, )) {
+        foreach ($rule['not_starts_with'] ?? [] as $prefix) {
+            if (str_starts_with($code, $prefix)) {
                 return false;
             }
         }
 
-        foreach (['exclude_codes'] ?? [] as ) {
-            if (str_starts_with(, )) {
+        foreach ($rule['exclude_codes'] ?? [] as $excluded) {
+            if (str_starts_with($code, $excluded)) {
                 return false;
             }
         }

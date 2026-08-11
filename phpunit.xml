@@ -26,8 +26,10 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
-        <env name="PLATFORM_DB_DATABASE" value="sidbm_platform_test" force="true"/>
-        <env name="TENANT_DB_DATABASE" value="sidbm_shard_test" force="true"/>
-        <env name="RUN_TENANCY_INTEGRATION_TESTS" value="false"/>
+        <env name="PLATFORM_DB_DRIVER" value="sqlite" force="true"/>
+        <env name="PLATFORM_DB_DATABASE" value="database/platform_test.sqlite" force="true"/>
+        <env name="TENANT_DB_DRIVER" value="sqlite" force="true"/>
+        <env name="TENANT_DB_DATABASE" value="database/tenant_test.sqlite" force="true"/>
+        <env name="RUN_TENANCY_INTEGRATION_TESTS" value="true" force="true"/>
     </php>
 </phpunit>

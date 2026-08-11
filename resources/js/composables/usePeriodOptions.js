@@ -1,4 +1,4 @@
-﻿import { computed } from 'vue';
+import { computed } from 'vue';
 
 /**
  * Shared Indonesian month-name list and year-option generator.

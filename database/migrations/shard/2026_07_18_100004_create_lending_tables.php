@@ -198,6 +198,7 @@ return new class extends Migration
                 ->references(['tenant_id', 'row_id'])->on('journal_entries')->restrictOnDelete();
         });
 
+        if (DB::connection($this->connectionName())->getDriverName() !== 'sqlite') {
         DB::connection($this->connectionName())->statement(
             "ALTER TABLE loan_products ADD CONSTRAINT chk_loan_product_borrower_scope CHECK (borrower_scope IN ('member', 'group', 'both'))"
         );
@@ -210,6 +211,7 @@ return new class extends Migration
         DB::connection($this->connectionName())->statement(
             "ALTER TABLE loan_payment_allocations ADD CONSTRAINT chk_payment_component CHECK (component IN ('principal', 'interest', 'penalty', 'insurance', 'other'))"
         );
+    }
     }
 
     public function down(): void

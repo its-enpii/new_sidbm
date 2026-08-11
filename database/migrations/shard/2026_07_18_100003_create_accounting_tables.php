@@ -161,6 +161,7 @@ return new class extends Migration
                 ->references(['tenant_id', 'row_id'])->on('accounts')->restrictOnDelete();
         });
 
+        if (DB::connection($this->connectionName())->getDriverName() !== 'sqlite') {
         DB::connection($this->connectionName())->statement(
             "ALTER TABLE accounts ADD CONSTRAINT chk_accounts_normal_balance CHECK (normal_balance IN ('D', 'C'))"
         );
@@ -173,6 +174,7 @@ return new class extends Migration
         DB::connection($this->connectionName())->statement(
             'ALTER TABLE account_monthly_balances ADD CONSTRAINT chk_monthly_balance_month CHECK (fiscal_month BETWEEN 1 AND 12)'
         );
+    }
     }
 
     public function down(): void

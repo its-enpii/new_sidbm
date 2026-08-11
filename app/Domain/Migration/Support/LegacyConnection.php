@@ -32,6 +32,15 @@ final class LegacyConnection
     public function tableExists(string $table): bool
     {
         $this->assertSafeTableName($table);
+
+        if ($this->connection()->getDriverName() === 'sqlite') {
+            $row = $this->connection()->selectOne(
+                "SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
+                [$table],
+            );
+            return $row !== null;
+        }
+
         $db = (string) config('database.connections.legacy.database');
 
         $row = $this->connection()->selectOne(
@@ -115,6 +124,17 @@ final class LegacyConnection
     public function columns(string $table): array
     {
         $this->assertSafeTableName($table);
+
+        if ($this->connection()->getDriverName() === 'sqlite') {
+            $cols = $this->connection()->select("PRAGMA table_info(\"{$table}\")");
+            return array_map(static fn (object $col): object => (object) [
+                'COLUMN_NAME' => $col->name,
+                'DATA_TYPE' => $col->type,
+                'IS_NULLABLE' => $col->notnull ? 'NO' : 'YES',
+                'COLUMN_KEY' => $col->pk ? 'PRI' : '',
+            ], $cols);
+        }
+
         $db = (string) config('database.connections.legacy.database');
 
         return $this->connection()->select(

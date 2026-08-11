@@ -37,9 +37,14 @@ final readonly class ResolveTenant
             }
         }
 
-        $tenant = is_string($code) && trim($code) !== ''
-            ? $this->resolver->resolveByCode(trim($code), $request->user())
-            : $this->resolver->resolveByHost($request->getHost(), $request->user());
+        if (is_string($code) && trim($code) !== '') {
+            $tenant = $this->resolver->resolveByCode(trim($code), $request->user());
+        } elseif ($request->user() !== null && $request->user()->getAttribute('tenant_id') !== null) {
+            $tenant = $this->resolver->resolveForUser($request->user());
+        } else {
+            $tenant = $this->resolver->resolveByHost($request->getHost(), $request->user());
+        }
+
         $placement = $tenant->placement;
         $shard = $placement?->shard;
 

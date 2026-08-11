@@ -160,10 +160,10 @@ final class InAppPaymentChannelTest extends TestCase
             [
                 'public_id' => (string) Str::ulid(),
                 'name' => 'Local Shard',
-                'driver' => 'mysql',
+                'driver' => (string) config('database.connections.tenant.driver', 'mysql'),
                 'host' => 'mysql',
                 'port' => 3306,
-                'database_name' => 'sidbm_shard_local',
+                'database_name' => (string) config('database.connections.tenant.database'),
                 'credential_reference' => 'local',
                 'placement_type' => 'shared',
                 'status' => 'active',

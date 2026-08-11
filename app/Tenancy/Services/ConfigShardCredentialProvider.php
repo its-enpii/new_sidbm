@@ -12,6 +12,13 @@ final class ConfigShardCredentialProvider implements ShardCredentialProvider
 {
     public function credentialsFor(DatabaseShard $shard): array
     {
+        if ($shard->driver === 'sqlite') {
+            return [
+                'username' => '',
+                'password' => '',
+            ];
+        }
+
         $reference = (string) $shard->credential_reference;
         $credentials = config("tenancy.shard_credentials.{$reference}");
 

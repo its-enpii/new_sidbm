@@ -22,7 +22,7 @@ final class TenantOnboardingImportController extends Controller
             ->where('is_postable', true)
             ->where('is_active', true)
             ->orderBy('code')
-            ->get(['row_id', 'code', 'name', 'account_type', 'report_group']);
+            ->get(['row_id', 'code', 'name', 'account_type']);
 
         $existingOpening = JournalEntry::query()
             ->where('reference', 'like', 'SALDO-AWAL-%')

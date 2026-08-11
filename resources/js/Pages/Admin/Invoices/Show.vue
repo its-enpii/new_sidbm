@@ -4,6 +4,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
+import AppDatePicker from '../../../Components/AppDatePicker.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import AppTextarea from '../../../Components/AppTextarea.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
@@ -106,7 +107,7 @@ async function voidInvoice() {
                         <h2 class="font-bold text-primary">Bayar manual</h2>
                         <form class="mt-4 space-y-3" @submit.prevent="recordManual">
                             <AppInput v-model="manualForm.amount" label="Nominal" type="number" step="0.01" min="0.01" required :error="manualForm.errors.amount" />
-                            <AppInput v-model="manualForm.paid_at" label="Tanggal bayar" type="date" :error="manualForm.errors.paid_at" />
+                            <AppDatePicker v-model="manualForm.paid_at" label="Tanggal bayar" :error="manualForm.errors.paid_at" clearable />
                             <AppInput v-model="manualForm.reference" label="Referensi" :error="manualForm.errors.reference" />
                             <AppTextarea v-model="manualForm.notes" label="Catatan" :error="manualForm.errors.notes" />
                             <AppButton type="submit" class="w-full" :loading="manualForm.processing" icon="payments">Catat pembayaran</AppButton>

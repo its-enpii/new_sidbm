@@ -1,8 +1,13 @@
 <script setup>
 import { Head, Link, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
+import AppDatePicker from '../../../Components/AppDatePicker.vue';
+import AppInput from '../../../Components/AppInput.vue';
+import AppModal from '../../../Components/AppModal.vue';
+import SmartSelect from '../../../Components/SmartSelect.vue';
 import SmartDataTable from '../../../Components/SmartDataTable.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
 import { useCan } from '../../../composables/useCan';
@@ -27,6 +32,40 @@ const tabs = [
     { key: 'lunas', label: 'Lunas' },
 ];
 
+const pdfModalOpen = ref(false);
+const pdfForm = ref({
+    tab: 'all_active',
+    start_date: '',
+    end_date: '',
+});
+
+const pdfTabOptions = [
+    { value: 'all_active', label: 'Pinjaman Terkini (Proposal, Verifikasi, Waiting & Aktif)' },
+    { value: 'proposal', label: 'Proposal (Pengajuan Baru)' },
+    { value: 'verifikasi', label: 'Terverifikasi (Pemeriksaan)' },
+    { value: 'waiting', label: 'Waiting (Menunggu Pencairan)' },
+    { value: 'aktif', label: 'Aktif (Sedang Berjalan)' },
+    { value: 'lunas', label: 'Lunas / Selesai' },
+    { value: 'all', label: 'Semua Status Pinjaman' },
+];
+
+function openPdfModal() {
+    pdfForm.value.tab = props.tab || 'all_active';
+    pdfModalOpen.value = true;
+}
+
+function submitPdfPrint() {
+    const params = new URLSearchParams();
+    if (pdfForm.value.tab) params.append('tab', pdfForm.value.tab);
+    if (pdfForm.value.start_date) params.append('start_date', pdfForm.value.start_date);
+    if (pdfForm.value.end_date) params.append('end_date', pdfForm.value.end_date);
+    if (props.search) params.append('search', props.search);
+
+    const url = `/lending/loans/pdf?${params.toString()}`;
+    window.open(url, '_blank');
+    pdfModalOpen.value = false;
+}
+
 function switchTab(tabKey) {
     router.get('/lending/loans', { tab: tabKey }, { preserveState: false });
 }
@@ -40,9 +79,9 @@ function formatServiceRate(value) {
 }
 
 function formatDate(value) {
-    if (!value) return '—';
+    if (!value) return '�';
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '—';
+    if (Number.isNaN(date.getTime())) return '�';
     return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
 }
 
@@ -64,7 +103,10 @@ const emptyMessages = {
                     <h1 class="text-2xl font-bold text-primary">Tahapan Perguliran</h1>
                     <p class="mt-1 text-on-surface-variant">Pantau pergerakan pinjaman dari pengajuan hingga pelunasan.</p>
                 </div>
-                <Link v-if="can('loans.propose')" href="/lending/loans/create"><AppButton icon="add">Register Proposal</AppButton></Link>
+                <div class="flex items-center gap-3">
+                    <AppButton variant="secondary" icon="print" @click="openPdfModal">Cetak PDF</AppButton>
+                    <Link v-if="can('loans.propose')" href="/lending/loans/create"><AppButton icon="add">Register Proposal</AppButton></Link>
+                </div>
             </header>
 
             <div class="border-b border-outline-variant">
@@ -98,41 +140,64 @@ const emptyMessages = {
                         :empty-title="emptyMessages[tab]?.title || 'Belum ada data pinjaman'"
                         :empty-description="emptyMessages[tab]?.description || 'Tidak ditemukan data pinjaman untuk status ini.'"
                     >
+                        <template #cell-loan_number="{ row }">
+                            <span class="font-bold text-primary">{{ row.loan_number || `#${row.row_id}` }}</span>
+                        </template>
+
                         <template #cell-group_name="{ row }">
-                            <div class="font-semibold text-primary">{{ row.group_name }}</div>
-                            <div v-if="row.group_address" class="mt-0.5 text-xs text-on-surface-variant">{{ row.group_address }}</div>
-                            <div class="mt-0.5 text-[10px] uppercase tracking-wider text-outline">#{{ row.id }} · {{ row.product?.code || '—' }}</div>
+                            <div>
+                                <p class="font-bold text-primary">{{ row.group_name }}</p>
+                                <p v-if="row.leader_name" class="text-xs text-on-surface-variant">Ketua: {{ row.leader_name }}</p>
+                            </div>
                         </template>
-                        <template #cell-proposed_at="{ row }">{{ formatDate(row.proposed_at) }}</template>
-                        <template #cell-verified_at="{ row }">{{ formatDate(row.verified_at) }}</template>
-                        <template #cell-funded_at="{ row }">{{ formatDate(row.funded_at) }}</template>
-                        <template #cell-disbursed_at="{ row }">{{ formatDate(row.disbursed_at) }}</template>
-                        <template #cell-completed_at="{ row }">{{ formatDate(row.completed_at) }}</template>
-                        <template #cell-next_due_date="{ row }">{{ formatDate(row.next_due_date) }}</template>
-                        <template #cell-proposed_amount="{ row }">
-                            <span class="font-semibold text-primary">{{ row.proposed_amount !== null ? formatCurrency(row.proposed_amount) : '—' }}</span>
+
+                        <template #cell-principal_amount="{ row }">
+                            <span class="font-bold text-primary">{{ formatCurrency(row.principal_amount) }}</span>
                         </template>
-                        <template #cell-verification_amount="{ row }">
-                            <span class="font-semibold text-primary">{{ row.verification_amount !== null ? formatCurrency(row.verification_amount) : '—' }}</span>
+
+                        <template #cell-interest_rate="{ row }">
+                            <span>{{ formatServiceRate(row.interest_rate) }} ({{ row.installment_method || 'flat' }})</span>
                         </template>
-                        <template #cell-allocated_amount="{ row }">
-                            <span class="font-semibold text-primary">{{ row.allocated_amount !== null ? formatCurrency(row.allocated_amount) : '—' }}</span>
+
+                        <template #cell-proposed_at="{ row }">
+                            <span>{{ formatDate(row.proposed_at) }}</span>
                         </template>
-                        <template #cell-principal_remaining="{ row }">{{ formatCurrency(row.principal_remaining) }}</template>
-                        <template #cell-total_interest_paid="{ row }">{{ formatCurrency(row.total_interest_paid) }}</template>
-                        <template #cell-service_rate="{ row }">
-                            <span class="font-semibold">{{ formatServiceRate(row.service_rate) }}</span>
+
+                        <template #cell-status="{ row }">
+                            <AppBadge :variant="row.status_badge_variant">{{ row.status_label }}</AppBadge>
                         </template>
-                        <template #cell-term_months="{ row }">{{ row.term_months || 0 }} bln</template>
-                        <template #cell-beneficiaries_count="{ row }">
-                            <span class="inline-flex items-center gap-1 rounded-full bg-primary-fixed-dim/10 px-2 py-0.5 text-xs font-semibold text-primary">{{ row.beneficiaries_count }}</span>
-                        </template>
-                        <template #cell-actions="{ row }">
-                            <Link :href="`/lending/loans/${row.row_id}`" class="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/10">Detail →</Link>
+
+                        <template #actions="{ row }">
+                            <Link :href="`/lending/loans/${row.row_id}`">
+                                <AppButton variant="ghost" size="compact" icon="visibility">Detail</AppButton>
+                            </Link>
                         </template>
                     </SmartDataTable>
                 </div>
             </AppCard>
         </div>
+
+        <!-- Modal Cetak PDF -->
+        <AppModal v-model="pdfModalOpen" title="Cetak Laporan Daftar Pinjaman (PDF)" size="md">
+            <div class="space-y-4">
+                <SmartSelect
+                    v-model="pdfForm.tab"
+                    label="Status Pinjaman"
+                    :options="pdfTabOptions"
+                    required
+                    hint="Pilih status pinjaman terkini atau seluruh status."
+                />
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <AppDatePicker v-model="pdfForm.start_date" label="Dari Tanggal Pengajuan" hint="Kosongkan untuk dari awal." clearable />
+                    <AppDatePicker v-model="pdfForm.end_date" label="Sampai Tanggal" hint="Kosongkan untuk sampai sekarang." clearable />
+                </div>
+            </div>
+
+            <template #footer>
+                <AppButton variant="secondary" @click="pdfModalOpen = false">Batal</AppButton>
+                <AppButton variant="primary" icon="picture_as_pdf" @click="submitPdfPrint">Cetak / Buka PDF</AppButton>
+            </template>
+        </AppModal>
     </AuthenticatedLayout>
 </template>

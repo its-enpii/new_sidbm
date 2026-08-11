@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Accounting;
 
 use App\Domain\Access\Services\PermissionChecker;
+use App\Domain\Accounting\Services\Reports\AnnualReportPackService;
 use App\Domain\Accounting\Services\Reports\BalanceSheetService;
 use App\Domain\Accounting\Services\Reports\CalkService;
 use App\Domain\Accounting\Services\Reports\CashFlowService;
 use App\Domain\Accounting\Services\Reports\EquityChangeService;
+use App\Domain\Accounting\Services\Reports\FinancialHealthService;
 use App\Domain\Accounting\Services\Reports\GeneralLedgerService;
 use App\Domain\Accounting\Services\Reports\IncomeStatementService;
 use App\Domain\Accounting\Services\Reports\JournalListingService;
 use App\Domain\Accounting\Services\Reports\TrialBalanceService;
+use App\Domain\Assets\Services\AssetReportService;
 use App\Models\User;
 use App\Support\ReportPdf;
 use Illuminate\Http\RedirectResponse;
@@ -35,6 +38,9 @@ final class ReportController
         private readonly CashFlowService $cashFlow,
         private readonly EquityChangeService $equityChange,
         private readonly CalkService $calk,
+        private readonly FinancialHealthService $financialHealthService,
+        private readonly AssetReportService $assetReportService,
+        private readonly AnnualReportPackService $annualReportPack,
         private readonly ReportPdf $pdf,
     ) {
     }
@@ -47,6 +53,11 @@ final class ReportController
             'reports' => [
                 ['key' => 'loan-portfolio', 'title' => 'Portofolio Pinjaman', 'href' => '/lending/reports/portfolio', 'icon' => 'payments'],
                 ['key' => 'schedule-vs-actual', 'title' => 'Rencana vs Realisasi', 'href' => '/lending/reports/schedule-vs-actual', 'icon' => 'compare_arrows'],
+                ['key' => 'lpp-desa', 'title' => 'LPP Rekap Desa', 'href' => '/lending/reports/lpp-desa', 'icon' => 'holiday_village'],
+                ['key' => 'lpp-kelompok', 'title' => 'LPP Rincian Kelompok', 'href' => '/lending/reports/lpp-kelompok', 'icon' => 'groups_2'],
+                ['key' => 'kolek-desa', 'title' => 'Kolektibilitas Pinjaman', 'href' => '/lending/reports/kolek-desa', 'icon' => 'pie_chart'],
+                ['key' => 'cadangan-penghapusan', 'title' => 'Cadangan Kerugian (CKPN)', 'href' => '/lending/reports/cadangan-penghapusan', 'icon' => 'shield'],
+                ['key' => 'financial-health', 'title' => 'Penilaian Kesehatan Usaha', 'href' => '/accounting/reports/financial-health', 'icon' => 'health_and_safety'],
                 ['key' => 'journals', 'title' => 'Jurnal Transaksi', 'href' => '/accounting/reports/journals', 'icon' => 'receipt_long'],
                 ['key' => 'trial-balance', 'title' => 'Neraca Saldo', 'href' => '/accounting/reports/trial-balance', 'icon' => 'table_chart'],
                 ['key' => 'balance-sheet', 'title' => 'Neraca', 'href' => '/accounting/reports/balance-sheet', 'icon' => 'account_balance'],
@@ -55,6 +66,8 @@ final class ReportController
                 ['key' => 'equity-change', 'title' => 'Perubahan Ekuitas', 'href' => '/accounting/reports/equity-change', 'icon' => 'account_balance_wallet'],
                 ['key' => 'calk', 'title' => 'CALK', 'href' => '/accounting/reports/calk', 'icon' => 'description'],
                 ['key' => 'general-ledger', 'title' => 'Buku Besar', 'href' => '/accounting/reports/general-ledger', 'icon' => 'menu_book'],
+                ['key' => 'fixed-assets-pdf', 'title' => 'Rekapitulasi Aset Tetap (PDF)', 'href' => '/accounting/reports/assets/fixed/pdf', 'icon' => 'domain', 'external' => true],
+                ['key' => 'annual-pack', 'title' => 'Dokumen LPJ & Cover Tahunan', 'href' => '/accounting/reports/annual-pack', 'icon' => 'auto_stories'],
             ],
         ]);
     }
@@ -108,7 +121,6 @@ final class ReportController
             'reports.pdf.trial_balance',
             $data,
             'neraca-saldo-'.$year.($month ? '-'.$month : '').'.pdf',
-            'landscape',
         );
     }
 
@@ -221,8 +233,6 @@ final class ReportController
             ...$this->calk->build($year, $month),
             'monthLabels' => $this->monthLabels(),
             'filters' => ['year' => $year, 'month' => $month ?? 'all'],
-            'can_edit' => $this->permissions->allows($request->user(), 'reports.manage')
-                || $this->permissions->allows($request->user(), 'journals.create'),
         ]);
     }
 
@@ -241,22 +251,28 @@ final class ReportController
 
     public function saveCalkNotes(Request $request): RedirectResponse
     {
-        $this->permissions->denyUnless($request->user(), 'reports.manage');
-
-        $data = $request->validate([
-            'notes' => ['nullable', 'string', 'max:20000'],
-            'year' => ['nullable', 'integer'],
-            'month' => ['nullable'],
+        $this->authorize($request);
+        $validated = $request->validate([
+            'year' => ['required', 'integer', 'min:2000', 'max:2100'],
+            'month' => ['nullable', 'integer', 'min:1', 'max:12'],
+            'basis_notes' => ['nullable', 'string', 'max:5000'],
+            'receivable_notes' => ['nullable', 'string', 'max:5000'],
+            'events_after_notes' => ['nullable', 'string', 'max:5000'],
+            'other_notes' => ['nullable', 'string', 'max:5000'],
         ]);
 
-        $this->calk->saveNotes((string) ($data['notes'] ?? ''));
+        $this->calk->saveNotes(
+            (int) $validated['year'],
+            isset($validated['month']) ? (int) $validated['month'] : null,
+            [
+                'basis_notes' => $validated['basis_notes'] ?? null,
+                'receivable_notes' => $validated['receivable_notes'] ?? null,
+                'events_after_notes' => $validated['events_after_notes'] ?? null,
+                'other_notes' => $validated['other_notes'] ?? null,
+            ],
+        );
 
-        $year = (int) ($data['year'] ?? date('Y'));
-        $month = $data['month'] ?? 'all';
-        $query = ['year' => $year, 'month' => $month === '' || $month === null ? 'all' : $month];
-
-        return to_route('accounting.reports.calk', $query)
-            ->with('success', 'Catatan CALK disimpan.');
+        return back()->with('success', 'Catatan CALK berhasil disimpan.');
     }
 
     public function generalLedger(Request $request): InertiaResponse
@@ -311,6 +327,132 @@ final class ReportController
         );
     }
 
+    // --- Penilaian Kesehatan Keuangan ---
+    public function financialHealth(Request $request): InertiaResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->period($request, defaultMonth: (int) date('n'));
+        $data = $this->financialHealthService->build($year, $month);
+
+        return Inertia::render('Accounting/Reports/FinancialHealth', [
+            ...$data,
+            'monthLabels' => $this->monthLabels(),
+            'filters' => ['year' => $year, 'month' => $month ?? 'all'],
+        ]);
+    }
+
+    public function financialHealthPdf(Request $request): Response|StreamedResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->period($request, defaultMonth: (int) date('n'));
+        $data = $this->financialHealthService->build($year, $month);
+
+        return $this->pdf->stream(
+            'reports.pdf.penilaian_kesehatan',
+            $data,
+            sprintf('penilaian-kesehatan-%04d-%02d.pdf', $year, $month ?? 12),
+        );
+    }
+
+    // --- Rekapitulasi Aset Tetap & ATB ---
+    public function fixedAssetsPdf(Request $request): Response|StreamedResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->period($request, defaultMonth: (int) date('n'));
+        $data = $this->assetReportService->build($year, $month, 'tangible');
+
+        return $this->pdf->stream(
+            'reports.pdf.assets.fixed_assets',
+            $data,
+            sprintf('rekapitulasi-aset-tetap-%04d-%02d.pdf', $year, $month ?? 12),
+            'landscape',
+        );
+    }
+
+    public function intangibleAssetsPdf(Request $request): Response|StreamedResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->period($request, defaultMonth: (int) date('n'));
+        $data = $this->assetReportService->build($year, $month, 'intangible');
+
+        return $this->pdf->stream(
+            'reports.pdf.assets.intangible_assets',
+            $data,
+            sprintf('rekapitulasi-aset-tak-berwujud-%04d-%02d.pdf', $year, $month ?? 12),
+            'landscape',
+        );
+    }
+
+    // --- Paket Dokumen Laporan Tahunan / Administratif ---
+    public function annualPack(Request $request): InertiaResponse
+    {
+        $this->authorize($request);
+        $year = (int) $request->query('year', date('Y'));
+        $month = (int) $request->query('month', 12);
+        $data = $this->annualReportPack->build($year, $month);
+
+        return Inertia::render('Accounting/Reports/AnnualPack', [
+            ...$data,
+            'filters' => ['year' => $year, 'month' => $month],
+        ]);
+    }
+
+    public function annualCoverPdf(Request $request): Response|StreamedResponse
+    {
+        $this->authorize($request);
+        $year = (int) $request->query('year', date('Y'));
+        $month = (int) $request->query('month', 12);
+        $data = $this->annualReportPack->build($year, $month, 'cover');
+
+        return $this->pdf->stream(
+            'reports.pdf.annual.cover',
+            $data,
+            sprintf('cover-laporan-tahunan-%04d.pdf', $year),
+        );
+    }
+
+    public function annualSuratPengantarPdf(Request $request): Response|StreamedResponse
+    {
+        $this->authorize($request);
+        $year = (int) $request->query('year', date('Y'));
+        $month = (int) $request->query('month', 12);
+        $data = $this->annualReportPack->build($year, $month, 'surat_pengantar');
+
+        return $this->pdf->stream(
+            'reports.pdf.annual.surat_pengantar',
+            $data,
+            sprintf('surat-pengantar-lpj-%04d.pdf', $year),
+        );
+    }
+
+    public function annualBaPergantianPdf(Request $request): Response|StreamedResponse
+    {
+        $this->authorize($request);
+        $year = (int) $request->query('year', date('Y'));
+        $month = (int) $request->query('month', 12);
+        $data = $this->annualReportPack->build($year, $month, 'ba_pergantian');
+
+        return $this->pdf->stream(
+            'reports.pdf.annual.ba_pergantian',
+            $data,
+            sprintf('berita-acara-lpj-%04d.pdf', $year),
+        );
+    }
+
+    public function annualMouPdf(Request $request): Response|StreamedResponse
+    {
+        $this->authorize($request);
+        $year = (int) $request->query('year', date('Y'));
+        $month = (int) $request->query('month', 12);
+        $data = $this->annualReportPack->build($year, $month, 'mou');
+
+        return $this->pdf->stream(
+            'reports.pdf.annual.mou',
+            $data,
+            sprintf('mou-kerjasama-antar-desa-%04d.pdf', $year),
+        );
+    }
+
     private function authorize(Request $request): void
     {
         /** @var User|null $user */
@@ -356,7 +498,6 @@ final class ReportController
      */
     private function generalLedgerEmpty(int $year, ?int $month): array
     {
-        // Reuse service account_options via a throwaway: call with first account if any
         $options = \App\Domain\Accounting\Models\Account::query()
             ->where('is_postable', true)
             ->where('is_active', true)

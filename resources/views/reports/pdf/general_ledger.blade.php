@@ -1,4 +1,4 @@
-﻿@extends('reports.pdf.layout', [
+@extends('reports.pdf.layout', [
     'title' => 'Buku Besar '.($account['name'] ?? ''),
     'identity' => $identity,
     'period' => $period,

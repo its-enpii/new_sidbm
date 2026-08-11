@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { useConfirm } from '../composables/useConfirm';
 import AppButton from './AppButton.vue';
 import AppIcon from './AppIcon.vue';

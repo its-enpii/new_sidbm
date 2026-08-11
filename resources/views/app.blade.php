@@ -3,6 +3,14 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0284c7">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SIDBM Next">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/build/assets/icon-192.png">
+    
     <title inertia>{{ config('app.name', 'SIDBM Next') }}</title>
     <script>
         (function () {
@@ -12,6 +20,16 @@
                 if (t && ok[t]) document.documentElement.setAttribute('data-theme', t);
             } catch (e) {}
         })();
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                    console.log('SIDBM PWA ServiceWorker registered with scope:', reg.scope);
+                }).catch(function(err) {
+                    console.warn('SIDBM PWA ServiceWorker registration failed:', err);
+                });
+            });
+        }
     </script>
     @vite('resources/js/app.js')
     @inertiaHead
@@ -20,4 +38,3 @@
     @inertia
 </body>
 </html>
-

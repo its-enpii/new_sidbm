@@ -56,6 +56,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant' => ResolveTenant::class,
             'superadmin' => EnsureSuperadmin::class,
             'regency' => EnsureRegencySupervisor::class,
+            'regency.user' => EnsureRegencySupervisor::class,
             'subscription.active' => EnsureSubscriptionActive::class,
             'orchestrator.signature' => VerifyOrchestratorSignature::class,
             'assistant.signature' => VerifyOrchestratorSignature::class,

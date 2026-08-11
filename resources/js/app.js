@@ -12,9 +12,16 @@ createInertiaApp({
         import.meta.glob('./Pages/**/*.vue'),
     ),
     setup({ el, App, props, plugin }) {
-        createApp({ render: () => h(App, props) })
-            .use(plugin)
-            .mount(el);
+        const app = createApp({ render: () => h(App, props) });
+        app.use(plugin);
+        app.mount(el);
+
+        window.addEventListener('online', () => {
+            console.log('Status: Online');
+        });
+        window.addEventListener('offline', () => {
+            console.warn('Status: Offline');
+        });
     },
     progress: {
         color: 'var(--color-secondary)',

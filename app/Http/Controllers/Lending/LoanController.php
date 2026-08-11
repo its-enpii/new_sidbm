@@ -683,4 +683,145 @@ final class LoanController
             'snapshot_at' => $committee->snapshot_at?->format('Y-m-d'),
         ];
     }
+
+    public function exportPdf(Request $request, ReportPdf $pdf): HttpResponse|StreamedResponse
+    {
+        $tab = (string) $request->query('tab', 'all_active');
+        $status = (string) $request->query('status', '');
+        $startDate = (string) $request->query('start_date', '');
+        $endDate = (string) $request->query('end_date', '');
+        $search = trim((string) $request->query('search', ''));
+
+        $query = Loan::query()
+            ->with([
+                'product:row_id,code,name',
+                'borrower.group:row_id,name,address,organization_unit_row_id,leader_name',
+                'borrower.group.village:row_id,name',
+                'installments',
+            ]);
+
+        $statusLabel = 'Semua Pinjaman';
+        if ($status !== '') {
+            $query->where('status', $status);
+            $statusLabel = ucfirst($status);
+        } else {
+            switch ($tab) {
+                case 'proposal':
+                    $query->whereIn('status', ['draft', 'proposed']);
+                    $statusLabel = 'Proposal (Pengajuan)';
+                    break;
+                case 'verifikasi':
+                    $query->where('status', 'verified');
+                    $statusLabel = 'Terverifikasi';
+                    break;
+                case 'waiting':
+                    $query->whereIn('status', ['waiting', 'approved']);
+                    $statusLabel = 'Waiting (Menunggu Pencairan)';
+                    break;
+                case 'aktif':
+                    $query->whereIn('status', ['active', 'disbursed']);
+                    $statusLabel = 'Aktif (Berjalan)';
+                    break;
+                case 'lunas':
+                    $query->whereIn('status', ['completed', 'written_off', 'rescheduled']);
+                    $statusLabel = 'Lunas / Selesai';
+                    break;
+                case 'all_active':
+                    $query->whereIn('status', ['draft', 'proposed', 'verified', 'waiting', 'approved', 'active', 'disbursed']);
+                    $statusLabel = 'Pinjaman Terkini (Proposal, Verifikasi, Waiting & Aktif)';
+                    break;
+                default:
+                    $statusLabel = 'Semua Pinjaman';
+                    break;
+            }
+        }
+
+        if ($startDate !== '') {
+            $query->whereDate('proposed_at', '>=', $startDate);
+        }
+        if ($endDate !== '') {
+            $query->whereDate('proposed_at', '<=', $endDate);
+        }
+
+        if ($search !== '') {
+            $query->where(fn ($q) => $q
+                ->where('loan_number', 'like', "%{$search}%")
+                ->orWhereHas('borrower.group', fn ($g) => $g->where('name', 'like', "%{$search}%"))
+                ->orWhereHas('product', fn ($p) => $p->where('name', 'like', "%{$search}%"))
+            );
+        }
+
+        $loansData = $query->orderBy('proposed_at', 'desc')->get();
+
+        $totals = [
+            'principal_amount' => 0.0,
+            'principal_paid' => 0.0,
+            'principal_remaining' => 0.0,
+        ];
+
+        $items = [];
+        foreach ($loansData as $loan) {
+            $principal = (float) $loan->principal_amount;
+            $paid = (float) $loan->installments->sum('principal_paid');
+            $remaining = max(0.0, $principal - $paid);
+
+            $totals['principal_amount'] += $principal;
+            $totals['principal_paid'] += $paid;
+            $totals['principal_remaining'] += $remaining;
+
+            $group = $loan->borrower?->group;
+            $items[] = [
+                'row_id' => $loan->row_id,
+                'loan_number' => $loan->loan_number,
+                'group_name' => $group?->name ?? 'Pinjaman Perorangan/Lain',
+                'leader_name' => $group?->leader_name ?? '',
+                'village_name' => $group?->village?->name ?? '',
+                'address' => $group?->address ?? '',
+                'proposed_at' => $loan->proposed_at?->toDateString(),
+                'principal_amount' => $principal,
+                'interest_rate' => (float) $loan->interest_rate,
+                'installment_method' => $loan->installment_method ?: 'flat',
+                'term_months' => (int) $loan->term_months,
+                'principal_paid' => $paid,
+                'principal_remaining' => $remaining,
+                'status' => $loan->status,
+            ];
+        }
+
+        $profile = \App\Domain\Membership\Models\OrganizationProfile::query()->first();
+        $identity = [
+            'legal_name' => $profile?->legal_name ?? config('app.name'),
+            'short_name' => $profile?->short_name ?? config('app.name'),
+            'district_name' => $profile?->district_name ?? '',
+            'regency_name' => $profile?->regency_name ?? '',
+            'address' => $profile?->address ?? '',
+            'phone' => $profile?->phone ?? '',
+            'registration_number' => $profile?->registration_number ?? '',
+            'logo_url' => $profile?->logo_path ? asset('storage/'.ltrim($profile->logo_path, '/')) : null,
+        ];
+
+        $signatures = [
+            'manager' => $profile?->manager_name ?? '..................................',
+            'secretary' => $profile?->secretary_name ?? '..................................',
+            'treasurer' => $profile?->treasurer_name ?? '..................................',
+            'verifier' => '..................................',
+        ];
+
+        $filename = 'daftar-pinjaman-' . ($tab ?: 'all') . '-' . date('Ymd-His') . '.pdf';
+
+        return $pdf->stream(
+            'reports.pdf.loan_list',
+            [
+                'identity' => $identity,
+                'status_label' => $statusLabel,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'loans' => $items,
+                'totals' => $totals,
+                'signatures' => $signatures,
+            ],
+            $filename,
+            'landscape'
+        );
+    }
 }

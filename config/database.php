@@ -20,7 +20,7 @@ return [
         ],
 
         'platform' => [
-            'driver' => 'mysql',
+            'driver' => env('PLATFORM_DB_DRIVER', 'mysql'),
             'url' => env('PLATFORM_DB_URL'),
             'host' => env('PLATFORM_DB_HOST', '127.0.0.1'),
             'port' => env('PLATFORM_DB_PORT', '3306'),
@@ -41,7 +41,7 @@ return [
 
         // Placeholder. ShardConnectionManager replaces this at runtime.
         'tenant' => [
-            'driver' => 'mysql',
+            'driver' => env('TENANT_DB_DRIVER', 'mysql'),
             'url' => env('TENANT_DB_URL'),
             'host' => env('TENANT_DB_HOST', '127.0.0.1'),
             'port' => env('TENANT_DB_PORT', '3306'),

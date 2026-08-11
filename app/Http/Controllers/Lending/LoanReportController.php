@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Lending;
 
 use App\Domain\Access\Services\PermissionChecker;
+use App\Domain\Lending\Services\Reports\CollectibilityReportService;
 use App\Domain\Lending\Services\Reports\LoanPortfolioReportService;
 use App\Domain\Lending\Services\Reports\LoanScheduleVsActualService;
+use App\Domain\Lending\Services\Reports\LppReportService;
 use App\Models\User;
 use App\Support\ReportPdf;
 use Illuminate\Http\Request;
@@ -21,6 +23,8 @@ final class LoanReportController
         private readonly PermissionChecker $permissions,
         private readonly LoanPortfolioReportService $portfolio,
         private readonly LoanScheduleVsActualService $scheduleVsActual,
+        private readonly LppReportService $lpp,
+        private readonly CollectibilityReportService $collectibility,
         private readonly ReportPdf $pdf,
     ) {
     }
@@ -71,6 +75,114 @@ final class LoanReportController
             'reports.pdf.loan_schedule_vs_actual',
             $data,
             sprintf('rencana-realisasi-%04d-%02d.pdf', $year, $month),
+            'landscape',
+        );
+    }
+
+    public function lppDesa(Request $request): InertiaResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->yearMonth($request);
+        $product = $request->query('product', 'all');
+
+        return Inertia::render('Lending/Reports/LppDesa', [
+            ...$this->lpp->buildDesa($year, $month, is_string($product) ? $product : null),
+            'filters' => ['year' => $year, 'month' => $month, 'product' => $product],
+        ]);
+    }
+
+    public function lppDesaPdf(Request $request): Response|StreamedResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->yearMonth($request);
+        $product = $request->query('product', 'all');
+        $data = $this->lpp->buildDesa($year, $month, is_string($product) ? $product : null);
+
+        return $this->pdf->stream(
+            'reports.pdf.lending.lpp_desa',
+            $data,
+            sprintf('lpp-desa-%04d-%02d.pdf', $year, $month),
+            'landscape',
+        );
+    }
+
+    public function lppKelompok(Request $request): InertiaResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->yearMonth($request);
+        $product = $request->query('product', 'all');
+
+        return Inertia::render('Lending/Reports/LppKelompok', [
+            ...$this->lpp->buildKelompok($year, $month, is_string($product) ? $product : null),
+            'filters' => ['year' => $year, 'month' => $month, 'product' => $product],
+        ]);
+    }
+
+    public function lppKelompokPdf(Request $request): Response|StreamedResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->yearMonth($request);
+        $product = $request->query('product', 'all');
+        $data = $this->lpp->buildKelompok($year, $month, is_string($product) ? $product : null);
+
+        return $this->pdf->stream(
+            'reports.pdf.lending.lpp_kelompok',
+            $data,
+            sprintf('lpp-kelompok-%04d-%02d.pdf', $year, $month),
+            'landscape',
+        );
+    }
+
+    public function kolekDesa(Request $request): InertiaResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->yearMonth($request);
+        $product = $request->query('product', 'all');
+
+        return Inertia::render('Lending/Reports/KolekDesa', [
+            ...$this->collectibility->buildDesa($year, $month, is_string($product) ? $product : null),
+            'filters' => ['year' => $year, 'month' => $month, 'product' => $product],
+        ]);
+    }
+
+    public function kolekDesaPdf(Request $request): Response|StreamedResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->yearMonth($request);
+        $product = $request->query('product', 'all');
+        $data = $this->collectibility->buildDesa($year, $month, is_string($product) ? $product : null);
+
+        return $this->pdf->stream(
+            'reports.pdf.lending.kolek_desa',
+            $data,
+            sprintf('kolektibilitas-desa-%04d-%02d.pdf', $year, $month),
+            'landscape',
+        );
+    }
+
+    public function cadanganPenghapusan(Request $request): InertiaResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->yearMonth($request);
+        $product = $request->query('product', 'all');
+
+        return Inertia::render('Lending/Reports/CadanganPenghapusan', [
+            ...$this->collectibility->buildCadangan($year, $month, is_string($product) ? $product : null),
+            'filters' => ['year' => $year, 'month' => $month, 'product' => $product],
+        ]);
+    }
+
+    public function cadanganPenghapusanPdf(Request $request): Response|StreamedResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->yearMonth($request);
+        $product = $request->query('product', 'all');
+        $data = $this->collectibility->buildCadangan($year, $month, is_string($product) ? $product : null);
+
+        return $this->pdf->stream(
+            'reports.pdf.lending.cadangan_penghapusan',
+            $data,
+            sprintf('cadangan-penghapusan-ckpn-%04d-%02d.pdf', $year, $month),
             'landscape',
         );
     }

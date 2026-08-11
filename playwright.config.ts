@@ -1,4 +1,4 @@
-﻿import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 import fs from 'fs';
 
 const CHROMIUM_PATH = process.env.CHROMIUM_PATH ?? '/usr/bin/chromium';

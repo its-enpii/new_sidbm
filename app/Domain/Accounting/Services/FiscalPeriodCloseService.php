@@ -417,15 +417,17 @@ final class FiscalPeriodCloseService
         $from = sprintf('%04d-01-01', $year);
         $until = sprintf('%04d-01-01', $year + 1);
 
+        $isSqlite = DB::connection('tenant')->getDriverName() === 'sqlite';
+        $monthExpr = $isSqlite ? "CAST(strftime('%m', transaction_date) AS INTEGER)" : "MONTH(transaction_date)";
+
         $rows = DB::connection('tenant')
             ->table('journal_entries')
             ->where('tenant_id', $tenantId)
             ->where('status', 'draft')
             ->where('transaction_date', '>=', $from)
             ->where('transaction_date', '<', $until)
-            ->selectRaw('MONTH(transaction_date) AS m')
-            ->selectRaw('COUNT(*) AS c')
-            ->groupByRaw('MONTH(transaction_date)')
+            ->selectRaw("{$monthExpr} AS m, COUNT(*) AS c")
+            ->groupByRaw($monthExpr)
             ->get();
 
         $map = [];

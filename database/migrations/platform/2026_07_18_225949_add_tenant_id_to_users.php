@@ -36,9 +36,15 @@ return new class extends Migration
             });
         }
 
-        $connection->statement(
-            'UPDATE users u JOIN tenant_memberships tm ON tm.user_id = u.row_id AND tm.status = "active" SET u.tenant_id = tm.tenant_id WHERE u.tenant_id IS NULL'
-        );
+        if ($connection->getDriverName() === 'sqlite') {
+            $connection->statement(
+                'UPDATE users SET tenant_id = (SELECT tm.tenant_id FROM tenant_memberships tm WHERE tm.user_id = users.row_id AND tm.status = "active" LIMIT 1) WHERE tenant_id IS NULL AND EXISTS (SELECT 1 FROM tenant_memberships tm WHERE tm.user_id = users.row_id AND tm.status = "active")'
+            );
+        } else {
+            $connection->statement(
+                'UPDATE users u JOIN tenant_memberships tm ON tm.user_id = u.row_id AND tm.status = "active" SET u.tenant_id = tm.tenant_id WHERE u.tenant_id IS NULL'
+            );
+        }
 
         // Users created before tenant assignment may remain unassigned until provisioned.
         // Access to tenant routes still requires an active membership.

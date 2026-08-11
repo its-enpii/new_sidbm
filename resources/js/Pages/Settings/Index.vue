@@ -206,8 +206,6 @@ function stopPolling() {
         pollTimer = null;
     }
 }
-const testResult = ref(null);
-const testLoading = ref(false);
 const pairResult = ref(null);
 const pairLoading = ref(false);
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';

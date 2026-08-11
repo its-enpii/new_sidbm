@@ -23,12 +23,14 @@ trait BuildsTenantTestDatabase
     protected function rebuildTenantTestDatabases(): void
     {
         if (! filter_var(env('RUN_TENANCY_INTEGRATION_TESTS', false), FILTER_VALIDATE_BOOL)) {
-            $this->markTestSkipped('Set RUN_TENANCY_INTEGRATION_TESTS=true to run MySQL tenancy tests.');
+            $this->markTestSkipped('Set RUN_TENANCY_INTEGRATION_TESTS=true to run tenancy tests.');
         }
 
-        foreach ([config('database.connections.platform.database'), config('database.connections.tenant.database')] as $database) {
-            if (! is_string($database) || ! str_ends_with($database, '_test')) {
-                throw new \RuntimeException('Integration tests require databases ending with _test.');
+        $platformDb = (string) config('database.connections.platform.database');
+        $tenantDb = (string) config('database.connections.tenant.database');
+        foreach ([$platformDb, $tenantDb] as $database) {
+            if (! is_string($database) || (! str_ends_with($database, '_test') && ! str_contains($database, 'test') && $database !== ':memory:')) {
+                throw new \RuntimeException('Integration tests require databases ending with _test or containing test.');
             }
         }
 
@@ -56,9 +58,9 @@ trait BuildsTenantTestDatabase
             'public_id' => (string) Str::ulid(),
             'code' => 'test-shard',
             'name' => 'Test Shard',
-            'driver' => 'mysql',
-            'host' => (string) config('database.connections.tenant.host', 'mysql'),
-            'port' => 3306,
+            'driver' => (string) config('database.connections.tenant.driver', 'mysql'),
+            'host' => (string) config('database.connections.tenant.host', '127.0.0.1'),
+            'port' => (int) config('database.connections.tenant.port', 3306),
             'database_name' => (string) config('database.connections.tenant.database'),
             'credential_reference' => 'test',
             'placement_type' => 'shared',

@@ -1,0 +1,146 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - SIDBM Next</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #0284c7;
+            --accent-hover: #0369a1;
+            --warning: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+        .container {
+            background-color: var(--bg-card);
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            max-width: 28rem;
+            width: 100%;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .icon-wrapper {
+            width: 4.5rem;
+            height: 4.5rem;
+            background-color: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem auto;
+        }
+        .icon-wrapper svg {
+            width: 2.5rem;
+            height: 2.5rem;
+        }
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.025em;
+        }
+        p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 1.75rem;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: rgba(148, 163, 184, 0.1);
+            padding: 0.4rem 0.8rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+        }
+        .dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            background-color: var(--warning);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            background-color: var(--accent);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn:hover {
+            background-color: var(--accent-hover);
+        }
+        .btn svg {
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon-wrapper">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a9 9 0 01-1.414-1.414m-2.829 2.829a9 9 0 010-12.728m2.829 2.829a5 5 0 017.072 0M3 3l18 18"></path>
+            </svg>
+        </div>
+        <h1>Anda Sedang Offline</h1>
+        <div class="status-badge">
+            <span class="dot"></span>
+            <span id="status-text">Koneksi Internet Terputus</span>
+        </div>
+        <p>Aplikasi <strong>SIDBM Next</strong> membutuhkan koneksi internet untuk meng sinkronkan data keuangan. Halaman ini akan memuat ulang secara otomatis begitu Anda terhubung kembali.</p>
+        <button class="btn" onclick="window.location.reload()">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Coba Muat Ulang
+        </button>
+    </div>
+    <script>
+        window.addEventListener('online', function() {
+            document.getElementById('status-text').innerText = 'Kembali Online! Memuat...';
+            window.location.reload();
+        });
+        setInterval(function() {
+            if (navigator.onLine) {
+                fetch('/favicon.ico', { method: 'HEAD', cache: 'no-store' })
+                    .then(function() { window.location.reload(); })
+                    .catch(function() {});
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

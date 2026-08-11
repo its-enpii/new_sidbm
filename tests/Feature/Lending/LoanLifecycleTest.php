@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Lending;
 
+use App\Tenancy\Services\DefaultChartOfAccountsProvisioner;
 use App\Domain\Accounting\Models\Account;
 use App\Domain\Lending\Models\Loan;
 use App\Domain\Lending\Models\LoanBeneficiary;
@@ -86,6 +87,7 @@ final class LoanLifecycleTest extends TestCase
             GroupMember::query()->create(['group_row_id' => $this->group->row_id, 'member_row_id' => $member->row_id, 'joined_at' => '2026-01-01', 'status' => 'active']);
         }
 
+        app(DefaultChartOfAccountsProvisioner::class)->ensureDefaults();
         app(TenantLoanProductProvisioner::class)->ensureDefaults();
         $this->productId = (int) DB::connection('tenant')->table('loan_products')->where('code', 'spp')->value('row_id');
 

@@ -161,16 +161,20 @@ final class TenantOnboardingService
                     $principalPaid, $interestPaid
                 ): void {
                     $loan = Loan::query()->create([
-                        'legacy_source' => 'onboarding_import',
+                        'legacy_source' => $memberRowId !== null ? 'member_loan' : 'group_loan',
                         'loan_product_row_id' => $defaultProduct->row_id,
                         'loan_number' => $spkNumber !== '' ? $spkNumber : 'ONB-' . random_int(100000, 999999),
-                        'member_row_id' => $memberRowId,
-                        'group_row_id' => $groupRowId,
-                        'amount' => $principal,
+                        'principal_amount' => $principal,
                         'interest_rate' => $interestRate,
                         'term_months' => $months,
                         'disbursed_at' => $disbursedAt,
                         'status' => 'disbursed',
+                    ]);
+
+                    \App\Domain\Lending\Models\LoanBorrower::query()->create([
+                        'loan_row_id' => $loan->row_id,
+                        'member_row_id' => $memberRowId,
+                        'group_row_id' => $groupRowId,
                     ]);
 
                     $monthlyPrincipal = round($principal / $months, 2);
