@@ -10,7 +10,8 @@ final class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Intentionally empty.
-        // Platform and tenant defaults should be seeded by explicit provisioning services.
+        $this->call([
+            UserSeeder::class,
+        ]);
     }
 }
