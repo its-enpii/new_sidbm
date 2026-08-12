@@ -50,3 +50,29 @@ Semua skenario billing dan otomatisasi diuji dalam test suite:
 - Tests\Feature\Billing\InAppPaymentChannelTest (3 tests — channel display, VA initiation, status sync)
 - Tests\Feature\Billing\SubscriptionAutomationAndEnforcementTest (4 tests — invoice generation, overdue suspension, route blocking middleware, subscription renewal)
 - Tests\Feature\Billing\TenantInvoicePortalTest (4 tests — multi-tenant isolation pada invoice portal)
+
+
+---
+
+## 2.2 Integrasi Duitku Payment Gateway
+
+### Spesifikasi API Duitku V2
+1. **Inquiry Transaksi (`POST /v2/inquiry`)**:
+   - Signature: `MD5(merchantCode + merchantOrderId + paymentAmount + apiKey)`
+   - Response: `paymentUrl`, `vaNumber`, `qrCode`, `reference`, `statusCode = "00"`.
+2. **Daftar Saluran Pembayaran (`POST /paymentmethod/getpaymentmethod`)**:
+   - Signature: `SHA256(merchantcode + amount + datetime + apiKey)`
+3. **Pengecekan Status Transaksi (`POST /transactionStatus`)**:
+   - Signature: `MD5(merchantCode + merchantOrderId + apiKey)`
+4. **Webhook Callback (`POST /duitku/callback`)**:
+   - Signature Verifikasi: `MD5(merchantCode + amount + merchantOrderId + apiKey)`
+   - Handler memverifikasi `resultCode === "00"` lalu memicu `InvoicePaymentService::handleDuitkuCallback()`.
+
+---
+
+## 2.3 Manajemen Gateway Utama & Admin Control Panel
+
+Superadmin dapat mengatur gateway aktif melalui halaman **Admin Integrations** (`/admin/integrations`):
+- **Dynamic Credential Storage**: Kredensial disimpan via `PlatformSettingService` di database platform dengan enkripsi `Crypt::encryptString()` untuk API/Private Keys, serta mendukung *fallback* otomatis ke `.env`.
+- **Payment Gateway Switcher**: Pilihan sakelar (*toggle*) antara Duitku dan Tripay di halaman Admin yang secara otomatis mengubah saluran pembayaran pada checkout invoice tenant.
+- **Konsistensi UI/UX Design System**: Komponen Vue `Admin/Integration.vue` menggunakan 100% *Design System Components* bawaan (`AppCard`, `AppBadge`, `AppInput`, `SmartSelect`, `AppButton`, `AppIcon`) tanpa komponen hardcode dan kompatibel dengan mode gelap.

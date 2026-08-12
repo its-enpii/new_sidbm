@@ -25,7 +25,7 @@ Dokumentasi Arsitektur: PROJECT_OVERVIEW.md, DATABASE_STRUCTURE.md, CUTOVER_RUNB
 | Inventaris / Aset Tetap | ✅ Selesai | Register aset, Jurnal pembelian inventaris, Nilai buku & akumulasi penyusutan |
 | E-Budgeting / RAPB | ✅ Selesai | Input anggaran per akun per bulan, navigasi tahun, simpan RAPB |
 | Global Search | ✅ Selesai | Omnibox search header (anggota, kelompok, pinjaman, jurnal, aset) |
-| SaaS Billing & Tripay | ✅ Selesai | In-app Payment Channel (QRIS & VA Bank: BCA, BRI, BNI, Mandiri, Permata, CIMB, BSI, Danamon), Auto-Invoice Scheduler, Overdue Grace Period Suspension |
+| SaaS Billing & Payment Gateway | ✅ Selesai | Multi Payment Gateway (Duitku & Tripay) dengan In-app Payment Channel (QRIS, E-Wallet, VA Bank, Credit Card), Auto-Invoice Scheduler, Active Gateway Switcher, dan Overdue Grace Period Suspension |
 | Monitoring Kabupaten (Regency) | ✅ Selesai | Dashboard Kabupaten, Laporan Konsolidasi Multi-Kecamatan (Neraca, LR, BB, Arus Kas, CALK, PDF) |
 | Monitoring Provinsi (Province) | ✅ Selesai | Dashboard Provinsi, Laporan Konsolidasi Multi-Kabupaten & Multi-Kecamatan (Neraca, LR, BB, Arus Kas, CALK, Paket PDF) |
 | Pembatasan Operator Desa (Village Scope) | ✅ Selesai | Restriksi data anggota, kelompok, dan proposal pinjaman berbasis village_row_id dengan global scope VillageScope |
@@ -63,7 +63,7 @@ Dokumentasi Arsitektur: PROJECT_OVERVIEW.md, DATABASE_STRUCTURE.md, CUTOVER_RUNB
 - **P2.1** Tutup buku & Alokasi Laba (ProfitAllocationService)
 - **P2.2** Bagan Akun Standar (COA) UI Read-Only
 - **P2.3** Inventaris & Aset Tetap (AssetService)
-- **P2.4** Billing Automatisasi Tripay (QRIS & Virtual Accounts) & Suspension Middleware
+- **P2.4** Billing Automatisasi Multi-Gateway (Duitku & Tripay QRIS/VA/CC) & Suspension Middleware
 - **P2.5** Portal Supervisi & Konsolidasi Keuangan Kabupaten (Regency Multi-Kecamatan)
 
 ### P3 — AI, Pengalaman Pengguna & Infrastruktur (DONE)
@@ -86,6 +86,7 @@ Dokumentasi Arsitektur: PROJECT_OVERVIEW.md, DATABASE_STRUCTURE.md, CUTOVER_RUNB
 | 2026-07-28 | Inisialisasi P0–P3. P0.1 Cetak Struk/Kuitansi, P0.2 Reversal Jurnal, P0.3 Portofolio Pinjaman. |
 | 2026-07-29 | Laporan P1 (Arus Kas, Ekuitas, CALK, Kartu Angsuran). P2.1 Tutup Buku, P2.2 COA UI, P2.3 Aset Tetap, P3.1 Global Search. |
 | 2026-08-09 | Modul Integrasi Tripay (QRIS & Virtual Accounts), Automated Subscription Invoice Generator, Overdue Grace Period Suspension. |
+| 2026-08-12 | Modul Integrasi Duitku Payment Gateway (Inquiry V2, Webhook MD5, E-Wallet/VA/CC), Superadmin Active Gateway Switcher, dan E2E Integration Suite. |
 | 2026-08-10 | Modul Portal Kabupaten (Supervisory Dashboard & Real-Time Consolidated Financial Reports untuk Neraca, Laba Rugi, Arus Kas, BB, CALK + PDF Export). |
 | 2026-08-10 | Migrasi penuh ke Redis Session Driver, Redis Queue Worker, refactoring Vue UI ke shared composables (useMoney, usePeriodOptions) dan komponen UI terstandar (SmartSelect, ReportPeriodFilter, AppRadioGroup). |
 | 2026-08-10 | P4.1 Migrasi 100% seluruh laporan legacy (LPP Desa, LPP Kelompok, Kolektibilitas Desa, CKPN, Penilaian Kesehatan Usaha, Paket LPJ Tahunan Cover/Surat Pengantar/BA/MoU). |
