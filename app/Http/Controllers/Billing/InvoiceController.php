@@ -7,8 +7,10 @@ namespace App\Http\Controllers\Billing;
 use App\Domain\Access\Services\PermissionChecker;
 use App\Models\Platform\Invoice;
 use App\Models\Platform\InvoicePayment;
+use App\Services\Billing\DuitkuClient;
 use App\Services\Billing\InvoicePaymentService;
 use App\Services\Billing\TripayClient;
+use App\Services\PlatformSettingService;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,6 +23,8 @@ final class InvoiceController
     public function __construct(
         private readonly PermissionChecker $permissions,
         private readonly TripayClient $tripayClient,
+        private readonly DuitkuClient $duitkuClient,
+        private readonly PlatformSettingService $settings,
     ) {
     }
 
@@ -75,30 +79,37 @@ final class InvoiceController
             'payments' => fn ($q) => $q->latest('row_id'),
         ]);
 
-        $channels = $this->tripayClient->getPaymentChannels();
+        $activeGateway = (string) ($this->settings->get('billing.active_gateway') ?: 'duitku');
 
-        // Extract active in-app payment details (if there's a pending Tripay payment)
-        $activeTripayPayment = $invoice->payments->first(
-            fn (InvoicePayment $p) => $p->method === 'tripay' && $p->status === 'pending',
+        if ($activeGateway === 'duitku' && ($this->duitkuClient->getMerchantCode() !== '' || config('duitku.merchant_code') !== '')) {
+            $channels = array_map(static fn ($c) => array_merge($c, ['gateway' => 'duitku']), $this->duitkuClient->getPaymentChannels());
+        } else {
+            $channels = array_map(static fn ($c) => array_merge($c, ['gateway' => 'tripay']), $this->tripayClient->getPaymentChannels());
+        }
+
+        // Extract active in-app payment details (pending Duitku or Tripay payment)
+        $activePayment = $invoice->payments->first(
+            fn (InvoicePayment $p) => in_array($p->method, ['tripay', 'duitku'], true) && $p->status === 'pending',
         );
 
         $activePaymentDetails = null;
-        if ($activeTripayPayment !== null) {
-            $payload = $activeTripayPayment->tripay_payload ?? [];
+        if ($activePayment !== null) {
+            $payload = $activePayment->tripay_payload ?? [];
             $activePaymentDetails = [
-                'payment_id' => $activeTripayPayment->row_id,
-                'reference' => $activeTripayPayment->tripay_reference,
-                'method_code' => $payload['payment_method'] ?? 'QRIS2',
-                'payment_name' => $payload['payment_name'] ?? 'Online Payment',
-                'pay_code' => $payload['pay_code'] ?? null,
-                'qr_url' => $payload['qr_url'] ?? null,
-                'qr_string' => $payload['qr_string'] ?? null,
-                'amount' => (int) ($payload['amount'] ?? $activeTripayPayment->amount),
-                'total_amount' => (int) ($payload['amount'] ?? $activeTripayPayment->amount),
+                'payment_id' => $activePayment->row_id,
+                'gateway' => $activePayment->method,
+                'reference' => $activePayment->reference ?: $activePayment->tripay_reference,
+                'method_code' => $payload['paymentMethod'] ?? $payload['payment_method'] ?? 'ONLINE',
+                'payment_name' => $payload['payment_name'] ?? ($activePayment->method === 'duitku' ? 'Pembayaran Duitku' : 'Online Payment'),
+                'pay_code' => $payload['vaNumber'] ?? $payload['pay_code'] ?? null,
+                'qr_url' => $payload['qrCode'] ?? $payload['qr_url'] ?? null,
+                'qr_string' => $payload['qrCode'] ?? $payload['qr_string'] ?? null,
+                'amount' => (int) ($payload['amount'] ?? $activePayment->amount),
+                'total_amount' => (int) ($payload['amount'] ?? $activePayment->amount),
                 'fee_customer' => (int) ($payload['fee_customer'] ?? 0),
                 'expired_time' => isset($payload['expired_time']) ? date('Y-m-d H:i:s', (int) $payload['expired_time']) : null,
                 'instructions' => $payload['instructions'] ?? [],
-                'checkout_url' => $activeTripayPayment->tripay_checkout_url,
+                'checkout_url' => $activePayment->tripay_checkout_url ?: ($payload['paymentUrl'] ?? null),
             ];
         }
 
@@ -125,6 +136,7 @@ final class InvoiceController
                 ] : null,
                 'is_open' => $invoice->isOpen() && $invoice->status !== 'draft',
             ],
+            'active_gateway' => $activeGateway,
             'channels' => $channels,
             'active_payment' => $activePaymentDetails,
             'payments' => $invoice->payments->map(fn ($p) => [
@@ -136,9 +148,9 @@ final class InvoiceController
                 'reference' => $p->reference,
                 'tripay_reference' => $p->tripay_reference,
                 'tripay_checkout_url' => $p->tripay_checkout_url,
-                'payment_name' => $p->tripay_payload['payment_name'] ?? null,
-                'pay_code' => $p->tripay_payload['pay_code'] ?? null,
-                'qr_url' => $p->tripay_payload['qr_url'] ?? null,
+                'payment_name' => $p->tripay_payload['payment_name'] ?? ($p->method === 'duitku' ? 'Duitku Payment' : null),
+                'pay_code' => $p->tripay_payload['vaNumber'] ?? $p->tripay_payload['pay_code'] ?? null,
+                'qr_url' => $p->tripay_payload['qrCode'] ?? $p->tripay_payload['qr_url'] ?? null,
                 'notes' => $p->notes,
             ]),
         ]);
@@ -149,15 +161,20 @@ final class InvoiceController
         $this->permissions->denyUnless($request->user(), 'billing.pay');
         $this->assertTenantOwns($invoice, $context);
 
-        $paymentMethod = (string) $request->input('payment_method', 'QRIS2');
+        $gateway = (string) $request->input('gateway', $this->settings->get('billing.active_gateway') ?: 'duitku');
+        $paymentMethod = (string) $request->input('payment_method', $gateway === 'duitku' ? $this->duitkuClient->getDefaultMethod() : $this->tripayClient->getDefaultMethod());
 
         try {
-            $payment = $payments->initiateTripay($invoice, $request->user(), $paymentMethod);
+            if ($gateway === 'duitku') {
+                $payment = $payments->initiateDuitku($invoice, $request->user(), $paymentMethod);
+            } else {
+                $payment = $payments->initiateTripay($invoice, $request->user(), $paymentMethod);
+            }
         } catch (RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('success', 'Kode pembayaran berhasil dibuat. Silakan selesaikan pembayaran.');
+        return back()->with('success', 'Kode / Link pembayaran berhasil dibuat. Silakan selesaikan pembayaran.');
     }
 
     public function checkStatus(Request $request, Invoice $invoice, TenantContext $context, InvoicePaymentService $payments): RedirectResponse
@@ -165,9 +182,9 @@ final class InvoiceController
         $this->permissions->denyUnless($request->user(), 'billing.pay');
         $this->assertTenantOwns($invoice, $context);
 
-        $activeTripayPayment = $invoice->payments()->where('method', 'tripay')->where('status', 'pending')->latest('row_id')->first();
-        if ($activeTripayPayment !== null) {
-            $updated = $payments->checkAndSyncStatus($activeTripayPayment);
+        $activePayment = $invoice->payments()->whereIn('method', ['tripay', 'duitku'])->where('status', 'pending')->latest('row_id')->first();
+        if ($activePayment !== null) {
+            $updated = $payments->checkAndSyncStatus($activePayment);
             if ($updated->status === 'paid') {
                 return back()->with('success', 'Pembayaran berhasil dikonfirmasi! Langganan Anda telah aktif.');
             }

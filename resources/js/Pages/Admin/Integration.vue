@@ -19,6 +19,8 @@ import PollCard from '../../Components/AssistantComponents/PollCard.vue';
 import AdminLayout from '../../Layouts/AdminLayout.vue';
 
 const props = defineProps({
+    active_gateway: { type: String, default: 'duitku' },
+    duitku: { type: Object, default: () => ({ merchant_code: '', has_api_key: false, mode: 'sandbox', default_method: 'VC' }) },
     tripay: { type: Object, default: () => ({ merchant_code: '', has_api_key: false, has_private_key: false, mode: 'sandbox', default_method: 'QRIS2' }) },
     orchestrator: { type: Object, required: true },
     personas: { type: Array, default: () => [] },
@@ -77,6 +79,68 @@ const testTripayConnection = async () => {
         showToast(e.message, 'error');
     } finally {
         tripayTesting.value = false;
+    }
+};
+
+
+
+const gatewayForm = useForm({
+    gateway: props.active_gateway || 'duitku',
+});
+
+const setGateway = (gw) => {
+    gatewayForm.gateway = gw;
+    gatewayForm.post(route('admin.integrations.active-gateway'), {
+        preserveScroll: true,
+        onSuccess: () => showToast(`Payment Gateway utama diubah ke ${gw.toUpperCase()}`),
+    });
+};
+
+// === Duitku Tab ===
+const duitkuModeOptions = [
+    { value: 'sandbox', label: 'Sandbox (Pengujian / Test Mode)' },
+    { value: 'production', label: 'Production (Live Transaction)' },
+];
+
+const duitkuMethodOptions = [
+    { value: 'SP', label: 'ShopeePay / QRIS Duitku' },
+    { value: 'BC', label: 'BCA Virtual Account' },
+    { value: 'BR', label: 'BRI Virtual Account' },
+    { value: 'BN', label: 'BNI Virtual Account' },
+    { value: 'M2', label: 'Mandiri Virtual Account' },
+    { value: 'VA', label: 'Permata Virtual Account' },
+    { value: 'B1', label: 'CIMB Niaga Virtual Account' },
+];
+
+const duitkuForm = useForm({
+    merchant_code: props.duitku?.merchant_code || '',
+    api_key: '',
+    mode: props.duitku?.mode || 'sandbox',
+    default_method: props.duitku?.default_method || 'VC',
+});
+
+const submitDuitku = () => {
+    duitkuForm.post(route('admin.integrations.duitku'), {
+        preserveScroll: true,
+        onSuccess: () => showToast('Pengaturan Duitku tersimpan'),
+    });
+};
+
+const duitkuTestResult = ref(null);
+const duitkuTesting = ref(false);
+
+const testDuitkuConnection = async () => {
+    duitkuTesting.value = true;
+    duitkuTestResult.value = null;
+    try {
+        const data = await apiCall('/admin/integrations/duitku/test', { method: 'POST' });
+        duitkuTestResult.value = data;
+        showToast(data.message, data.ok ? 'success' : 'error');
+    } catch (e) {
+        duitkuTestResult.value = { ok: false, message: e.message };
+        showToast(e.message, 'error');
+    } finally {
+        duitkuTesting.value = false;
     }
 };
 
@@ -652,6 +716,7 @@ function formatTime(iso) {
 const tabs = [
     { id: 'overview', label: 'Overview', icon: 'dashboard' },
     { id: 'tripay', label: 'Tripay Gateway', icon: 'payments' },
+    { id: 'duitku', label: 'Duitku Gateway', icon: 'account_balance_wallet' },
     { id: 'personas', label: 'Personas', icon: 'person' },
     { id: 'tools', label: 'Tools', icon: 'build' },
     { id: 'knowledge', label: 'Knowledge Base', icon: 'library_books' },
@@ -709,6 +774,46 @@ onBeforeUnmount(() => {
 
             <!-- ============= OVERVIEW TAB ============= -->
             <div v-if="activeTab === 'overview'" class="space-y-6">
+
+                <!-- Payment Gateway Switcher Card -->
+                <AppCard class="border-2 border-primary/20">
+                    <header class="mb-4 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <h3 class="font-bold text-primary">Payment Gateway Utama (In-App Billing)</h3>
+                            <p class="text-xs text-on-surface-variant">Pilih payment gateway aktif yang digunakan untuk penagihan invoice sistem.</p>
+                        </div>
+                        <AppBadge tone="success">Aktif: {{ (props.active_gateway || 'duitku').toUpperCase() }}</AppBadge>
+                    </header>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div 
+                            class="flex cursor-pointer items-center justify-between rounded-xl border-2 p-4 transition"
+                            :class="props.active_gateway === 'duitku' ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary/40 bg-surface'"
+                            @click="setGateway('duitku')"
+                        >
+                            <div>
+                                <h4 class="font-bold text-sm text-primary">Duitku Payment Gateway</h4>
+                                <p class="text-xs text-on-surface-variant">Metode: Virtual Account, QRIS (ShopeePay/Duitku), Credit Card, dll.</p>
+                            </div>
+                            <AppBadge :tone="props.active_gateway === 'duitku' ? 'primary' : 'neutral'">
+                                {{ props.active_gateway === 'duitku' ? 'Aktif' : 'Pilih Duitku' }}
+                            </AppBadge>
+                        </div>
+                        <div 
+                            class="flex cursor-pointer items-center justify-between rounded-xl border-2 p-4 transition"
+                            :class="props.active_gateway === 'tripay' ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary/40 bg-surface'"
+                            @click="setGateway('tripay')"
+                        >
+                            <div>
+                                <h4 class="font-bold text-sm text-primary">Tripay Payment Gateway</h4>
+                                <p class="text-xs text-on-surface-variant">Metode: QRIS, BCA VA, BRI VA, Mandiri VA, BNI VA, dll.</p>
+                            </div>
+                            <AppBadge :tone="props.active_gateway === 'tripay' ? 'primary' : 'neutral'">
+                                {{ props.active_gateway === 'tripay' ? 'Aktif' : 'Pilih Tripay' }}
+                            </AppBadge>
+                        </div>
+                    </div>
+                </AppCard>
+
                 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <AppCard>
                         <div class="flex items-start justify-between">
@@ -800,7 +905,87 @@ onBeforeUnmount(() => {
                 </AppCard>
             </div>
 
-                        <!-- ============= TRIPAY TAB ============= -->
+                        
+            <!-- ============= DUITKU TAB ============= -->
+            <div v-else-if="activeTab === 'duitku'" class="space-y-6">
+                <AppCard>
+                    <header class="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-outline-variant pb-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-primary">Kredensial & Pengaturan Duitku Payment Gateway</h2>
+                            <p class="mt-0.5 text-xs text-on-surface-variant">
+                                Kelola Merchant Code dan API Key Duitku secara terpusat dari Superadmin dengan fallback otomatis ke file .env.
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <AppBadge :tone="props.duitku?.has_api_key && props.duitku?.merchant_code ? 'success' : 'warning'">
+                                {{ props.duitku?.has_api_key && props.duitku?.merchant_code ? 'Kredensial Aktif' : 'Kredensial Belum Lengkap' }}
+                            </AppBadge>
+                            <AppBadge tone="neutral">Mode: {{ (props.duitku?.mode || 'sandbox').toUpperCase() }}</AppBadge>
+                        </div>
+                    </header>
+
+                    <form @submit.prevent="submitDuitku" class="space-y-6">
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div>
+                                <SmartSelect
+                                    v-model="duitkuForm.mode"
+                                    label="Mode Lingkungan (Environment)"
+                                    :options="duitkuModeOptions"
+                                    :error="duitkuForm.errors.mode"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <AppInput v-model="duitkuForm.merchant_code" label="Merchant Code" placeholder="Contoh: D12345" :error="duitkuForm.errors.merchant_code" required />
+                            </div>
+
+                            <div class="sm:col-span-2">
+                                <AppInput v-model="duitkuForm.api_key" label="API Key (Secret)" type="password" :placeholder="props.duitku?.has_api_key ? '•••••••••••••••• (Tersimpan di database - isi jika ingin diubah)' : 'Masukkan API Key Duitku'" :error="duitkuForm.errors.api_key" />
+                            </div>
+
+                            <div class="sm:col-span-2">
+                                <SmartSelect
+                                    v-model="duitkuForm.default_method"
+                                    label="Metode Pembayaran Default (In-App Billing)"
+                                    :options="duitkuMethodOptions"
+                                    :error="duitkuForm.errors.default_method"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between gap-4 border-t border-outline-variant pt-4">
+                            <AppButton type="button" variant="secondary" :disabled="duitkuTesting" @click="testDuitkuConnection">
+                                <AppIcon name="network_check" class="mr-1" />
+                                <span>{{ duitkuTesting ? 'Menguji Koneksi...' : 'Uji Koneksi Duitku API' }}</span>
+                            </AppButton>
+
+                            <AppButton type="submit" variant="primary" :disabled="duitkuForm.processing">
+                                Simpan Kredensial Duitku
+                            </AppButton>
+                        </div>
+                    </form>
+
+                    <!-- Test Result Output -->
+                    <div v-if="duitkuTestResult" class="mt-6 rounded-xl border p-4" :class="duitkuTestResult.ok ? 'border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20' : 'border-rose-200 bg-rose-50/50 dark:bg-rose-950/20'">
+                        <h4 class="font-bold text-sm" :class="duitkuTestResult.ok ? 'text-emerald-800 dark:text-emerald-200' : 'text-rose-800 dark:text-rose-200'">
+                            {{ duitkuTestResult.ok ? '✓ ' : '✕ ' }}{{ duitkuTestResult.message }}
+                        </h4>
+                        <div v-if="duitkuTestResult.channels && duitkuTestResult.channels.length" class="mt-3">
+                            <span class="text-xs font-semibold text-on-surface-variant">Saluran Pembayaran Aktif:</span>
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                <span v-for="ch in duitkuTestResult.channels" :key="ch.code" class="inline-flex items-center gap-1 rounded-md bg-surface border border-outline-variant px-2.5 py-1 text-xs font-medium text-primary">
+                                    <img v-if="ch.icon_url" :src="ch.icon_url" :alt="ch.name" class="h-3.5 w-auto" />
+                                    {{ ch.name }} ({{ ch.code }})
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </AppCard>
+            </div>
+
+            <!-- ============= TRIPAY TAB ============= -->
             <div v-else-if="activeTab === 'tripay'" class="space-y-6">
                 <AppCard>
                     <header class="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-outline-variant pb-4">

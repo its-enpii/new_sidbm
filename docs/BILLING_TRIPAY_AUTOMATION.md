@@ -1,4 +1,4 @@
-﻿# Spesifikasi & Dokumentasi Integrasi Tripay, Auto-Invoice & Auto-Deactivation Tenant
+﻿# Spesifikasi & Dokumentasi Integrasi Payment Gateway (Duitku & Tripay), Auto-Invoice & Auto-Deactivation Tenant
 
 Document ID: docs/BILLING_TRIPAY_AUTOMATION.md  
 Tanggal Pembaruan: 2026-08-10  
@@ -10,7 +10,8 @@ Status: **COMPLETED / IN PRODUCTION**
 
 Seluruh item pada arsitektur billing, pembayaran otomatis, dan pembatasan tenant overdue telah **selesai diimplementasikan dan diuji secara menyeluruh**:
 
-- ✅ **Tripay Payment Gateway Integration (TripayClient)**: Mendukung QRIS (display QR langsung in-app) dan Bank Virtual Accounts (BCA, BRI, BNI, Mandiri, Permata, CIMB, BSI, Danamon).
+- ✅ **Multi Payment Gateway Integration (Duitku & Tripay)**: Mendukung Duitku Payment Gateway (DuitkuClient) dan Tripay Payment Gateway (TripayClient) dengan konfigurasi kredensial terpusat dari Superadmin (fallback ke .env) dan tombol switch Gateway Utama di Admin Integrasi.
+- ✅ **Saluran Pembayaran Lengkap**: QRIS (display QR langsung in-app), E-Wallet (ShopeePay/GoPay/OVO/Dana), Bank Virtual Accounts (BCA, BRI, BNI, Mandiri, Permata, CIMB, BSI, Danamon), serta Kartu Kredit (Duitku).
 - ✅ **In-App Payment Interface (esources/js/Pages/Billing/Invoices/Show.vue)**: Pilihan channel interaktif, instruksi transfer, tombol copy nominal/kode bayar, dan indikator countdown waktu kadaluarsa.
 - ✅ **Automated Subscription Invoices (subscriptions:generate-invoices)**: Scheduler harian untuk membuat tagihan otomatis menjelang masa perpanjangan langganan.
 - ✅ **Overdue Grace Period & Enforcement (subscriptions:check-overdue & EnsureSubscriptionActive)**: Deteksi tagihan menunggak setelah grace-period (3 hari), penangguhan otomatis langganan (suspended), dan pembatasan akses modul operasional secara otomatis via middleware.
@@ -27,7 +28,7 @@ Seluruh item pada arsitektur billing, pembayaran otomatis, dan pembatasan tenant
 4. Sistem membuat record InvoicePayment (method='tripay', status='pending') dan meminta payload transaksi dari Tripay API (TripayClient::createTransaction()).
 5. Frontend Vue menampilkan QR code / Nomor Virtual Account beserta petunjuk pembayaran secara langsung (tanpa perlu redirect keluar aplikasi).
 6. Saat pembayaran selesai, Tripay memanggil webhook POST /api/billing/tripay/callback (diverifikasi dengan Signature HMAC-SHA256).
-7. InvoicePaymentService::handleTripayCallback() memproses update:
+7. Webhook Handler (`DuitkuWebhookController` atau `TripayWebhookController`) memverifikasi Signature (MD5 / HMAC-SHA256) dan memanggil `InvoicePaymentService::handleDuitkuCallback()` / `handleTripayCallback()` untuk memproses update:
    - PAID -> mengupdate status InvoicePayment menjadi paid, menambah mount_paid pada Invoice, merefresh status Invoice (paid), dan memperbarui tanggal aktif Subscription via SubscriptionService::renewFromPaidInvoice().
 
 ---

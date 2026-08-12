@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\OrchestratorRequest;
+use App\Services\Billing\DuitkuClient;
 use App\Services\Billing\TripayClient;
 use App\Services\PlatformSettingService;
 use App\Tenancy\TenantContext;
@@ -110,6 +111,13 @@ final class IntegrationController extends Controller
         ];
 
         return Inertia::render('Admin/Integration', [
+            'active_gateway' => (string) ($settings->get('billing.active_gateway') ?: 'duitku'),
+            'duitku' => [
+                'merchant_code' => (string) ($settings->get('duitku.merchant_code') ?? config('duitku.merchant_code', '')),
+                'has_api_key' => ! empty($settings->getEncrypted('duitku.api_key') ?? config('duitku.api_key')),
+                'mode' => (string) ($settings->get('duitku.mode') ?? config('duitku.mode', 'sandbox')),
+                'default_method' => (string) ($settings->get('duitku.default_method') ?? config('duitku.default_method', 'VC')),
+            ],
             'tripay' => [
                 'merchant_code' => (string) ($settings->get('tripay.merchant_code') ?? config('tripay.merchant_code', '')),
                 'has_api_key' => ! empty($settings->getEncrypted('tripay.api_key') ?? config('tripay.api_key')),
@@ -171,6 +179,58 @@ final class IntegrationController extends Controller
                 'message' => 'Gagal terhubung ke Tripay: ' . $e->getMessage(),
             ], 422);
         }
+    }
+
+    public function updateDuitku(Request $request, PlatformSettingService $settings): RedirectResponse
+    {
+        $validated = $request->validate([
+            'merchant_code' => ['required', 'string', 'max:100'],
+            'api_key' => ['nullable', 'string', 'max:500'],
+            'mode' => ['required', 'string', 'in:sandbox,production'],
+            'default_method' => ['required', 'string', 'max:50'],
+        ]);
+
+        $settings->set('duitku.merchant_code', trim($validated['merchant_code']));
+        $settings->set('duitku.mode', $validated['mode']);
+        $settings->set('duitku.default_method', $validated['default_method']);
+
+        if (! empty($validated['api_key'])) {
+            $settings->setEncrypted('duitku.api_key', trim($validated['api_key']));
+        }
+
+        $settings->flush();
+
+        return redirect()->back()->with('success', 'Kredensial & konfigurasi Duitku Payment Gateway berhasil disimpan.');
+    }
+
+    public function testDuitku(DuitkuClient $duitku): JsonResponse
+    {
+        try {
+            $channels = $duitku->getPaymentChannels();
+
+            return response()->json([
+                'ok' => true,
+                'message' => sprintf('Koneksi ke Duitku API (%s) BERHASIL! Menemukan %d saluran pembayaran.', $duitku->getMode(), count($channels)),
+                'channels' => $channels,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Gagal terhubung ke Duitku: ' . $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function updateActiveGateway(Request $request, PlatformSettingService $settings): RedirectResponse
+    {
+        $validated = $request->validate([
+            'gateway' => ['required', 'string', 'in:tripay,duitku'],
+        ]);
+
+        $settings->set('billing.active_gateway', $validated['gateway']);
+        $settings->flush();
+
+        return redirect()->back()->with('success', sprintf('Payment Gateway utama berhasil diubah menjadi %s.', strtoupper($validated['gateway'])));
     }
 
     public function update(OrchestratorRequest $request, PlatformSettingService $settings): RedirectResponse

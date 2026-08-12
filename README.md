@@ -32,8 +32,8 @@ Aplikasi pembaruan **SIDBM (Sistem Informasi Dana Bergulir Masyarakat / BUMDesma
    - **37 Dokumen Perguliran Pinjaman**: Form Komite, SPK, Rekomendasi Kredit, Surat Kuasa, Tanggung Renteng, Jadwal Angsuran, Kartu Pinjaman.
 4. **Portal Pengawasan & Konsolidasi Keuangan Kabupaten (Regency Supervisor)**:
    - Dashboard supervisi kabupaten dan laporan konsolidasi multi-kecamatan real-time (Neraca, Laba Rugi, Buku Besar, Arus Kas, CALK, streaming PDF).
-5. **Otomatisasi SaaS Billing & Payment Gateway Tripay**:
-   - Channel pembayaran QRIS (display QR langsung in-app) & 8 Virtual Account Bank (BCA, BRI, BNI, Mandiri, Permata, CIMB, BSI, Danamon).
+5. **Otomatisasi SaaS Billing & Multi Payment Gateway (Duitku & Tripay)**:
+   - Channel pembayaran QRIS (display QR langsung in-app), Virtual Account Bank (BCA, BRI, BNI, Mandiri, Permata, CIMB, BSI, Danamon), dan Kartu Kredit dengan dukungan dua payment gateway: Duitku & Tripay yang dapat diganti secara terpusat dari Superadmin.
    - Auto-invoice scheduler (`subscriptions:generate-invoices`), perpanjangan otomatis via webhook HMAC, dan pembatasan otomatis tenant *overdue* via `EnsureSubscriptionActive` middleware.
 6. **Asisten AI Internal (Ariel / enpii/assistant)**:
    - Widget chat interaktif dengan RAG Vector Search (pgvector) untuk SOP, analisis jurnal otomatis, dan pencarian data tenant.

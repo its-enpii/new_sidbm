@@ -16,6 +16,7 @@ final readonly class InvoicePaymentService
     public function __construct(
         private InvoiceService $invoices,
         private TripayClient $tripay,
+        private ?DuitkuClient $duitku = null,
     ) {}
 
     public function recordManual(Invoice $invoice, array $data, User $actor): InvoicePayment
@@ -107,17 +108,78 @@ final readonly class InvoicePaymentService
         return $payment->fresh();
     }
 
+    public function initiateDuitku(Invoice $invoice, ?User $actor = null, ?string $paymentMethod = null): InvoicePayment
+    {
+        if (! $invoice->isOpen() || $invoice->status === 'draft') {
+            throw new RuntimeException('Invoice tidak menerima pembayaran.');
+        }
+
+        $remaining = $invoice->remainingAmount();
+        if (bccomp($remaining, '0', 2) !== 1) {
+            throw new RuntimeException('Invoice sudah lunas.');
+        }
+
+        $invoice->loadMissing('tenant');
+        $merchantRef = (string) Str::ulid();
+        $client = $this->duitku ?? app(DuitkuClient::class);
+        $selectedMethod = $paymentMethod ?: $client->getDefaultMethod();
+
+        $payment = InvoicePayment::query()->create([
+            'public_id' => (string) Str::ulid(),
+            'invoice_id' => $invoice->row_id,
+            'tenant_id' => $invoice->tenant_id,
+            'method' => 'duitku',
+            'status' => 'pending',
+            'amount' => $remaining,
+            'reference' => $merchantRef,
+            'recorded_by' => $actor?->row_id,
+        ]);
+
+        $customerName = $invoice->tenant?->name ?: 'Tenant';
+        $result = $client->createTransaction(
+            amount: (int) round((float) $remaining),
+            merchantRef: $merchantRef,
+            customerName: $customerName,
+            customerEmail: null,
+            orderItems: [[
+                'name' => $invoice->description ?: $invoice->number,
+                'price' => (int) round((float) $remaining),
+                'quantity' => 1,
+            ]],
+            paymentMethod: $selectedMethod,
+        );
+
+        $payment->forceFill([
+            'tripay_reference' => $result['reference'] ?? null,
+            'tripay_checkout_url' => $result['checkout_url'] ?? null,
+            'tripay_payload' => $result,
+        ])->save();
+
+        return $payment->fresh();
+    }
+
     public function checkAndSyncStatus(InvoicePayment $payment): InvoicePayment
     {
-        if ($payment->status === 'paid' || $payment->tripay_reference === null) {
+        if ($payment->status === 'paid') {
             return $payment;
         }
 
-        $detail = $this->tripay->checkTransactionStatus($payment->tripay_reference);
-        if ($detail !== null && isset($detail['status'])) {
-            $status = strtoupper((string) $detail['status']);
-            $this->handleTripayCallback(array_merge($payment->tripay_payload ?? [], $detail));
-            return $payment->fresh();
+        if ($payment->method === 'duitku' && $payment->reference !== null) {
+            $client = $this->duitku ?? app(DuitkuClient::class);
+            $detail = $client->checkTransactionStatus($payment->reference);
+            if ($detail !== null && isset($detail['statusCode'])) {
+                $this->handleDuitkuCallback(array_merge($payment->tripay_payload ?? [], $detail, [
+                    'merchantOrderId' => $payment->reference,
+                    'resultCode' => $detail['statusCode'],
+                ]));
+                return $payment->fresh();
+            }
+        } elseif ($payment->tripay_reference !== null) {
+            $detail = $this->tripay->checkTransactionStatus($payment->tripay_reference);
+            if ($detail !== null && isset($detail['status'])) {
+                $this->handleTripayCallback(array_merge($payment->tripay_payload ?? [], $detail));
+                return $payment->fresh();
+            }
         }
 
         return $payment;
@@ -167,6 +229,65 @@ final readonly class InvoicePaymentService
             $payment->forceFill([
                 'status' => $mapped,
                 'tripay_reference' => $tripayRef !== '' ? $tripayRef : $payment->tripay_reference,
+                'tripay_payload' => array_merge($payment->tripay_payload ?? [], $payload),
+                'paid_at' => $mapped === 'paid' ? now() : $payment->paid_at,
+            ])->save();
+
+            if ($mapped !== 'paid') {
+                return;
+            }
+
+            $invoice = Invoice::query()->lockForUpdate()->find($payment->invoice_id);
+            if ($invoice === null) {
+                return;
+            }
+
+            $invoice->forceFill([
+                'amount_paid' => bcadd((string) $invoice->amount_paid, (string) $payment->amount, 2),
+            ])->save();
+
+            $this->invoices->refreshStatus($invoice->fresh());
+        });
+    }
+
+    public function handleDuitkuCallback(array $payload): void
+    {
+        $merchantRef = (string) ($payload['merchantOrderId'] ?? '');
+        $resultCode = (string) ($payload['resultCode'] ?? '');
+        $duitkuRef = (string) ($payload['reference'] ?? '');
+
+        if ($merchantRef === '') {
+            throw new RuntimeException('merchantOrderId kosong.');
+        }
+
+        $payment = InvoicePayment::query()
+            ->where(function ($query) use ($merchantRef, $duitkuRef): void {
+                $query->where('reference', $merchantRef);
+                if ($duitkuRef !== '') {
+                    $query->orWhere('tripay_reference', $duitkuRef);
+                }
+            })
+            ->first();
+
+        if ($payment === null) {
+            throw new RuntimeException('Pembayaran tidak ditemukan.');
+        }
+
+        if ($payment->status === 'paid') {
+            return;
+        }
+
+        DB::connection('platform')->transaction(function () use ($payment, $payload, $resultCode, $duitkuRef): void {
+            $payment = InvoicePayment::query()->lockForUpdate()->find($payment->row_id);
+            if ($payment === null || $payment->status === 'paid') {
+                return;
+            }
+
+            $mapped = $resultCode === '00' ? 'paid' : 'failed';
+
+            $payment->forceFill([
+                'status' => $mapped,
+                'tripay_reference' => $duitkuRef !== '' ? $duitkuRef : $payment->tripay_reference,
                 'tripay_payload' => array_merge($payment->tripay_payload ?? [], $payload),
                 'paid_at' => $mapped === 'paid' ? now() : $payment->paid_at,
             ])->save();
