@@ -55,14 +55,33 @@ test.describe('1. Interactive Admin Suite (CRUD & Operations)', () => {
         await expect(page.locator('h1')).toBeVisible();
     });
 
-    test('1.2. Admin - Integrations: View & Interact', async ({ page }) => {
+    test('1.2. Admin - Integrations: View & Interact Duitku & Gateway Switcher', async ({ page }) => {
         await page.goto(`${BASE}/admin/integrations`, { waitUntil: 'domcontentloaded' });
         await expect(page.locator('h1')).toBeVisible();
 
-        const saveBtn = page.getByRole('button', { name: /Simpan/i }).first();
-        if (await saveBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-            await saveBtn.click();
+        // Switch active gateway card
+        const duitkuCard = page.getByText(/Duitku Payment Gateway/i).first();
+        if (await duitkuCard.isVisible({ timeout: 3000 }).catch(() => false)) {
+            await duitkuCard.click();
             await page.waitForTimeout(500);
+        }
+
+        // Open Duitku Gateway tab
+        const duitkuTab = page.getByRole('button', { name: /Duitku Gateway/i }).first();
+        if (await duitkuTab.isVisible({ timeout: 3000 }).catch(() => false)) {
+            await duitkuTab.click();
+            await page.waitForTimeout(500);
+
+            const merchantInput = page.getByLabel('Merchant Code').first();
+            if (await merchantInput.isVisible().catch(() => false)) {
+                await merchantInput.fill('D12345Test');
+            }
+
+            const saveBtn = page.getByRole('button', { name: /Simpan Kredensial Duitku/i }).first();
+            if (await saveBtn.isVisible().catch(() => false)) {
+                await saveBtn.click();
+                await page.waitForTimeout(500);
+            }
         }
     });
 
