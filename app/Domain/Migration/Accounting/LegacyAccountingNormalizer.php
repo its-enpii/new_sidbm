@@ -105,7 +105,7 @@ final class LegacyAccountingNormalizer
             'ok' => new NormalizedJournal(
                 idt: $idt,
                 transactionDate: $date,
-                sequenceNumber: (int) ($row->urutan ?? 0),
+                sequenceNumber: max(0, (int) ($row->urutan ?? 0)),
                 description: (string) ($row->keterangan_transaksi ?? ''),
                 legacyTransactionTypeId: (int) ($row->idtp ?? 0),
                 legacyLoanId: (int) ($row->id_pinj ?? 0),
@@ -256,3 +256,4 @@ final class LegacyAccountingNormalizer
         return (bool) preg_match('/^[1-5](\.\d+){1,3}$/', $code);
     }
 }
+
