@@ -41,6 +41,7 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Settings\SettingsController;
 use App\Http\Controllers\Tenant\TenantOnboardingImportController;
 use App\Http\Controllers\Webhooks\DuitkuWebhookController;
+use App\Http\Controllers\Webhooks\XenditWebhookController;
 use App\Http\Controllers\Webhooks\TripayWebhookController;
 use App\Http\Controllers\WhatsappController;
 use App\Tenancy\TenantContext;
@@ -63,6 +64,7 @@ Route::post('/logout', [AuthController::class, 'logout'])
 
 Route::post('/tripay/callback', TripayWebhookController::class)->name('tripay.callback');
 Route::post('/duitku/callback', DuitkuWebhookController::class)->name('duitku.callback');
+Route::post('/xendit/callback', XenditWebhookController::class)->name('xendit.callback');
 
 Route::middleware(['auth', 'province.user'])->prefix('province')->name('province.')->group(function (): void {
     Route::get('/dashboard', [ProvinceDashboardController::class, 'index'])->name('dashboard');
@@ -133,6 +135,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::post('/integrations/tripay/test', [AdminIntegrationController::class, 'testTripay'])->name('integrations.tripay.test');
     Route::post('/integrations/duitku', [AdminIntegrationController::class, 'updateDuitku'])->name('integrations.duitku');
     Route::post('/integrations/duitku/test', [AdminIntegrationController::class, 'testDuitku'])->name('integrations.duitku.test');
+    Route::post('/integrations/xendit', [AdminIntegrationController::class, 'updateXendit'])->name('integrations.xendit');
+    Route::post('/integrations/xendit/test', [AdminIntegrationController::class, 'testXendit'])->name('integrations.xendit.test');
     Route::post('/integrations/whatsapp', [AdminIntegrationController::class, 'updateWhatsapp'])->name('integrations.whatsapp');
     Route::post('/integrations/whatsapp/pair', [AdminIntegrationController::class, 'pairWhatsapp'])->name('integrations.whatsapp.pair');
     Route::post('/integrations/whatsapp/test', [AdminIntegrationController::class, 'testWhatsapp'])->name('integrations.whatsapp.test');

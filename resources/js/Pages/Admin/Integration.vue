@@ -20,6 +20,7 @@ import AdminLayout from '../../Layouts/AdminLayout.vue';
 
 const props = defineProps({
     active_gateway: { type: String, default: 'duitku' },
+    xendit: { type: Object, default: () => ({ secret_key: '', public_key: '', has_secret_key: false, mode: 'sandbox', default_method: 'QRIS' }) },
     duitku: { type: Object, default: () => ({ merchant_code: '', has_api_key: false, mode: 'sandbox', default_method: 'VC' }) },
     tripay: { type: Object, default: () => ({ merchant_code: '', has_api_key: false, has_private_key: false, mode: 'sandbox', default_method: 'QRIS2' }) },
     orchestrator: { type: Object, required: true },
@@ -94,6 +95,56 @@ const setGateway = (gw) => {
         preserveScroll: true,
         onSuccess: () => showToast(`Payment Gateway utama diubah ke ${gw.toUpperCase()}`),
     });
+};
+
+
+// === Xendit Tab ===
+const xenditModeOptions = [
+    { value: 'sandbox', label: 'Sandbox (Pengujian / Test Mode)' },
+    { value: 'production', label: 'Production (Live Transaction)' },
+];
+
+const xenditMethodOptions = [
+    { value: 'QRIS', label: 'QRIS Xendit (Semua Bank & E-Wallet)' },
+    { value: 'BCA', label: 'BCA Virtual Account' },
+    { value: 'BRI', label: 'BRI Virtual Account' },
+    { value: 'BNI', label: 'BNI Virtual Account' },
+    { value: 'MANDIRI', label: 'Mandiri Virtual Account' },
+    { value: 'PERMATA', label: 'Permata Virtual Account' },
+    { value: 'CREDIT_CARD', label: 'Kartu Kredit / Debit (Visa/Mastercard)' },
+];
+
+const xenditForm = useForm({
+    secret_key: '',
+    public_key: props.xendit?.public_key || '',
+    callback_token: '',
+    mode: props.xendit?.mode || 'sandbox',
+    default_method: props.xendit?.default_method || 'QRIS',
+});
+
+const submitXendit = () => {
+    xenditForm.post(route('admin.integrations.xendit'), {
+        preserveScroll: true,
+        onSuccess: () => showToast('Pengaturan Xendit tersimpan'),
+    });
+};
+
+const xenditTestResult = ref(null);
+const xenditTesting = ref(false);
+
+const testXenditConnection = async () => {
+    xenditTesting.value = true;
+    xenditTestResult.value = null;
+    try {
+        const data = await apiCall('/admin/integrations/xendit/test', { method: 'POST' });
+        xenditTestResult.value = data;
+        showToast(data.message, data.ok ? 'success' : 'error');
+    } catch (e) {
+        xenditTestResult.value = { ok: false, message: e.message };
+        showToast(e.message, 'error');
+    } finally {
+        xenditTesting.value = false;
+    }
 };
 
 // === Duitku Tab ===
@@ -717,6 +768,7 @@ const tabs = [
     { id: 'overview', label: 'Overview', icon: 'dashboard' },
     { id: 'tripay', label: 'Tripay Gateway', icon: 'payments' },
     { id: 'duitku', label: 'Duitku Gateway', icon: 'account_balance_wallet' },
+    { id: 'xendit', label: 'Xendit Gateway', icon: 'credit_card' },
     { id: 'personas', label: 'Personas', icon: 'person' },
     { id: 'tools', label: 'Tools', icon: 'build' },
     { id: 'knowledge', label: 'Knowledge Base', icon: 'library_books' },
@@ -784,7 +836,7 @@ onBeforeUnmount(() => {
                         </div>
                         <AppBadge tone="success">Aktif: {{ (props.active_gateway || 'duitku').toUpperCase() }}</AppBadge>
                     </header>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div 
                             class="flex cursor-pointer items-center justify-between rounded-xl border-2 p-4 transition"
                             :class="props.active_gateway === 'duitku' ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary/40 bg-surface'"
@@ -1065,7 +1117,91 @@ onBeforeUnmount(() => {
                             </div>
                         </div>
                     </div>
+                
+            <!-- ============= XENDIT TAB ============= -->
+            <div v-else-if="activeTab === 'xendit'" class="space-y-6">
+                <AppCard>
+                    <header class="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-outline-variant pb-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-primary">Kredensial & Pengaturan Xendit Payment Gateway</h2>
+                            <p class="mt-0.5 text-xs text-on-surface-variant">
+                                Kelola Secret Key, Public Key, dan Verification Token Xendit secara terpusat dari Superadmin.
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <AppBadge :tone="props.xendit?.has_secret_key ? 'success' : 'warning'">
+                                {{ props.xendit?.has_secret_key ? 'Kredensial Aktif' : 'Kredensial Belum Lengkap' }}
+                            </AppBadge>
+                            <AppBadge tone="neutral">Mode: {{ (props.xendit?.mode || 'sandbox').toUpperCase() }}</AppBadge>
+                        </div>
+                    </header>
+
+                    <form @submit.prevent="submitXendit" class="space-y-6">
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div>
+                                <SmartSelect
+                                    v-model="xenditForm.mode"
+                                    label="Mode Lingkungan (Environment)"
+                                    :options="xenditModeOptions"
+                                    :error="xenditForm.errors.mode"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <AppInput v-model="xenditForm.public_key" label="Public Key (Optional)" placeholder="xnd_public_..." :error="xenditForm.errors.public_key" />
+                            </div>
+
+                            <div class="sm:col-span-2">
+                                <AppInput v-model="xenditForm.secret_key" label="Secret Key (API Key)" type="password" :placeholder="props.xendit?.has_secret_key ? '•••••••••••••••• (Tersimpan di database - isi jika ingin diubah)' : 'xnd_development_... / xnd_production_...'" :error="xenditForm.errors.secret_key" />
+                            </div>
+
+                            <div class="sm:col-span-2">
+                                <AppInput v-model="xenditForm.callback_token" label="Webhook Verification Token (x-callback-token)" type="password" placeholder="Masukkan verification token webhook Xendit" :error="xenditForm.errors.callback_token" />
+                            </div>
+
+                            <div class="sm:col-span-2">
+                                <SmartSelect
+                                    v-model="xenditForm.default_method"
+                                    label="Metode Pembayaran Default (In-App Billing)"
+                                    :options="xenditMethodOptions"
+                                    :error="xenditForm.errors.default_method"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between gap-4 border-t border-outline-variant pt-4">
+                            <AppButton type="button" variant="secondary" :disabled="xenditTesting" @click="testXenditConnection">
+                                <AppIcon name="network_check" class="mr-1" />
+                                <span>{{ xenditTesting ? 'Menguji Koneksi...' : 'Uji Koneksi Xendit API' }}</span>
+                            </AppButton>
+
+                            <AppButton type="submit" variant="primary" :disabled="xenditForm.processing">
+                                Simpan Kredensial Xendit
+                            </AppButton>
+                        </div>
+                    </form>
+
+                    <!-- Test Result Output -->
+                    <div v-if="xenditTestResult" class="mt-6 rounded-xl border p-4" :class="xenditTestResult.ok ? 'border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20' : 'border-rose-200 bg-rose-50/50 dark:bg-rose-950/20'">
+                        <h4 class="font-bold text-sm" :class="xenditTestResult.ok ? 'text-emerald-800 dark:text-emerald-200' : 'text-rose-800 dark:text-rose-200'">
+                            {{ xenditTestResult.ok ? '✓ ' : '✕ ' }}{{ xenditTestResult.message }}
+                        </h4>
+                        <div v-if="xenditTestResult.channels && xenditTestResult.channels.length" class="mt-3">
+                            <span class="text-xs font-semibold text-on-surface-variant">Saluran Pembayaran Aktif:</span>
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                <span v-for="ch in xenditTestResult.channels" :key="ch.code" class="inline-flex items-center gap-1 rounded-md bg-surface border border-outline-variant px-2.5 py-1 text-xs font-medium text-primary">
+                                    <img v-if="ch.icon_url" :src="ch.icon_url" :alt="ch.name" class="h-3.5 w-auto" />
+                                    {{ ch.name }} ({{ ch.code }})
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </AppCard>
+            </div>
+
+            </AppCard>
             </div>
 
             <!-- ============= PERSONAS TAB ============= -->

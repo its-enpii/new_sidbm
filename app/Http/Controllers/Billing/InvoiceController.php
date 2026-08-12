@@ -10,6 +10,7 @@ use App\Models\Platform\InvoicePayment;
 use App\Services\Billing\DuitkuClient;
 use App\Services\Billing\InvoicePaymentService;
 use App\Services\Billing\TripayClient;
+use App\Services\Billing\XenditClient;
 use App\Services\PlatformSettingService;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
@@ -24,6 +25,7 @@ final class InvoiceController
         private readonly PermissionChecker $permissions,
         private readonly TripayClient $tripayClient,
         private readonly DuitkuClient $duitkuClient,
+        private readonly XenditClient $xenditClient,
         private readonly PlatformSettingService $settings,
     ) {
     }
@@ -81,15 +83,17 @@ final class InvoiceController
 
         $activeGateway = (string) ($this->settings->get('billing.active_gateway') ?: 'duitku');
 
-        if ($activeGateway === 'duitku' && ($this->duitkuClient->getMerchantCode() !== '' || config('duitku.merchant_code') !== '')) {
+        if ($activeGateway === 'xendit' && ($this->xenditClient->getSecretKey() !== '' || config('xendit.secret_key') !== '')) {
+            $channels = array_map(static fn ($c) => array_merge($c, ['gateway' => 'xendit']), $this->xenditClient->getPaymentChannels());
+        } elseif ($activeGateway === 'duitku' && ($this->duitkuClient->getMerchantCode() !== '' || config('duitku.merchant_code') !== '')) {
             $channels = array_map(static fn ($c) => array_merge($c, ['gateway' => 'duitku']), $this->duitkuClient->getPaymentChannels());
         } else {
             $channels = array_map(static fn ($c) => array_merge($c, ['gateway' => 'tripay']), $this->tripayClient->getPaymentChannels());
         }
 
-        // Extract active in-app payment details (pending Duitku or Tripay payment)
+        // Extract active in-app payment details (pending Tripay, Duitku, or Xendit payment)
         $activePayment = $invoice->payments->first(
-            fn (InvoicePayment $p) => in_array($p->method, ['tripay', 'duitku'], true) && $p->status === 'pending',
+            fn (InvoicePayment $p) => in_array($p->method, ['tripay', 'duitku', 'xendit'], true) && $p->status === 'pending',
         );
 
         $activePaymentDetails = null;
@@ -100,7 +104,7 @@ final class InvoiceController
                 'gateway' => $activePayment->method,
                 'reference' => $activePayment->reference ?: $activePayment->tripay_reference,
                 'method_code' => $payload['paymentMethod'] ?? $payload['payment_method'] ?? 'ONLINE',
-                'payment_name' => $payload['payment_name'] ?? ($activePayment->method === 'duitku' ? 'Pembayaran Duitku' : 'Online Payment'),
+                'payment_name' => $payload['payment_name'] ?? ($activePayment->method === 'xendit' ? 'Pembayaran Xendit' : ($activePayment->method === 'duitku' ? 'Pembayaran Duitku' : 'Online Payment')),
                 'pay_code' => $payload['vaNumber'] ?? $payload['pay_code'] ?? null,
                 'qr_url' => $payload['qrCode'] ?? $payload['qr_url'] ?? null,
                 'qr_string' => $payload['qrCode'] ?? $payload['qr_string'] ?? null,
@@ -109,7 +113,7 @@ final class InvoiceController
                 'fee_customer' => (int) ($payload['fee_customer'] ?? 0),
                 'expired_time' => isset($payload['expired_time']) ? date('Y-m-d H:i:s', (int) $payload['expired_time']) : null,
                 'instructions' => $payload['instructions'] ?? [],
-                'checkout_url' => $activePayment->tripay_checkout_url ?: ($payload['paymentUrl'] ?? null),
+                'checkout_url' => $activePayment->tripay_checkout_url ?: ($payload['invoice_url'] ?? $payload['paymentUrl'] ?? null),
             ];
         }
 
@@ -148,7 +152,7 @@ final class InvoiceController
                 'reference' => $p->reference,
                 'tripay_reference' => $p->tripay_reference,
                 'tripay_checkout_url' => $p->tripay_checkout_url,
-                'payment_name' => $p->tripay_payload['payment_name'] ?? ($p->method === 'duitku' ? 'Duitku Payment' : null),
+                'payment_name' => $p->tripay_payload['payment_name'] ?? ($p->method === 'xendit' ? 'Xendit Payment' : ($p->method === 'duitku' ? 'Duitku Payment' : null)),
                 'pay_code' => $p->tripay_payload['vaNumber'] ?? $p->tripay_payload['pay_code'] ?? null,
                 'qr_url' => $p->tripay_payload['qrCode'] ?? $p->tripay_payload['qr_url'] ?? null,
                 'notes' => $p->notes,
@@ -168,14 +172,25 @@ final class InvoiceController
                 $gateway = $configuredGateway;
             } elseif ($this->tripayClient->getApiKey() !== '' || config('tripay.api_key') !== '') {
                 $gateway = 'tripay';
-            } else {
+            } elseif ($this->duitkuClient->getMerchantCode() !== '' || config('duitku.merchant_code') !== '') {
                 $gateway = 'duitku';
+            } elseif ($this->xenditClient->getSecretKey() !== '' || config('xendit.secret_key') !== '') {
+                $gateway = 'xendit';
+            } else {
+                $gateway = 'tripay';
             }
         }
-        $paymentMethod = (string) $request->input('payment_method', $gateway === 'duitku' ? $this->duitkuClient->getDefaultMethod() : $this->tripayClient->getDefaultMethod());
+
+        $paymentMethod = (string) $request->input('payment_method', match ($gateway) {
+            'xendit' => $this->xenditClient->getDefaultMethod(),
+            'duitku' => $this->duitkuClient->getDefaultMethod(),
+            default => $this->tripayClient->getDefaultMethod(),
+        });
 
         try {
-            if ($gateway === 'duitku') {
+            if ($gateway === 'xendit') {
+                $payment = $payments->initiateXendit($invoice, $request->user(), $paymentMethod);
+            } elseif ($gateway === 'duitku') {
                 $payment = $payments->initiateDuitku($invoice, $request->user(), $paymentMethod);
             } else {
                 $payment = $payments->initiateTripay($invoice, $request->user(), $paymentMethod);
@@ -192,7 +207,7 @@ final class InvoiceController
         $this->permissions->denyUnless($request->user(), 'billing.pay');
         $this->assertTenantOwns($invoice, $context);
 
-        $activePayment = $invoice->payments()->whereIn('method', ['tripay', 'duitku'])->where('status', 'pending')->latest('row_id')->first();
+        $activePayment = $invoice->payments()->whereIn('method', ['tripay', 'duitku', 'xendit'])->where('status', 'pending')->latest('row_id')->first();
         if ($activePayment !== null) {
             $updated = $payments->checkAndSyncStatus($activePayment);
             if ($updated->status === 'paid') {

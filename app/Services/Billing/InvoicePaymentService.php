@@ -17,6 +17,7 @@ final readonly class InvoicePaymentService
         private InvoiceService $invoices,
         private TripayClient $tripay,
         private ?DuitkuClient $duitku = null,
+        private ?XenditClient $xendit = null,
     ) {}
 
     public function recordManual(Invoice $invoice, array $data, User $actor): InvoicePayment
@@ -158,13 +159,72 @@ final readonly class InvoicePaymentService
         return $payment->fresh();
     }
 
+    public function initiateXendit(Invoice $invoice, ?User $actor = null, ?string $paymentMethod = null): InvoicePayment
+    {
+        if (! $invoice->isOpen() || $invoice->status === 'draft') {
+            throw new RuntimeException('Invoice tidak menerima pembayaran.');
+        }
+
+        $remaining = $invoice->remainingAmount();
+        if (bccomp($remaining, '0', 2) !== 1) {
+            throw new RuntimeException('Invoice sudah lunas.');
+        }
+
+        $invoice->loadMissing('tenant');
+        $merchantRef = (string) Str::ulid();
+        $client = $this->xendit ?? app(XenditClient::class);
+        $selectedMethod = $paymentMethod ?: $client->getDefaultMethod();
+
+        $payment = InvoicePayment::query()->create([
+            'public_id' => (string) Str::ulid(),
+            'invoice_id' => $invoice->row_id,
+            'tenant_id' => $invoice->tenant_id,
+            'method' => 'xendit',
+            'status' => 'pending',
+            'amount' => $remaining,
+            'reference' => $merchantRef,
+            'recorded_by' => $actor?->row_id,
+        ]);
+
+        $customerName = $invoice->tenant?->name ?: 'Tenant';
+        $result = $client->createTransaction(
+            amount: (int) round((float) $remaining),
+            merchantRef: $merchantRef,
+            customerName: $customerName,
+            customerEmail: null,
+            orderItems: [[
+                'name' => $invoice->description ?: $invoice->number,
+                'price' => (int) round((float) $remaining),
+                'quantity' => 1,
+            ]],
+            paymentMethod: $selectedMethod,
+        );
+
+        $payment->forceFill([
+            'tripay_reference' => $result['reference'] ?? null,
+            'tripay_checkout_url' => $result['checkout_url'] ?? null,
+            'tripay_payload' => $result,
+        ])->save();
+
+        return $payment->fresh();
+    }
+
     public function checkAndSyncStatus(InvoicePayment $payment): InvoicePayment
     {
         if ($payment->status === 'paid') {
             return $payment;
         }
 
-        if ($payment->method === 'duitku' && $payment->reference !== null) {
+        if ($payment->method === 'xendit' && $payment->tripay_reference !== null) {
+            $client = $this->xendit ?? app(XenditClient::class);
+            $detail = $client->checkTransactionStatus($payment->tripay_reference);
+            if ($detail !== null && isset($detail['status'])) {
+                $this->handleXenditCallback(array_merge($payment->tripay_payload ?? [], $detail, [
+                    'external_id' => $payment->reference ?: ($detail['external_id'] ?? ''),
+                ]));
+                return $payment->fresh();
+            }
+        } elseif ($payment->method === 'duitku' && $payment->reference !== null) {
             $client = $this->duitku ?? app(DuitkuClient::class);
             $detail = $client->checkTransactionStatus($payment->reference);
             if ($detail !== null && isset($detail['statusCode'])) {
@@ -288,6 +348,65 @@ final readonly class InvoicePaymentService
             $payment->forceFill([
                 'status' => $mapped,
                 'tripay_reference' => $duitkuRef !== '' ? $duitkuRef : $payment->tripay_reference,
+                'tripay_payload' => array_merge($payment->tripay_payload ?? [], $payload),
+                'paid_at' => $mapped === 'paid' ? now() : $payment->paid_at,
+            ])->save();
+
+            if ($mapped !== 'paid') {
+                return;
+            }
+
+            $invoice = Invoice::query()->lockForUpdate()->find($payment->invoice_id);
+            if ($invoice === null) {
+                return;
+            }
+
+            $invoice->forceFill([
+                'amount_paid' => bcadd((string) $invoice->amount_paid, (string) $payment->amount, 2),
+            ])->save();
+
+            $this->invoices->refreshStatus($invoice->fresh());
+        });
+    }
+
+    public function handleXenditCallback(array $payload): void
+    {
+        $merchantRef = (string) ($payload['external_id'] ?? '');
+        $status = strtoupper((string) ($payload['status'] ?? ''));
+        $xenditRef = (string) ($payload['id'] ?? '');
+
+        if ($merchantRef === '') {
+            throw new RuntimeException('external_id kosong.');
+        }
+
+        $payment = InvoicePayment::query()
+            ->where(function ($query) use ($merchantRef, $xenditRef): void {
+                $query->where('reference', $merchantRef);
+                if ($xenditRef !== '') {
+                    $query->orWhere('tripay_reference', $xenditRef);
+                }
+            })
+            ->first();
+
+        if ($payment === null) {
+            throw new RuntimeException('Pembayaran tidak ditemukan.');
+        }
+
+        if ($payment->status === 'paid') {
+            return;
+        }
+
+        DB::connection('platform')->transaction(function () use ($payment, $payload, $status, $xenditRef): void {
+            $payment = InvoicePayment::query()->lockForUpdate()->find($payment->row_id);
+            if ($payment === null || $payment->status === 'paid') {
+                return;
+            }
+
+            $mapped = in_array($status, ['PAID', 'SETTLED'], true) ? 'paid' : ($status === 'EXPIRED' ? 'expired' : 'failed');
+
+            $payment->forceFill([
+                'status' => $mapped,
+                'tripay_reference' => $xenditRef !== '' ? $xenditRef : $payment->tripay_reference,
                 'tripay_payload' => array_merge($payment->tripay_payload ?? [], $payload),
                 'paid_at' => $mapped === 'paid' ? now() : $payment->paid_at,
             ])->save();

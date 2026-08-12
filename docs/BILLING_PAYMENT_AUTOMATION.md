@@ -10,7 +10,7 @@ Status: **COMPLETED / IN PRODUCTION**
 
 Seluruh item pada arsitektur billing, pembayaran otomatis, dan pembatasan tenant overdue telah **selesai diimplementasikan dan diuji secara menyeluruh**:
 
-- ✅ **Multi Payment Gateway Integration (Duitku & Tripay)**: Mendukung Duitku Payment Gateway (DuitkuClient) dan Tripay Payment Gateway (TripayClient) dengan konfigurasi kredensial terpusat dari Superadmin (fallback ke .env) dan tombol switch Gateway Utama di Admin Integrasi.
+- ✅ **Multi Payment Gateway Integration (Duitku, Xendit & Tripay)**: Mendukung Duitku Payment Gateway (DuitkuClient), Xendit Payment Gateway (XenditClient), dan Tripay Payment Gateway (TripayClient) dengan konfigurasi kredensial terpusat dari Superadmin (fallback ke .env) dan tombol switch Gateway Utama di Admin Integrasi.
 - ✅ **Saluran Pembayaran Lengkap**: QRIS (display QR langsung in-app), E-Wallet (ShopeePay/GoPay/OVO/Dana), Bank Virtual Accounts (BCA, BRI, BNI, Mandiri, Permata, CIMB, BSI, Danamon), serta Kartu Kredit (Duitku).
 - ✅ **In-App Payment Interface (esources/js/Pages/Billing/Invoices/Show.vue)**: Pilihan channel interaktif, instruksi transfer, tombol copy nominal/kode bayar, dan indikator countdown waktu kadaluarsa.
 - ✅ **Automated Subscription Invoices (subscriptions:generate-invoices)**: Scheduler harian untuk membuat tagihan otomatis menjelang masa perpanjangan langganan.
@@ -76,3 +76,19 @@ Superadmin dapat mengatur gateway aktif melalui halaman **Admin Integrations** (
 - **Dynamic Credential Storage**: Kredensial disimpan via `PlatformSettingService` di database platform dengan enkripsi `Crypt::encryptString()` untuk API/Private Keys, serta mendukung *fallback* otomatis ke `.env`.
 - **Payment Gateway Switcher**: Pilihan sakelar (*toggle*) antara Duitku dan Tripay di halaman Admin yang secara otomatis mengubah saluran pembayaran pada checkout invoice tenant.
 - **Konsistensi UI/UX Design System**: Komponen Vue `Admin/Integration.vue` menggunakan 100% *Design System Components* bawaan (`AppCard`, `AppBadge`, `AppInput`, `SmartSelect`, `AppButton`, `AppIcon`) tanpa komponen hardcode dan kompatibel dengan mode gelap.
+
+
+---
+
+## 2.4 Integrasi Xendit Payment Gateway
+
+### Spesifikasi API Xendit Invoices V2
+1. **Inquiry Transaksi (`POST /v2/invoices`)**:
+   - Authentication: Basic Auth (`withBasicAuth(secret_key, "")`)
+   - Payload: `external_id`, `amount`, `description`, `customer`, `currency = "IDR"`, `invoice_duration = 86400`.
+   - Response: `id`, `invoice_url`, `expiry_date`, `status = "PENDING"`.
+2. **Pengecekan Status Transaksi (`GET /v2/invoices/{invoice_id}`)**:
+   - Checking status: `PENDING`, `PAID`, `SETTLED`, `EXPIRED`.
+3. **Webhook Callback (`POST /xendit/callback`)**:
+   - Verification Header: `x-callback-token` (dibandingkan dengan `verifyCallbackToken()`).
+   - Handler memverifikasi token dan status `PAID` / `SETTLED`, lalu memicu `InvoicePaymentService::handleXenditCallback()`.
