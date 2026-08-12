@@ -93,7 +93,7 @@ Perintah `sidbm:bootstrap-local` bersifat *idempotent*: mendaftarkan shard/tenan
 - **Roadmap Migrasi Laporan Legacy**: [docs/LEGACY_REPORTS_MIGRATION_ROADMAP.md](docs/LEGACY_REPORTS_MIGRATION_ROADMAP.md)
 - **Status Fitur & Roadmap**: [docs/FEATURE_ROADMAP.md](docs/FEATURE_ROADMAP.md)
 - **Arsitektur & Topologi Database**: [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md) & [docs/DATABASE_STRUCTURE.md](docs/DATABASE_STRUCTURE.md)
-- **Billing Automation & Tripay**: [docs/BILLING_TRIPAY_AUTOMATION.md](docs/BILLING_TRIPAY_AUTOMATION.md)
+- **Billing Automation & Multi-Payment Gateway**: [docs/BILLING_PAYMENT_AUTOMATION.md](docs/BILLING_PAYMENT_AUTOMATION.md)
 - **Asisten AI & RAG**: [docs/ASSISTANT_INTEGRATION.md](docs/ASSISTANT_INTEGRATION.md)
 - **Matrix RBAC & Hak Akses**: [docs/RBAC_MATRIX.md](docs/RBAC_MATRIX.md)
 - **Runbook Cutover Migrasi**: [docs/CUTOVER_RUNBOOK.md](docs/CUTOVER_RUNBOOK.md)

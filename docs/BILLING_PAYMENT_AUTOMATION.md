@@ -1,6 +1,6 @@
 ﻿# Spesifikasi & Dokumentasi Integrasi Payment Gateway (Duitku & Tripay), Auto-Invoice & Auto-Deactivation Tenant
 
-Document ID: docs/BILLING_TRIPAY_AUTOMATION.md  
+Document ID: docs/BILLING_PAYMENT_AUTOMATION.md  
 Tanggal Pembaruan: 2026-08-10  
 Status: **COMPLETED / IN PRODUCTION**
 
