@@ -161,7 +161,17 @@ final class InvoiceController
         $this->permissions->denyUnless($request->user(), 'billing.pay');
         $this->assertTenantOwns($invoice, $context);
 
-        $gateway = (string) $request->input('gateway', $this->settings->get('billing.active_gateway') ?: 'duitku');
+        $gateway = (string) $request->input('gateway', '');
+        if ($gateway === '') {
+            $configuredGateway = (string) $this->settings->get('billing.active_gateway', '');
+            if ($configuredGateway !== '') {
+                $gateway = $configuredGateway;
+            } elseif ($this->tripayClient->getApiKey() !== '' || config('tripay.api_key') !== '') {
+                $gateway = 'tripay';
+            } else {
+                $gateway = 'duitku';
+            }
+        }
         $paymentMethod = (string) $request->input('payment_method', $gateway === 'duitku' ? $this->duitkuClient->getDefaultMethod() : $this->tripayClient->getDefaultMethod());
 
         try {

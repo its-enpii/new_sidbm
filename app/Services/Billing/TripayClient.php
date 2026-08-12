@@ -4,12 +4,43 @@ declare(strict_types=1);
 
 namespace App\Services\Billing;
 
+use App\Services\PlatformSettingService;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
-final readonly class TripayClient
+final class TripayClient
 {
+    public function __construct(
+        private readonly ?PlatformSettingService $settings = null,
+    ) {
+    }
+
+    public function getMerchantCode(): string
+    {
+        return (string) ($this->settings?->get('tripay.merchant_code') ?: config('tripay.merchant_code', ''));
+    }
+
+    public function getApiKey(): string
+    {
+        return (string) ($this->settings?->getEncrypted('tripay.api_key') ?: config('tripay.api_key', ''));
+    }
+
+    public function getPrivateKey(): string
+    {
+        return (string) ($this->settings?->getEncrypted('tripay.private_key') ?: config('tripay.private_key', ''));
+    }
+
+    public function getMode(): string
+    {
+        return (string) ($this->settings?->get('tripay.mode') ?: config('tripay.mode', 'sandbox'));
+    }
+
+    public function getDefaultMethod(): string
+    {
+        return (string) ($this->settings?->get('tripay.default_method') ?: config('tripay.default_method', 'QRIS2'));
+    }
+
     public function createTransaction(
         int $amount,
         string $merchantRef,
@@ -19,10 +50,10 @@ final readonly class TripayClient
         ?string $paymentMethod = null,
         ?string $returnUrl = null,
     ): array {
-        $merchantCode = (string) config('tripay.merchant_code');
-        $privateKey = (string) config('tripay.private_key');
-        $apiKey = (string) config('tripay.api_key');
-        $method = $paymentMethod ?: (string) config('tripay.default_method', 'QRIS2');
+        $merchantCode = $this->getMerchantCode();
+        $privateKey = $this->getPrivateKey();
+        $apiKey = $this->getApiKey();
+        $method = $paymentMethod ?: $this->getDefaultMethod();
 
         if ($merchantCode === '' || $privateKey === '' || $apiKey === '') {
             throw new RuntimeException('Konfigurasi Tripay belum lengkap.');
@@ -70,7 +101,7 @@ final readonly class TripayClient
      */
     public function getPaymentChannels(): array
     {
-        $apiKey = (string) config('tripay.api_key');
+        $apiKey = $this->getApiKey();
 
         if ($apiKey !== '') {
             try {
@@ -117,7 +148,7 @@ final readonly class TripayClient
 
     public function checkTransactionStatus(string $reference): ?array
     {
-        $apiKey = (string) config('tripay.api_key');
+        $apiKey = $this->getApiKey();
         if ($apiKey === '' || $reference === '') {
             return null;
         }
@@ -141,7 +172,7 @@ final readonly class TripayClient
 
     public function verifyCallbackSignature(string $callbackSignature, string $jsonBody): bool
     {
-        $privateKey = (string) config('tripay.private_key');
+        $privateKey = $this->getPrivateKey();
         if ($privateKey === '' || $callbackSignature === '') {
             return false;
         }
@@ -254,7 +285,7 @@ final readonly class TripayClient
 
     private function baseUrl(): string
     {
-        return config('tripay.mode') === 'production'
+        return $this->getMode() === 'production'
             ? 'https://tripay.co.id/api'
             : 'https://tripay.co.id/api-sandbox';
     }
