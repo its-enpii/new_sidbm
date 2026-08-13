@@ -431,6 +431,24 @@ final class LoanController
             ->with('success', 'Penghapusan piutang berhasil dicatat.');
     }
 
+    
+    public function complete(Request $request, Loan $loan, LoanService $loans): RedirectResponse
+    {
+        $validated = $request->validate([
+            'completed_at' => ['required', 'date'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $loans->complete($loan, $validated, (int) $request->user()->row_id);
+        } catch (\DomainException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        return to_route('lending.loans.show', ['loan' => $loan->row_id])
+            ->with('success', 'Validasi pelunasan pinjaman berhasil disimpan.');
+    }
+
     public function setCommittee(Request $request, Loan $loan, LoanService $loans): RedirectResponse
     {
         $data = $request->validate([

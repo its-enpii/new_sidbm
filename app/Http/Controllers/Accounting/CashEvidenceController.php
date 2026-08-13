@@ -19,9 +19,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /**
  * Cetak Bukti Kas (BKM/BKK/BM) dari sebuah `JournalEntry` modern.
  *
- * - GET /accounting/journals/{entry}/cash-evidence/{kind} Ã¢â€ â€™ PDF bukti sesuai kind (BKM/BKK/BM)
+ * - GET /accounting/journals/{entry}/cash-evidence/{kind} -> PDF bukti sesuai kind (BKM/BKK/BM)
  *   - kind opsional; bila kosong, kind ditentukan otomatis dari heuristic debit/kredit
- * - GET /accounting/journals/{entry}/cash-evidence-kind Ã¢â€ â€™ JSON { kind } (untuk UI)
+ * - GET /accounting/journals/{entry}/cash-evidence-kind -> JSON { kind } (untuk UI)
  */
 final class CashEvidenceController
 {

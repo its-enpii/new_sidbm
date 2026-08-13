@@ -31,7 +31,7 @@ use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Admin Integration page — control panel for Tripay Payment Gateway, WhatsApp, and AI Assistant.
+ * Admin Integration page â€” control panel for Tripay Payment Gateway, WhatsApp, and AI Assistant.
  */
 final class IntegrationController extends Controller
 {

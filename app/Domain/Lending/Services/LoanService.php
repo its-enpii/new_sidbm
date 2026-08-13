@@ -18,6 +18,7 @@ use App\Domain\Membership\Models\Group;
 use App\Domain\Membership\Models\Member;
 use App\Services\TenantSettingService;
 use App\Tenancy\TenantContext;
+use DomainException;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -1086,6 +1087,37 @@ final class LoanService
 
         return $date;
     }
+    public function complete(Loan $loan, array $data, int $userId): Loan
+    {
+        return DB::connection('tenant')->transaction(function () use ($loan, $data, $userId): Loan {
+            if (! in_array($loan->status, ['active', 'disbursed', 'completed'], true)) {
+                throw new DomainException('Hanya pinjaman aktif/cair yang dapat divalidasi lunas.');
+            }
+
+            $fromStatus = $loan->status;
+            $completedAt = $data['completed_at'] ?? now()->toDateString();
+            $notes = ! empty($data['notes']) ? $data['notes'] : 'Validasi pelunasan pinjaman.';
+
+            $loan->update([
+                'status' => 'completed',
+                'completed_at' => $completedAt,
+            ]);
+
+            $loan->statusHistories()->create([
+                'from_status' => $fromStatus,
+                'to_status' => 'completed',
+                'principal_amount' => (float) $loan->principal_amount,
+                'product_row_id' => $loan->loan_product_row_id,
+                'term_months' => (int) $loan->term_months,
+                'notes' => $notes,
+                'changed_by_user_id' => $userId,
+                'changed_at' => now(),
+            ]);
+
+            return $loan->fresh();
+        });
+    }
+
 
     private function regenerateInstallmentSchedule(Loan $loan, float $principal): void
     {

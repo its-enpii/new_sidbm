@@ -346,7 +346,7 @@ const getStepStatusVariant = (status) => {
                 <div class="flex items-center justify-between border-b border-slate-200 p-4 dark:border-slate-800">
                     <div>
                         <h3 class="text-lg font-bold text-slate-900 dark:text-white">
-                            Monitoring Cutover Run #{{ selectedRun.id }} — {{ selectedRun.tenant_name }}
+                            Monitoring Cutover Run #{{ selectedRun.id }} â€” {{ selectedRun.tenant_name }}
                         </h3>
                         <p class="text-xs text-slate-500">Suffix: {{ selectedRun.suffix }} | Mode: {{ selectedRun.is_dry_run ? 'Dry Run' : 'Live' }}</p>
                     </div>

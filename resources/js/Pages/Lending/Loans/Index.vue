@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppBadge from '../../../Components/AppBadge.vue';
@@ -70,6 +70,13 @@ function switchTab(tabKey) {
     router.get('/lending/loans', { tab: tabKey }, { preserveState: false });
 }
 
+const moneyFormatter = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
+
+function formatNumber(value) {
+    if (value === null || value === undefined || value === '') return '—';
+    return moneyFormatter.format(Number(value));
+}
+
 function formatCurrency(value) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
 }
@@ -79,9 +86,9 @@ function formatServiceRate(value) {
 }
 
 function formatDate(value) {
-    if (!value) return '�';
+    if (!value) return '—';
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '�';
+    if (Number.isNaN(date.getTime())) return '—';
     return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
 }
 
@@ -152,7 +159,31 @@ const emptyMessages = {
                         </template>
 
                         <template #cell-principal_amount="{ row }">
-                            <span class="font-bold text-primary">{{ formatCurrency(row.principal_amount) }}</span>
+                            <span class="tabular-nums font-bold text-primary">{{ formatNumber(row.principal_amount) }}</span>
+                        </template>
+
+                        <template #cell-proposed_amount="{ row }">
+                            <span class="tabular-nums font-bold text-primary">{{ formatNumber(row.proposed_amount) }}</span>
+                        </template>
+
+                        <template #cell-verification_amount="{ row }">
+                            <span class="tabular-nums font-bold text-primary">{{ formatNumber(row.verification_amount) }}</span>
+                        </template>
+
+                        <template #cell-allocated_amount="{ row }">
+                            <span class="tabular-nums font-bold text-primary">{{ formatNumber(row.allocated_amount) }}</span>
+                        </template>
+
+                        <template #cell-principal_remaining="{ row }">
+                            <span class="tabular-nums font-bold text-primary">{{ formatNumber(row.principal_remaining) }}</span>
+                        </template>
+
+                        <template #cell-total_interest_paid="{ row }">
+                            <span class="tabular-nums font-bold text-primary">{{ formatNumber(row.total_interest_paid) }}</span>
+                        </template>
+
+                        <template #cell-service_rate="{ row }">
+                            <span>{{ formatServiceRate(row.service_rate) }}</span>
                         </template>
 
                         <template #cell-interest_rate="{ row }">
@@ -161,6 +192,26 @@ const emptyMessages = {
 
                         <template #cell-proposed_at="{ row }">
                             <span>{{ formatDate(row.proposed_at) }}</span>
+                        </template>
+
+                        <template #cell-verified_at="{ row }">
+                            <span>{{ formatDate(row.verified_at) }}</span>
+                        </template>
+
+                        <template #cell-funded_at="{ row }">
+                            <span>{{ formatDate(row.funded_at) }}</span>
+                        </template>
+
+                        <template #cell-disbursed_at="{ row }">
+                            <span>{{ formatDate(row.disbursed_at) }}</span>
+                        </template>
+
+                        <template #cell-completed_at="{ row }">
+                            <span>{{ formatDate(row.completed_at) }}</span>
+                        </template>
+
+                        <template #cell-next_due_date="{ row }">
+                            <span>{{ formatDate(row.next_due_date) }}</span>
                         </template>
 
                         <template #cell-status="{ row }">

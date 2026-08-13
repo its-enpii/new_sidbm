@@ -218,6 +218,19 @@ const periodValue = computed({
 });
 
 const historyModalOpen = ref(false);
+function inspectAccount(accountRowId) {
+    if (!accountRowId) return;
+    historyForm.value.account_row_id = accountRowId;
+    fetchHistory();
+}
+
+watch(() => [form.disimpan_ke_row_id, form.sumber_dana_row_id], ([debit, credit]) => {
+    const selected = debit || credit;
+    if (selected && !historyForm.value.account_row_id) {
+        historyForm.value.account_row_id = selected;
+    }
+});
+
 
 watch(() => props.history?.account, (account) => {
     if (account) historyModalOpen.value = true;
@@ -304,8 +317,20 @@ function openHistoryModal() {
                 <p class="text-sm text-primary">{{ page.props.flash.success }}</p>
             </AppCard>
 
-            <AppCard>
-                <form class="space-y-5" @submit.prevent="submit">
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
+            <!-- Left Column: Primary Journal Form (7 cols) -->
+            <div class="lg:col-span-7">
+                <AppCard>
+                    <template #header>
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <h2 class="text-xl font-bold text-primary">Form Jurnal Umum</h2>
+                                <p class="mt-1 text-sm text-on-surface-variant">Lengkapi data transaksi debit &amp; kredit di bawah ini.</p>
+                            </div>
+                            <AppBadge tone="primary">Form Utama</AppBadge>
+                        </div>
+                    </template>
+                    <form class="space-y-5" @submit.prevent="submit">
                     <div class="grid gap-4 sm:grid-cols-2">
                         <AppDatePicker v-model="form.transaction_date" label="Tanggal Transaksi" required :error="form.errors.transaction_date" />
                         <SmartSelect v-model="form.transaction_type" :options="props.transactionTypes" label="Jenis Transaksi" placeholder="Pilih jenis transaksi" required :error="form.errors.transaction_type" />
@@ -321,8 +346,18 @@ function openHistoryModal() {
                     />
 
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <SmartSelect v-model="form.sumber_dana_row_id" :options="sumberDanaOptions" :label="sumberDanaLabel + ' (Kredit)'" placeholder="Pilih akun" :disabled="!currentType" required :error="form.errors.sumber_dana_row_id" />
-                        <SmartSelect v-model="form.disimpan_ke_row_id" :options="disimpanKeOptions" :label="disimpanKeLabel + ' (Debit)'" placeholder="Pilih akun" :disabled="!currentType" required :error="form.errors.disimpan_ke_row_id" />
+                        <div>
+                            <SmartSelect v-model="form.sumber_dana_row_id" :options="sumberDanaOptions" :label="sumberDanaLabel + ' (Kredit)'" placeholder="Pilih akun" :disabled="!currentType" required :error="form.errors.sumber_dana_row_id" />
+                            <button v-if="form.sumber_dana_row_id" type="button" class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline" @click="inspectAccount(form.sumber_dana_row_id)">
+                                <AppIcon name="search" class="text-xs" /> Cek riwayat/saldo kredit
+                            </button>
+                        </div>
+                        <div>
+                            <SmartSelect v-model="form.disimpan_ke_row_id" :options="disimpanKeOptions" :label="disimpanKeLabel + ' (Debit)'" placeholder="Pilih akun" :disabled="!currentType" required :error="form.errors.disimpan_ke_row_id" />
+                            <button v-if="form.disimpan_ke_row_id" type="button" class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline" @click="inspectAccount(form.disimpan_ke_row_id)">
+                                <AppIcon name="search" class="text-xs" /> Cek riwayat/saldo debit
+                            </button>
+                        </div>
                     </div>
 
                     <p v-if="form.errors.sumber_dana_row_id || form.errors.disimpan_ke_row_id" class="text-sm text-error">{{ form.errors.sumber_dana_row_id || form.errors.disimpan_ke_row_id }}</p>
@@ -361,24 +396,33 @@ function openHistoryModal() {
                 </form>
             </AppCard>
 
-            <AppCard>
-                <template #header>
-                    <div>
-                        <h2 class="text-xl font-bold text-primary">Riwayat Transaksi Akun</h2>
-                        <p class="mt-1 text-sm text-on-surface-variant">Lihat pergerakan debit/kredit suatu akun pada periode tertentu.</p>
-                    </div>
-                </template>
+            </div>
+
+            <!-- Right Column: Audit & Reference Panel (5 cols) -->
+            <div class="lg:col-span-5">
+                <AppCard>
+                    <template #header>
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <h2 class="text-xl font-bold text-primary">Audit &amp; Cek Saldo Akun</h2>
+                                <p class="mt-1 text-sm text-on-surface-variant">Panel referensi pergerakan &amp; saldo akun saat pencatatan.</p>
+                            </div>
+                            <AppBadge tone="neutral">Referensi</AppBadge>
+                        </div>
+                    </template>
 
                 <form class="space-y-5" @submit.prevent="fetchHistory">
-                    <div class="grid gap-4 lg:grid-cols-3">
+                    <div class="space-y-4">
                         <SmartSelect v-model="historyForm.account_row_id" :options="props.accountOptions" label="Akun" placeholder="Pilih akun" required searchable search-placeholder="Cari akun..." />
-                        <AppRadioGroup v-model="historyForm.period" :options="periodOptions" label="Periode" required />
-                        <AppDatePicker
-                            :key="historyForm.period"
-                            v-model="periodValue"
-                            :mode="historyForm.period === 'daily' ? 'date' : historyForm.period === 'monthly' ? 'month' : 'year'"
-                            :label="periodFieldLabel"
-                        />
+                        <div class="grid gap-4 sm:grid-cols-2 sm:items-start">
+                            <AppRadioGroup v-model="historyForm.period" :options="periodOptions" label="Periode" required />
+                            <AppDatePicker
+                                :key="historyForm.period"
+                                v-model="periodValue"
+                                :mode="historyForm.period === 'daily' ? 'date' : historyForm.period === 'monthly' ? 'month' : 'year'"
+                                :label="periodFieldLabel"
+                            />
+                        </div>
                     </div>
 
                     <div class="flex justify-end gap-3 border-t border-outline-variant pt-4">
@@ -389,9 +433,11 @@ function openHistoryModal() {
 
                 <AppEmptyState v-if="!props.history?.account" class="mt-6" icon="database" title="Pilih akun & periode" description="Pilih akun dan rentang waktu untuk melihat pergerakan debit/kredit." />
             </AppCard>
+            </div>
+        </div>
         </div>
 
-        <AppModal v-model="historyModalOpen" :title="`Riwayat · ${props.history?.account?.code ?? ''}`" size="full" @update:model-value="closeHistoryModal">
+        <AppModal v-model="historyModalOpen" :title="`Riwayat ? ${props.history?.account?.code ?? ''}`" size="full" @update:model-value="closeHistoryModal">
             <div v-if="props.history?.account" class="space-y-4">
                 <p class="text-sm text-on-surface-variant">{{ props.history.account.name }} · {{ props.history.account.account_type }} · Saldo Normal {{ props.history.account.normal_balance === 'D' ? 'Debit' : 'Kredit' }}</p>
                 <p class="text-xs text-on-surface-variant">{{ periodDetail }}<span v-if="historyRange"> · {{ historyRange.start }} → {{ historyRange.end }}</span></p>

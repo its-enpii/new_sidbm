@@ -261,6 +261,7 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
     Route::patch('/lending/loans/{loan}/committee', [LoanController::class, 'setCommittee'])->name('lending.loans.committee');
     Route::post('/lending/loans/{loan}/reschedule', [LoanController::class, 'reschedule'])->name('lending.loans.reschedule');
     Route::post('/lending/loans/{loan}/write-off', [LoanController::class, 'writeOff'])->name('lending.loans.write-off');
+    Route::patch('/lending/loans/{loan}/complete', [LoanController::class, 'complete'])->name('lending.loans.complete');
 
     Route::get('/lending/payments/create', [LoanController::class, 'create'])->name('lending.payments.create');
     Route::post('/lending/payments', [LoanController::class, 'store'])->name('lending.payments.store');

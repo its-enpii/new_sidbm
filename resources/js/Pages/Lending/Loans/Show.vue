@@ -65,7 +65,17 @@ function formatDateTime(value) {
 
 const status = computed(() => props.loan.status);
 
+const isPendingCompletion = computed(() =>
+    Boolean(props.loan.is_pending_completion) || (
+        ['active', 'disbursed'].includes(status.value) &&
+        (Number(props.loan.principal_remaining ?? 0) <= 0 || (props.loan.total_installments > 0 && props.loan.paid_installments >= props.loan.total_installments))
+    )
+);
+
 const statusMeta = computed(() => {
+    if (isPendingCompletion.value) {
+        return { tone: 'warning', label: 'Lunas (Belum Validasi)', description: 'Seluruh angsuran pokok telah dilunasi (100%). Menunggu validasi pelunasan oleh petugas.' };
+    }
     switch (status.value) {
         case 'draft': return { tone: 'warning', label: 'Proposal', description: 'Belum diverifikasi. Lengkapi catatan verifikasi lalu lanjut ke tahap berikutnya.' };
         case 'verified': return { tone: 'primary', label: 'Tahap Verifikasi', description: 'Sudah diverifikasi. Tetapkan alokasi per anggota dan jadwal pencairan.' };
@@ -73,7 +83,7 @@ const statusMeta = computed(() => {
         case 'approved': return { tone: 'secondary', label: 'Menunggu Pencairan', description: 'Alokasi sudah ditetapkan. Catat pencairan saat dana siap dicairkan.' };
         case 'active':
         case 'disbursed': return { tone: 'success', label: 'Pinjaman Aktif', description: 'Pinjaman berjalan. Pantau jadwal angsuran dan pembayaran.' };
-        case 'completed': return { tone: 'success', label: 'Lunas', description: 'Pinjaman telah dilunasi.' };
+        case 'completed': return { tone: 'success', label: 'Lunas', description: 'Pinjaman telah resmi divalidasi dan dilunasi.' };
         case 'rescheduled': return { tone: 'warning', label: 'Reschedule', description: 'Pinjaman ditutup lewat penjadwalan ulang. Sisa pokok dialihkan ke pinjaman baru.' };
         case 'written_off': return { tone: 'error', label: 'Dihapus', description: 'Piutang dihapusbukukan. Sisa pokok dicatat sebagai penghapusan.' };
         default: return { tone: 'neutral', label: status.value, description: '' };
@@ -81,6 +91,9 @@ const statusMeta = computed(() => {
 });
 
 const heroToneClass = computed(() => {
+    if (isPendingCompletion.value) {
+        return 'bg-amber-600 text-white';
+    }
     switch (status.value) {
         case 'draft': return 'bg-tertiary-fixed text-tertiary';
         case 'verified': return 'bg-primary-fixed text-primary';
@@ -464,6 +477,28 @@ function submitWriteOff() {
     });
 }
 
+const completeModalOpen = ref(false);
+const completeForm = useForm({
+    completed_at: props.today,
+    notes: '',
+});
+
+const canCompleteAction = computed(() => can('loans.manage') && (isPendingCompletion.value || (isActiveLoan.value && Number(props.loan.principal_remaining ?? 0) <= 0)));
+
+function openCompleteModal() {
+    completeForm.completed_at = props.today;
+    completeForm.notes = '';
+    completeForm.clearErrors();
+    completeModalOpen.value = true;
+}
+
+function submitComplete() {
+    completeForm.patch(`/lending/loans/${props.loan.row_id}/complete`, {
+        preserveScroll: true,
+        onSuccess: () => { completeModalOpen.value = false; },
+    });
+}
+
 const backTab = computed(() => {
     switch (props.loan.status) {
         case 'draft': return 'proposal';
@@ -506,6 +541,7 @@ function setAllocatedAmount(memberRowId, value) {
                     <a v-if="card_url" :href="card_url" target="_blank" rel="noopener">
                         <AppButton type="button" variant="secondary" icon="credit_card" size="compact">Kartu Angsuran</AppButton>
                     </a>
+                    <AppButton v-if="canCompleteAction" variant="success" icon="task_alt" @click="openCompleteModal">Validasi Lunas</AppButton>
                     <AppButton v-if="canEdit" variant="secondary" icon="edit" @click="openEditModal">Edit Proposal</AppButton>
                     <AppButton v-if="canReschedule" variant="secondary" icon="event_repeat" @click="openRescheduleModal">Reschedule Pinjaman</AppButton>
                     <AppButton v-if="canWriteOff" variant="danger" icon="delete_forever" @click="openWriteOffModal">Penghapusan Pinjaman</AppButton>
@@ -1149,6 +1185,20 @@ function setAllocatedAmount(memberRowId, value) {
                 <template #footer>
                     <AppButton variant="secondary" @click="writeOffModalOpen = false" :disabled="writeOffForm.processing">Batal</AppButton>
                     <AppButton variant="danger" :loading="writeOffForm.processing" @click="submitWriteOff">Hapus Pinjaman</AppButton>
+                </template>
+            </AppModal>
+
+            <AppModal v-model="completeModalOpen" title="Validasi Pelunasan Pinjaman" size="md">
+                <p class="mb-4 text-sm text-on-surface-variant">
+                    Seluruh angsuran pokok pinjaman ini telah dilunasi (100%). Lakukan validasi pelunasan untuk secara resmi mengubah status pinjaman menjadi <strong>Lunas</strong>.
+                </p>
+                <form class="space-y-5" @submit.prevent="submitComplete">
+                    <AppDatePicker v-model="completeForm.completed_at" label="Tanggal Pelunasan" :max="today" :error="completeForm.errors.completed_at" required />
+                    <AppTextarea v-model="completeForm.notes" label="Catatan Validasi Pelunasan (opsional)" placeholder="Misal: Berkas pelunasan dan kartu angsuran telah diverifikasi lengkap." :error="completeForm.errors.notes" />
+                </form>
+                <template #footer>
+                    <AppButton variant="secondary" @click="completeModalOpen = false" :disabled="completeForm.processing">Batal</AppButton>
+                    <AppButton variant="primary" icon="verified" :loading="completeForm.processing" @click="submitComplete">Validasi &amp; Selesaikan Pinjaman</AppButton>
                 </template>
             </AppModal>
 

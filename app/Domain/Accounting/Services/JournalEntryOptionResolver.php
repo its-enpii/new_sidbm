@@ -268,7 +268,7 @@ final class JournalEntryOptionResolver
         return $this->activePostableAccounts()
             ->map(fn (Account $a): array => [
                 'value' => (int) $a->row_id,
-                'label' => "{$a->code} · {$a->name} ({$a->account_type})",
+                'label' => "{$a->code} Â· {$a->name} ({$a->account_type})",
             ])
             ->values()
             ->all();
@@ -317,7 +317,7 @@ final class JournalEntryOptionResolver
 
         return $filtered->map(fn (Account $a): array => [
             'value' => (int) $a->row_id,
-            'label' => "{$a->code} · {$a->name} ({$a->account_type})",
+            'label' => "{$a->code} Â· {$a->name} ({$a->account_type})",
         ])->values()->all();
     }
 
