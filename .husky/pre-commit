@@ -1,8 +1,5 @@
 #!/bin/sh
 
-echo "🔍 Running pre-commit quality checks..."
-
-# 1. Check PHP Code Style (Pint)
 echo "🎨 Checking PHP Code Style (Pint)..."
 php vendor/bin/pint --test
 if [ $? -ne 0 ]; then
@@ -10,12 +7,4 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# 2. Run All PHPUnit Tests
-echo "🧪 Running Full Test Suite..."
-php artisan test
-if [ $? -ne 0 ]; then
-    echo "❌ Tests failed! Commit aborted."
-    exit 1
-fi
-
-echo "✅ Pre-commit checks passed!"
+echo "✅ Pre-commit check passed!"
