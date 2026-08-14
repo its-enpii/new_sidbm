@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onUnmounted, computed } from 'vue';
+import { ref, onUnmounted, computed, watch, nextTick } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import AppCard from '../../../Components/AppCard.vue';
@@ -20,7 +20,10 @@ const props = defineProps({
 
 const selectedRun = ref(null);
 const activeLogModal = ref(false);
+const logTerminal = ref(null);
+const isUserScrolledUp = ref(false);
 let pollInterval = null;
+let sseSource = null;
 
 const tenantOptions = computed(() =>
     props.tenants.map(t => ({
@@ -80,17 +83,74 @@ const submitCutover = () => {
     });
 };
 
-let sseSource = null;
+const onLogScroll = () => {
+    if (!logTerminal.value) return;
+    const { scrollTop, scrollHeight, clientHeight } = logTerminal.value;
+    isUserScrolledUp.value = (scrollHeight - scrollTop - clientHeight > 30);
+};
+
+const scrollToBottom = () => {
+    if (logTerminal.value) {
+        logTerminal.value.scrollTop = logTerminal.value.scrollHeight;
+        isUserScrolledUp.value = false;
+    }
+};
+
+watch(() => selectedRun.value?.output_log, () => {
+    nextTick(() => {
+        if (!isUserScrolledUp.value) {
+            scrollToBottom();
+        }
+    });
+});
+
+watch(activeLogModal, (isOpen) => {
+    if (isOpen) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
+    }
+});
+
+onUnmounted(() => {
+    document.body.style.overflow = '';
+    stopSseOrPolling();
+});
 
 const openLogModal = (run) => {
     selectedRun.value = run;
     activeLogModal.value = true;
+    isUserScrolledUp.value = false;
     startSseOrPolling(run.id);
+    nextTick(() => {
+        scrollToBottom();
+    });
 };
 
 const closeLogModal = () => {
     activeLogModal.value = false;
     stopSseOrPolling();
+};
+
+const retryRun = (run) => {
+    const opts = run.options || {};
+    form.tenant_id = run.tenant_id;
+    form.suffix = run.suffix;
+    form.is_dry_run = Boolean(run.is_dry_run);
+    form.run_immediately = true;
+    form.chunk = opts.chunk ?? 500;
+    form.from_year = String(opts.from_year ?? 2018);
+    form.to_year = String(opts.to_year ?? new Date().getFullYear());
+    form.skip_fiscal = Boolean(opts.skip_fiscal);
+    form.skip_coa = Boolean(opts.skip_coa);
+    form.skip_accounting = Boolean(opts.skip_accounting);
+    form.skip_membership = Boolean(opts.skip_membership);
+    form.skip_lending = Boolean(opts.skip_lending);
+    form.skip_payment_progress = Boolean(opts.skip_payment_progress);
+    form.skip_reconcile = Boolean(opts.skip_reconcile);
+    form.skip_sequences = Boolean(opts.skip_sequences);
+
+    submitCutover();
 };
 
 const startSseOrPolling = (runId) => {
@@ -120,14 +180,17 @@ const startSseOrPolling = (runId) => {
                 }
             } catch (err) {
                 console.error('SSE parse error:', err);
+                startPolling(runId);
             }
         });
 
-        sseSource.onerror = () => {
+        sseSource.onerror = (err) => {
+            console.warn('SSE stream error, falling back to polling:', err);
             stopSseOrPolling();
             startPolling(runId);
         };
     } catch (e) {
+        console.warn('EventSource not supported, using polling:', e);
         startPolling(runId);
     }
 };
@@ -170,49 +233,44 @@ const fetchRunDetails = async (runId) => {
     }
 };
 
-onUnmounted(() => {
-    stopSseOrPolling();
-});
-
 const getStatusVariant = (status) => {
     switch (status) {
         case 'completed': return 'success';
         case 'running': return 'info';
-        case 'failed': return 'danger';
-        case 'pending': return 'warning';
+        case 'failed': return 'error';
         default: return 'neutral';
     }
 };
 
 const getStepStatusVariant = (status) => {
     switch (status) {
-        case 'ok': return 'bg-emerald-500 text-white';
-        case 'running': return 'bg-amber-500 text-white animate-pulse';
-        case 'failed': return 'bg-rose-500 text-white';
-        case 'skipped': return 'bg-slate-300 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
-        default: return 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400';
+        case 'ok': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
+        case 'running': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 animate-pulse';
+        case 'failed': return 'bg-rose-500/10 text-rose-600 dark:text-rose-400';
+        case 'skipped': return 'bg-slate-500/10 text-slate-500';
+        default: return 'bg-slate-500/10 text-slate-400';
     }
 };
 </script>
 
 <template>
-    <Head title="Migrasi Data Legacy" />
+    <Head title="Migrasi Data Tenant (Cutover)" />
 
     <AdminLayout>
-        <div class="mx-auto max-w-7xl space-y-6">
-            <!-- Header -->
-            <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div class="space-y-6">
+            <!-- Header section -->
+            <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-2xl font-bold text-primary sm:text-3xl">Migrasi Data Legacy (Cutover)</h1>
-                    <p class="mt-1 text-on-surface-variant">
-                        Alat bantu berbasis tampilan GUI untuk mengonversi & memindahkan data dari SIDBM Legacy ke SIDBM Next secara bertahap tanpa perintah terminal.
+                    <h1 class="text-2xl font-bold tracking-tight text-primary">Migrasi & Cutover Tenant</h1>
+                    <p class="text-sm text-on-surface-variant">
+                        Eksekusi migrasi data dari database MySQL legacy SIDBM (transaksi_*, saldo_*, dll) ke tenant Next platform.
                     </p>
                 </div>
-            </header>
+            </div>
 
-            <!-- Grid Form & Banner -->
+            <!-- Form Eksekusi Cutover & Petunjuk -->
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                <!-- Left: Form Input (2 Columns) -->
+                <!-- Left: Form Input Executions -->
                 <div class="lg:col-span-2">
                     <AppCard>
                         <template #header>
@@ -248,16 +306,16 @@ const getStepStatusVariant = (status) => {
                                         v-else
                                         v-model="form.suffix"
                                         label="ID Lokasi (Suffix Legacy DB)"
-                                        type="number"
-                                        placeholder="Contoh: 1"
-                                        :error="form.errors.suffix"
+                                        placeholder="misal: 1 atau 76"
+                                        hint="Akhiran tabel transaksi_* di database legacy (contoh: 1 untuk transaksi_1)"
                                         required
+                                        :error="form.errors.suffix"
                                     />
                                 </div>
                             </div>
 
-                            <!-- Mode Toggles via AppSwitch -->
-                            <div class="space-y-3 rounded-xl border border-outline-variant bg-surface-container-low p-4">
+                            <!-- Execution Mode Toggles -->
+                            <div class="space-y-3 rounded-xl border border-outline-variant p-4">
                                 <AppSwitch
                                     v-model="form.is_dry_run"
                                     label="Mode Dry-Run (Simulasi / Uji Coba)"
@@ -321,25 +379,25 @@ const getStepStatusVariant = (status) => {
                         </template>
                         <div class="space-y-3 text-xs text-on-surface-variant leading-relaxed">
                             <div class="rounded-lg border border-outline-variant bg-surface-container-low p-3 space-y-1">
-                                <span class="block font-bold text-primary text-xs">Koneksi Database Legacy Aktif:</span>
-                                <p>Host: <code class="font-mono text-primary font-bold">{{ props.legacy_config?.host || '127.0.0.1' }}:{{ props.legacy_config?.port || 3306 }}</code></p>
-                                <p>Database: <code class="font-mono text-primary font-bold">{{ props.legacy_config?.database || 'sidbm' }}</code></p>
+                                <span class="block text-xs font-bold text-primary">Koneksi Database Legacy Aktif:</span>
+                                <p>Host: <code class="font-mono font-bold text-primary">{{ props.legacy_config?.host || '127.0.0.1' }}:{{ props.legacy_config?.port || 3306 }}</code></p>
+                                <p>Database: <code class="font-mono font-bold text-primary">{{ props.legacy_config?.database || 'sidbm' }}</code></p>
                             </div>
 
                             <div class="flex items-start space-x-2">
-                                <span class="font-bold text-secondary shrink-0">1.</span>
-                                <p>Sistem membaca database MySQL legacy <code class="rounded bg-surface-container px-1 py-0.5 font-mono text-[11px]">{{ props.legacy_config?.database || 'sidbm' }}</code> yang telah dikonfigurasi di file <code class="rounded bg-surface-container px-1 py-0.5 font-mono text-[11px]">.env</code>.</p>
+                                <span class="shrink-0 font-bold text-secondary">1.</span>
+                                <p>Sistem membaca database MySQL legacy <code class="rounded bg-surface-container px-1 py-0.5 font-mono text-[11px]">{{ props.legacy_config?.database || 'sidbm' }}</code> yang telah dikonfigurasi di file <code class="rounded bg-surface-container px-1 py-0.5 font-mono text-[11px] font-mono text-[11px] font-mono text-[11px] font-mono text-[11px] font-mono text-[11px]">.env</code>.</p>
                             </div>
                             <div class="flex items-start space-x-2">
-                                <span class="font-bold text-secondary shrink-0">2.</span>
+                                <span class="shrink-0 font-bold text-secondary">2.</span>
                                 <p>Tabel legacy dibedakan oleh akhiran angka (Suffix ID), seperti <code class="rounded bg-surface-container px-1 py-0.5 font-mono text-[11px]">transaksi_1</code> atau <code class="rounded bg-surface-container px-1 py-0.5 font-mono text-[11px]">saldo_1</code>.</p>
                             </div>
                             <div class="flex items-start space-x-2">
-                                <span class="font-bold text-secondary shrink-0">3.</span>
+                                <span class="shrink-0 font-bold text-secondary">3.</span>
                                 <p>Pilihlah <strong>Suffix Terdeteksi</strong> dari daftar dropdown. Sistem akan otomatis memindai tabel yang tersedia.</p>
                             </div>
                             <div class="flex items-start space-x-2">
-                                <span class="font-bold text-secondary shrink-0">4.</span>
+                                <span class="shrink-0 font-bold text-secondary">4.</span>
                                 <p>Disarankan melakukan <strong>Mode Dry-Run</strong> terlebih dahulu untuk mensimulasikan validasi data tanpa mengubah database utama.</p>
                             </div>
                         </div>
@@ -390,9 +448,14 @@ const getStepStatusVariant = (status) => {
                                     {{ run.started_at ? new Date(run.started_at).toLocaleString('id-ID') : 'Belum dimulai' }}
                                 </td>
                                 <td class="px-4 py-3 text-right text-xs">
-                                    <AppButton variant="secondary" size="compact" icon="terminal" @click="openLogModal(run)">
-                                        Detail & Log Output
-                                    </AppButton>
+                                    <div class="flex items-center justify-end gap-2">
+                                        <AppButton v-if="run.status === 'failed'" variant="warning" size="compact" icon="refresh" @click="retryRun(run)">
+                                            Coba Ulangi (Retry)
+                                        </AppButton>
+                                        <AppButton variant="secondary" size="compact" icon="terminal" @click="openLogModal(run)">
+                                            Detail & Log Output
+                                        </AppButton>
+                                    </div>
                                 </td>
                             </tr>
                             <tr v-if="runs.data.length === 0">
@@ -407,58 +470,73 @@ const getStepStatusVariant = (status) => {
         </div>
 
         <!-- Modal Detail Output Log & Live Step Progress -->
-        <div v-if="activeLogModal && selectedRun" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/70 p-4">
-            <div class="w-full max-w-4xl rounded-xl bg-surface-container-lowest shadow-2xl border border-outline-variant">
-                <div class="flex items-center justify-between border-b border-outline-variant p-4">
-                    <div>
-                        <h3 class="text-lg font-bold text-primary">
-                            Monitoring Cutover Run #{{ selectedRun.id }} ? {{ selectedRun.tenant_name }}
-                        </h3>
-                        <p class="text-xs text-on-surface-variant">Suffix: {{ selectedRun.suffix }} | Mode: {{ selectedRun.is_dry_run ? 'Dry Run' : 'Live' }}</p>
+        <Teleport to="body">
+            <div v-if="activeLogModal && selectedRun" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/70 p-4 backdrop-blur-sm">
+                <div class="w-full max-w-4xl overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-2xl">
+                    <div class="flex items-center justify-between border-b border-outline-variant p-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-primary">
+                                Monitoring Cutover Run #{{ selectedRun.id }} — {{ selectedRun.tenant_name }}
+                            </h3>
+                            <p class="text-xs text-on-surface-variant">Suffix: {{ selectedRun.suffix }} | Mode: {{ selectedRun.is_dry_run ? 'Dry Run' : 'Live' }}</p>
+                        </div>
+                        <AppButton variant="ghost" size="compact" icon="close" @click="closeLogModal" />
                     </div>
-                    <AppButton variant="ghost" size="compact" icon="close" @click="closeLogModal" />
-                </div>
 
-                <div class="space-y-4 p-4">
-                    <!-- Step Progress Badges -->
-                    <div v-if="selectedRun.steps && selectedRun.steps.length > 0" class="space-y-2">
-                        <span class="text-xs font-bold uppercase tracking-wider text-primary">Progress Tahapan Migrasi:</span>
-                        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                            <div v-for="step in selectedRun.steps" :key="step.name" class="rounded-lg border border-outline-variant p-2 text-xs">
-                                <div class="flex items-center justify-between mb-1">
-                                    <span class="font-medium truncate text-primary" :title="step.label">{{ step.name }}</span>
-                                    <span :class="['px-1.5 py-0.5 rounded text-[10px] uppercase font-bold', getStepStatusVariant(step.status)]">
-                                        {{ step.status }}
-                                    </span>
+                    <div class="max-h-[80vh] overflow-y-auto space-y-4 p-4">
+                        <!-- Step Progress Badges -->
+                        <div v-if="selectedRun.steps && selectedRun.steps.length > 0" class="space-y-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-primary">Progress Tahapan Migrasi:</span>
+                            <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                <div v-for="step in selectedRun.steps" :key="step.name" class="rounded-lg border border-outline-variant p-2 text-xs">
+                                    <div class="mb-1 flex items-center justify-between">
+                                        <span class="truncate font-medium text-primary" :title="step.label">{{ step.name }}</span>
+                                        <span :class="['px-1.5 py-0.5 rounded text-[10px] uppercase font-bold', getStepStatusVariant(step.status)]">
+                                            {{ step.status }}
+                                        </span>
+                                    </div>
+                                    <p class="truncate text-[11px] text-on-surface-variant">{{ step.label }}</p>
                                 </div>
-                                <p class="text-[11px] text-on-surface-variant truncate">{{ step.label }}</p>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Output Console Terminal Window -->
-                    <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-xs font-bold text-primary">Terminal Console Log Output:</span>
-                            <span v-if="selectedRun.status === 'running'" class="text-xs font-medium text-amber-500 animate-pulse">
-                                Live Polling Output...
-                            </span>
+                        <!-- Output Console Terminal Window -->
+                        <div class="relative space-y-1">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-primary">Terminal Console Log Output:</span>
+                                <span v-if="selectedRun.status === 'running'" class="animate-pulse text-xs font-medium text-amber-500">
+                                    Live Polling Output...
+                                </span>
+                            </div>
+                            <div class="relative">
+                                <pre ref="logTerminal" class="h-80 w-full overflow-y-auto rounded-lg border border-slate-800 bg-slate-950 p-4 font-mono text-xs text-emerald-400 shadow-inner whitespace-pre-wrap" @scroll="onLogScroll">{{ selectedRun.output_log || 'Menunggu keluaran log...' }}</pre>
+                                <button
+                                    v-if="isUserScrolledUp"
+                                    type="button"
+                                    class="absolute bottom-3 right-4 flex items-center gap-1.5 rounded-full bg-primary/90 px-3 py-1.5 text-xs font-semibold text-on-primary shadow-lg backdrop-blur transition hover:bg-primary"
+                                    @click="scrollToBottom"
+                                >
+                                    <AppIcon name="arrow_downward" class="text-sm" />
+                                    Scroll ke Bawah
+                                </button>
+                            </div>
                         </div>
-                        <pre class="h-80 w-full overflow-y-auto rounded-lg bg-slate-950 p-4 font-mono text-xs text-emerald-400 shadow-inner border border-slate-800 whitespace-pre-wrap">{{ selectedRun.output_log || 'Menunggu keluaran log...' }}</pre>
+
+                        <div v-if="selectedRun.error_message" class="rounded-lg bg-error-container p-3 text-xs text-error">
+                            <strong>Error Exception:</strong> {{ selectedRun.error_message }}
+                        </div>
                     </div>
 
-                    <div v-if="selectedRun.error_message" class="rounded-lg bg-error-container p-3 text-xs text-error">
-                        <strong>Error Exception:</strong> {{ selectedRun.error_message }}
+                    <div class="flex items-center justify-between border-t border-outline-variant p-4">
+                        <div>
+                            <AppButton v-if="selectedRun.status === 'failed'" variant="warning" icon="refresh" @click="retryRun(selectedRun)">
+                                Coba Ulangi Migrasi (Retry)
+                            </AppButton>
+                        </div>
+                        <AppButton variant="secondary" @click="closeLogModal">Tutup Window Log</AppButton>
                     </div>
-                </div>
-
-                <div class="flex justify-end border-t border-outline-variant p-4">
-                    <AppButton variant="secondary" @click="closeLogModal">Tutup Window Log</AppButton>
                 </div>
             </div>
-        </div>
+        </Teleport>
     </AdminLayout>
 </template>
-
-
-

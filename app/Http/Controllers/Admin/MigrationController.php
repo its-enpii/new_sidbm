@@ -43,6 +43,7 @@ final class MigrationController extends Controller
                 'tenant_name' => $run->tenant?->name ?? $run->tenant_code,
                 'suffix' => $run->suffix,
                 'is_dry_run' => $run->is_dry_run,
+                'options' => $run->options,
                 'status' => $run->status,
                 'steps' => $run->steps,
                 'error_message' => $run->error_message,
