@@ -30,7 +30,7 @@ final class PlatformSettingService
             ->first(['value', 'value_type']);
 
         if ($row === null) {
-            return $default;
+            return $this->cache[$key] = $default;
         }
 
         return $this->cache[$key] = $this->decode($row->value, $row->value_type);

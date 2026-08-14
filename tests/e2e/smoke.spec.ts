@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:64080';
+const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:56586';
 
 async function performLogin(page: Page, username: string = 'superadmin'): Promise<boolean> {
     await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' });

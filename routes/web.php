@@ -124,9 +124,9 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::post('/invoices/{invoice}/payments/tripay', [AdminInvoicePaymentController::class, 'storeTripay'])->name('invoices.payments.tripay');
 
     Route::get('/migration', [AdminMigrationController::class, 'index'])->name('migration.index');
-    Route::get('/migrations', [AdminMigrationController::class, 'index']);
-    Route::post('/migration/preview', [AdminMigrationController::class, 'preview'])->name('migration.preview');
-    Route::post('/migration/run', [AdminMigrationController::class, 'run'])->name('migration.run');
+    Route::get('/migrations', [AdminMigrationController::class, 'index'])->name('migrations.index');
+    Route::post('/migrations', [AdminMigrationController::class, 'store'])->name('migrations.store');
+    Route::get('/migrations/{run}', [AdminMigrationController::class, 'show'])->name('migrations.show');
 
     Route::get('/regional/provinces', [RegionalCodeController::class, 'provinces'])->name('regional.provinces');
     Route::get('/regional/regencies/{province}', [RegionalCodeController::class, 'regencies'])->name('regional.regencies');
