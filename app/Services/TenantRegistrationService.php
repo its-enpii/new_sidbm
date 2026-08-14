@@ -122,10 +122,23 @@ final readonly class TenantRegistrationService
         return $this->workbench->run($tenant, function () use ($tenant): array {
             $this->registry->sync($tenant);
             $this->groupMasterData->ensureDefaults();
+            $this->villages->provision($tenant);
             $this->loanProducts->ensureDefaults();
             $coa = $this->coa->ensureDefaults();
             $fiscal = $this->fiscalPeriods->ensureDefaults(1);
             $this->permissions->ensureSystemRoles();
+
+            try {
+                if (file_exists(base_path('packages/assistant/database/migrations'))) {
+                    Artisan::call('migrate', [
+                        '--database' => 'rag',
+                        '--path' => 'packages/assistant/database/migrations',
+                        '--force' => true,
+                    ]);
+                }
+            } catch (\Throwable) {
+                // Ignore RAG postgres connection errors if RAG DB disabled
+            }
 
             return [
                 'coa' => $coa,

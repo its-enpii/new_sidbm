@@ -212,7 +212,7 @@ const getStepStatusVariant = (status) => {
                                     size="sm"
                                     @click="showAdvanced = !showAdvanced"
                                 >
-                                    {{ showAdvanced ? '? Sembunyikan Opsi Lanjutan' : '? Tampilkan Opsi Lanjutan (Skipping / Chunk Size)' }}
+                                    {{ showAdvanced ? 'Sembunyikan Opsi Lanjutan' : 'Tampilkan Opsi Lanjutan (Skipping / Chunk Size)' }}
                                 </AppButton>
                             </div>
 
@@ -248,7 +248,7 @@ const getStepStatusVariant = (status) => {
                             <div class="flex justify-end pt-2">
                                 <AppButton type="submit" variant="primary" :disabled="form.processing">
                                     <span v-if="form.processing">Sedang Memproses...</span>
-                                    <span v-else>?? Jalankan Migrasi Data</span>
+                                    <span v-else>Jalankan Migrasi Data</span>
                                 </AppButton>
                             </div>
                         </form>
@@ -325,7 +325,7 @@ const getStepStatusVariant = (status) => {
                                 </td>
                                 <td class="px-4 py-3 text-right text-xs">
                                     <AppButton variant="secondary" size="xs" @click="openLogModal(run)">
-                                        ?? Detail & Log Output
+                                        Detail & Log Output
                                     </AppButton>
                                 </td>
                             </tr>
@@ -346,7 +346,7 @@ const getStepStatusVariant = (status) => {
                 <div class="flex items-center justify-between border-b border-slate-200 p-4 dark:border-slate-800">
                     <div>
                         <h3 class="text-lg font-bold text-slate-900 dark:text-white">
-                            Monitoring Cutover Run #{{ selectedRun.id }} — {{ selectedRun.tenant_name }}
+                            Monitoring Cutover Run #{{ selectedRun.id }} â€” {{ selectedRun.tenant_name }}
                         </h3>
                         <p class="text-xs text-slate-500">Suffix: {{ selectedRun.suffix }} | Mode: {{ selectedRun.is_dry_run ? 'Dry Run' : 'Live' }}</p>
                     </div>
@@ -375,7 +375,7 @@ const getStepStatusVariant = (status) => {
                         <div class="flex items-center justify-between mb-1">
                             <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Terminal Console Log Output:</span>
                             <span v-if="selectedRun.status === 'running'" class="text-xs font-medium text-amber-500 animate-pulse">
-                                ?? Live Polling Output...
+                                Live Polling Output...
                             </span>
                         </div>
                         <pre class="h-80 w-full overflow-y-auto rounded-lg bg-slate-950 p-4 font-mono text-xs text-emerald-400 shadow-inner border border-slate-800 whitespace-pre-wrap">{{ selectedRun.output_log || 'Menunggu keluaran log...' }}</pre>

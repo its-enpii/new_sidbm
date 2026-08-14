@@ -16,8 +16,20 @@ use Inertia\Response;
 
 final class AuthController
 {
-    public function showLogin(): Response
+    public function showLogin(): Response|RedirectResponse
     {
+        if (Auth::check()) {
+            $user = Auth::user();
+            if ($user?->is_superadmin === true) {
+                return redirect()->route('admin.dashboard');
+            }
+            if ($user?->isRegencyUser()) {
+                return redirect()->route('regency.dashboard');
+            }
+
+            return redirect()->route('dashboard');
+        }
+
         return Inertia::render('Auth/Login');
     }
 
@@ -50,7 +62,7 @@ final class AuthController
         $request->session()->regenerate();
         $user->forceFill(['last_login_at' => now()])->save();
 
-        // Superadmin always lands on platform admin — ignore intended(/admin)
+        // Superadmin always lands on platform admin â€” ignore intended(/admin)
         // left by a prior guest hit (would 403 non-superadmin, confuse superadmin flows).
         if ($user->is_superadmin === true) {
             $request->session()->forget('url.intended');
