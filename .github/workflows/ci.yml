@@ -36,17 +36,16 @@ jobs:
       - name: Install Composer Dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
+      - name: Create SQLite Test Databases
+        run: |
+          mkdir -p database
+          touch database/platform_test.sqlite
+          touch database/tenant_test.sqlite
+
       - name: Check Code Style (Pint)
         run: vendor/bin/pint --test
 
       - name: Run PHPUnit Tests
-        env:
-          APP_ENV: testing
-          PLATFORM_DB_DRIVER: sqlite
-          PLATFORM_DB_DATABASE: ":memory:"
-          TENANT_DB_DRIVER: sqlite
-          TENANT_DB_DATABASE: ":memory:"
-          RUN_TENANCY_INTEGRATION_TESTS: "true"
         run: php artisan test
 
   frontend-build:
