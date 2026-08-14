@@ -161,6 +161,12 @@ final class CutoverTenant extends Command
         $migrateFlags = [
             '--chunk' => $chunk,
         ];
+        if ($fromYear > 0) {
+            $migrateFlags['--from-date'] = sprintf('%04d-01-01', $fromYear);
+        }
+        if ($toYear > 0) {
+            $migrateFlags['--to-date'] = sprintf('%04d-12-31', $toYear);
+        }
         if ($dryRun) {
             $migrateFlags['--dry-run'] = true;
         }
@@ -174,6 +180,7 @@ final class CutoverTenant extends Command
                 'command' => 'legacy:ensure-fiscal-periods',
                 'params' => [
                     'tenant' => $tenant,
+                    '--suffix' => $suffix,
                     '--from' => $fromYear,
                     '--to' => $toYear,
                 ],

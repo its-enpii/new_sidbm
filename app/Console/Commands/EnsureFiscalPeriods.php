@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Domain\Accounting\Models\FiscalPeriod;
+use App\Domain\Migration\Accounting\LegacyAccountingExtractor;
 use App\Models\Platform\Tenant;
 use App\Tenancy\Services\ShardConnectionManager;
 use App\Tenancy\TenantContext;
@@ -16,6 +17,7 @@ final class EnsureFiscalPeriods extends Command
 {
     protected $signature = 'legacy:ensure-fiscal-periods
         {tenant : Tenant row ID or code}
+        {--suffix= : Legacy database table suffix to auto-detect transaction date range}
         {--from=2018 : First fiscal year}
         {--to= : Last fiscal year (default: current)}
         {--status=open : Period status}';
@@ -43,6 +45,28 @@ final class EnsureFiscalPeriods extends Command
         $toOpt = $this->option('to');
         $to = is_string($toOpt) && $toOpt !== '' ? (int) $toOpt : (int) CarbonImmutable::now()->year;
         $status = (string) $this->option('status');
+
+        $suffix = $this->option('suffix');
+        if (is_string($suffix) && $suffix !== '') {
+            try {
+                $extractor = app(LegacyAccountingExtractor::class);
+                $range = $extractor->dateRange($suffix);
+                if (! empty($range['min'])) {
+                    $minYear = (int) substr((string) $range['min'], 0, 4);
+                    if ($minYear > 0 && ((string) $this->option('from') === '2018' || $minYear < $from)) {
+                        $from = $minYear;
+                    }
+                }
+                if (! empty($range['max'])) {
+                    $maxYear = (int) substr((string) $range['max'], 0, 4);
+                    if ($maxYear > $to) {
+                        $to = $maxYear;
+                    }
+                }
+            } catch (\Throwable) {
+                // Ignore if legacy table query is not possible
+            }
+        }
 
         if ($from > $to || $from < 2000 || $to > 2100) {
             throw new RuntimeException('Invalid year range.');

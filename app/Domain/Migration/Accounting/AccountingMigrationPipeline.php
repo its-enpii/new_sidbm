@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domain\Migration\Accounting;
 
+use App\Domain\Accounting\Models\FiscalPeriod;
 use App\Domain\Accounting\Services\MonthlyBalanceRecalculator;
 use App\Domain\Migration\Accounting\DTO\NormalizedJournal;
 use App\Domain\Migration\Accounting\DTO\NormalizedOpening;
 use App\Domain\Migration\Support\LegacyConnection;
 use App\Tenancy\Services\TenantSequenceService;
 use App\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -228,22 +230,28 @@ final class AccountingMigrationPipeline
             return;
         }
 
-        $tenantId = $this->context->id();
-        $conn = (string) config('tenancy.tenant_connection', 'tenant');
         $missing = [];
         $cursor = new \DateTimeImmutable(substr($min, 0, 7).'-01');
         $end = new \DateTimeImmutable(substr($max, 0, 7).'-01');
         while ($cursor <= $end) {
             $y = (int) $cursor->format('Y');
             $m = (int) $cursor->format('n');
-            $exists = DB::connection($conn)->table('fiscal_periods')
-                ->where('tenant_id', $tenantId)
+            $period = FiscalPeriod::query()
                 ->where('fiscal_year', $y)
                 ->where('fiscal_month', $m)
-                ->where('status', 'open')
-                ->exists();
-            if (! $exists) {
-                $missing[] = $cursor->format('Y-m');
+                ->first();
+
+            if ($period === null) {
+                $starts = CarbonImmutable::create($y, $m, 1)->startOfMonth();
+                FiscalPeriod::query()->create([
+                    'fiscal_year' => $y,
+                    'fiscal_month' => $m,
+                    'starts_at' => $starts->toDateString(),
+                    'ends_at' => $starts->endOfMonth()->toDateString(),
+                    'status' => 'open',
+                ]);
+            } elseif ($period->status !== 'open') {
+                $missing[] = $cursor->format('Y-m').' ('.$period->status.')';
             }
             $cursor = $cursor->modify('+1 month');
         }
@@ -251,7 +259,7 @@ final class AccountingMigrationPipeline
         if ($missing !== []) {
             $sample = implode(', ', array_slice($missing, 0, 12));
             throw new RuntimeException(
-                'Missing open fiscal periods for: '.$sample.(count($missing) > 12 ? '…' : '')
+                'Non-open fiscal periods for: '.$sample.(count($missing) > 12 ? '…' : '')
             );
         }
     }

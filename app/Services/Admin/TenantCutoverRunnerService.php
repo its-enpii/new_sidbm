@@ -149,6 +149,12 @@ final class TenantCutoverRunnerService
         array $options,
     ): array {
         $migrateFlags = ['--chunk' => $chunk];
+        if ($fromYear > 0) {
+            $migrateFlags['--from-date'] = sprintf('%04d-01-01', $fromYear);
+        }
+        if ($toYear > 0) {
+            $migrateFlags['--to-date'] = sprintf('%04d-12-31', $toYear);
+        }
         if ($dryRun) {
             $migrateFlags['--dry-run'] = true;
         }
@@ -163,6 +169,7 @@ final class TenantCutoverRunnerService
                 'command' => 'legacy:ensure-fiscal-periods',
                 'params' => [
                     'tenant' => $tenantCode,
+                    '--suffix' => $suffix,
                     '--from' => $fromYear,
                     '--to' => $toYear,
                 ],
@@ -179,21 +186,24 @@ final class TenantCutoverRunnerService
                 'name' => 'accounting',
                 'label' => 'Migrasi Akuntansi & Jurnal Umum',
                 'command' => 'legacy:migrate-accounting',
-                'params' => array_merge(['tenant' => $tenantCode, 'suffix' => $suffix], $migrateFlags),
+                'params' => array_merge(['tenant' => $tenantCode,
+                    '--suffix' => $suffix, 'suffix' => $suffix], $migrateFlags),
                 'skip' => ! empty($options['skip_accounting']),
             ],
             [
                 'name' => 'membership',
                 'label' => 'Migrasi Data Keanggotaan & Kelompok',
                 'command' => 'legacy:migrate-membership',
-                'params' => array_merge(['tenant' => $tenantCode, 'suffix' => $suffix], $migrateFlags),
+                'params' => array_merge(['tenant' => $tenantCode,
+                    '--suffix' => $suffix, 'suffix' => $suffix], $migrateFlags),
                 'skip' => ! empty($options['skip_membership']),
             ],
             [
                 'name' => 'lending',
                 'label' => 'Migrasi Data Pinjaman & Spk',
                 'command' => 'legacy:migrate-lending',
-                'params' => array_merge(['tenant' => $tenantCode, 'suffix' => $suffix], $migrateFlags),
+                'params' => array_merge(['tenant' => $tenantCode,
+                    '--suffix' => $suffix, 'suffix' => $suffix], $migrateFlags),
                 'skip' => ! empty($options['skip_lending']),
             ],
             [
@@ -207,7 +217,8 @@ final class TenantCutoverRunnerService
                 'name' => 'reconcile-lending',
                 'label' => 'Rekonsiliasi Pinjaman Legacy vs Next',
                 'command' => 'legacy:reconcile-lending',
-                'params' => ['tenant' => $tenantCode, 'suffix' => $suffix],
+                'params' => ['tenant' => $tenantCode,
+                    '--suffix' => $suffix, 'suffix' => $suffix],
                 'skip' => ! empty($options['skip_reconcile']) || $dryRun,
             ],
             [
