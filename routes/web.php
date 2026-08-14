@@ -9,11 +9,12 @@ use App\Http\Controllers\Accounting\JournalEntryController;
 use App\Http\Controllers\Accounting\PeriodCloseController;
 use App\Http\Controllers\Accounting\ReportController;
 use App\Http\Controllers\Accounting\TaxEstimateController;
+use App\Http\Controllers\Admin\AiAssistantController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
-use App\Http\Controllers\Admin\IntegrationController as AdminIntegrationController;
 use App\Http\Controllers\Admin\InvoiceController as AdminInvoiceController;
 use App\Http\Controllers\Admin\InvoicePaymentController as AdminInvoicePaymentController;
 use App\Http\Controllers\Admin\MigrationController as AdminMigrationController;
+use App\Http\Controllers\Admin\PaymentGatewayController;
 use App\Http\Controllers\Admin\PlanController as AdminPlanController;
 use App\Http\Controllers\Admin\TenantController as AdminTenantController;
 use App\Http\Controllers\Admin\TenantUserController as AdminTenantUserController;
@@ -130,18 +131,29 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::get('/regional/provinces', [RegionalCodeController::class, 'provinces'])->name('regional.provinces');
     Route::get('/regional/regencies/{province}', [RegionalCodeController::class, 'regencies'])->name('regional.regencies');
 
-    Route::get('/integrations', [AdminIntegrationController::class, 'index'])->name('integrations.index');
-    Route::get('/integrations/orchestrator', [AdminIntegrationController::class, 'index']);
-    Route::post('/integrations/active-gateway', [AdminIntegrationController::class, 'updateActiveGateway'])->name('integrations.active-gateway');
-    Route::post('/integrations/tripay', [AdminIntegrationController::class, 'updateTripay'])->name('integrations.tripay');
-    Route::post('/integrations/tripay/test', [AdminIntegrationController::class, 'testTripay'])->name('integrations.tripay.test');
-    Route::post('/integrations/duitku', [AdminIntegrationController::class, 'updateDuitku'])->name('integrations.duitku');
-    Route::post('/integrations/duitku/test', [AdminIntegrationController::class, 'testDuitku'])->name('integrations.duitku.test');
-    Route::post('/integrations/xendit', [AdminIntegrationController::class, 'updateXendit'])->name('integrations.xendit');
-    Route::post('/integrations/xendit/test', [AdminIntegrationController::class, 'testXendit'])->name('integrations.xendit.test');
-    Route::post('/integrations/whatsapp', [AdminIntegrationController::class, 'updateWhatsapp'])->name('integrations.whatsapp');
-    Route::post('/integrations/whatsapp/pair', [AdminIntegrationController::class, 'pairWhatsapp'])->name('integrations.whatsapp.pair');
-    Route::post('/integrations/whatsapp/test', [AdminIntegrationController::class, 'testWhatsapp'])->name('integrations.whatsapp.test');
+    // Payment Gateways
+    Route::get('/payment-gateways', [PaymentGatewayController::class, 'index'])->name('payment-gateways.index');
+    Route::post('/payment-gateways/active', [PaymentGatewayController::class, 'updateActiveGateway'])->name('payment-gateways.active');
+    Route::post('/payment-gateways/tripay', [PaymentGatewayController::class, 'updateTripay'])->name('payment-gateways.tripay');
+    Route::post('/payment-gateways/tripay/test', [PaymentGatewayController::class, 'testTripay'])->name('payment-gateways.tripay.test');
+    Route::post('/payment-gateways/duitku', [PaymentGatewayController::class, 'updateDuitku'])->name('payment-gateways.duitku');
+    Route::post('/payment-gateways/duitku/test', [PaymentGatewayController::class, 'testDuitku'])->name('payment-gateways.duitku.test');
+    Route::post('/payment-gateways/xendit', [PaymentGatewayController::class, 'updateXendit'])->name('payment-gateways.xendit');
+    Route::post('/payment-gateways/xendit/test', [PaymentGatewayController::class, 'testXendit'])->name('payment-gateways.xendit.test');
+
+    // AI Assistant
+    Route::get('/ai-assistant', [AiAssistantController::class, 'index'])->name('ai-assistant.index');
+
+    // Backward compatibility aliases
+    Route::get('/integrations', fn () => redirect()->route('payment-gateways.index'))->name('integrations.index');
+    Route::get('/integrations/orchestrator', fn () => redirect()->route('ai-assistant.index'));
+    Route::post('/integrations/active-gateway', [PaymentGatewayController::class, 'updateActiveGateway'])->name('integrations.active-gateway');
+    Route::post('/integrations/tripay', [PaymentGatewayController::class, 'updateTripay'])->name('integrations.tripay');
+    Route::post('/integrations/tripay/test', [PaymentGatewayController::class, 'testTripay'])->name('integrations.tripay.test');
+    Route::post('/integrations/duitku', [PaymentGatewayController::class, 'updateDuitku'])->name('integrations.duitku');
+    Route::post('/integrations/duitku/test', [PaymentGatewayController::class, 'testDuitku'])->name('integrations.duitku.test');
+    Route::post('/integrations/xendit', [PaymentGatewayController::class, 'updateXendit'])->name('integrations.xendit');
+    Route::post('/integrations/xendit/test', [PaymentGatewayController::class, 'testXendit'])->name('integrations.xendit.test');
 });
 
 Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function (): void {

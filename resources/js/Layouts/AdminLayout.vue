@@ -18,7 +18,8 @@ const navigation = [
     { label: 'Invoice', icon: 'receipt_long', href: '/admin/invoices' },
     { label: 'Plan', icon: 'workspace_premium', href: '/admin/plans' },
     { label: 'Migrasi Data', icon: 'transform', href: '/admin/migration' },
-    { label: 'Integrasi', icon: 'hub', href: '/admin/integrations' },
+    { label: 'Payment Gateway', icon: 'payments', href: '/admin/payment-gateways' },
+    { label: 'AI Assistant', icon: 'smart_toy', href: '/admin/ai-assistant' },
 ];
 
 function isActive(item) {
