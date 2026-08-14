@@ -158,20 +158,22 @@ final class CutoverTenant extends Command
         int $fromYear,
         int $toYear,
     ): array {
-        $migrateFlags = [
+        $commonFlags = [
             '--chunk' => $chunk,
         ];
-        if ($fromYear > 0) {
-            $migrateFlags['--from-date'] = sprintf('%04d-01-01', $fromYear);
-        }
-        if ($toYear > 0) {
-            $migrateFlags['--to-date'] = sprintf('%04d-12-31', $toYear);
-        }
         if ($dryRun) {
-            $migrateFlags['--dry-run'] = true;
+            $commonFlags['--dry-run'] = true;
         }
         if ($noFailFast) {
-            $migrateFlags['--no-fail-fast'] = true;
+            $commonFlags['--no-fail-fast'] = true;
+        }
+
+        $accountingFlags = $commonFlags;
+        if ($fromYear > 0) {
+            $accountingFlags['--from-date'] = sprintf('%04d-01-01', $fromYear);
+        }
+        if ($toYear > 0) {
+            $accountingFlags['--to-date'] = sprintf('%04d-12-31', $toYear);
         }
 
         return [
@@ -197,7 +199,7 @@ final class CutoverTenant extends Command
                 'params' => array_merge([
                     'tenant' => $tenant,
                     'suffix' => $suffix,
-                ], $migrateFlags),
+                ], $accountingFlags),
                 'skip' => (bool) $this->option('skip-accounting'),
             ],
             [
@@ -206,7 +208,7 @@ final class CutoverTenant extends Command
                 'params' => array_merge([
                     'tenant' => $tenant,
                     'suffix' => $suffix,
-                ], $migrateFlags),
+                ], $commonFlags),
                 'skip' => (bool) $this->option('skip-membership'),
             ],
             [
@@ -215,7 +217,7 @@ final class CutoverTenant extends Command
                 'params' => array_merge([
                     'tenant' => $tenant,
                     'suffix' => $suffix,
-                ], $migrateFlags),
+                ], $commonFlags),
                 'skip' => (bool) $this->option('skip-lending'),
             ],
             [

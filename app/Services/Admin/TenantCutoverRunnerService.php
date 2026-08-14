@@ -332,18 +332,20 @@ final class TenantCutoverRunnerService
         int $toYear,
         array $options,
     ): array {
-        $migrateFlags = ['--chunk' => $chunk];
-        if ($fromYear > 0) {
-            $migrateFlags['--from-date'] = sprintf('%04d-01-01', $fromYear);
-        }
-        if ($toYear > 0) {
-            $migrateFlags['--to-date'] = sprintf('%04d-12-31', $toYear);
-        }
+        $commonFlags = ['--chunk' => $chunk];
         if ($dryRun) {
-            $migrateFlags['--dry-run'] = true;
+            $commonFlags['--dry-run'] = true;
         }
         if ($noFailFast) {
-            $migrateFlags['--no-fail-fast'] = true;
+            $commonFlags['--no-fail-fast'] = true;
+        }
+
+        $accountingFlags = $commonFlags;
+        if ($fromYear > 0) {
+            $accountingFlags['--from-date'] = sprintf('%04d-01-01', $fromYear);
+        }
+        if ($toYear > 0) {
+            $accountingFlags['--to-date'] = sprintf('%04d-12-31', $toYear);
         }
 
         return [
@@ -369,21 +371,21 @@ final class TenantCutoverRunnerService
                 'name' => 'accounting',
                 'label' => 'Migrasi Akuntansi & Jurnal Umum',
                 'command' => 'legacy:migrate-accounting',
-                'params' => array_merge(['tenant' => $tenantCode, 'suffix' => $suffix], $migrateFlags),
+                'params' => array_merge(['tenant' => $tenantCode, 'suffix' => $suffix], $accountingFlags),
                 'skip' => ! empty($options['skip_accounting']),
             ],
             [
                 'name' => 'membership',
                 'label' => 'Migrasi Data Keanggotaan & Kelompok',
                 'command' => 'legacy:migrate-membership',
-                'params' => array_merge(['tenant' => $tenantCode, 'suffix' => $suffix], $migrateFlags),
+                'params' => array_merge(['tenant' => $tenantCode, 'suffix' => $suffix], $commonFlags),
                 'skip' => ! empty($options['skip_membership']),
             ],
             [
                 'name' => 'lending',
                 'label' => 'Migrasi Data Pinjaman & Spk',
                 'command' => 'legacy:migrate-lending',
-                'params' => array_merge(['tenant' => $tenantCode, 'suffix' => $suffix], $migrateFlags),
+                'params' => array_merge(['tenant' => $tenantCode, 'suffix' => $suffix], $commonFlags),
                 'skip' => ! empty($options['skip_lending']),
             ],
             [
