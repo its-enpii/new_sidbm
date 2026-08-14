@@ -19,8 +19,7 @@ final class LppReportService
 
     public function __construct(
         private readonly TenantContext $context,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{

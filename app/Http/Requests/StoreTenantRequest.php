@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Services\RegionalCodeApi;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -29,15 +30,21 @@ final class StoreTenantRequest extends FormRequest
         ];
     }
 
-    public function withValidator(\Illuminate\Contracts\Validation\Validator $validator): void
+    public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator): void {
-            if ($validator->errors()->isNotEmpty()) return;
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
 
             try {
                 $regencies = app(RegionalCodeApi::class)->regencies((string) $this->string('province_code'));
                 $regency = collect($regencies)->firstWhere('code', (string) $this->string('regency_code'));
-                if ($regency === null) { $validator->errors()->add('regency_code', 'Kabupaten/kota tidak sesuai dengan provinsi.'); return; }
+                if ($regency === null) {
+                    $validator->errors()->add('regency_code', 'Kabupaten/kota tidak sesuai dengan provinsi.');
+
+                    return;
+                }
 
                 $districts = app(RegionalCodeApi::class)->districts((string) $this->string('regency_code'));
                 if (collect($districts)->firstWhere('code', (string) $this->string('district_code')) === null) {

@@ -12,7 +12,6 @@ use App\Models\Tenant\OrganizationUnit;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use DomainException;
-use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -51,8 +50,7 @@ final class ProfitAllocationService
         private readonly TenantContext $context,
         private readonly AccountBalanceQuery $balances,
         private readonly JournalPostingService $posting,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

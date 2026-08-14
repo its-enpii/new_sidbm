@@ -13,8 +13,7 @@ final class XenditClient
 {
     public function __construct(
         private readonly ?PlatformSettingService $settings = null,
-    ) {
-    }
+    ) {}
 
     public function getSecretKey(): string
     {
@@ -44,14 +43,7 @@ final class XenditClient
     /**
      * Create an Invoice with Xendit Invoices API v2.
      *
-     * @param int $amount
-     * @param string $merchantRef (external_id)
-     * @param string $customerName
-     * @param string|null $customerEmail
-     * @param array $orderItems
-     * @param string|null $paymentMethod
-     * @param string|null $returnUrl
-     * @return array
+     * @param  string  $merchantRef  (external_id)
      */
     public function createTransaction(
         int $amount,
@@ -70,9 +62,9 @@ final class XenditClient
 
         $description = ! empty($orderItems) && isset($orderItems[0]['name'])
             ? (string) $orderItems[0]['name']
-            : 'Pembayaran Invoice ' . $merchantRef;
+            : 'Pembayaran Invoice '.$merchantRef;
 
-        $email = $customerEmail ?: 'billing@' . parse_url((string) config('app.url', 'http://localhost'), PHP_URL_HOST);
+        $email = $customerEmail ?: 'billing@'.parse_url((string) config('app.url', 'http://localhost'), PHP_URL_HOST);
         $redirectUrl = $returnUrl ?: (string) config('app.url', 'http://localhost');
 
         $payload = [
@@ -98,7 +90,7 @@ final class XenditClient
                 ->throw()
                 ->json();
         } catch (RequestException $exception) {
-            throw new RuntimeException('Gagal membuat transaksi Xendit: ' . $exception->getMessage(), previous: $exception);
+            throw new RuntimeException('Gagal membuat transaksi Xendit: '.$exception->getMessage(), previous: $exception);
         }
 
         return [
@@ -145,9 +137,6 @@ final class XenditClient
 
     /**
      * Check transaction status directly with Xendit API.
-     *
-     * @param string $xenditInvoiceId
-     * @return array|null
      */
     public function checkTransactionStatus(string $xenditInvoiceId): ?array
     {

@@ -47,7 +47,9 @@ final class RegionalCodeApi
     {
         $cacheKey = 'regional-code:'.md5($path);
         $cached = Cache::get($cacheKey);
-        if (is_array($cached) && $cached !== []) return $cached;
+        if (is_array($cached) && $cached !== []) {
+            return $cached;
+        }
 
         $response = Http::baseUrl(rtrim((string) config('services.regional_api.base_url'), '/'))
             ->acceptJson()

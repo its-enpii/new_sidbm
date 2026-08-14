@@ -11,7 +11,7 @@ final class TenantMembership extends PlatformModel
 {
     protected static function booted(): void
     {
-        static::saving(function (self $membership): void {
+        self::saving(function (self $membership): void {
             $user = User::query()->find($membership->user_id);
 
             if ($user === null) {

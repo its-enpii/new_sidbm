@@ -13,6 +13,7 @@ use App\Tenancy\Middleware\ResolveTenant;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 
@@ -38,7 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         // Logged-in users hitting /login: superadmin → /admin, province → /province/dashboard, regency → /regency/dashboard, tenant → /dashboard
-        $middleware->redirectUsersTo(function (\Illuminate\Http\Request $request): string {
+        $middleware->redirectUsersTo(function (Request $request): string {
             $user = $request->user();
 
             if ($user !== null) {

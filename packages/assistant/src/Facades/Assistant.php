@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Enpii\Assistant\Facades;
 
+use Enpii\Assistant\AssistantServiceProvider;
 use Illuminate\Support\Facades\Facade;
-use Enpii\Assistant\Services\Tools\ToolRegistry;
 
 /**
  * @method static \Enpii\Assistant\Services\Tools\ToolRegistry registry()
  * @method static \Enpii\Assistant\Services\Chat\AgentLoop agent()
  *
- * @see \Enpii\Assistant\AssistantServiceProvider
+ * @see AssistantServiceProvider
  */
 class Assistant extends Facade
 {

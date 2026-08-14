@@ -94,6 +94,7 @@ final class CutoverTenant extends Command
             if ($step['skip']) {
                 $this->comment("SKIP  {$step['name']}");
                 $results[] = ['step' => $step['name'], 'status' => 'skipped', 'exit' => null];
+
                 continue;
             }
 
@@ -246,10 +247,12 @@ final class CutoverTenant extends Command
         foreach ($params as $key => $value) {
             if (is_int($key)) {
                 $out[] = (string) $value;
+
                 continue;
             }
             if ($value === true) {
                 $out[] = (string) $key;
+
                 continue;
             }
             if ($value === false || $value === null) {
@@ -257,6 +260,7 @@ final class CutoverTenant extends Command
             }
             if (! str_starts_with((string) $key, '-')) {
                 $out[] = (string) $value;
+
                 continue;
             }
             $out[] = (string) $key.'='.(string) $value;

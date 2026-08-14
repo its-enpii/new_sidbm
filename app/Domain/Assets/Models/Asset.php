@@ -52,4 +52,3 @@ final class Asset extends TenantModel
         return $this->hasMany(AssetStatusHistory::class, 'asset_row_id', 'row_id');
     }
 }
-

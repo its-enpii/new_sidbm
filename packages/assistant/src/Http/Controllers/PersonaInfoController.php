@@ -4,17 +4,16 @@ declare(strict_types=1);
 
 namespace Enpii\Assistant\Http\Controllers;
 
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Enpii\Assistant\Contracts\SessionResolver;
 use Enpii\Assistant\Models\Persona;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 final class PersonaInfoController
 {
     public function __construct(
         private readonly SessionResolver $sessions,
-    ) {
-    }
+    ) {}
 
     public function show(Request $request): JsonResponse
     {

@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Enpii\Assistant\Models;
 
+use Enpii\Assistant\Models\Concerns\TargetsRagConnection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Enpii\Assistant\Models\Concerns\TargetsRagConnection;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 final class Persona extends Model
 {
@@ -37,22 +38,22 @@ final class Persona extends Model
         return $this->belongsToMany(Tool::class, 'ai_persona_tool', 'persona_id', 'tool_id');
     }
 
-    public function knowledgeSources(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function knowledgeSources(): HasMany
     {
         return $this->hasMany(KnowledgeSource::class);
     }
 
     public static function findDefault(): ?self
     {
-        return static::query()
+        return self::query()
             ->where('is_active', true)
             ->where('is_default', true)
             ->first()
-            ?? static::query()->where('is_active', true)->orderBy('created_at')->first();
+            ?? self::query()->where('is_active', true)->orderBy('created_at')->first();
     }
 
     public static function findBySlug(string $slug): ?self
     {
-        return static::query()->where('slug', $slug)->where('is_active', true)->first();
+        return self::query()->where('slug', $slug)->where('is_active', true)->first();
     }
 }

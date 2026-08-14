@@ -10,7 +10,6 @@ use App\Domain\Accounting\Models\JournalEntry;
 use App\Domain\Accounting\Services\JournalEntryOptionResolver;
 use App\Domain\Accounting\Services\JournalPostingService;
 use App\Domain\Accounting\Services\JournalReversalService;
-use DomainException;
 use App\Domain\Assets\Models\Asset;
 use App\Domain\Assets\Services\AssetService;
 use App\Domain\Lending\Models\Loan;
@@ -21,6 +20,8 @@ use App\Http\Requests\Accounting\JournalEntryRequest;
 use App\Models\User;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
+use DomainException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -40,8 +41,7 @@ final class AssistantToolService
         private readonly JournalReversalService $journalReversal,
         private readonly LoanService $loans,
         private readonly WhatsappNotificationService $notices,
-    ) {
-    }
+    ) {}
 
     /**
      * Run a tool by name. Used by ToolHandler classes (one per tool) and
@@ -1118,7 +1118,7 @@ final class AssistantToolService
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, object>  $lines
+     * @param  Collection<int, object>  $lines
      * @return array{principal_amount: float, interest_amount: float, penalty_amount: float, cash_account_row_id: ?int, total: float}
      */
     private function extractInstallmentSplitFromLines($lines): array
@@ -1898,7 +1898,6 @@ final class AssistantToolService
         return (int) $fallback;
     }
 
-    
     /**
      * Accept either flat principal/interest OR total_amount + optional
      * member/group names. Resolve loan, cash account, and split schedule.

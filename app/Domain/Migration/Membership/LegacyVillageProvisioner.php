@@ -27,8 +27,7 @@ final class LegacyVillageProvisioner
         private LegacyConnection $legacy,
         private TenantContext $context,
         private TenantSequenceService $sequences,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{
@@ -59,7 +58,6 @@ final class LegacyVillageProvisioner
             $codes,
             $meta,
             $namingId,
-            $tenantId,
             &$created,
             &$updated,
             &$codeToRowId,
@@ -266,6 +264,7 @@ final class LegacyVillageProvisioner
             $unitRowId = $codeToRowId[$code] ?? $codeToRowId[strtolower((string) $row->desa)] ?? null;
             if ($unitRowId === null) {
                 $unmatched++;
+
                 continue;
             }
             $n = DB::connection($conn)->table('groups')
@@ -311,6 +310,7 @@ final class LegacyVillageProvisioner
             $unitRowId = $codeToRowId[$code] ?? $codeToRowId[strtolower((string) $row->desa)] ?? null;
             if ($unitRowId === null) {
                 $unmatched++;
+
                 continue;
             }
             $n = DB::connection($conn)->table('members')

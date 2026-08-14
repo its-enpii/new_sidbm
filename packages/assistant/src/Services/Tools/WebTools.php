@@ -11,8 +11,7 @@ final class WebTools
 {
     public function __construct(
         private readonly SafeHttpClient $http,
-    ) {
-    }
+    ) {}
 
     public function enabled(): bool
     {

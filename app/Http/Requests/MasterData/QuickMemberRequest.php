@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\MasterData;
 
-use App\Http\Requests\Concerns\AuthorizesPermission;
 use App\Domain\Membership\Models\Person;
+use App\Http\Requests\Concerns\AuthorizesPermission;
 use App\Models\Tenant\OrganizationUnit;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
@@ -14,7 +14,6 @@ use Illuminate\Validation\Rule;
 final class QuickMemberRequest extends FormRequest
 {
     use AuthorizesPermission;
-
 
     public function rules(): array
     {

@@ -19,8 +19,7 @@ final class LegacyLoanLoader
     public function __construct(
         private TenantContext $context,
         private TenantSequenceService $sequences,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  list<NormalizedGroupLoan>  $loans
@@ -58,12 +57,14 @@ final class LegacyLoanLoader
                     ->exists();
                 if ($exists) {
                     $skipped++;
+
                     continue;
                 }
 
                 $groupRowId = $groups[$loan->groupLegacyId] ?? null;
                 if ($groupRowId === null) {
                     $errors[] = "pk id={$loan->legacyId}: group id={$loan->groupLegacyId} not migrated";
+
                     continue;
                 }
 
@@ -194,17 +195,20 @@ final class LegacyLoanLoader
                     ->exists();
                 if ($exists) {
                     $skipped++;
+
                     continue;
                 }
 
                 $loanRowId = $loanMap[$b->groupLoanLegacyId] ?? null;
                 if ($loanRowId === null) {
                     $warnings[] = "pa id={$b->legacyId}: parent loan {$b->groupLoanLegacyId} missing";
+
                     continue;
                 }
                 $memberRowId = $memberMap[$b->memberLegacyId] ?? null;
                 if ($memberRowId === null) {
                     $warnings[] = "pa id={$b->legacyId}: member nia={$b->memberLegacyId} missing";
+
                     continue;
                 }
 
@@ -216,6 +220,7 @@ final class LegacyLoanLoader
                     ->exists();
                 if ($dup) {
                     $warnings[] = "pa id={$b->legacyId}: duplicate beneficiary loan={$b->groupLoanLegacyId} member={$b->memberLegacyId}";
+
                     continue;
                 }
 
@@ -284,12 +289,14 @@ final class LegacyLoanLoader
                     ->exists();
                 if ($exists) {
                     $skipped++;
+
                     continue;
                 }
 
                 $loanRowId = $loanMap[$inst->groupLoanLegacyId] ?? null;
                 if ($loanRowId === null) {
                     $warnings[] = "rencana id={$inst->legacyId}: loan {$inst->groupLoanLegacyId} missing";
+
                     continue;
                 }
 
@@ -374,12 +381,14 @@ final class LegacyLoanLoader
                     ->exists();
                 if ($exists) {
                     $skipped++;
+
                     continue;
                 }
 
                 $loanRowId = $loanMap[$pay->groupLoanLegacyId] ?? null;
                 if ($loanRowId === null) {
                     $warnings[] = "real id={$pay->legacyId}: loan {$pay->groupLoanLegacyId} missing";
+
                     continue;
                 }
 
@@ -514,7 +523,7 @@ final class LegacyLoanLoader
                     }
 
                     $payments = $db->table('loan_payments as p')
-                        ->join('loan_payment_allocations as a', function ($j) use ($tenantId): void {
+                        ->join('loan_payment_allocations as a', function ($j): void {
                             $j->on('a.tenant_id', '=', 'p.tenant_id')
                                 ->on('a.payment_row_id', '=', 'p.row_id');
                         })
@@ -537,6 +546,7 @@ final class LegacyLoanLoader
                                 if (bccomp($slot['remaining'], '0.00', 2) <= 0) {
                                     $pIdx++;
                                     unset($slot);
+
                                     continue;
                                 }
                                 $take = bccomp($amt, $slot['remaining'], 2) <= 0 ? $amt : $slot['remaining'];
@@ -554,6 +564,7 @@ final class LegacyLoanLoader
                                 if (bccomp($slot['remaining'], '0.00', 2) <= 0) {
                                     $iIdx++;
                                     unset($slot);
+
                                     continue;
                                 }
                                 $take = bccomp($amt, $slot['remaining'], 2) <= 0 ? $amt : $slot['remaining'];

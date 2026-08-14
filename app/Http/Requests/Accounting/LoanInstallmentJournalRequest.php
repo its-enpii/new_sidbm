@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Accounting;
 
-use App\Http\Requests\Concerns\AuthorizesPermission;
 use App\Domain\Accounting\Models\Account;
 use App\Domain\Lending\Models\Loan;
 use App\Domain\Membership\Models\Member;
+use App\Http\Requests\Concerns\AuthorizesPermission;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -15,7 +15,6 @@ use Illuminate\Validation\Rule;
 final class LoanInstallmentJournalRequest extends FormRequest
 {
     use AuthorizesPermission;
-
 
     public function rules(): array
     {

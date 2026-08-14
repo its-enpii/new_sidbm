@@ -8,8 +8,8 @@ use App\Models\Platform\Tenant;
 use App\Models\Platform\TenantMembership;
 use App\Models\User;
 use Illuminate\Console\Command;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 final class ProvisionDevUser extends Command

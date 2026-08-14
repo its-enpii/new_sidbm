@@ -18,14 +18,14 @@ use RuntimeException;
 final class WhatsappGatewayService
 {
     private const KEY_ENABLED = 'whatsapp.is_enabled';
+
     private const KEY_PHONE = 'whatsapp.pairing_phone';
 
     public function __construct(
         private TenantSettingService $settings,
         private TenantContext $context,
         private HttpFactory $http,
-    ) {
-    }
+    ) {}
 
     public function isEnabled(): bool
     {
@@ -295,7 +295,7 @@ final class WhatsappGatewayService
     /**
      * Endpoint 5: Send Bulk Messages via n8n POST /send-messages
      *
-     * @param list<array{number:string,text:string}> $messages
+     * @param  list<array{number:string,text:string}>  $messages
      * @return array{success:bool,count:int,message:string}
      */
     public function sendMessages(array $messages, ?string $instance = null): array
@@ -401,8 +401,8 @@ final class WhatsappGatewayService
     }
 
     /**
-     * @param array<string, mixed>|null $body
-     * @param array<string, mixed> $query
+     * @param  array<string, mixed>|null  $body
+     * @param  array<string, mixed>  $query
      */
     private function request(string $method, string $path, ?array $body = null, array $query = []): Response
     {
@@ -447,7 +447,7 @@ final class WhatsappGatewayService
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     private function extractState(array $payload): ?string
     {

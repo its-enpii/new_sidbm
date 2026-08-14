@@ -12,8 +12,7 @@ final class LegacyLendingExtractor
 {
     public function __construct(
         private LegacyConnection $legacy,
-    ) {
-    }
+    ) {}
 
     public function pinjamanKelompokCount(string $suffix): int
     {

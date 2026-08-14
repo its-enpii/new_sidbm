@@ -6,7 +6,6 @@ namespace Tests\Feature\Billing;
 
 use App\Models\Platform\DatabaseShard;
 use App\Models\Platform\Invoice;
-use App\Models\Platform\InvoicePayment;
 use App\Models\Platform\Plan;
 use App\Models\Platform\Subscription;
 use App\Models\Platform\Tenant;
@@ -14,9 +13,6 @@ use App\Models\Platform\TenantMembership;
 use App\Models\Platform\TenantPlacement;
 use App\Models\User;
 use App\Services\Billing\InvoicePaymentService;
-use App\Services\Billing\InvoiceService;
-use App\Services\Billing\SubscriptionService;
-use App\Services\Billing\TripayClient;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -14,7 +15,7 @@ return new class extends Migration
         return (string) config('tenancy.tenant_connection', 'tenant');
     }
 
-    private function schema(): \Illuminate\Database\Schema\Builder
+    private function schema(): Builder
     {
         return Schema::connection($this->connectionName());
     }

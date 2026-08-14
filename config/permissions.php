@@ -1,6 +1,28 @@
 <?php
 
 declare(strict_types=1);
+use App\Http\Requests\Accounting\JournalEntryRequest;
+use App\Http\Requests\Accounting\LoanInstallmentJournalRequest;
+use App\Http\Requests\Assets\AssetRequest;
+use App\Http\Requests\Budgeting\SaveBudgetMonthRequest;
+use App\Http\Requests\Lending\LoanApproveRequest;
+use App\Http\Requests\Lending\LoanDisburseRequest;
+use App\Http\Requests\Lending\LoanRequest;
+use App\Http\Requests\Lending\LoanRescheduleRequest;
+use App\Http\Requests\Lending\LoanUpdateRequest;
+use App\Http\Requests\Lending\LoanVerifyRequest;
+use App\Http\Requests\Lending\LoanWriteOffRequest;
+use App\Http\Requests\MasterData\GroupRequest;
+use App\Http\Requests\MasterData\MemberRequest;
+use App\Http\Requests\MasterData\OtherInstitutionRequest;
+use App\Http\Requests\MasterData\QuickMemberRequest;
+use App\Http\Requests\MasterData\VillageRequest;
+use App\Http\Requests\Settings\IdentityRequest;
+use App\Http\Requests\Settings\LendingSystemRequest;
+use App\Http\Requests\Settings\LogoUploadRequest;
+use App\Http\Requests\Settings\OrchestratorRequest;
+use App\Http\Requests\Settings\SignaturesRequest;
+use App\Http\Requests\Settings\WhatsappRequest;
 
 /**
  * Permission catalog + default role packs.
@@ -189,28 +211,28 @@ return [
      * Missing key = no extra check beyond auth.
      */
     'request_map' => [
-        \App\Http\Requests\Accounting\JournalEntryRequest::class => 'journals.create',
-        \App\Http\Requests\Accounting\LoanInstallmentJournalRequest::class => 'installments.record',
-        \App\Http\Requests\Lending\LoanRequest::class => 'loans.propose',
-        \App\Http\Requests\Lending\LoanVerifyRequest::class => 'loans.verify',
-        \App\Http\Requests\Lending\LoanApproveRequest::class => 'loans.approve',
-        \App\Http\Requests\Lending\LoanDisburseRequest::class => 'loans.disburse',
-        \App\Http\Requests\Lending\LoanUpdateRequest::class => 'loans.manage',
-        \App\Http\Requests\Lending\LoanWriteOffRequest::class => 'loans.manage',
-        \App\Http\Requests\Lending\LoanRescheduleRequest::class => 'loans.manage',
-        \App\Http\Requests\MasterData\MemberRequest::class => 'members.manage',
-        \App\Http\Requests\MasterData\QuickMemberRequest::class => 'members.manage',
-        \App\Http\Requests\MasterData\GroupRequest::class => 'groups.manage',
-        \App\Http\Requests\Budgeting\SaveBudgetMonthRequest::class => 'budgeting.manage',
-        \App\Http\Requests\Settings\IdentityRequest::class => 'settings.manage',
-        \App\Http\Requests\Settings\LendingSystemRequest::class => 'settings.manage',
-        \App\Http\Requests\Settings\LogoUploadRequest::class => 'settings.manage',
-        \App\Http\Requests\Settings\WhatsappRequest::class => 'settings.manage',
-        \App\Http\Requests\Settings\OrchestratorRequest::class => 'settings.manage',
-        \App\Http\Requests\Settings\SignaturesRequest::class => 'settings.manage',
-        \App\Http\Requests\Assets\AssetRequest::class => 'assets.manage',
-        \App\Http\Requests\MasterData\VillageRequest::class => 'villages.manage',
-        \App\Http\Requests\MasterData\OtherInstitutionRequest::class => 'institutions.manage',
+        JournalEntryRequest::class => 'journals.create',
+        LoanInstallmentJournalRequest::class => 'installments.record',
+        LoanRequest::class => 'loans.propose',
+        LoanVerifyRequest::class => 'loans.verify',
+        LoanApproveRequest::class => 'loans.approve',
+        LoanDisburseRequest::class => 'loans.disburse',
+        LoanUpdateRequest::class => 'loans.manage',
+        LoanWriteOffRequest::class => 'loans.manage',
+        LoanRescheduleRequest::class => 'loans.manage',
+        MemberRequest::class => 'members.manage',
+        QuickMemberRequest::class => 'members.manage',
+        GroupRequest::class => 'groups.manage',
+        SaveBudgetMonthRequest::class => 'budgeting.manage',
+        IdentityRequest::class => 'settings.manage',
+        LendingSystemRequest::class => 'settings.manage',
+        LogoUploadRequest::class => 'settings.manage',
+        WhatsappRequest::class => 'settings.manage',
+        OrchestratorRequest::class => 'settings.manage',
+        SignaturesRequest::class => 'settings.manage',
+        AssetRequest::class => 'assets.manage',
+        VillageRequest::class => 'villages.manage',
+        OtherInstitutionRequest::class => 'institutions.manage',
     ],
 
     'tool_map' => [

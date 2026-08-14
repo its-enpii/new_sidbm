@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Enpii\Assistant\Console;
 
-use Illuminate\Console\Command;
 use Enpii\Assistant\Jobs\CompactConversationJob;
 use Enpii\Assistant\Models\Conversation;
+use Illuminate\Console\Command;
 
 final class CompactConversationsCommand extends Command
 {

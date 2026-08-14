@@ -4,23 +4,22 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\MasterData;
 
-use App\Http\Requests\Concerns\AuthorizesPermission;
 use App\Domain\Membership\Models\Member;
+use App\Http\Requests\Concerns\AuthorizesPermission;
 use App\Models\Tenant\ActivityType;
 use App\Models\Tenant\BusinessType;
 use App\Models\Tenant\GroupFunction;
 use App\Models\Tenant\GroupLevel;
 use App\Models\Tenant\OrganizationUnit;
 use App\Tenancy\TenantContext;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 final class GroupRequest extends FormRequest
 {
     use AuthorizesPermission;
-
 
     public function rules(): array
     {
@@ -56,7 +55,9 @@ final class GroupRequest extends FormRequest
                 }
             }
 
-            if ($validator->errors()->isNotEmpty()) return;
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
 
             $villageId = (int) $this->input('village_id');
             $officerMap = [

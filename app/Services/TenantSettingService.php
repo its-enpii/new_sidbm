@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Tenant\TenantSetting;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -17,8 +16,7 @@ final class TenantSettingService
 
     public function __construct(
         private TenantContext $context,
-    ) {
-    }
+    ) {}
 
     public function get(string $key, mixed $default = null): mixed
     {

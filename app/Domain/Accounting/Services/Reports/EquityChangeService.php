@@ -17,8 +17,7 @@ final class EquityChangeService
 {
     public function __construct(
         private readonly AccountBalanceQuery $balances,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

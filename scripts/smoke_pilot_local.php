@@ -20,11 +20,12 @@ use App\Domain\Lending\Services\Reports\LoanScheduleVsActualService;
 use App\Models\Platform\Tenant;
 use App\Tenancy\Services\ShardConnectionManager;
 use App\Tenancy\TenantContext;
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 
 require __DIR__.'/../vendor/autoload.php';
 $app = require __DIR__.'/../bootstrap/app.php';
-$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$app->make(Kernel::class)->bootstrap();
 
 $out = static function (string $status, string $label, string $detail = ''): void {
     $line = str_pad("[{$status}]", 6).' '.$label;

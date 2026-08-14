@@ -11,7 +11,6 @@ final class SaveBudgetMonthRequest extends FormRequest
 {
     use AuthorizesPermission;
 
-
     /**
      * @return array<string, mixed>
      */

@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Models\Platform\Tenant;
 use App\Tenancy\Services\DefaultChartOfAccountsProvisioner;
 use App\Tenancy\Services\TenantWorkbench;
+use App\Tenancy\TenantContext;
 use Illuminate\Console\Command;
 
 final class ImportLegacyChartOfAccounts extends Command
@@ -34,7 +35,7 @@ final class ImportLegacyChartOfAccounts extends Command
                 }
 
                 if ($this->option('reset')) {
-                    $tenantId = app(\App\Tenancy\TenantContext::class)->id();
+                    $tenantId = app(TenantContext::class)->id();
                     if (! $this->confirm("Wipe all existing accounts for tenant {$tenantId}?", false)) {
                         $this->info('Aborted by user.');
 

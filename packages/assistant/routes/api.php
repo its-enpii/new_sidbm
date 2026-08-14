@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\Route;
 use Enpii\Assistant\Http\Controllers\ChatController;
 use Enpii\Assistant\Http\Controllers\ConfirmationController;
 use Enpii\Assistant\Http\Controllers\PersonaInfoController;
+use Illuminate\Support\Facades\Route;
 
 // Host app registers these under a prefix and authentication middleware:
 //   Route::middleware(['web', 'auth'])->prefix('assistant')->group(function () {

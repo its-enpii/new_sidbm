@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\Platform\Invoice;
-use App\Models\Platform\Subscription;
 use App\Services\Billing\InvoiceService;
 use Illuminate\Console\Command;
 

@@ -39,6 +39,7 @@ final class GenerateSubscriptionInvoicesCommand extends Command
 
             if ($hasOpenInvoice) {
                 $this->line("Subscription #{$subscription->row_id} (Tenant: {$subscription->tenant?->name}) sudah memiliki invoice aktif/terbuka. Dilewati.");
+
                 continue;
             }
 

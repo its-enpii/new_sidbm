@@ -11,8 +11,8 @@ use App\Models\Tenant\OrganizationUnit;
 use App\Tenancy\Services\TenantSequenceService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -21,8 +21,7 @@ final class OtherInstitutionController
 {
     public function __construct(
         private readonly PermissionChecker $permissions,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {

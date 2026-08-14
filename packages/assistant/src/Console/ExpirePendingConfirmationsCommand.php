@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Enpii\Assistant\Console;
 
-use Illuminate\Console\Command;
 use Enpii\Assistant\Models\ToolExecution;
+use Illuminate\Console\Command;
 
 final class ExpirePendingConfirmationsCommand extends Command
 {

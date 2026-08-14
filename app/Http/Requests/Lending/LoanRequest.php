@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Lending;
 
-use App\Http\Requests\Concerns\AuthorizesPermission;
 use App\Domain\Lending\Models\LoanProduct;
 use App\Domain\Membership\Models\Group;
 use App\Domain\Membership\Models\Member;
+use App\Http\Requests\Concerns\AuthorizesPermission;
 use App\Tenancy\TenantContext;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -16,12 +17,13 @@ final class LoanRequest extends FormRequest
 {
     use AuthorizesPermission;
 
-
-    public function withValidator(\Illuminate\Contracts\Validation\Validator $validator): void
+    public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator): void {
             $amounts = (array) $this->input('beneficiary_amounts', []);
-            if ($amounts === []) return;
+            if ($amounts === []) {
+                return;
+            }
 
             $total = array_sum(array_map(fn ($v) => (float) $v, $amounts));
             $principal = (float) $this->input('principal_amount', 0);

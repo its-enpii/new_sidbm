@@ -33,8 +33,8 @@ final class JournalLine extends TenantModel
             }
         };
 
-        static::updating($guard);
-        static::deleting($guard);
+        self::updating($guard);
+        self::deleting($guard);
     }
 
     public function entry(): BelongsTo

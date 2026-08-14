@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Accounting;
 
 use App\Domain\Access\Services\PermissionChecker;
+use App\Domain\Accounting\Models\Account;
+use App\Domain\Accounting\Services\AccountBalanceQuery;
 use App\Domain\Accounting\Services\Reports\AnnualReportPackService;
 use App\Domain\Accounting\Services\Reports\BalanceSheetService;
 use App\Domain\Accounting\Services\Reports\CalkService;
@@ -16,6 +18,7 @@ use App\Domain\Accounting\Services\Reports\IncomeStatementService;
 use App\Domain\Accounting\Services\Reports\JournalListingService;
 use App\Domain\Accounting\Services\Reports\TrialBalanceService;
 use App\Domain\Assets\Services\AssetReportService;
+use App\Domain\Membership\Models\OrganizationProfile;
 use App\Models\User;
 use App\Support\ReportPdf;
 use Illuminate\Http\RedirectResponse;
@@ -42,8 +45,7 @@ final class ReportController
         private readonly AssetReportService $assetReportService,
         private readonly AnnualReportPackService $annualReportPack,
         private readonly ReportPdf $pdf,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): InertiaResponse
     {
@@ -498,7 +500,7 @@ final class ReportController
      */
     private function generalLedgerEmpty(int $year, ?int $month): array
     {
-        $options = \App\Domain\Accounting\Models\Account::query()
+        $options = Account::query()
             ->where('is_postable', true)
             ->where('is_active', true)
             ->orderBy('code')
@@ -511,9 +513,9 @@ final class ReportController
             ])
             ->all();
 
-        $balances = app(\App\Domain\Accounting\Services\AccountBalanceQuery::class);
+        $balances = app(AccountBalanceQuery::class);
         $period = $balances->resolvePeriod($year, $month);
-        $profile = \App\Domain\Membership\Models\OrganizationProfile::query()->first();
+        $profile = OrganizationProfile::query()->first();
 
         return [
             'period' => $period,

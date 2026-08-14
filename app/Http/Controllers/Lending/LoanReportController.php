@@ -26,8 +26,7 @@ final class LoanReportController
         private readonly LppReportService $lpp,
         private readonly CollectibilityReportService $collectibility,
         private readonly ReportPdf $pdf,
-    ) {
-    }
+    ) {}
 
     public function portfolio(Request $request): InertiaResponse
     {

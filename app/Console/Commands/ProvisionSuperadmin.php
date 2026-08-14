@@ -30,6 +30,7 @@ final class ProvisionSuperadmin extends Command
 
         if ($password === '') {
             $this->error('A password is required.');
+
             return self::INVALID;
         }
 
@@ -47,6 +48,7 @@ final class ProvisionSuperadmin extends Command
         );
 
         $this->info("Provisioned superadmin [{$this->option('username')}].");
+
         return self::SUCCESS;
     }
 }

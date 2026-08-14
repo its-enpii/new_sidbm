@@ -27,8 +27,7 @@ final class MasterDataCsvService
         private readonly MemberService $members,
         private readonly TenantGroupMasterDataProvisioner $groupMasterData,
         private readonly TenantSequenceService $sequences,
-    ) {
-    }
+    ) {}
 
     public function exportMembers(): StreamedResponse
     {
@@ -73,23 +72,28 @@ final class MasterDataCsvService
 
             if ($nik === '' && $name === '') {
                 $skipped++;
+
                 continue;
             }
 
             if (strlen($nik) !== 16) {
                 $errors[] = "Baris {$line}: NIK harus 16 digit.";
+
                 continue;
             }
             if ($name === '') {
                 $errors[] = "Baris {$line}: Nama wajib diisi.";
+
                 continue;
             }
             if (! in_array($gender, ['L', 'P'], true)) {
                 $errors[] = "Baris {$line}: Jenis kelamin harus L atau P.";
+
                 continue;
             }
             if ($address === '') {
                 $errors[] = "Baris {$line}: Alamat wajib diisi.";
+
                 continue;
             }
             if (! in_array($status, ['active', 'exited', 'deceased'], true)) {
@@ -99,12 +103,14 @@ final class MasterDataCsvService
             $village = $this->findVillage($villageName);
             if ($village === null) {
                 $errors[] = "Baris {$line}: Desa \"{$villageName}\" tidak ditemukan.";
+
                 continue;
             }
 
             $exists = Person::query()->where('national_identity_number', $nik)->exists();
             if ($exists) {
                 $skipped++;
+
                 continue;
             }
 
@@ -180,12 +186,14 @@ final class MasterDataCsvService
 
             if ($name === '') {
                 $skipped++;
+
                 continue;
             }
 
             $village = $this->findVillage($villageName);
             if ($village === null) {
                 $errors[] = "Baris {$line}: Desa \"{$villageName}\" tidak ditemukan.";
+
                 continue;
             }
 
@@ -199,6 +207,7 @@ final class MasterDataCsvService
                 ->exists();
             if ($exists) {
                 $skipped++;
+
                 continue;
             }
 
@@ -268,24 +277,29 @@ final class MasterDataCsvService
 
             if ($name === '') {
                 $skipped++;
+
                 continue;
             }
             if ($identity === '') {
                 $errors[] = "Baris {$line}: Nomor identitas wajib diisi.";
+
                 continue;
             }
             if ($leader === '') {
                 $errors[] = "Baris {$line}: Nama pimpinan wajib diisi.";
+
                 continue;
             }
             if ($responsible === '') {
                 $errors[] = "Baris {$line}: Nama penanggungjawab wajib diisi.";
+
                 continue;
             }
 
             $village = $this->findVillage($villageName);
             if ($village === null) {
                 $errors[] = "Baris {$line}: Desa \"{$villageName}\" tidak ditemukan.";
+
                 continue;
             }
 
@@ -295,6 +309,7 @@ final class MasterDataCsvService
                 ->exists();
             if ($exists) {
                 $skipped++;
+
                 continue;
             }
 

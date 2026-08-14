@@ -6,6 +6,7 @@ namespace App\Domain\Lending\Services\Reports;
 
 use App\Domain\Documents\Services\SignatureTemplateService;
 use App\Domain\Lending\Models\Loan;
+use App\Domain\Membership\Models\GroupOfficer;
 use App\Domain\Membership\Models\OrganizationProfile;
 use Carbon\CarbonImmutable;
 use DomainException;
@@ -54,7 +55,7 @@ final class LoanDocumentService
         ['key' => 'kuitansi_anggota',             'label' => 'Kuitansi per Anggota',           'stage' => 'disbursement', 'view' => 'reports.pdf.loan_documents.kuitansi_anggota',             'signature' => 'kwitansi',          'orientation' => 'portrait',  'icon' => 'receipt'],
         ['key' => 'tagihan',                      'label' => 'Surat Tagihan',                  'stage' => 'disbursement', 'view' => 'reports.pdf.loan_documents.tagihan',                      'signature' => 'kwitansi',          'orientation' => 'portrait',  'icon' => 'request_quote'],
         ['key' => 'surat_ahli_waris',             'label' => 'Surat Pernyataan Ahli Waris',    'stage' => 'disbursement', 'view' => 'reports.pdf.loan_documents.surat_ahli_waris',             'signature' => 'default',           'orientation' => 'portrait',  'icon' => 'family_restroom'],
-        ['key' => 'surat_kuasa',                  'label' => 'Surat Kuasa Penandatanganan SPK','stage' => 'disbursement', 'view' => 'reports.pdf.loan_documents.surat_kuasa',                 'signature' => 'default',           'orientation' => 'portrait',  'icon' => 'assignment_late'],
+        ['key' => 'surat_kuasa',                  'label' => 'Surat Kuasa Penandatanganan SPK', 'stage' => 'disbursement', 'view' => 'reports.pdf.loan_documents.surat_kuasa',                 'signature' => 'default',           'orientation' => 'portrait',  'icon' => 'assignment_late'],
 
         // Iterasi 4 — Penunjang
         ['key' => 'anggota',                      'label' => 'Daftar Anggota Kelompok',        'stage' => 'proposal',     'view' => 'reports.pdf.loan_documents.anggota',                      'signature' => null,                'orientation' => 'portrait',  'icon' => 'people'],
@@ -64,7 +65,7 @@ final class LoanDocumentService
         ['key' => 'tanggung_renteng_kematian',    'label' => 'Surat Pernyataan TR Kematian',   'stage' => 'disbursement', 'view' => 'reports.pdf.loan_documents.tanggung_renteng_kematian',    'signature' => 'default',           'orientation' => 'portrait',  'icon' => 'volunteer_activism'],
         ['key' => 'iptw',                         'label' => 'Daftar Penerima IPTW',          'stage' => 'disbursement', 'view' => 'reports.pdf.loan_documents.iptw',                         'signature' => 'default',           'orientation' => 'portrait',  'icon' => 'savings'],
         ['key' => 'rekening_koran',               'label' => 'Rekening Koran Pinjaman',       'stage' => 'disbursement', 'view' => 'reports.pdf.loan_documents.rekening_koran',               'signature' => null,                'orientation' => 'portrait',  'icon' => 'account_balance'],
-        ['key' => 'pernyataan_peminjam',          'label' => 'Surat Pengakuan Utang Peminjam','stage' => 'disbursement', 'view' => 'reports.pdf.loan_documents.pernyataan_peminjam',          'signature' => 'default',           'orientation' => 'portrait',  'icon' => 'history_edu'],
+        ['key' => 'pernyataan_peminjam',          'label' => 'Surat Pengakuan Utang Peminjam', 'stage' => 'disbursement', 'view' => 'reports.pdf.loan_documents.pernyataan_peminjam',          'signature' => 'default',           'orientation' => 'portrait',  'icon' => 'history_edu'],
         ['key' => 'daftar_hadir_pencairan',       'label' => 'Daftar Hadir Pencairan',        'stage' => 'disbursement', 'view' => 'reports.pdf.loan_documents.daftar_hadir_pencairan',       'signature' => null,                'orientation' => 'portrait',  'icon' => 'event_available'],
     ];
 
@@ -81,8 +82,7 @@ final class LoanDocumentService
 
     public function __construct(
         private readonly SignatureTemplateService $signatures,
-    ) {
-    }
+    ) {}
 
     /**
      * @return list<array{key: string, label: string, stage: string, signature: ?string, orientation: string, icon: string}>
@@ -446,7 +446,7 @@ final class LoanDocumentService
             return '';
         }
 
-        $officer = \App\Domain\Membership\Models\GroupOfficer::query()
+        $officer = GroupOfficer::query()
             ->where('group_row_id', $groupRowId)
             ->where('position', $position)
             ->whereNull('ended_at')

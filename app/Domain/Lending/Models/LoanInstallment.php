@@ -8,7 +8,6 @@ use App\Models\Tenant\TenantModel;
 use App\Tenancy\Concerns\HasTenantLocalId;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-
 final class LoanInstallment extends TenantModel
 {
     use HasTenantLocalId;

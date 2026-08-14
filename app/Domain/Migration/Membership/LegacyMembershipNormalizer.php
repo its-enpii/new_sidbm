@@ -31,8 +31,7 @@ final class LegacyMembershipNormalizer
 
     public function __construct(
         private TenantContext $context,
-    ) {
-    }
+    ) {}
 
     public function warmCaches(): void
     {

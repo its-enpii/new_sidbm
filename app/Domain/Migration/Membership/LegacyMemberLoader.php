@@ -16,8 +16,7 @@ final class LegacyMemberLoader
     public function __construct(
         private TenantContext $context,
         private TenantSequenceService $sequences,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  list<NormalizedMemberBundle>  $members
@@ -53,6 +52,7 @@ final class LegacyMemberLoader
                     ->exists();
                 if ($already) {
                     $skipped++;
+
                     continue;
                 }
 

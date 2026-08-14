@@ -14,8 +14,7 @@ final readonly class MonthlyBalanceRecalculator
 {
     public function __construct(
         private TenantContext $context,
-    ) {
-    }
+    ) {}
 
     public function recalculate(int $year, int $month): int
     {

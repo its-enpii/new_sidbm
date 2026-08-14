@@ -20,8 +20,7 @@ final class AnnualReportPackService
 {
     public function __construct(
         private readonly TenantContext $context,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

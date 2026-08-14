@@ -13,9 +13,9 @@ use App\Domain\Membership\Models\Member;
 use App\Domain\Membership\Models\Person;
 use App\Domain\Onboarding\Services\TenantOnboardingService;
 use App\Models\User;
-use App\Tenancy\TenantContext;
-use Illuminate\Support\Str;
+use App\Tenancy\Services\TenantLoanProductProvisioner;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Tests\Concerns\BuildsTenantTestDatabase;
 use Tests\TestCase;
@@ -25,6 +25,7 @@ final class TenantOnboardingTest extends TestCase
     use BuildsTenantTestDatabase;
 
     private TenantOnboardingService $service;
+
     private User $user;
 
     protected function setUp(): void
@@ -98,7 +99,7 @@ final class TenantOnboardingTest extends TestCase
 
     public function test_can_import_active_loans_with_fifo_payments(): void
     {
-        app(\App\Tenancy\Services\TenantLoanProductProvisioner::class)->ensureDefaults();
+        app(TenantLoanProductProvisioner::class)->ensureDefaults();
         $product = LoanProduct::query()->first();
 
         $person = Person::query()->create([
@@ -114,8 +115,8 @@ final class TenantOnboardingTest extends TestCase
             'status' => 'active',
         ]);
 
-        $csvContent = "nomor_spk,nik_anggota,nama_kelompok,tanggal_pencairan,plafon_pinjaman,bunga_persen,jangka_bulan,akumulasi_pokok_dibayar,akumulasi_bunga_dibayar\n" .
-            "SPK-TEST-001,3515011203900099,,2026-01-01,12000000,10,12,3000000,300000";
+        $csvContent = "nomor_spk,nik_anggota,nama_kelompok,tanggal_pencairan,plafon_pinjaman,bunga_persen,jangka_bulan,akumulasi_pokok_dibayar,akumulasi_bunga_dibayar\n".
+            'SPK-TEST-001,3515011203900099,,2026-01-01,12000000,10,12,3000000,300000';
 
         $file = UploadedFile::fake()->createWithContent('active_loans.csv', $csvContent);
 

@@ -9,6 +9,7 @@ use App\Domain\Lending\Models\Loan;
 use App\Domain\Membership\Models\Group;
 use App\Domain\Membership\Models\Member;
 use App\Domain\Membership\Models\OrganizationProfile;
+use App\Http\Controllers\Lending\LoanController;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -33,7 +34,7 @@ final class DashboardService
 
     /**
      * Map pipeline tab key (Indeks di URL) ke daftar status yang harus dicakup.
-     * Disengaja reuse dengan {@see \App\Http\Controllers\Lending\LoanController::index()}.
+     * Disengaja reuse dengan {@see LoanController::index()}.
      */
     private const PIPELINE_STATUS_MAP = [
         'proposal' => ['draft'],
@@ -44,8 +45,7 @@ final class DashboardService
 
     public function __construct(
         private readonly TenantContext $context,
-    ) {
-    }
+    ) {}
 
     private function tenantId(): int
     {
@@ -256,7 +256,7 @@ final class DashboardService
      * Daftar pinjaman ringkas (maks {@see self::PIPELINE_MODAL_LIMIT}) untuk modal
      * pipeline dashboard. Hanya menampilkan kolom yang relevan dengan status.
      *
-     * Mapping status diselaraskan dengan {@see \App\Http\Controllers\Lending\LoanController::index()}.
+     * Mapping status diselaraskan dengan {@see LoanController::index()}.
      *
      * @return null|array{key:string,label:string,total:int,limit:int,rows:list<array<string,mixed>>}
      */
@@ -344,6 +344,7 @@ final class DashboardService
             if ($value === null) {
                 $value = $loan->principal_amount;
             }
+
             return $value !== null ? (float) $value : null;
         };
 

@@ -21,8 +21,7 @@ abstract class ToolHandlerBase implements ToolHandler
 {
     public function __construct(
         protected readonly AssistantToolService $tools,
-    ) {
-    }
+    ) {}
 
     abstract public function name(): string;
 

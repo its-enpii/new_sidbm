@@ -13,8 +13,7 @@ final class DuitkuClient
 {
     public function __construct(
         private readonly ?PlatformSettingService $settings = null,
-    ) {
-    }
+    ) {}
 
     public function getMerchantCode(): string
     {
@@ -39,14 +38,7 @@ final class DuitkuClient
     /**
      * Create inquiry transaction with Duitku API v2.
      *
-     * @param int $amount
-     * @param string $merchantRef (merchantOrderId)
-     * @param string $customerName
-     * @param string|null $customerEmail
-     * @param array $orderItems
-     * @param string|null $paymentMethod
-     * @param string|null $returnUrl
-     * @return array
+     * @param  string  $merchantRef  (merchantOrderId)
      */
     public function createTransaction(
         int $amount,
@@ -66,13 +58,13 @@ final class DuitkuClient
         }
 
         // Signature for Inquiry V2: MD5(merchantcode + merchantOrderId + paymentAmount + apiKey)
-        $signature = md5($merchantCode . $merchantRef . $amount . $apiKey);
+        $signature = md5($merchantCode.$merchantRef.$amount.$apiKey);
 
         $productDetail = ! empty($orderItems) && isset($orderItems[0]['name'])
             ? (string) $orderItems[0]['name']
-            : 'Pembayaran Invoice ' . $merchantRef;
+            : 'Pembayaran Invoice '.$merchantRef;
 
-        $email = $customerEmail ?: 'billing@' . parse_url((string) config('app.url', 'http://localhost'), PHP_URL_HOST);
+        $email = $customerEmail ?: 'billing@'.parse_url((string) config('app.url', 'http://localhost'), PHP_URL_HOST);
         $cbUrl = (string) (config('duitku.callback_url') ?: route('duitku.callback'));
         $retUrl = $returnUrl ?: (string) (config('duitku.return_url') ?: config('app.url', 'http://localhost'));
 
@@ -98,11 +90,11 @@ final class DuitkuClient
                 ->throw()
                 ->json();
         } catch (RequestException $exception) {
-            throw new RuntimeException('Gagal membuat transaksi Duitku: ' . $exception->getMessage(), previous: $exception);
+            throw new RuntimeException('Gagal membuat transaksi Duitku: '.$exception->getMessage(), previous: $exception);
         }
 
         if (($response['statusCode'] ?? '') !== '00') {
-            throw new RuntimeException('Duitku menolak transaksi: ' . ($response['statusMessage'] ?? 'Unknown Error'));
+            throw new RuntimeException('Duitku menolak transaksi: '.($response['statusMessage'] ?? 'Unknown Error'));
         }
 
         return [
@@ -122,7 +114,6 @@ final class DuitkuClient
     /**
      * Get active payment methods from Duitku.
      *
-     * @param int $amount
      * @return list<array{code: string, name: string, group: string, fee_flat: int, fee_percent: float, icon_url: ?string, is_active: bool}>
      */
     public function getPaymentChannels(int $amount = 10000): array
@@ -133,7 +124,7 @@ final class DuitkuClient
         if ($merchantCode !== '' && $apiKey !== '') {
             $datetime = date('Y-m-d H:i:s');
             // Signature for getpaymentmethod: SHA256(merchantcode + amount + datetime + apiKey)
-            $signature = hash('sha256', $merchantCode . $amount . $datetime . $apiKey);
+            $signature = hash('sha256', $merchantCode.$amount.$datetime.$apiKey);
 
             try {
                 $response = Http::baseUrl($this->baseUrl())
@@ -188,9 +179,6 @@ final class DuitkuClient
 
     /**
      * Check transaction status directly with Duitku API.
-     *
-     * @param string $merchantOrderId
-     * @return array|null
      */
     public function checkTransactionStatus(string $merchantOrderId): ?array
     {
@@ -202,7 +190,7 @@ final class DuitkuClient
         }
 
         // Signature: MD5(merchantCode + merchantOrderId + apiKey)
-        $signature = md5($merchantCode . $merchantOrderId . $apiKey);
+        $signature = md5($merchantCode.$merchantOrderId.$apiKey);
 
         try {
             $response = Http::baseUrl($this->baseUrl())
@@ -238,7 +226,7 @@ final class DuitkuClient
             return false;
         }
 
-        $expected = md5($merchantCode . $amount . $merchantOrderId . $apiKey);
+        $expected = md5($merchantCode.$amount.$merchantOrderId.$apiKey);
 
         return hash_equals(strtolower($expected), strtolower($callbackSignature));
     }

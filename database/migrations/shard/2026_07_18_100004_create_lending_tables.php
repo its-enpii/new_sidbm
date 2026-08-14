@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -14,7 +15,7 @@ return new class extends Migration
         return (string) config('tenancy.tenant_connection', 'tenant');
     }
 
-    private function schema(): \Illuminate\Database\Schema\Builder
+    private function schema(): Builder
     {
         return Schema::connection($this->connectionName());
     }
@@ -199,19 +200,19 @@ return new class extends Migration
         });
 
         if (DB::connection($this->connectionName())->getDriverName() !== 'sqlite') {
-        DB::connection($this->connectionName())->statement(
-            "ALTER TABLE loan_products ADD CONSTRAINT chk_loan_product_borrower_scope CHECK (borrower_scope IN ('member', 'group', 'both'))"
-        );
-        DB::connection($this->connectionName())->statement(
-            "ALTER TABLE loans ADD CONSTRAINT chk_loans_legacy_source CHECK (legacy_source IN ('member_loan', 'group_loan'))"
-        );
-        DB::connection($this->connectionName())->statement(
-            'ALTER TABLE loan_borrowers ADD CONSTRAINT chk_loan_borrower_one_owner CHECK ((member_row_id IS NOT NULL AND group_row_id IS NULL) OR (member_row_id IS NULL AND group_row_id IS NOT NULL))'
-        );
-        DB::connection($this->connectionName())->statement(
-            "ALTER TABLE loan_payment_allocations ADD CONSTRAINT chk_payment_component CHECK (component IN ('principal', 'interest', 'penalty', 'insurance', 'other'))"
-        );
-    }
+            DB::connection($this->connectionName())->statement(
+                "ALTER TABLE loan_products ADD CONSTRAINT chk_loan_product_borrower_scope CHECK (borrower_scope IN ('member', 'group', 'both'))"
+            );
+            DB::connection($this->connectionName())->statement(
+                "ALTER TABLE loans ADD CONSTRAINT chk_loans_legacy_source CHECK (legacy_source IN ('member_loan', 'group_loan'))"
+            );
+            DB::connection($this->connectionName())->statement(
+                'ALTER TABLE loan_borrowers ADD CONSTRAINT chk_loan_borrower_one_owner CHECK ((member_row_id IS NOT NULL AND group_row_id IS NULL) OR (member_row_id IS NULL AND group_row_id IS NOT NULL))'
+            );
+            DB::connection($this->connectionName())->statement(
+                "ALTER TABLE loan_payment_allocations ADD CONSTRAINT chk_payment_component CHECK (component IN ('principal', 'interest', 'penalty', 'insurance', 'other'))"
+            );
+        }
     }
 
     public function down(): void

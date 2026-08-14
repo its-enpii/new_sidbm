@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Enpii\Assistant;
 
-use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Support\ServiceProvider;
 use Enpii\Assistant\Console\CompactConversationsCommand;
 use Enpii\Assistant\Console\ExpirePendingConfirmationsCommand;
 use Enpii\Assistant\Console\ReindexKnowledgeCommand;
@@ -23,6 +21,8 @@ use Enpii\Assistant\Services\Tools\SafeHttpClient;
 use Enpii\Assistant\Services\Tools\ToolExecutor;
 use Enpii\Assistant\Services\Tools\ToolRegistry;
 use Enpii\Assistant\Services\Tools\WebTools;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\ServiceProvider;
 
 class AssistantServiceProvider extends ServiceProvider
 {

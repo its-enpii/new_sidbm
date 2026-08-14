@@ -22,8 +22,7 @@ final class PeriodCloseController
         private readonly FiscalPeriodCloseService $closer,
         private readonly ProfitAllocationService $allocation,
         private readonly TrialBalanceService $trialBalance,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {

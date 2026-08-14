@@ -43,6 +43,7 @@ final class Chunker
                 foreach ($this->hardSplit($p) as $piece) {
                     $chunks[] = $piece;
                 }
+
                 continue;
             }
             $candidate = $buffer === '' ? $p : $buffer."\n\n".$p;

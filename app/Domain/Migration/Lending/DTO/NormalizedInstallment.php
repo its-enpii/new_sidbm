@@ -17,6 +17,5 @@ final readonly class NormalizedInstallment
         public string $principalDue,
         public string $interestDue,
         public array $snapshot,
-    ) {
-    }
+    ) {}
 }

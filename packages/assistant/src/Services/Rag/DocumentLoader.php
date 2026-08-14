@@ -11,8 +11,7 @@ final class DocumentLoader
 {
     public function __construct(
         private readonly ?OcrRunner $ocr = null,
-    ) {
-    }
+    ) {}
 
     /**
      * @throws RuntimeException when file can't be read
@@ -35,7 +34,7 @@ final class DocumentLoader
 
     private function loadPdf(string $path): string
     {
-        $parser = new PdfParser();
+        $parser = new PdfParser;
         $pdf = $parser->parseFile($path);
         $text = $pdf->getText();
 

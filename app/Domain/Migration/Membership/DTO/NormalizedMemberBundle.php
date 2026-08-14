@@ -29,6 +29,5 @@ final readonly class NormalizedMemberBundle
         public ?string $guarantorNik,
         public ?string $guarantorRelationship,
         public array $snapshot,
-    ) {
-    }
+    ) {}
 }

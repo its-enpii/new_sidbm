@@ -12,7 +12,6 @@ use App\Models\Platform\Tenant;
 use App\Models\Platform\TenantMembership;
 use App\Models\Platform\TenantPlacement;
 use App\Models\User;
-use App\Services\Billing\TripayClient;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;

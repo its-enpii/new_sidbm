@@ -6,11 +6,11 @@ namespace App\Http\Requests\Lending;
 
 use App\Http\Requests\Concerns\AuthorizesPermission;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 final class LoanUpdateRequest extends FormRequest
 {
     use AuthorizesPermission;
-
 
     public function rules(): array
     {
@@ -19,9 +19,9 @@ final class LoanUpdateRequest extends FormRequest
             'principal_amount' => ['required', 'numeric', 'min:1'],
             'service_rate_total' => ['required', 'numeric', 'min:0', 'max:5000'],
             'term_months' => ['required', 'integer', 'min:1', 'max:120'],
-            'installment_method' => ['required', \Illuminate\Validation\Rule::in(['flat', 'annuity', 'effective'])],
-            'principal_frequency' => ['required', \Illuminate\Validation\Rule::in(['weekly', 'biweekly', 'monthly', 'bimonthly', 'quarterly', 'at_maturity'])],
-            'interest_frequency' => ['required', \Illuminate\Validation\Rule::in(['weekly', 'biweekly', 'monthly', 'bimonthly', 'quarterly'])],
+            'installment_method' => ['required', Rule::in(['flat', 'annuity', 'effective'])],
+            'principal_frequency' => ['required', Rule::in(['weekly', 'biweekly', 'monthly', 'bimonthly', 'quarterly', 'at_maturity'])],
+            'interest_frequency' => ['required', Rule::in(['weekly', 'biweekly', 'monthly', 'bimonthly', 'quarterly'])],
             'beneficiary_amounts' => ['required', 'array', 'min:1'],
             'beneficiary_amounts.*' => ['required', 'numeric', 'min:0'],
         ];

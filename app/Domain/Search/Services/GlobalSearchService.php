@@ -24,8 +24,7 @@ final class GlobalSearchService
     public function __construct(
         private readonly TenantContext $context,
         private readonly PermissionChecker $permissions,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{

@@ -10,6 +10,7 @@ use App\Tenancy\TenantResolver;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 final readonly class ResolveTenant
 {
@@ -17,8 +18,7 @@ final readonly class ResolveTenant
         private TenantResolver $resolver,
         private TenantContext $context,
         private ShardConnectionManager $connectionManager,
-    ) {
-    }
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -49,7 +49,7 @@ final readonly class ResolveTenant
         $shard = $placement?->shard;
 
         if ($placement === null || $shard === null) {
-            throw new \Symfony\Component\HttpKernel\Exception\BadRequestHttpException('Tenant placement is incomplete.');
+            throw new BadRequestHttpException('Tenant placement is incomplete.');
         }
 
         $this->connectionManager->connect($shard);

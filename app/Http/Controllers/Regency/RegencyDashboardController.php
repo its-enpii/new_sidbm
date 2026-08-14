@@ -14,8 +14,7 @@ final class RegencyDashboardController
 {
     public function __construct(
         private readonly RegencyConsolidatedReportService $reportService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {

@@ -12,7 +12,6 @@ final class LendingSystemRequest extends FormRequest
 {
     use AuthorizesPermission;
 
-
     public function rules(): array
     {
         return [

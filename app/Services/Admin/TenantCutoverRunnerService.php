@@ -70,6 +70,7 @@ final class TenantCutoverRunnerService
                 if ($step['skip']) {
                     $logBuffer .= sprintf("[SKIP] %s (%s)\n", $step['label'], $step['name']);
                     $run->update(['output_log' => $logBuffer]);
+
                     continue;
                 }
 
@@ -84,7 +85,7 @@ final class TenantCutoverRunnerService
                 $output = trim(Artisan::output());
 
                 if ($output !== '') {
-                    $logBuffer .= $output . "\n";
+                    $logBuffer .= $output."\n";
                 }
 
                 $ok = ($exitCode === 0);
@@ -128,13 +129,13 @@ final class TenantCutoverRunnerService
                 'status' => 'failed',
                 'completed_at' => now(),
                 'error_message' => $e->getMessage(),
-                'output_log' => ($run->output_log ?? '') . "\n[ERROR EXCEPTION] " . $e->getMessage() . "\n" . $e->getTraceAsString(),
+                'output_log' => ($run->output_log ?? '')."\n[ERROR EXCEPTION] ".$e->getMessage()."\n".$e->getTraceAsString(),
             ]);
         }
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param  array<string, mixed>  $options
      * @return list<array{name: string, label: string, command: string, params: array<string, mixed>, skip: bool}>
      */
     private function buildSteps(

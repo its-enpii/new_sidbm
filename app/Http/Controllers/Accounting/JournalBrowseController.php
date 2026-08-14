@@ -21,8 +21,7 @@ final class JournalBrowseController
         private readonly PermissionChecker $permissions,
         private readonly JournalBrowseService $browse,
         private readonly JournalReversalService $reversals,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {

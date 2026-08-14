@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Enpii\Assistant\Services\Tools;
 
-use Illuminate\Validation\ValidationException;
 use Enpii\Assistant\Contracts\ToolContext;
 use Enpii\Assistant\Contracts\ToolHandler;
 use Enpii\Assistant\Models\Tool;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
@@ -20,8 +20,7 @@ final class ToolExecutor
 {
     public function __construct(
         private readonly ToolRegistry $registry,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $params

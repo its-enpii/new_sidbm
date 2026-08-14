@@ -19,8 +19,7 @@ final class BillingNoticeController
         private readonly WhatsappNotificationService $notices,
         private readonly WhatsappGatewayService $gateway,
         private readonly PermissionChecker $permissions,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {

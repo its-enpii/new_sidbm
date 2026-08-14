@@ -27,8 +27,7 @@ final class LendingMigrationPipeline
         private LendingMigrationReconciler $reconciler,
         private TenantSequenceService $sequences,
         private TenantLoanProductProvisioner $products,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -60,7 +59,7 @@ final class LendingMigrationPipeline
         $this->products->ensureDefaults();
         $this->normalizer->warmCaches();
 
-        $isMapped = function (string $sourceTable, string $sourceId, string $secondary = '') : bool {
+        $isMapped = function (string $sourceTable, string $sourceId, string $secondary = ''): bool {
             return DB::connection((string) config('tenancy.tenant_connection', 'tenant'))
                 ->table('legacy_record_mappings')
                 ->where('tenant_id', $this->context->id())
@@ -97,6 +96,7 @@ final class LendingMigrationPipeline
                     $r = $this->normalizer->normalizeGroupLoan($row, $pkTable, $isMapped);
                     if ($r['skip']) {
                         $counts['would_skip_loans']++;
+
                         continue;
                     }
                     if ($r['error'] !== null) {
@@ -104,6 +104,7 @@ final class LendingMigrationPipeline
                         if ($failFast) {
                             break 2;
                         }
+
                         continue;
                     }
                     $counts['would_insert_loans']++;
@@ -117,6 +118,7 @@ final class LendingMigrationPipeline
                     $r = $this->normalizer->normalizeBeneficiary($row, $paTable, $isMapped);
                     if ($r['skip']) {
                         $counts['would_skip_beneficiaries']++;
+
                         continue;
                     }
                     if ($r['error'] !== null) {
@@ -124,6 +126,7 @@ final class LendingMigrationPipeline
                         if ($failFast) {
                             break 2;
                         }
+
                         continue;
                     }
                     $counts['would_insert_beneficiaries']++;
@@ -137,6 +140,7 @@ final class LendingMigrationPipeline
                     $r = $this->normalizer->normalizeInstallment($row, $rencanaTable, $isMapped);
                     if ($r['skip']) {
                         $counts['would_skip_installments']++;
+
                         continue;
                     }
                     if ($r['error'] !== null) {
@@ -144,6 +148,7 @@ final class LendingMigrationPipeline
                         if ($failFast) {
                             break 2;
                         }
+
                         continue;
                     }
                     $counts['would_insert_installments']++;
@@ -157,6 +162,7 @@ final class LendingMigrationPipeline
                     $r = $this->normalizer->normalizePayment($row, $realTable, $isMapped);
                     if ($r['skip']) {
                         $counts['would_skip_payments']++;
+
                         continue;
                     }
                     if ($r['error'] !== null) {
@@ -164,6 +170,7 @@ final class LendingMigrationPipeline
                         if ($failFast) {
                             break 2;
                         }
+
                         continue;
                     }
                     $counts['would_insert_payments']++;

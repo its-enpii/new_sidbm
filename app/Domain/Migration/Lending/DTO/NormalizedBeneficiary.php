@@ -17,6 +17,5 @@ final readonly class NormalizedBeneficiary
         public string $proposed,
         public string $verified,
         public array $snapshot,
-    ) {
-    }
+    ) {}
 }

@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Lending;
 
-use App\Domain\Access\Services\PermissionChecker;
 use App\Domain\Documents\Services\SignatureTemplateService;
 use App\Domain\Lending\Models\Loan;
 use App\Domain\Lending\Models\LoanBeneficiary;
 use App\Domain\Lending\Models\LoanBorrower;
 use App\Domain\Lending\Models\LoanCommittee;
-use App\Domain\Lending\Models\LoanProduct;
 use App\Domain\Lending\Services\Reports\LoanDocumentService;
 use App\Domain\Membership\Models\Group;
 use App\Domain\Membership\Models\GroupOfficer;

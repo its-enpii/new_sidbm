@@ -27,8 +27,7 @@ final class InvoiceController
         private readonly DuitkuClient $duitkuClient,
         private readonly XenditClient $xenditClient,
         private readonly PlatformSettingService $settings,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request, TenantContext $context): Response
     {

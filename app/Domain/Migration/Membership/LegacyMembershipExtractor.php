@@ -12,8 +12,7 @@ final class LegacyMembershipExtractor
 {
     public function __construct(
         private LegacyConnection $legacy,
-    ) {
-    }
+    ) {}
 
     public function activeAnggotaCount(string $suffix): int
     {

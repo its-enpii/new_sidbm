@@ -22,8 +22,7 @@ final class SignatureTemplateService
 
     public function __construct(
         private TenantSettingService $settings,
-    ) {
-    }
+    ) {}
 
     /**
      * @return list<array{key: string, label: string}>

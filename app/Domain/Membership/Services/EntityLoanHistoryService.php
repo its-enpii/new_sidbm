@@ -15,8 +15,7 @@ final class EntityLoanHistoryService
 {
     public function __construct(
         private readonly TenantContext $context,
-    ) {
-    }
+    ) {}
 
     /**
      * @return list<array<string, mixed>>
@@ -28,19 +27,19 @@ final class EntityLoanHistoryService
         // As group-loan beneficiary
         $asBeneficiary = DB::connection('tenant')
             ->table('loan_beneficiaries as lb')
-            ->join('loans as l', function ($j) use ($tenantId): void {
+            ->join('loans as l', function ($j): void {
                 $j->on('l.tenant_id', '=', 'lb.tenant_id')
                     ->on('l.row_id', '=', 'lb.loan_row_id');
             })
-            ->leftJoin('loan_borrowers as b', function ($j) use ($tenantId): void {
+            ->leftJoin('loan_borrowers as b', function ($j): void {
                 $j->on('b.tenant_id', '=', 'l.tenant_id')
                     ->on('b.loan_row_id', '=', 'l.row_id');
             })
-            ->leftJoin('groups as g', function ($j) use ($tenantId): void {
+            ->leftJoin('groups as g', function ($j): void {
                 $j->on('g.tenant_id', '=', 'b.tenant_id')
                     ->on('g.row_id', '=', 'b.group_row_id');
             })
-            ->leftJoin('loan_products as p', function ($j) use ($tenantId): void {
+            ->leftJoin('loan_products as p', function ($j): void {
                 $j->on('p.tenant_id', '=', 'l.tenant_id')
                     ->on('p.row_id', '=', 'l.loan_product_row_id');
             })
@@ -65,11 +64,11 @@ final class EntityLoanHistoryService
         // As direct borrower (member_loan)
         $asBorrower = DB::connection('tenant')
             ->table('loan_borrowers as b')
-            ->join('loans as l', function ($j) use ($tenantId): void {
+            ->join('loans as l', function ($j): void {
                 $j->on('l.tenant_id', '=', 'b.tenant_id')
                     ->on('l.row_id', '=', 'b.loan_row_id');
             })
-            ->leftJoin('loan_products as p', function ($j) use ($tenantId): void {
+            ->leftJoin('loan_products as p', function ($j): void {
                 $j->on('p.tenant_id', '=', 'l.tenant_id')
                     ->on('p.row_id', '=', 'l.loan_product_row_id');
             })
@@ -127,11 +126,11 @@ final class EntityLoanHistoryService
 
         $rows = DB::connection('tenant')
             ->table('loan_borrowers as b')
-            ->join('loans as l', function ($j) use ($tenantId): void {
+            ->join('loans as l', function ($j): void {
                 $j->on('l.tenant_id', '=', 'b.tenant_id')
                     ->on('l.row_id', '=', 'b.loan_row_id');
             })
-            ->leftJoin('loan_products as p', function ($j) use ($tenantId): void {
+            ->leftJoin('loan_products as p', function ($j): void {
                 $j->on('p.tenant_id', '=', 'l.tenant_id')
                     ->on('p.row_id', '=', 'l.loan_product_row_id');
             })
@@ -162,7 +161,6 @@ final class EntityLoanHistoryService
     }
 
     /**
-     * @param  object  $r
      * @return array<string, mixed>
      */
     private function presentLoan(object $r, string $role, ?float $allocated, ?string $groupName): array

@@ -16,8 +16,7 @@ final class TaxEstimateController
     public function __construct(
         private readonly TaxEstimateService $estimates,
         private readonly PermissionChecker $permissions,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {

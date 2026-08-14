@@ -21,8 +21,7 @@ final readonly class AccountBalanceQuery
 
     public function __construct(
         private TenantContext $context,
-    ) {
-    }
+    ) {}
 
     /**
      * Inclusive from, exclusive until.

@@ -11,7 +11,6 @@ final class LoanVerifyRequest extends FormRequest
 {
     use AuthorizesPermission;
 
-
     public function rules(): array
     {
         return [

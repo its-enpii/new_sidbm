@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Assistant;
 
 use App\Tenancy\TenantContext;
-use Illuminate\Http\Request;
 use Enpii\Assistant\Contracts\SessionResolver;
+use Illuminate\Http\Request;
 
 /**
  * Resolves the current HTTP request into the assistant session context.
@@ -20,8 +20,7 @@ final class EnpiiSessionResolver implements SessionResolver
     public function __construct(
         private readonly TenantContext $tenant,
         private readonly Request $request,
-    ) {
-    }
+    ) {}
 
     public function resolve(): array
     {

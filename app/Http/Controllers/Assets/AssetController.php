@@ -20,8 +20,7 @@ final class AssetController
     public function __construct(
         private readonly PermissionChecker $permissions,
         private readonly AssetService $assets,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {

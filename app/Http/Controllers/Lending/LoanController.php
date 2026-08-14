@@ -9,12 +9,9 @@ use App\Domain\Lending\Models\Loan;
 use App\Domain\Lending\Models\LoanProduct;
 use App\Domain\Lending\Services\LoanService;
 use App\Domain\Lending\Services\Reports\LoanCardService;
-use App\Support\ReportPdf;
-use DomainException;
-use Illuminate\Http\Response as HttpResponse;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Domain\Membership\Models\Group;
 use App\Domain\Membership\Models\Member;
+use App\Domain\Membership\Models\OrganizationProfile;
 use App\Http\Requests\Lending\LoanApproveRequest;
 use App\Http\Requests\Lending\LoanDisburseRequest;
 use App\Http\Requests\Lending\LoanRequest;
@@ -22,16 +19,20 @@ use App\Http\Requests\Lending\LoanRescheduleRequest;
 use App\Http\Requests\Lending\LoanUpdateRequest;
 use App\Http\Requests\Lending\LoanVerifyRequest;
 use App\Http\Requests\Lending\LoanWriteOffRequest;
+use App\Support\ReportPdf;
 use App\Tenancy\Services\TenantLoanProductProvisioner;
+use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class LoanController
 {
-    public function index(\Illuminate\Http\Request $request): Response
+    public function index(Request $request): Response
     {
         $tab = $request->query('tab', 'proposal');
         $search = trim((string) $request->query('search', ''));
@@ -39,7 +40,7 @@ final class LoanController
         $sort = $this->sort($tab, (string) $request->query('sort', ''));
         $direction = $this->direction((string) $request->query('direction', 'desc'));
 
-        $loan = \App\Domain\Lending\Models\Loan::class;
+        $loan = Loan::class;
 
         $query = $loan::query()
             ->with([
@@ -96,7 +97,7 @@ final class LoanController
         $loans = $query->orderBy($sort ?: ($allowedSort[0] ?? 'proposed_at'), $direction)
             ->paginate($perPage)
             ->withQueryString()
-            ->through(fn (\App\Domain\Lending\Models\Loan $loan): array => $this->presentLoan($loan, $tab));
+            ->through(fn (Loan $loan): array => $this->presentLoan($loan, $tab));
 
         return Inertia::render('Lending/Loans/Index', [
             'loans' => $loans,
@@ -147,6 +148,7 @@ final class LoanController
     private function columnsFor(string $tab): array
     {
         $action = [['key' => 'actions', 'label' => '', 'sortable' => false, 'class' => 'text-right']];
+
         return match ($tab) {
             'proposal' => [
                 ['key' => 'group_name', 'label' => 'Kelompok & Desa'],
@@ -221,7 +223,7 @@ final class LoanController
     /**
      * @return array<string, mixed>
      */
-    private function presentLoan(\App\Domain\Lending\Models\Loan $loan, string $tab): array
+    private function presentLoan(Loan $loan, string $tab): array
     {
         $principalRemaining = 0.0;
         $interestPaid = 0.0;
@@ -242,6 +244,7 @@ final class LoanController
             if ($value === null) {
                 $value = $loan->principal_amount;
             }
+
             return $value !== null ? (float) $value : null;
         };
 
@@ -431,7 +434,6 @@ final class LoanController
             ->with('success', 'Penghapusan piutang berhasil dicatat.');
     }
 
-    
     public function complete(Request $request, Loan $loan, LoanService $loans): RedirectResponse
     {
         $validated = $request->validate([
@@ -441,7 +443,7 @@ final class LoanController
 
         try {
             $loans->complete($loan, $validated, (int) $request->user()->row_id);
-        } catch (\DomainException $exception) {
+        } catch (DomainException $exception) {
             return back()->with('error', $exception->getMessage());
         }
 
@@ -518,6 +520,7 @@ final class LoanController
     private function perPage(mixed $value): int
     {
         $value = (int) $value;
+
         return in_array($value, [15, 30, 50, 100], true) ? $value : 15;
     }
 
@@ -543,6 +546,7 @@ final class LoanController
             if ($value === null) {
                 $value = $loan->principal_amount;
             }
+
             return $value !== null ? (float) $value : null;
         };
 
@@ -806,7 +810,7 @@ final class LoanController
             ];
         }
 
-        $profile = \App\Domain\Membership\Models\OrganizationProfile::query()->first();
+        $profile = OrganizationProfile::query()->first();
         $identity = [
             'legal_name' => $profile?->legal_name ?? config('app.name'),
             'short_name' => $profile?->short_name ?? config('app.name'),
@@ -825,7 +829,7 @@ final class LoanController
             'verifier' => '..................................',
         ];
 
-        $filename = 'daftar-pinjaman-' . ($tab ?: 'all') . '-' . date('Ymd-His') . '.pdf';
+        $filename = 'daftar-pinjaman-'.($tab ?: 'all').'-'.date('Ymd-His').'.pdf';
 
         return $pdf->stream(
             'reports.pdf.loan_list',

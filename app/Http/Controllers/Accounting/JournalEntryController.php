@@ -20,6 +20,7 @@ use App\Support\ReportPdf;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use DomainException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -33,8 +34,7 @@ final class JournalEntryController
 {
     public function __construct(
         private readonly JournalEntryOptionResolver $resolver,
-    ) {
-    }
+    ) {}
 
     public function create(Request $request, TenantContext $context): Response
     {
@@ -583,7 +583,7 @@ final class JournalEntryController
         ];
     }
 
-    public function loanGroupDetail(Request $request, int $loanId, TenantContext $context, LoanTrackingService $tracking): \Illuminate\Http\JsonResponse
+    public function loanGroupDetail(Request $request, int $loanId, TenantContext $context, LoanTrackingService $tracking): JsonResponse
     {
         $tenantId = $context->id();
         $loan = Loan::query()->where('row_id', $loanId)->firstOrFail();
@@ -621,7 +621,7 @@ final class JournalEntryController
         ]);
     }
 
-    public function loanInstallmentHistory(Request $request, int $loanId, TenantContext $context, LoanTrackingService $tracking): \Illuminate\Http\JsonResponse
+    public function loanInstallmentHistory(Request $request, int $loanId, TenantContext $context, LoanTrackingService $tracking): JsonResponse
     {
         $entries = DB::connection('tenant')
             ->table('journal_entries as e')
@@ -679,7 +679,7 @@ final class JournalEntryController
         return response()->json(['rows' => $rows]);
     }
 
-    public function groupMemberOptions(Request $request, int $loanId, LoanTrackingService $tracking): \Illuminate\Http\JsonResponse
+    public function groupMemberOptions(Request $request, int $loanId, LoanTrackingService $tracking): JsonResponse
     {
         $members = $tracking->getGroupMembers($loanId);
 

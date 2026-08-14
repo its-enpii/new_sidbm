@@ -15,7 +15,6 @@ use Enpii\Assistant\AssistantServiceProvider;
 use Enpii\Assistant\Models\AuditLog;
 use Enpii\Assistant\Models\Conversation;
 use Enpii\Assistant\Models\Document;
-use Enpii\Assistant\Models\KnowledgeSource;
 use Enpii\Assistant\Models\Persona;
 use Enpii\Assistant\Models\Tool;
 use Enpii\Assistant\Services\Chat\AgentLoop;
@@ -184,7 +183,7 @@ final class IntegrationController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'ok' => false,
-                'message' => 'Gagal terhubung ke Tripay: ' . $e->getMessage(),
+                'message' => 'Gagal terhubung ke Tripay: '.$e->getMessage(),
             ], 422);
         }
     }
@@ -224,7 +223,7 @@ final class IntegrationController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'ok' => false,
-                'message' => 'Gagal terhubung ke Duitku: ' . $e->getMessage(),
+                'message' => 'Gagal terhubung ke Duitku: '.$e->getMessage(),
             ], 422);
         }
     }
@@ -282,7 +281,7 @@ final class IntegrationController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'ok' => false,
-                'message' => 'Gagal terhubung ke Xendit: ' . $e->getMessage(),
+                'message' => 'Gagal terhubung ke Xendit: '.$e->getMessage(),
             ], 422);
         }
     }

@@ -163,7 +163,7 @@ final class InstallmentReceiptTest extends TestCase
 
     public function test_receipt_accepts_legacy_angs_journal(): void
     {
-        $group = \App\Domain\Membership\Models\Group::query()->create([
+        $group = Group::query()->create([
             'code' => 'KLP-LEGR',
             'name' => 'Kelompok Legacy Receipt',
             'status' => 'active',
@@ -186,7 +186,7 @@ final class InstallmentReceiptTest extends TestCase
         DB::connection('tenant')->table('loans')->where('row_id', $loan->row_id)->update(['id' => 8163]);
         $loan->id = 8163;
 
-        \App\Domain\Lending\Models\LoanBorrower::query()->create([
+        LoanBorrower::query()->create([
             'loan_row_id' => $loan->row_id,
             'group_row_id' => $group->row_id,
             'member_row_id' => null,

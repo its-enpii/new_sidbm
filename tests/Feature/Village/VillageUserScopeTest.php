@@ -13,6 +13,7 @@ use Tests\TestCase;
 final class VillageUserScopeTest extends TestCase
 {
     private User $villageOperator;
+
     private User $adminUser;
 
     protected function setUp(): void
@@ -33,8 +34,8 @@ final class VillageUserScopeTest extends TestCase
         $this->villageOperator = User::query()->create([
             'public_id' => (string) Str::ulid(),
             'name' => 'Operator Desa Sukamaju',
-            'username' => 'op_sukamaju_' . Str::random(4),
-            'email' => 'op_sukamaju_' . Str::random(4) . '@test.local',
+            'username' => 'op_sukamaju_'.Str::random(4),
+            'email' => 'op_sukamaju_'.Str::random(4).'@test.local',
             'password' => bcrypt('password'),
             'is_village_user' => true,
             'village_row_id' => 101,
@@ -44,8 +45,8 @@ final class VillageUserScopeTest extends TestCase
         $this->adminUser = User::query()->create([
             'public_id' => (string) Str::ulid(),
             'name' => 'Admin Kecamatan',
-            'username' => 'admin_kec_' . Str::random(4),
-            'email' => 'admin_kec_' . Str::random(4) . '@test.local',
+            'username' => 'admin_kec_'.Str::random(4),
+            'email' => 'admin_kec_'.Str::random(4).'@test.local',
             'password' => bcrypt('password'),
             'is_village_user' => false,
             'status' => 'active',

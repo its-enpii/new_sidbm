@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -53,7 +54,7 @@ final class ResolveAssistantActor
 
         // Tenant middleware already resolved host/membership; ensure actor belongs here.
         $tenantId = $user->tenant_id;
-        $ctxTenant = app(\App\Tenancy\TenantContext::class)->id();
+        $ctxTenant = app(TenantContext::class)->id();
         if ($tenantId !== null && (int) $tenantId !== $ctxTenant) {
             return response()->json(['error' => 'user not in this tenant'], 403);
         }

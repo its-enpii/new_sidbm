@@ -80,7 +80,7 @@ final class TenantOnboardingImportController extends Controller
 
         $redirect = redirect()->back()->with('success', $msg);
         if ($result['errors'] !== []) {
-            $redirect->with('warning', 'Beberapa baris memiliki kesalahan: ' . implode(' | ', array_slice($result['errors'], 0, 5)));
+            $redirect->with('warning', 'Beberapa baris memiliki kesalahan: '.implode(' | ', array_slice($result['errors'], 0, 5)));
         }
 
         return $redirect;

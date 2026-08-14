@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\Onboarding\Services;
 
-use App\Domain\Accounting\Models\Account;
 use App\Domain\Accounting\Models\JournalEntry;
 use App\Domain\Accounting\Models\JournalLine;
 use App\Domain\Lending\Models\Loan;
+use App\Domain\Lending\Models\LoanBorrower;
 use App\Domain\Lending\Models\LoanInstallment;
 use App\Domain\Lending\Models\LoanProduct;
 use App\Domain\Membership\Models\Group;
@@ -25,8 +25,7 @@ final class TenantOnboardingService
     /**
      * Post journal saldo awal / opening balances.
      *
-     * @param array<int, array{account_row_id: int, debit: float, credit: float}> $lines
-     * @return JournalEntry
+     * @param  array<int, array{account_row_id: int, debit: float, credit: float}>  $lines
      */
     public function saveOpeningBalances(array $lines, string $asOfDate, int $userId): JournalEntry
     {
@@ -65,11 +64,11 @@ final class TenantOnboardingService
             ));
         }
 
-        return DB::connection('tenant')->transaction(function () use ($validLines, $asOfDate, $userId, $totalDebit): JournalEntry {
+        return DB::connection('tenant')->transaction(function () use ($validLines, $asOfDate, $userId): JournalEntry {
             $entry = JournalEntry::query()->create([
                 'transaction_date' => $asOfDate,
                 'transaction_type' => 'pemindahan_saldo',
-                'description' => 'Posting Saldo Awal Keuangan Tenant Baru (Opening Balances - ' . $asOfDate . ')',
+                'description' => 'Posting Saldo Awal Keuangan Tenant Baru (Opening Balances - '.$asOfDate.')',
                 'status' => 'posted',
                 'posted_at' => now(),
                 'created_by_user_id' => $userId,
@@ -122,11 +121,13 @@ final class TenantOnboardingService
 
             if ($spkNumber === '' && $principal <= 0) {
                 $skipped++;
+
                 continue;
             }
 
             if ($principal <= 0) {
                 $errors[] = "Baris {$line}: Plafon pinjaman harus lebih dari 0.";
+
                 continue;
             }
 
@@ -151,6 +152,7 @@ final class TenantOnboardingService
 
             if ($memberRowId === null && $groupRowId === null) {
                 $errors[] = "Baris {$line}: Anggota (NIK {$nik}) atau Kelompok \"{$groupName}\" tidak ditemukan.";
+
                 continue;
             }
 
@@ -163,7 +165,7 @@ final class TenantOnboardingService
                     $loan = Loan::query()->create([
                         'legacy_source' => $memberRowId !== null ? 'member_loan' : 'group_loan',
                         'loan_product_row_id' => $defaultProduct->row_id,
-                        'loan_number' => $spkNumber !== '' ? $spkNumber : 'ONB-' . random_int(100000, 999999),
+                        'loan_number' => $spkNumber !== '' ? $spkNumber : 'ONB-'.random_int(100000, 999999),
                         'principal_amount' => $principal,
                         'interest_rate' => $interestRate,
                         'term_months' => $months,
@@ -171,7 +173,7 @@ final class TenantOnboardingService
                         'status' => 'disbursed',
                     ]);
 
-                    \App\Domain\Lending\Models\LoanBorrower::query()->create([
+                    LoanBorrower::query()->create([
                         'loan_row_id' => $loan->row_id,
                         'member_row_id' => $memberRowId,
                         'group_row_id' => $groupRowId,
@@ -217,7 +219,7 @@ final class TenantOnboardingService
 
                 $imported++;
             } catch (\Throwable $exception) {
-                $errors[] = "Baris {$line}: " . $exception->getMessage();
+                $errors[] = "Baris {$line}: ".$exception->getMessage();
             }
         }
 

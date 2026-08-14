@@ -16,8 +16,7 @@ final class AssistantToolController
 {
     public function __construct(
         private readonly AssistantToolService $tools,
-    ) {
-    }
+    ) {}
 
     public function __invoke(Request $request): JsonResponse
     {

@@ -17,8 +17,7 @@ final class JournalBrowseService
     public function __construct(
         private readonly TenantContext $context,
         private readonly DocumentKindClassifier $classifier,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{

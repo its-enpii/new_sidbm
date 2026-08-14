@@ -25,6 +25,5 @@ final readonly class NormalizedJournal
         public string $amount,
         public string $amountRaw,
         public array $snapshot,
-    ) {
-    }
+    ) {}
 }

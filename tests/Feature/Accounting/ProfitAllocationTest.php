@@ -15,7 +15,6 @@ use App\Models\User;
 use App\Tenancy\Middleware\ResolveTenant;
 use DomainException;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\Concerns\BuildsTenantTestDatabase;
 use Tests\TestCase;

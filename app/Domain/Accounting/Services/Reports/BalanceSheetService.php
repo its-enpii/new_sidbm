@@ -14,8 +14,7 @@ final readonly class BalanceSheetService
 {
     public function __construct(
         private AccountBalanceQuery $balances,
-    ) {
-    }
+    ) {}
 
     /**
      * Neraca 1 style: L1 header, L2 subhead, L3 rollup rows.
@@ -37,6 +36,7 @@ final readonly class BalanceSheetService
         foreach ($accounts->where('is_postable', true) as $account) {
             if ((string) $account->code === AccountBalanceQuery::CURRENT_EARNINGS_CODE) {
                 $postableBalances[(int) $account->row_id] = $netIncome;
+
                 continue;
             }
             $postableBalances[(int) $account->row_id] = $this->balances->asOfRaw($account, $asOf)['signed'];

@@ -94,7 +94,7 @@ final class DuitkuPaymentIntegrationTest extends TestCase
             'tripay_reference' => 'DUITKU-REF-99',
         ]);
 
-        $signature = md5($merchantCode . $amount . $merchantOrderId . $apiKey);
+        $signature = md5($merchantCode.$amount.$merchantOrderId.$apiKey);
 
         $response = $this->postJson('/duitku/callback', [
             'merchantCode' => $merchantCode,

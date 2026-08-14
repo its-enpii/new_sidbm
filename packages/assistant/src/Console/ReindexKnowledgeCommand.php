@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Enpii\Assistant\Console;
 
-use Illuminate\Console\Command;
 use Enpii\Assistant\Services\Rag\FaqRetriever;
+use Illuminate\Console\Command;
 
 final class ReindexKnowledgeCommand extends Command
 {

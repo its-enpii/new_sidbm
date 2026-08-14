@@ -13,8 +13,7 @@ final readonly class IncomeStatementService
 {
     public function __construct(
         private AccountBalanceQuery $balances,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

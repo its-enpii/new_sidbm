@@ -205,7 +205,7 @@ final class ModelGateway implements Embedder
                     if (isset($call['function']['arguments'])) {
                         $args = $call['function']['arguments'];
                         if (is_array($args)) {
-                            $args = empty($args) ? new \stdClass() : $args;
+                            $args = empty($args) ? new \stdClass : $args;
                             $call['function']['arguments'] = json_encode($args, JSON_UNESCAPED_UNICODE);
                         } elseif (is_string($args)) {
                             $trimmed = trim($args);
@@ -214,9 +214,11 @@ final class ModelGateway implements Embedder
                             }
                         }
                     }
+
                     return $call;
                 }, $msg['tool_calls']);
             }
+
             return $msg;
         }, $messages);
     }

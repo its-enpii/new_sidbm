@@ -19,8 +19,7 @@ final class AssetReportService
     public function __construct(
         private readonly TenantContext $context,
         private readonly AssetService $assetService,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

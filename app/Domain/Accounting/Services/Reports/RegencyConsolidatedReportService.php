@@ -990,6 +990,7 @@ final readonly class RegencyConsolidatedReportService
     private function isDescendantOf(string $code, string $parentCode): bool
     {
         $parentPrefix = rtrim($parentCode, '0.');
+
         return str_starts_with($code, $parentPrefix) && $code !== $parentCode;
     }
 

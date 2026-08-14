@@ -19,8 +19,7 @@ final class RegencyReportController
     public function __construct(
         private readonly RegencyConsolidatedReportService $reportService,
         private readonly ReportPdf $pdf,
-    ) {
-    }
+    ) {}
 
     public function balanceSheet(Request $request): Response
     {

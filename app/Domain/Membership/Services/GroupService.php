@@ -75,7 +75,9 @@ final class GroupService
         }
 
         foreach ($memberIds as $memberId) {
-            if ($active->has($memberId)) continue;
+            if ($active->has($memberId)) {
+                continue;
+            }
 
             $sameDay = $group->memberships()
                 ->where('member_row_id', $memberId)
@@ -102,7 +104,9 @@ final class GroupService
 
         foreach ($officers as $position => $memberId) {
             $officer = $current->get($position);
-            if ($officer && (int) $officer->member_row_id === $memberId) continue;
+            if ($officer && (int) $officer->member_row_id === $memberId) {
+                continue;
+            }
             $officer?->update(['ended_at' => $today]);
             GroupOfficer::query()->create([
                 'group_row_id' => $group->row_id,
@@ -116,7 +120,10 @@ final class GroupService
     private function randomCode(): string
     {
         $code = '';
-        foreach (range(1, 14) as $_) $code .= (string) random_int(0, 9);
+        foreach (range(1, 14) as $_) {
+            $code .= (string) random_int(0, 9);
+        }
+
         return $code;
     }
 

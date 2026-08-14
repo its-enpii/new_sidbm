@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Enpii\Assistant\Services\Rag;
 
-use RuntimeException;
 use Enpii\Assistant\AssistantServiceProvider;
 use Enpii\Assistant\Models\Document;
 use Enpii\Assistant\Models\DocumentChunk;
 use Enpii\Assistant\Models\KnowledgeSource;
 use Enpii\Assistant\Services\Chat\Embedder;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 /**
  * Ingest pipeline: bytes -> plain text -> chunks -> embeddings.
@@ -22,8 +22,7 @@ final class DocumentIngestService
         private readonly DocumentLoader $loader,
         private readonly Chunker $chunker,
         private readonly Embedder $llm,
-    ) {
-    }
+    ) {}
 
     public function ingestFaq(
         string $tenantId,
@@ -167,7 +166,7 @@ final class DocumentIngestService
                     'source' => 'embed_and_store',
                 ]);
             }
-            $chunk = new DocumentChunk();
+            $chunk = new DocumentChunk;
             $chunk->document_id = $documentId;
             $chunk->chunk_index = $i;
             $chunk->chunk_text = $text;

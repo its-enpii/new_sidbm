@@ -14,8 +14,7 @@ final class MembershipMigrationReconciler
         private TenantContext $context,
         private LegacyConnection $legacy,
         private LegacyMembershipExtractor $extractor,
-    ) {
-    }
+    ) {}
 
     /**
      * @return list<array{scope: string, status: string, source_count: int, target_count: int, details: array<string, mixed>}>

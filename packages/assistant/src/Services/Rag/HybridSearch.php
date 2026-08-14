@@ -5,19 +5,18 @@ declare(strict_types=1);
 namespace Enpii\Assistant\Services\Rag;
 
 use Enpii\Assistant\AssistantServiceProvider;
-use Illuminate\Database\Query\Builder;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Enpii\Assistant\Models\Document;
 use Enpii\Assistant\Services\Chat\Embedder;
+use Illuminate\Database\Connection;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 final class HybridSearch
 {
     public function __construct(
         private readonly Embedder $embedder,
         private readonly Bm25 $bm25,
-    ) {
-    }
+    ) {}
 
     /**
      * @return Collection<int, array{doc: Document, score: float}>
@@ -159,7 +158,7 @@ final class HybridSearch
      * fall back to the default connection (mysql/sqlite) — embeddings then
      * live in `embedding_json` TEXT/JSON columns instead of vector type.
      */
-    private function ragDb(): \Illuminate\Database\Connection
+    private function ragDb(): Connection
     {
         $name = AssistantServiceProvider::$ragConnectionName;
 
@@ -205,7 +204,7 @@ final class HybridSearch
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, object>  $rows
+     * @param  Collection<int, object>  $rows
      * @param  array<string, float>  $scores
      * @return Collection<int, array{doc: Document, score: float}>
      */

@@ -14,8 +14,7 @@ final readonly class TenantSequenceService
 {
     public function __construct(
         private TenantContext $context,
-    ) {
-    }
+    ) {}
 
     public function next(string $sequenceName): int
     {

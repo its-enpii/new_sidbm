@@ -32,6 +32,5 @@ final readonly class NormalizedGroupLoan
         public ?string $verificationTime,
         public ?string $disbursementScheduleText,
         public array $snapshot,
-    ) {
-    }
+    ) {}
 }

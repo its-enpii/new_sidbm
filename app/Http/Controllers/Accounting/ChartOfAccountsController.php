@@ -15,8 +15,7 @@ final class ChartOfAccountsController
     public function __construct(
         private readonly PermissionChecker $permissions,
         private readonly ChartOfAccountsService $coa,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {

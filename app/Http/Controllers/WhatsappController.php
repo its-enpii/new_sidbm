@@ -17,8 +17,7 @@ final class WhatsappController extends Controller
 {
     public function __construct(
         private readonly WhatsappGatewayService $gateway,
-    ) {
-    }
+    ) {}
 
     /**
      * Endpoint 1: Create Instance

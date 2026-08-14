@@ -12,8 +12,7 @@ final readonly class ShardConnectionManager
 {
     public function __construct(
         private ShardCredentialProvider $credentialProvider,
-    ) {
-    }
+    ) {}
 
     public function connect(DatabaseShard $shard): void
     {

@@ -11,8 +11,7 @@ final class LegacyAccountingExtractor
 {
     public function __construct(
         private LegacyConnection $legacy,
-    ) {
-    }
+    ) {}
 
     /**
      * @return Generator<int, object>

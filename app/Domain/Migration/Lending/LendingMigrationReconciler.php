@@ -23,8 +23,7 @@ final class LendingMigrationReconciler
         private LegacyConnection $legacy,
         private LegacyLendingExtractor $extractor,
         private LegacyAmountParser $amounts,
-    ) {
-    }
+    ) {}
 
     /**
      * @return list<array{scope: string, status: string, source_count: int, target_count: int, details: array<string, mixed>}>
@@ -235,7 +234,7 @@ final class LendingMigrationReconciler
         if ($rowIds !== []) {
             foreach (array_chunk($rowIds, 500) as $chunk) {
                 $pays = DB::connection($conn)->table('loan_payments as p')
-                    ->join('loan_payment_allocations as a', function ($j) use ($tenantId): void {
+                    ->join('loan_payment_allocations as a', function ($j): void {
                         $j->on('a.tenant_id', '=', 'p.tenant_id')
                             ->on('a.payment_row_id', '=', 'p.row_id');
                     })
@@ -309,6 +308,7 @@ final class LendingMigrationReconciler
                     'type' => 'missing_on_target',
                     'fields' => ['loan'],
                 ];
+
                 continue;
             }
 

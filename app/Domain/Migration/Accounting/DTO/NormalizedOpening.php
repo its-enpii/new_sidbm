@@ -13,6 +13,5 @@ final readonly class NormalizedOpening
         public string $debit,
         public string $credit,
         public string $sourceId,
-    ) {
-    }
+    ) {}
 }

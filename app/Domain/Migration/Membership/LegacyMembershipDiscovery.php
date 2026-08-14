@@ -10,8 +10,7 @@ final class LegacyMembershipDiscovery
 {
     public function __construct(
         private LegacyConnection $legacy,
-    ) {
-    }
+    ) {}
 
     /**
      * @return list<array{

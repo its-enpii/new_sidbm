@@ -246,6 +246,7 @@ final class DefaultChartOfAccountsProvisioner
                 if ($existing !== null) {
                     $byCode[$row['code']] = (int) $existing['row_id'];
                     $skipped++;
+
                     continue;
                 }
 

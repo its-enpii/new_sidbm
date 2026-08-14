@@ -18,8 +18,7 @@ final class CollectibilityReportService
 
     public function __construct(
         private readonly TenantContext $context,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{

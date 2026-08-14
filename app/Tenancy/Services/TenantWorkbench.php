@@ -21,6 +21,7 @@ final readonly class TenantWorkbench
 
     /**
      * @template T
+     *
      * @param  callable(Tenant): T  $callback
      * @return T
      */

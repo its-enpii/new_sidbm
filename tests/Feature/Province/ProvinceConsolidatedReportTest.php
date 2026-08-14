@@ -14,7 +14,9 @@ use Tests\TestCase;
 final class ProvinceConsolidatedReportTest extends TestCase
 {
     private DatabaseShard $shard;
+
     private User $provinceSupervisor;
+
     private User $regularUser;
 
     protected function setUp(): void
@@ -34,7 +36,7 @@ final class ProvinceConsolidatedReportTest extends TestCase
 
         $this->shard = DatabaseShard::query()->create([
             'public_id' => (string) Str::ulid(),
-            'code' => 'shard_prov_test_' . Str::random(5),
+            'code' => 'shard_prov_test_'.Str::random(5),
             'name' => 'Shard Test Province',
             'driver' => (string) config('database.connections.tenant.driver', 'sqlite'),
             'host' => '127.0.0.1',
@@ -49,8 +51,8 @@ final class ProvinceConsolidatedReportTest extends TestCase
         $this->provinceSupervisor = User::query()->create([
             'public_id' => (string) Str::ulid(),
             'name' => 'Supervisor Provinsi JB',
-            'username' => 'prov_sup_' . Str::random(5),
-            'email' => 'prov_sup_' . Str::random(5) . '@test.local',
+            'username' => 'prov_sup_'.Str::random(5),
+            'email' => 'prov_sup_'.Str::random(5).'@test.local',
             'password' => bcrypt('password'),
             'is_province_user' => true,
             'province_code' => '32',
@@ -61,8 +63,8 @@ final class ProvinceConsolidatedReportTest extends TestCase
         $this->regularUser = User::query()->create([
             'public_id' => (string) Str::ulid(),
             'name' => 'Regular User',
-            'username' => 'reg_user_' . Str::random(5),
-            'email' => 'reg_' . Str::random(5) . '@test.local',
+            'username' => 'reg_user_'.Str::random(5),
+            'email' => 'reg_'.Str::random(5).'@test.local',
             'password' => bcrypt('password'),
             'is_province_user' => false,
             'status' => 'active',

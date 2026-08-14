@@ -12,8 +12,7 @@ final class SearchController
 {
     public function __construct(
         private readonly GlobalSearchService $search,
-    ) {
-    }
+    ) {}
 
     public function __invoke(Request $request): JsonResponse
     {

@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Settings;
 
-use App\Http\Requests\Concerns\AuthorizesPermission;
 use App\Domain\Documents\Services\SignatureTemplateService;
+use App\Http\Requests\Concerns\AuthorizesPermission;
 use Illuminate\Foundation\Http\FormRequest;
 
 final class SignaturesRequest extends FormRequest
 {
     use AuthorizesPermission;
-
 
     public function rules(): array
     {

@@ -22,7 +22,7 @@ final class Member extends TenantModel
 
     protected static function booted(): void
     {
-        static::addGlobalScope(new VillageScope());
+        self::addGlobalScope(new VillageScope);
     }
 
     protected function casts(): array

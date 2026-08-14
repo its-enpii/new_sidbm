@@ -6,6 +6,7 @@ namespace App\Domain\Accounting\Services\Reports;
 
 use App\Domain\Accounting\Models\JournalEntry;
 use App\Domain\Membership\Models\OrganizationProfile;
+use Carbon\CarbonImmutable;
 use DomainException;
 
 /**
@@ -16,8 +17,7 @@ final class CashEvidenceService
 {
     public function __construct(
         private readonly DocumentKindClassifier $classifier,
-    ) {
-    }
+    ) {}
 
     public function build(JournalEntry $entry): array
     {
@@ -99,11 +99,11 @@ final class CashEvidenceService
             'relation' => (string) ($entry->legacy_relation ?? ''),
             'description' => (string) ($entry->description ?? ''),
             'amount' => $amount,
-            'amount_label' => 'Rp. ' . number_format($amount, 2),
+            'amount_label' => 'Rp. '.number_format($amount, 2),
             'debit_code' => $debitCode,
-            'debit_label' => $debitCode . ($debitAccName !== '' ? ' - ' . ucwords(strtolower($debitAccName)) : ''),
+            'debit_label' => $debitCode.($debitAccName !== '' ? ' - '.ucwords(strtolower($debitAccName)) : ''),
             'credit_code' => $creditCode,
-            'credit_label' => $creditCode . ($creditAccName !== '' ? ' - ' . ucwords(strtolower($creditAccName)) : ''),
+            'credit_label' => $creditCode.($creditAccName !== '' ? ' - '.ucwords(strtolower($creditAccName)) : ''),
             'document' => [
                 'key' => strtolower($kind),
                 'label' => $documentLabel,
@@ -118,7 +118,7 @@ final class CashEvidenceService
             return '-';
         }
         try {
-            return \Carbon\CarbonImmutable::parse($ymd)->format('d/m/Y');
+            return CarbonImmutable::parse($ymd)->format('d/m/Y');
         } catch (\Throwable) {
             return $ymd;
         }

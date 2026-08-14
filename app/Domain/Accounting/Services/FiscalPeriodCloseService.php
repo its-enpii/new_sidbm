@@ -27,8 +27,7 @@ final class FiscalPeriodCloseService
         private readonly TenantContext $context,
         private readonly AccountBalanceQuery $balances,
         private readonly TenantSequenceService $sequences,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{
@@ -418,7 +417,7 @@ final class FiscalPeriodCloseService
         $until = sprintf('%04d-01-01', $year + 1);
 
         $isSqlite = DB::connection('tenant')->getDriverName() === 'sqlite';
-        $monthExpr = $isSqlite ? "CAST(strftime('%m', transaction_date) AS INTEGER)" : "MONTH(transaction_date)";
+        $monthExpr = $isSqlite ? "CAST(strftime('%m', transaction_date) AS INTEGER)" : 'MONTH(transaction_date)';
 
         $rows = DB::connection('tenant')
             ->table('journal_entries')

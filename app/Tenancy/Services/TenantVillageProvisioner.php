@@ -18,8 +18,7 @@ final readonly class TenantVillageProvisioner
         private RegionalCodeApi $regionalApi,
         private TenantContext $context,
         private TenantSequenceService $sequences,
-    ) {
-    }
+    ) {}
 
     public function provision(Tenant $tenant): int
     {

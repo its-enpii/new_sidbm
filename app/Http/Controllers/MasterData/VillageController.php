@@ -17,8 +17,7 @@ final class VillageController
 {
     public function __construct(
         private readonly PermissionChecker $permissions,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {

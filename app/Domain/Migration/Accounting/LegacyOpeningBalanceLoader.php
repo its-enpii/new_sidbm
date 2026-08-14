@@ -16,8 +16,7 @@ final class LegacyOpeningBalanceLoader
     public function __construct(
         private TenantContext $context,
         private TenantSequenceService $sequences,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  list<NormalizedOpening>  $openings
@@ -60,6 +59,7 @@ final class LegacyOpeningBalanceLoader
                             "Opening exists without mapping for {$o->sourceId}; refuse silent overwrite."
                         );
                     }
+
                     continue;
                 }
 

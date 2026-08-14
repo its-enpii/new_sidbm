@@ -16,8 +16,7 @@ final class LegacyJournalLoader
     public function __construct(
         private TenantContext $context,
         private TenantSequenceService $sequences,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  list<NormalizedJournal>  $journals

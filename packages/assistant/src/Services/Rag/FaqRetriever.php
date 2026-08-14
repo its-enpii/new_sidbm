@@ -15,8 +15,7 @@ final class FaqRetriever
 {
     public function __construct(
         private readonly HybridSearch $search,
-    ) {
-    }
+    ) {}
 
     public function contextFor(string $tenantId, string $query, ?string $personaId = null): string
     {

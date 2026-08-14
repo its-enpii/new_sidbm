@@ -16,8 +16,7 @@ final class LegacyGroupLoader
     public function __construct(
         private TenantContext $context,
         private TenantSequenceService $sequences,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  list<NormalizedGroupBundle>  $groups
@@ -41,7 +40,7 @@ final class LegacyGroupLoader
         $memberByLegacyId = [];
         $memberByName = [];
         $memberRows = DB::connection($connName)->table('members as m')
-            ->join('people as p', function ($j) use ($tenantId): void {
+            ->join('people as p', function ($j): void {
                 $j->on('p.tenant_id', '=', 'm.tenant_id')
                     ->on('p.row_id', '=', 'm.person_row_id');
             })
@@ -78,6 +77,7 @@ final class LegacyGroupLoader
                     ->exists();
                 if ($already) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -129,6 +129,7 @@ final class LegacyGroupLoader
                     $memberRowId = $memberByLegacyId[$mid] ?? null;
                     if ($memberRowId === null) {
                         $errors[] = "kelompok id={$g->legacyId}: member legacy id={$mid} not found";
+
                         continue;
                     }
                     $gmId = $this->sequences->next('group_members');
@@ -171,6 +172,7 @@ final class LegacyGroupLoader
                     if ($memberRowId === null) {
                         // Free-text officer names often don't match anggota — keep group, warn only.
                         $warnings[] = "kelompok id={$g->legacyId}: officer {$position} unresolved [".(string) $ref.']';
+
                         continue;
                     }
 

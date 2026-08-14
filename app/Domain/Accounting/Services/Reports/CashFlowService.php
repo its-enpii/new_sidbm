@@ -9,6 +9,7 @@ use App\Domain\Accounting\Services\AccountBalanceQuery;
 use App\Domain\Membership\Models\OrganizationProfile;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -24,8 +25,7 @@ final class CashFlowService
     public function __construct(
         private readonly AccountBalanceQuery $balances,
         private readonly TenantContext $context,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -334,7 +334,7 @@ final class CashFlowService
 
     /**
      * @param  array<string, array{key:string,label:string,lines:list<array<string,mixed>>,total:float}>  $sections
-     * @param  \Illuminate\Support\Collection<int, Account>  $cashAccounts
+     * @param  Collection<int, Account>  $cashAccounts
      * @return array<string, mixed>
      */
     private function payload(array $period, float $opening, float $closing, array $sections, $cashAccounts): array

@@ -23,8 +23,7 @@ final class CalkService
         private readonly IncomeStatementService $incomeStatement,
         private readonly CashFlowService $cashFlow,
         private readonly TenantSettingService $settings,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

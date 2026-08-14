@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Accounting\Services;
 
 use App\Domain\Accounting\Models\Account;
+use Illuminate\Support\Collection;
 
 final class JournalEntryOptionResolver
 {
@@ -275,9 +276,9 @@ final class JournalEntryOptionResolver
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, Account>
+     * @return Collection<int, Account>
      */
-    private function activePostableAccounts(): \Illuminate\Support\Collection
+    private function activePostableAccounts(): Collection
     {
         return Account::on('tenant')
             ->where('is_active', true)
@@ -301,7 +302,7 @@ final class JournalEntryOptionResolver
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, Account>  $accounts
+     * @param  Collection<int, Account>  $accounts
      * @return array<int, array{value: int, label: string}>
      */
     private function filter($accounts, string $type, string $side): array

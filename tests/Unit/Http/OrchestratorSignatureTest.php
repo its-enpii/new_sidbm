@@ -40,7 +40,7 @@ final class OrchestratorSignatureTest extends TestCase
         ], $body);
 
         $passed = false;
-        $response = (new VerifyOrchestratorSignature())->handle(
+        $response = (new VerifyOrchestratorSignature)->handle(
             $request,
             function () use (&$passed): Response {
                 $passed = true;
@@ -71,7 +71,7 @@ final class OrchestratorSignatureTest extends TestCase
         ], $body);
 
         $passed = false;
-        $response = (new VerifyOrchestratorSignature())->handle(
+        $response = (new VerifyOrchestratorSignature)->handle(
             $request,
             function () use (&$passed): Response {
                 $passed = true;
@@ -98,7 +98,7 @@ final class OrchestratorSignatureTest extends TestCase
             'HTTP_X_ORCHESTRATOR_TIMESTAMP' => $ts,
         ], $body);
 
-        $response = (new VerifyOrchestratorSignature())->handle(
+        $response = (new VerifyOrchestratorSignature)->handle(
             $request,
             fn (): Response => response('should-not-run'),
         );
@@ -115,7 +115,7 @@ final class OrchestratorSignatureTest extends TestCase
             'CONTENT_TYPE' => 'application/json',
         ], '{}');
 
-        $response = (new VerifyOrchestratorSignature())->handle(
+        $response = (new VerifyOrchestratorSignature)->handle(
             $request,
             fn (): Response => response('should-not-run'),
         );
@@ -142,7 +142,7 @@ final class OrchestratorSignatureTest extends TestCase
             'HTTP_X_ORCHESTRATOR_KEY_HASH' => str_repeat('0', 64),
         ], $body);
 
-        $response = (new VerifyOrchestratorSignature())->handle(
+        $response = (new VerifyOrchestratorSignature)->handle(
             $request,
             fn (): Response => response('should-not-run'),
         );

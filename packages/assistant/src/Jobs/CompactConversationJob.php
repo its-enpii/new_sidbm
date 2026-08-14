@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Enpii\Assistant\Jobs;
 
+use Enpii\Assistant\Models\Conversation;
+use Enpii\Assistant\Models\Message;
+use Enpii\Assistant\Services\Chat\ModelGateway;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Enpii\Assistant\Models\Conversation;
-use Enpii\Assistant\Models\Message;
-use Enpii\Assistant\Services\Chat\ModelGateway;
 
 final class CompactConversationJob implements ShouldQueue
 {
@@ -22,8 +22,7 @@ final class CompactConversationJob implements ShouldQueue
 
     public function __construct(
         public readonly string $conversationId,
-    ) {
-    }
+    ) {}
 
     public function handle(ModelGateway $llm): void
     {

@@ -144,7 +144,7 @@ final class HandleInertiaRequests extends Middleware
             }
 
             return asset('storage/'.ltrim($path, '/'));
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }

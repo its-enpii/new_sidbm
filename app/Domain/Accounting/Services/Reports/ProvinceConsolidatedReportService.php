@@ -184,6 +184,7 @@ final readonly class ProvinceConsolidatedReportService
             if ($normal === 'C' || in_array($type, ['liability', 'equity'], true)) {
                 return round($credit - $debit, 2);
             }
+
             return round($debit - $credit, 2);
         };
 

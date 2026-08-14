@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -14,7 +15,7 @@ return new class extends Migration
         return (string) config('tenancy.tenant_connection', 'tenant');
     }
 
-    private function schema(): \Illuminate\Database\Schema\Builder
+    private function schema(): Builder
     {
         return Schema::connection($this->connectionName());
     }
@@ -162,19 +163,19 @@ return new class extends Migration
         });
 
         if (DB::connection($this->connectionName())->getDriverName() !== 'sqlite') {
-        DB::connection($this->connectionName())->statement(
-            "ALTER TABLE accounts ADD CONSTRAINT chk_accounts_normal_balance CHECK (normal_balance IN ('D', 'C'))"
-        );
-        DB::connection($this->connectionName())->statement(
-            'ALTER TABLE fiscal_periods ADD CONSTRAINT chk_fiscal_month CHECK (fiscal_month BETWEEN 1 AND 12)'
-        );
-        DB::connection($this->connectionName())->statement(
-            "ALTER TABLE journal_lines ADD CONSTRAINT chk_journal_line_amount CHECK ((debit > 0 AND credit = 0) OR (credit > 0 AND debit = 0))"
-        );
-        DB::connection($this->connectionName())->statement(
-            'ALTER TABLE account_monthly_balances ADD CONSTRAINT chk_monthly_balance_month CHECK (fiscal_month BETWEEN 1 AND 12)'
-        );
-    }
+            DB::connection($this->connectionName())->statement(
+                "ALTER TABLE accounts ADD CONSTRAINT chk_accounts_normal_balance CHECK (normal_balance IN ('D', 'C'))"
+            );
+            DB::connection($this->connectionName())->statement(
+                'ALTER TABLE fiscal_periods ADD CONSTRAINT chk_fiscal_month CHECK (fiscal_month BETWEEN 1 AND 12)'
+            );
+            DB::connection($this->connectionName())->statement(
+                'ALTER TABLE journal_lines ADD CONSTRAINT chk_journal_line_amount CHECK ((debit > 0 AND credit = 0) OR (credit > 0 AND debit = 0))'
+            );
+            DB::connection($this->connectionName())->statement(
+                'ALTER TABLE account_monthly_balances ADD CONSTRAINT chk_monthly_balance_month CHECK (fiscal_month BETWEEN 1 AND 12)'
+            );
+        }
     }
 
     public function down(): void

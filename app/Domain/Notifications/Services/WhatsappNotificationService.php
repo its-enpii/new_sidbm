@@ -23,8 +23,7 @@ final class WhatsappNotificationService
         private WhatsappGatewayService $gateway,
         private TenantSettingService $settings,
         private TenantContext $context,
-    ) {
-    }
+    ) {}
 
     /**
      * Pinjaman aktif dengan angsuran belum lunas pada due_date.
@@ -170,6 +169,7 @@ final class WhatsappNotificationService
                     'message' => 'Tidak ada nomor HP.',
                     'phone' => null,
                 ];
+
                 continue;
             }
 
@@ -207,7 +207,11 @@ final class WhatsappNotificationService
             } else {
                 foreach ($toSend as $entry) {
                     $res = $this->gateway->sendText($entry['item']['phone'], $entry['payload']['text']);
-                    if ($res['success']) { $sent++; } else { $failed++; }
+                    if ($res['success']) {
+                        $sent++;
+                    } else {
+                        $failed++;
+                    }
                     $results[] = [
                         'installment_row_id' => $entry['item']['installment_row_id'],
                         'success' => $res['success'],
@@ -219,7 +223,11 @@ final class WhatsappNotificationService
         } elseif (count($toSend) === 1) {
             $entry = $toSend[0];
             $res = $this->gateway->sendText($entry['item']['phone'], $entry['payload']['text']);
-            if ($res['success']) { $sent++; } else { $failed++; }
+            if ($res['success']) {
+                $sent++;
+            } else {
+                $failed++;
+            }
             $results[] = [
                 'installment_row_id' => $entry['item']['installment_row_id'],
                 'success' => $res['success'],

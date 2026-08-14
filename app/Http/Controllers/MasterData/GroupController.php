@@ -18,10 +18,10 @@ use App\Models\Tenant\GroupFunction;
 use App\Models\Tenant\GroupLevel;
 use App\Models\Tenant\OrganizationUnit;
 use App\Tenancy\Services\TenantGroupMasterDataProvisioner;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -298,6 +298,7 @@ final class GroupController
     private function perPage(mixed $value): int
     {
         $value = (int) $value;
+
         return in_array($value, [15, 30, 50, 100], true) ? $value : 15;
     }
 

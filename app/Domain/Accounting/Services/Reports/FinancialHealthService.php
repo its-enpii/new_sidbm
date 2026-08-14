@@ -8,7 +8,6 @@ use App\Domain\Accounting\Services\AccountBalanceQuery;
 use App\Domain\Lending\Services\Reports\CollectibilityReportService;
 use App\Domain\Membership\Models\OrganizationProfile;
 use App\Tenancy\TenantContext;
-use Carbon\CarbonImmutable;
 
 /**
  * Penilaian Tingkat Kesehatan Keuangan BUMDesma / LKD (Permendesa / Kepmendesa No. 136/2022).
@@ -22,8 +21,7 @@ final class FinancialHealthService
         private readonly CollectibilityReportService $collectibility,
         private readonly IncomeStatementService $incomeStatement,
         private readonly BalanceSheetService $balanceSheet,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

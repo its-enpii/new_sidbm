@@ -30,8 +30,7 @@ final class CashEvidenceController
         private readonly CashEvidenceService $service,
         private readonly DocumentKindClassifier $classifier,
         private readonly ReportPdf $pdf,
-    ) {
-    }
+    ) {}
 
     public function kind(JournalEntry $entry): JsonResponse
     {

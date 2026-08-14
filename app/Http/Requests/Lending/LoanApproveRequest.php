@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Lending;
 
-use App\Http\Requests\Concerns\AuthorizesPermission;
 use App\Domain\Membership\Models\Member;
+use App\Http\Requests\Concerns\AuthorizesPermission;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -13,7 +13,6 @@ use Illuminate\Validation\Rule;
 final class LoanApproveRequest extends FormRequest
 {
     use AuthorizesPermission;
-
 
     public function rules(): array
     {

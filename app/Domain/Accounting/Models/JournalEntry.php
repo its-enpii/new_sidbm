@@ -25,13 +25,13 @@ final class JournalEntry extends TenantModel
 
     protected static function booted(): void
     {
-        static::updating(function (self $entry): void {
+        self::updating(function (self $entry): void {
             if ($entry->getOriginal('status') === 'posted') {
                 throw new DomainException('A posted journal entry is immutable. Create a reversal instead.');
             }
         });
 
-        static::deleting(function (self $entry): void {
+        self::deleting(function (self $entry): void {
             if ($entry->status === 'posted') {
                 throw new DomainException('A posted journal entry cannot be deleted. Create a reversal instead.');
             }

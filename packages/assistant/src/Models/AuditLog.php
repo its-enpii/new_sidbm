@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Enpii\Assistant\Models;
 
+use Enpii\Assistant\Models\Concerns\TargetsRagConnection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
-use Enpii\Assistant\Models\Concerns\TargetsRagConnection;
 
 /**
  * Append-only audit trail for tool executions and other sensitive operations.

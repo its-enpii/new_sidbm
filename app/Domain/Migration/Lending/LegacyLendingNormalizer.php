@@ -25,8 +25,7 @@ final class LegacyLendingNormalizer
     public function __construct(
         private TenantContext $context,
         private LegacyAmountParser $amounts,
-    ) {
-    }
+    ) {}
 
     public function warmCaches(): void
     {

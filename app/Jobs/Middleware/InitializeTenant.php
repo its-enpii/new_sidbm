@@ -14,8 +14,7 @@ final readonly class InitializeTenant
 {
     public function __construct(
         private int $tenantId,
-    ) {
-    }
+    ) {}
 
     public function handle(object $job, Closure $next): void
     {

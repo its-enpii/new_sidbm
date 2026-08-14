@@ -15,8 +15,7 @@ final class EnsureRegencySupervisor
 {
     public function __construct(
         private readonly ShardConnectionManager $shardConnectionManager,
-    ) {
-    }
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {

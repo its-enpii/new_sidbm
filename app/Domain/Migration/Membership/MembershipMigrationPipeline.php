@@ -27,8 +27,7 @@ final class MembershipMigrationPipeline
         private TenantSequenceService $sequences,
         private TenantGroupMasterDataProvisioner $groupMasterData,
         private LegacyVillageProvisioner $villages,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{
@@ -82,7 +81,7 @@ final class MembershipMigrationPipeline
         $sourceMembers = $skipMembers ? 0 : $this->extractor->activeAnggotaCount($suffix);
         $sourceGroups = $skipGroups ? 0 : $this->extractor->activeKelompokCount($suffix);
 
-        $isMapped = function (string $sourceTable, string $sourceId, string $secondary = '') : bool {
+        $isMapped = function (string $sourceTable, string $sourceId, string $secondary = ''): bool {
             $tenantId = $this->context->id();
             $conn = (string) config('tenancy.tenant_connection', 'tenant');
 
@@ -106,6 +105,7 @@ final class MembershipMigrationPipeline
                     $r = $this->normalizer->normalizeAnggota($row, $anggotaTable, $isMapped);
                     if ($r['skip']) {
                         $wouldSkipMembers++;
+
                         continue;
                     }
                     if ($r['error'] !== null) {
@@ -113,6 +113,7 @@ final class MembershipMigrationPipeline
                         if ($failFast) {
                             break 2;
                         }
+
                         continue;
                     }
                     $wouldMembers++;
@@ -126,6 +127,7 @@ final class MembershipMigrationPipeline
                     $r = $this->normalizer->normalizeKelompok($row, $kelompokTable, $isMapped);
                     if ($r['skip']) {
                         $wouldSkipGroups++;
+
                         continue;
                     }
                     if ($r['error'] !== null) {
@@ -133,6 +135,7 @@ final class MembershipMigrationPipeline
                         if ($failFast) {
                             break 2;
                         }
+
                         continue;
                     }
                     $wouldGroups++;

@@ -16,7 +16,7 @@ final class VillageScope implements Scope
         $user = Auth::user();
 
         if ($user !== null && $user->isVillageUser() && $user->village_row_id !== null) {
-            $column = $model->getTable() . '.organization_unit_row_id';
+            $column = $model->getTable().'.organization_unit_row_id';
             $builder->where($column, (int) $user->village_row_id);
         }
     }

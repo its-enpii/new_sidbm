@@ -18,8 +18,8 @@ use App\Domain\Membership\Models\Group;
 use App\Domain\Membership\Models\Member;
 use App\Services\TenantSettingService;
 use App\Tenancy\TenantContext;
-use DomainException;
 use Carbon\CarbonImmutable;
+use DomainException;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -75,8 +75,7 @@ final class LoanService
         private readonly JournalPostingService $journalPosting,
         private readonly TenantContext $tenantContext,
         private readonly LoanTrackingService $tracking,
-    ) {
-    }
+    ) {}
 
     public function createProposal(array $data, int $userId): Loan
     {
@@ -181,7 +180,7 @@ final class LoanService
 
     public function updateProposal(Loan $loan, array $data, int $userId): Loan
     {
-        return DB::connection('tenant')->transaction(function () use ($loan, $data, $userId): Loan {
+        return DB::connection('tenant')->transaction(function () use ($loan, $data): Loan {
             $loan->update([
                 'proposed_at' => $data['proposed_at'],
                 'principal_amount' => (float) $data['principal_amount'],
@@ -218,18 +217,19 @@ final class LoanService
     public function removeBeneficiary(Loan $loan, int $memberRowId, int $userId): Loan
     {
         if (! in_array($loan->status, ['draft', 'verified'], true)) {
-            throw new \RuntimeException('Pemanfaat hanya dapat dihapus saat status draft atau verified.');
+            throw new RuntimeException('Pemanfaat hanya dapat dihapus saat status draft atau verified.');
         }
 
-        return DB::connection('tenant')->transaction(function () use ($loan, $memberRowId, $userId): Loan {
+        return DB::connection('tenant')->transaction(function () use ($loan, $memberRowId): Loan {
             $beneficiary = $loan->beneficiaries()->where('member_row_id', $memberRowId)->first();
             if ($beneficiary === null) {
-                throw new \RuntimeException('Pemanfaat tidak ditemukan pada pinjaman ini.');
+                throw new RuntimeException('Pemanfaat tidak ditemukan pada pinjaman ini.');
             }
 
             $beneficiary->delete();
 
             $loan->load(['product', 'borrower.group', 'committee', 'beneficiaries', 'installments']);
+
             return $loan;
         });
     }
@@ -633,7 +633,7 @@ final class LoanService
     public function revertToDraft(Loan $loan, int $userId): Loan
     {
         if (! in_array($loan->status, ['verified', 'waiting', 'approved'], true)) {
-            throw new \RuntimeException('Pinjaman hanya dapat dikembalikan ke draft dari status verified, waiting, atau approved.');
+            throw new RuntimeException('Pinjaman hanya dapat dikembalikan ke draft dari status verified, waiting, atau approved.');
         }
 
         return DB::connection('tenant')->transaction(function () use ($loan, $userId): Loan {
@@ -1087,6 +1087,7 @@ final class LoanService
 
         return $date;
     }
+
     public function complete(Loan $loan, array $data, int $userId): Loan
     {
         return DB::connection('tenant')->transaction(function () use ($loan, $data, $userId): Loan {
@@ -1117,7 +1118,6 @@ final class LoanService
             return $loan->fresh();
         });
     }
-
 
     private function regenerateInstallmentSchedule(Loan $loan, float $principal): void
     {

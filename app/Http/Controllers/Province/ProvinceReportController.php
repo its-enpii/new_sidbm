@@ -18,8 +18,7 @@ final class ProvinceReportController
     public function __construct(
         private readonly ProvinceConsolidatedReportService $reportService,
         private readonly ReportPdf $pdf,
-    ) {
-    }
+    ) {}
 
     public function pack(Request $request): Response
     {

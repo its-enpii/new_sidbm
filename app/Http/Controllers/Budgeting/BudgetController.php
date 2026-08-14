@@ -18,8 +18,7 @@ final class BudgetController
     public function __construct(
         private readonly BudgetService $budgets,
         private readonly PermissionChecker $permissions,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {

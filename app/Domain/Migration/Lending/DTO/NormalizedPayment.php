@@ -17,6 +17,5 @@ final readonly class NormalizedPayment
         public string $interest,
         public string $amount,
         public array $snapshot,
-    ) {
-    }
+    ) {}
 }

@@ -38,6 +38,7 @@ final class LegacyConnection
                 "SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
                 [$table],
             );
+
             return $row !== null;
         }
 
@@ -127,6 +128,7 @@ final class LegacyConnection
 
         if ($this->connection()->getDriverName() === 'sqlite') {
             $cols = $this->connection()->select("PRAGMA table_info(\"{$table}\")");
+
             return array_map(static fn (object $col): object => (object) [
                 'COLUMN_NAME' => $col->name,
                 'DATA_TYPE' => $col->type,

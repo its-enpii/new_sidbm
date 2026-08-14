@@ -16,8 +16,7 @@ final class AccountingMigrationReconciler
         private TenantContext $context,
         private LegacyConnection $legacy,
         private LegacyAmountParser $amounts,
-    ) {
-    }
+    ) {}
 
     /**
      * @return list<array{scope: string, status: string, source_count: int, target_count: int, source_debit: ?string, target_debit: ?string, source_credit: ?string, target_credit: ?string, details: array<string, mixed>}>
@@ -60,11 +59,11 @@ final class AccountingMigrationReconciler
 
         // lines = 2x entries for source table mappings
         $lineCount = (int) DB::connection($conn)->table('journal_lines as l')
-            ->join('journal_entries as e', function ($j) use ($tenantId): void {
+            ->join('journal_entries as e', function ($j): void {
                 $j->on('e.tenant_id', '=', 'l.tenant_id')
                     ->on('e.row_id', '=', 'l.journal_entry_row_id');
             })
-            ->join('legacy_record_mappings as m', function ($j) use ($tenantId, $trxTable): void {
+            ->join('legacy_record_mappings as m', function ($j) use ($trxTable): void {
                 $j->on('m.tenant_id', '=', 'e.tenant_id')
                     ->on('m.target_row_id', '=', 'e.row_id')
                     ->where('m.source_table', $trxTable)
@@ -84,7 +83,7 @@ final class AccountingMigrationReconciler
         // sums — legacy abs(jumlah) for non-zero rows vs target lines
         $legacySum = $this->sumLegacyJumlah($trxTable, $fromDate, $toDate);
         $debitSum = (string) (DB::connection($conn)->table('journal_lines as l')
-            ->join('legacy_record_mappings as m', function ($j) use ($tenantId, $trxTable): void {
+            ->join('legacy_record_mappings as m', function ($j) use ($trxTable): void {
                 $j->on('m.tenant_id', '=', 'l.tenant_id')
                     ->on('m.target_row_id', '=', 'l.journal_entry_row_id')
                     ->where('m.source_table', $trxTable)
@@ -93,7 +92,7 @@ final class AccountingMigrationReconciler
             ->where('l.tenant_id', $tenantId)
             ->sum('l.debit') ?? '0');
         $creditSum = (string) (DB::connection($conn)->table('journal_lines as l')
-            ->join('legacy_record_mappings as m', function ($j) use ($tenantId, $trxTable): void {
+            ->join('legacy_record_mappings as m', function ($j) use ($trxTable): void {
                 $j->on('m.tenant_id', '=', 'l.tenant_id')
                     ->on('m.target_row_id', '=', 'l.journal_entry_row_id')
                     ->where('m.source_table', $trxTable)
@@ -160,6 +159,7 @@ final class AccountingMigrationReconciler
                 } catch (InvalidArgumentException) {
                     $openMismatch++;
                     $openChecked++;
+
                     continue;
                 }
                 if (bccomp($d, '0.00', 2) === 0 && bccomp($c, '0.00', 2) === 0) {
@@ -172,6 +172,7 @@ final class AccountingMigrationReconciler
                     ->first(['row_id']);
                 if ($account === null) {
                     $openMismatch++;
+
                     continue;
                 }
                 $target = DB::connection($conn)->table('account_opening_balances')

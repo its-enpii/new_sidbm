@@ -17,7 +17,7 @@ final class TenantResolver
             ->where('code', $code)->whereIn('status', ['active', 'read_only'])->first();
 
         if ($tenant === null) {
-            throw (new ModelNotFoundException())->setModel(Tenant::class, [$code]);
+            throw (new ModelNotFoundException)->setModel(Tenant::class, [$code]);
         }
 
         return $this->validateTenantAccess($tenant, $user);

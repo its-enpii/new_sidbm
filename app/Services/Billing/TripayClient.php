@@ -13,8 +13,7 @@ final class TripayClient
 {
     public function __construct(
         private readonly ?PlatformSettingService $settings = null,
-    ) {
-    }
+    ) {}
 
     public function getMerchantCode(): string
     {

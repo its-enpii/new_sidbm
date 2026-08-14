@@ -222,6 +222,7 @@ final readonly class InvoicePaymentService
                 $this->handleXenditCallback(array_merge($payment->tripay_payload ?? [], $detail, [
                     'external_id' => $payment->reference ?: ($detail['external_id'] ?? ''),
                 ]));
+
                 return $payment->fresh();
             }
         } elseif ($payment->method === 'duitku' && $payment->reference !== null) {
@@ -232,12 +233,14 @@ final readonly class InvoicePaymentService
                     'merchantOrderId' => $payment->reference,
                     'resultCode' => $detail['statusCode'],
                 ]));
+
                 return $payment->fresh();
             }
         } elseif ($payment->tripay_reference !== null) {
             $detail = $this->tripay->checkTransactionStatus($payment->tripay_reference);
             if ($detail !== null && isset($detail['status'])) {
                 $this->handleTripayCallback(array_merge($payment->tripay_payload ?? [], $detail));
+
                 return $payment->fresh();
             }
         }

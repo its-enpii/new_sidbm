@@ -25,8 +25,7 @@ final class PermissionChecker
 
     public function __construct(
         private readonly TenantContext $context,
-    ) {
-    }
+    ) {}
 
     public function allows(?User $user, string $permission): bool
     {

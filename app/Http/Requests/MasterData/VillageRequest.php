@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\MasterData;
 
-use App\Models\Tenant\VillageNaming;
 use App\Tenancy\TenantContext;
 use Illuminate\Validation\Rule;
 

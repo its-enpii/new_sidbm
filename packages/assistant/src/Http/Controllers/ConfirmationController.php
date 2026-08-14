@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Enpii\Assistant\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Enpii\Assistant\Contracts\SessionResolver;
 use Enpii\Assistant\Models\ToolExecution;
 use Enpii\Assistant\Services\Chat\AgentLoop;
 use Enpii\Assistant\Services\SseEmitter;
+use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class ConfirmationController
@@ -16,8 +16,7 @@ final class ConfirmationController
     public function __construct(
         private readonly AgentLoop $loop,
         private readonly SessionResolver $sessions,
-    ) {
-    }
+    ) {}
 
     public function store(Request $request, string $executionId): StreamedResponse
     {

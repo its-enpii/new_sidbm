@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Lending;
 
-use App\Tenancy\Services\DefaultChartOfAccountsProvisioner;
 use App\Domain\Accounting\Models\Account;
 use App\Domain\Lending\Models\Loan;
 use App\Domain\Lending\Models\LoanBeneficiary;
 use App\Domain\Lending\Models\LoanStatusHistory;
+use App\Domain\Lending\Models\LoanWriteOff;
 use App\Domain\Lending\Services\LoanService;
 use App\Domain\Membership\Models\Group;
 use App\Domain\Membership\Models\GroupMember;
@@ -18,6 +18,7 @@ use App\Domain\Membership\Models\Person;
 use App\Models\Tenant\OrganizationUnit;
 use App\Models\User;
 use App\Tenancy\Middleware\ResolveTenant;
+use App\Tenancy\Services\DefaultChartOfAccountsProvisioner;
 use App\Tenancy\Services\TenantLoanProductProvisioner;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\DB;
@@ -424,7 +425,7 @@ final class LoanLifecycleTest extends TestCase
         self::assertSame('written_off', $fresh->status);
         self::assertSame(now()->toDateString(), $fresh->completed_at?->format('Y-m-d'));
 
-        $writeOff = \App\Domain\Lending\Models\LoanWriteOff::query()->where('loan_row_id', $loan->row_id)->first();
+        $writeOff = LoanWriteOff::query()->where('loan_row_id', $loan->row_id)->first();
         self::assertNotNull($writeOff);
         self::assertGreaterThan(0, (float) $writeOff->principal_balance);
         self::assertSame('Musyawarah pengurus, debitur meninggal.', $writeOff->reason);

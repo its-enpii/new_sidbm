@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Accounting\CashEvidenceController;
+use App\Http\Controllers\Accounting\ChartOfAccountsController;
+use App\Http\Controllers\Accounting\JournalBrowseController;
+use App\Http\Controllers\Accounting\JournalEntryController;
+use App\Http\Controllers\Accounting\PeriodCloseController;
+use App\Http\Controllers\Accounting\ReportController;
+use App\Http\Controllers\Accounting\TaxEstimateController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\IntegrationController as AdminIntegrationController;
 use App\Http\Controllers\Admin\InvoiceController as AdminInvoiceController;
@@ -10,13 +17,6 @@ use App\Http\Controllers\Admin\MigrationController as AdminMigrationController;
 use App\Http\Controllers\Admin\PlanController as AdminPlanController;
 use App\Http\Controllers\Admin\TenantController as AdminTenantController;
 use App\Http\Controllers\Admin\TenantUserController as AdminTenantUserController;
-use App\Http\Controllers\Accounting\CashEvidenceController;
-use App\Http\Controllers\Accounting\ChartOfAccountsController;
-use App\Http\Controllers\Accounting\JournalBrowseController;
-use App\Http\Controllers\Accounting\JournalEntryController;
-use App\Http\Controllers\Accounting\PeriodCloseController;
-use App\Http\Controllers\Accounting\ReportController;
-use App\Http\Controllers\Accounting\TaxEstimateController;
 use App\Http\Controllers\Assets\AssetController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Billing\InvoiceController as TenantInvoiceController;
@@ -41,8 +41,8 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Settings\SettingsController;
 use App\Http\Controllers\Tenant\TenantOnboardingImportController;
 use App\Http\Controllers\Webhooks\DuitkuWebhookController;
-use App\Http\Controllers\Webhooks\XenditWebhookController;
 use App\Http\Controllers\Webhooks\TripayWebhookController;
+use App\Http\Controllers\Webhooks\XenditWebhookController;
 use App\Http\Controllers\WhatsappController;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Route;
@@ -157,8 +157,6 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
     Route::put('/profile/account', [ProfileController::class, 'updateAccount'])->name('profile.account.update');
     Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
     Route::delete('/profile/photo', [ProfileController::class, 'destroyPhoto'])->name('profile.photo.destroy');
-
-
 
     Route::get('/onboarding/import', [TenantOnboardingImportController::class, 'index'])->name('onboarding.import.index');
     Route::post('/onboarding/opening-balances', [TenantOnboardingImportController::class, 'saveOpeningBalances'])->name('onboarding.opening-balances.store');

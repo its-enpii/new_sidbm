@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Domain\Access\Services\PermissionChecker;
 use App\Models\Platform\DatabaseShard;
 use App\Models\Platform\Tenant;
 use App\Models\Platform\TenantPlacement;
+use App\Tenancy\Services\DefaultChartOfAccountsProvisioner;
+use App\Tenancy\Services\FiscalPeriodProvisioner;
 use App\Tenancy\Services\ShardConnectionManager;
 use App\Tenancy\Services\TenantGroupMasterDataProvisioner;
 use App\Tenancy\Services\TenantLoanProductProvisioner;
@@ -70,16 +73,16 @@ final class BootstrapLocalEnvironment extends Command
             $context->initialize($tenant, $placement, $shard);
 
             $this->info('Importing chart of accounts...');
-            $coa = app(\App\Tenancy\Services\DefaultChartOfAccountsProvisioner::class)->ensureDefaults();
+            $coa = app(DefaultChartOfAccountsProvisioner::class)->ensureDefaults();
             $this->info("COA inserted={$coa['inserted']} skipped={$coa['skipped']}");
 
-            $created = app(\App\Tenancy\Services\FiscalPeriodProvisioner::class)
+            $created = app(FiscalPeriodProvisioner::class)
                 ->ensureDefaults((int) $this->option('years'));
             $this->info("Fiscal periods: opened {$created} month(s).");
 
             $groupMasterData->ensureDefaults();
             $loanProducts->ensureDefaults();
-            app(\App\Domain\Access\Services\PermissionChecker::class)->ensureSystemRoles();
+            app(PermissionChecker::class)->ensureSystemRoles();
             $this->info('Master data + loan products + roles ready.');
         } finally {
             $context->clear();

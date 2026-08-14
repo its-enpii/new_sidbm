@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\RunTenantCutoverJob;
 use App\Models\Platform\CutoverRun;
 use App\Models\Platform\Tenant;
+use App\Services\Admin\TenantCutoverRunnerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -98,7 +99,7 @@ final class MigrationController extends Controller
 
         if (! empty($validated['run_immediately'])) {
             // Run synchronously for instant feedback in dev/testing
-            app(\App\Services\Admin\TenantCutoverRunnerService::class)->execute($run);
+            app(TenantCutoverRunnerService::class)->execute($run);
         } else {
             RunTenantCutoverJob::dispatch($run);
         }

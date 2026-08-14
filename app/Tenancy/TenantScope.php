@@ -12,8 +12,7 @@ final readonly class TenantScope implements Scope
 {
     public function __construct(
         private TenantContext $context,
-    ) {
-    }
+    ) {}
 
     public function apply(Builder $builder, Model $model): void
     {

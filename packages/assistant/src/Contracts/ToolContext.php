@@ -19,6 +19,5 @@ final class ToolContext
         public readonly string $tenantId,
         public readonly string $externalUserId,
         public readonly mixed $actor = null,
-    ) {
-    }
+    ) {}
 }

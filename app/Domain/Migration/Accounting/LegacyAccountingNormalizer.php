@@ -19,8 +19,7 @@ final class LegacyAccountingNormalizer
     public function __construct(
         private LegacyAmountParser $amounts,
         private TenantContext $context,
-    ) {
-    }
+    ) {}
 
     public function warmCaches(): void
     {
@@ -256,4 +255,3 @@ final class LegacyAccountingNormalizer
         return (bool) preg_match('/^[1-5](\.\d+){1,3}$/', $code);
     }
 }
-

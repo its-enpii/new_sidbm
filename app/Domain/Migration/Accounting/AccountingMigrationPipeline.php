@@ -26,8 +26,7 @@ final class AccountingMigrationPipeline
         private AccountingMigrationReconciler $reconciler,
         private MonthlyBalanceRecalculator $recalculator,
         private TenantSequenceService $sequences,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{
@@ -82,7 +81,7 @@ final class AccountingMigrationPipeline
         $normalizedOpenings = [];
         $years = [];
 
-        $isMapped = function (string $sourceTable, string $sourceId, string $secondary = '') : bool {
+        $isMapped = function (string $sourceTable, string $sourceId, string $secondary = ''): bool {
             $tenantId = $this->context->id();
             $conn = (string) config('tenancy.tenant_connection', 'tenant');
 
@@ -105,6 +104,7 @@ final class AccountingMigrationPipeline
                     if ($failFast && ! $dryRun) {
                         break;
                     }
+
                     continue;
                 }
                 /** @var NormalizedOpening $ok */
@@ -122,6 +122,7 @@ final class AccountingMigrationPipeline
                     $r = $this->normalizer->normalizeTransaksi($row, $trxTable, $isMapped);
                     if ($r['skip']) {
                         $wouldSkip++;
+
                         continue;
                     }
                     if ($r['error'] !== null) {
@@ -129,6 +130,7 @@ final class AccountingMigrationPipeline
                         if ($failFast) {
                             break 2;
                         }
+
                         continue;
                     }
                     /** @var NormalizedJournal $ok */

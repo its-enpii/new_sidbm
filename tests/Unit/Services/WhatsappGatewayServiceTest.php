@@ -20,18 +20,18 @@ final class WhatsappGatewayServiceTest extends TestCase
 {
     private function createService(HttpFactory $http, array $settingsMap = []): WhatsappGatewayService
     {
-        $tenant = new Tenant();
+        $tenant = new Tenant;
         $tenant->row_id = 1;
         $tenant->id = 'lkd-1';
 
-        $placement = new TenantPlacement();
+        $placement = new TenantPlacement;
         $placement->tenant_id = 1;
         $placement->shard_id = 1;
 
-        $shard = new DatabaseShard();
+        $shard = new DatabaseShard;
         $shard->row_id = 1;
 
-        $context = new TenantContext();
+        $context = new TenantContext;
         $context->initialize($tenant, $placement, $shard);
 
         $settingsRef = new ReflectionClass(TenantSettingService::class);
@@ -48,7 +48,7 @@ final class WhatsappGatewayServiceTest extends TestCase
     public function test_instance_name_has_app_prefix(): void
     {
         config(['services.wa_gateway.instance_prefix' => 'app-sidbm']);
-        $http = new HttpFactory();
+        $http = new HttpFactory;
         $service = $this->createService($http);
 
         $this->assertSame('app-sidbm-1', $service->getInstance());
@@ -56,7 +56,7 @@ final class WhatsappGatewayServiceTest extends TestCase
 
     public function test_normalize_phone(): void
     {
-        $http = new HttpFactory();
+        $http = new HttpFactory;
         $service = $this->createService($http);
 
         $this->assertSame('628123456789', $service->normalizePhone('08123456789'));
@@ -72,7 +72,7 @@ final class WhatsappGatewayServiceTest extends TestCase
             'services.wa_gateway.instance_prefix' => 'app-sidbm',
         ]);
 
-        $http = new HttpFactory();
+        $http = new HttpFactory;
         $http->fake([
             'https://agent.sidbm.net/webhook-test/create-instance' => Http::response([
                 'success' => true,
@@ -93,7 +93,7 @@ final class WhatsappGatewayServiceTest extends TestCase
 
         $http->assertSent(function (Request $request) {
             return $request->url() === 'https://agent.sidbm.net/webhook-test/create-instance'
-                && $request->hasHeader('Authorization', 'Basic ' . base64_encode('enpii:its.enpii-118'))
+                && $request->hasHeader('Authorization', 'Basic '.base64_encode('enpii:its.enpii-118'))
                 && $request['instance'] === 'app-sidbm-1';
         });
     }
@@ -105,7 +105,7 @@ final class WhatsappGatewayServiceTest extends TestCase
             'services.wa_gateway.api_key' => 'enpii:its.enpii-118',
         ]);
 
-        $http = new HttpFactory();
+        $http = new HttpFactory;
         $http->fake([
             'https://agent.sidbm.net/webhook-test/send-message' => Http::response(['success' => true], 200),
         ]);
@@ -129,7 +129,7 @@ final class WhatsappGatewayServiceTest extends TestCase
             'services.wa_gateway.api_key' => 'enpii:its.enpii-118',
         ]);
 
-        $http = new HttpFactory();
+        $http = new HttpFactory;
         $http->fake([
             'https://agent.sidbm.net/webhook-test/send-messages' => Http::response(['success' => true], 200),
         ]);

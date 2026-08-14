@@ -14,8 +14,7 @@ final readonly class JournalReversalService
 {
     public function __construct(
         private JournalPostingService $postingService,
-    ) {
-    }
+    ) {}
 
     public function reverse(
         JournalEntry $original,

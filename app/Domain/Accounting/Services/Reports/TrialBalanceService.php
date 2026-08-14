@@ -13,8 +13,7 @@ final readonly class TrialBalanceService
 {
     public function __construct(
         private AccountBalanceQuery $balances,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{

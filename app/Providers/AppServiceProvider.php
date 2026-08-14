@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Assistant\EnpiiSessionResolver;
 use App\Assistant\Handlers\CreateJournalEntryHandler;
 use App\Assistant\Handlers\GetAssetHandler;
 use App\Assistant\Handlers\GetLoanHandler;
@@ -18,21 +19,23 @@ use App\Assistant\Handlers\SearchJournalsHandler;
 use App\Assistant\Handlers\SearchLoansHandler;
 use App\Assistant\Handlers\SearchMembersHandler;
 use App\Assistant\Handlers\SendBillingNoticesHandler;
-use App\Assistant\EnpiiSessionResolver;
-use Illuminate\Support\ServiceProvider;
+use App\Tenancy\TenantContext;
 use Enpii\Assistant\Contracts\SessionResolver;
 use Enpii\Assistant\Contracts\TenantResolver;
 use Enpii\Assistant\Services\Tools\ToolRegistry;
+use Illuminate\Support\ServiceProvider;
 
 final class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
         // enpii/assistant package bindings
-        $this->app->bind(TenantResolver::class, fn () => new class implements TenantResolver {
+        $this->app->bind(TenantResolver::class, fn () => new class implements TenantResolver
+        {
             public function resolve(): string
             {
-                $context = app(\App\Tenancy\TenantContext::class);
+                $context = app(TenantContext::class);
+
                 return $context->isInitialized() ? (string) $context->id() : '1';
             }
         });

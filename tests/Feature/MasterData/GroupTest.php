@@ -6,7 +6,6 @@ namespace Tests\Feature\MasterData;
 
 use App\Domain\Membership\Models\Group;
 use App\Domain\Membership\Models\GroupMember;
-use App\Domain\Membership\Models\GroupOfficer;
 use App\Domain\Membership\Models\Member;
 use App\Domain\Membership\Models\MemberAddress;
 use App\Domain\Membership\Models\Person;
@@ -30,7 +29,9 @@ final class GroupTest extends TestCase
     use BuildsTenantTestDatabase;
 
     private User $user;
+
     private OrganizationUnit $village;
+
     private array $members;
 
     protected function setUp(): void

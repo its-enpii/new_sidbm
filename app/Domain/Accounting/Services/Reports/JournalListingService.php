@@ -17,8 +17,7 @@ final readonly class JournalListingService
     public function __construct(
         private AccountBalanceQuery $balances,
         private TenantContext $context,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

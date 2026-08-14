@@ -15,8 +15,7 @@ final class DashboardController
 
     public function __construct(
         private readonly DashboardService $dashboard,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {

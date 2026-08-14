@@ -14,8 +14,7 @@ final class ProvinceDashboardController
 {
     public function __construct(
         private readonly ProvinceConsolidatedReportService $reportService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {

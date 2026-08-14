@@ -20,8 +20,7 @@ final class LoanDocumentController
         private readonly PermissionChecker $permissions,
         private readonly LoanDocumentService $service,
         private readonly ReportPdf $pdf,
-    ) {
-    }
+    ) {}
 
     public function document(
         Request $request,

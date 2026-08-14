@@ -43,7 +43,7 @@ interface ToolHandler
      * a generic failure to the LLM.
      *
      * @param  array<string, mixed>  $params
-     * @return array<string, mixed>  structured output for the LLM
+     * @return array<string, mixed> structured output for the LLM
      */
     public function handle(array $params, ToolContext $ctx): array;
 }

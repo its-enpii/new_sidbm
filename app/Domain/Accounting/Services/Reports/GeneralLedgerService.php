@@ -17,8 +17,7 @@ final readonly class GeneralLedgerService
     public function __construct(
         private AccountBalanceQuery $balances,
         private TenantContext $context,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

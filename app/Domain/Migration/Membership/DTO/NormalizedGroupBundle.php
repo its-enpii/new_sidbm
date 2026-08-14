@@ -27,6 +27,5 @@ final readonly class NormalizedGroupBundle
         public array $memberLegacyIds,
         public array $officers,
         public array $snapshot,
-    ) {
-    }
+    ) {}
 }
