@@ -123,6 +123,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::post('/invoices/{invoice}/payments/tripay', [AdminInvoicePaymentController::class, 'storeTripay'])->name('invoices.payments.tripay');
 
     Route::get('/migration', [AdminMigrationController::class, 'index'])->name('migration.index');
+    Route::get('/migrations', [AdminMigrationController::class, 'index']);
     Route::post('/migration/preview', [AdminMigrationController::class, 'preview'])->name('migration.preview');
     Route::post('/migration/run', [AdminMigrationController::class, 'run'])->name('migration.run');
 
@@ -130,6 +131,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::get('/regional/regencies/{province}', [RegionalCodeController::class, 'regencies'])->name('regional.regencies');
 
     Route::get('/integrations', [AdminIntegrationController::class, 'index'])->name('integrations.index');
+    Route::get('/integrations/orchestrator', [AdminIntegrationController::class, 'index']);
     Route::post('/integrations/active-gateway', [AdminIntegrationController::class, 'updateActiveGateway'])->name('integrations.active-gateway');
     Route::post('/integrations/tripay', [AdminIntegrationController::class, 'updateTripay'])->name('integrations.tripay');
     Route::post('/integrations/tripay/test', [AdminIntegrationController::class, 'testTripay'])->name('integrations.tripay.test');

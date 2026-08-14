@@ -19,6 +19,7 @@ use App\Tenancy\Services\TenantRegistrySynchronizer;
 use App\Tenancy\Services\TenantVillageProvisioner;
 use App\Tenancy\Services\TenantWorkbench;
 use App\Tenancy\TenantContext;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -109,7 +110,16 @@ final readonly class TenantRegistrationService
      */
     public function repair(Tenant $tenant): array
     {
-        return $this->workbench->run($tenant->loadMissing('placement.shard'), function () use ($tenant): array {
+        $tenant->loadMissing('placement.shard');
+        $shard = $tenant->placement?->shard;
+        if ($shard !== null) {
+            Artisan::call('tenancy:migrate-shards', [
+                '--shard' => $shard->code,
+                '--force' => true,
+            ]);
+        }
+
+        return $this->workbench->run($tenant, function () use ($tenant): array {
             $this->registry->sync($tenant);
             $this->groupMasterData->ensureDefaults();
             $this->loanProducts->ensureDefaults();
