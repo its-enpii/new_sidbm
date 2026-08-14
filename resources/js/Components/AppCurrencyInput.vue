@@ -1,7 +1,7 @@
 <script setup>
 defineOptions({ inheritAttrs: false });
 
-import { computed, ref, useId, watch } from 'vue';
+import { ref, useId, watch } from 'vue';
 import AppIcon from './AppIcon.vue';
 import AppTooltip from './AppTooltip.vue';
 
@@ -19,65 +19,145 @@ const props = defineProps({
     min: { type: Number, default: null },
     max: { type: Number, default: null },
     step: { type: Number, default: 1000 },
+    allowDecimal: { type: Boolean, default: true },
+    maxDecimals: { type: Number, default: 2 },
 });
 
 const generatedId = useId();
 const inputId = props.id || generatedId;
 const focused = ref(false);
+const displayValue = ref('');
 
-const formatter = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
+function formatCurrency(val) {
+    if (val === null || val === undefined || val === '') return '';
 
-function parseDigits(value) {
-    if (value === null || value === undefined || value === '') return '';
-    return String(value).replace(/\D+/g, '');
+    let str = String(val).trim();
+
+    if (/^\d+\.\d+$/.test(str)) {
+        str = str.replace('.', ',');
+    }
+
+    const hasComma = str.includes(',');
+    const hasDot = str.includes('.');
+
+    let intPart = '';
+    let decPart = '';
+
+    if (hasComma) {
+        const parts = str.split(',');
+        intPart = parts[0].replace(/\D/g, '');
+        decPart = parts.slice(1).join('').replace(/\D/g, '');
+    } else if (hasDot && props.allowDecimal) {
+        const lastDotIdx = str.lastIndexOf('.');
+        intPart = str.substring(0, lastDotIdx).replace(/\D/g, '');
+        decPart = str.substring(lastDotIdx + 1).replace(/\D/g, '');
+    } else {
+        intPart = str.replace(/\D/g, '');
+    }
+
+    if (intPart === '' && decPart === '') return '';
+
+    const formattedInt = intPart ? Number(intPart).toLocaleString('id-ID') : '0';
+
+    if (props.allowDecimal && (hasComma || (hasDot && decPart !== ''))) {
+        const slicedDec = decPart.slice(0, props.maxDecimals);
+        return `${formattedInt},${slicedDec}`;
+    }
+
+    return formattedInt;
 }
 
-function toNumber(value) {
-    const digits = parseDigits(value);
-    return digits === '' ? null : Number(digits);
+function parseToNumber(val) {
+    if (val === null || val === undefined || val === '') return null;
+    let str = String(val).trim();
+
+    if (str.includes(',') && str.includes('.')) {
+        str = str.replace(/\./g, '').replace(',', '.');
+    } else if (str.includes(',')) {
+        str = str.replace(',', '.');
+    }
+
+    str = str.replace(/[^0-9.-]/g, '');
+    if (str === '' || str === '-' || str === '.') return null;
+
+    const num = parseFloat(str);
+    return isNaN(num) ? null : num;
 }
 
-const formatted = computed(() => {
-    const digits = parseDigits(model.value);
-    if (digits === '') return focused.value ? '' : '0';
-    return formatter.format(Number(digits));
-});
+watch(model, (newVal) => {
+    const currentNum = parseToNumber(displayValue.value);
+    const modelNum = typeof newVal === 'number' ? newVal : parseToNumber(newVal);
+
+    if (!focused.value || currentNum !== modelNum) {
+        displayValue.value = formatCurrency(newVal);
+    }
+}, { immediate: true });
 
 function onInput(event) {
-    const digits = parseDigits(event.target.value);
-    model.value = digits === '' ? '' : Number(digits);
+    let raw = event.target.value;
+
+    if (raw === '') {
+        displayValue.value = '';
+        model.value = '';
+        return;
+    }
+
+    const isTypingDecimal = props.allowDecimal && (raw.endsWith(',') || raw.endsWith('.'));
+
+    let formatted = formatCurrency(raw);
+
+    if (isTypingDecimal && !formatted.includes(',')) {
+        formatted += ',';
+    }
+
+    displayValue.value = formatted;
+    const num = parseToNumber(formatted);
+    model.value = num ?? '';
 }
 
 function onFocus(event) {
     focused.value = true;
-    if (parseDigits(model.value) === '') event.target.select();
+    if (!displayValue.value || displayValue.value === '0') {
+        event.target.select();
+    }
 }
 
 function onBlur() {
     focused.value = false;
-    const number = toNumber(model.value);
-    if (number === null) { model.value = ''; return; }
-    if (props.min !== null && number < props.min) model.value = props.min;
-    else if (props.max !== null && number > props.max) model.value = props.max;
+    const num = parseToNumber(displayValue.value);
+
+    if (num === null) {
+        model.value = '';
+        displayValue.value = '';
+        return;
+    }
+
+    let finalNum = num;
+    if (props.min !== null && finalNum < props.min) finalNum = props.min;
+    if (props.max !== null && finalNum > props.max) finalNum = props.max;
+
+    model.value = finalNum;
+    displayValue.value = formatCurrency(finalNum);
 }
 
 function adjust(delta) {
-    const current = toNumber(model.value) ?? 0;
+    const current = parseToNumber(model.value) ?? 0;
     const next = current + delta;
     if (props.min !== null && next < props.min) return;
     if (props.max !== null && next > props.max) return;
     model.value = next;
+    displayValue.value = formatCurrency(next);
 }
 
 watch(model, () => {
-    const number = toNumber(model.value);
+    const number = parseToNumber(model.value);
     if (number !== null && props.min !== null && number < props.min) model.value = props.min;
 });
 </script>
 
 <template>
     <div class="space-y-2">
-        <div v-if="!hideLabel" class="flex items-center gap-1.5 ml-1">
+        <div v-if="!hideLabel" class="ml-1 flex items-center gap-1.5">
             <label :for="inputId" class="block text-sm font-bold uppercase tracking-wider text-primary">{{ label }}</label>
             <AppTooltip v-if="tooltip" :id="`${inputId}-tooltip`" :text="tooltip" />
         </div>
@@ -86,8 +166,8 @@ watch(model, () => {
             <AppIcon v-if="icon" :name="icon" class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-outline" />
             <input
                 :id="inputId"
-                :value="formatted"
-                inputmode="numeric"
+                :value="displayValue"
+                inputmode="decimal"
                 :aria-invalid="Boolean(error)"
                 :aria-describedby="[
                     error && `${inputId}-error`,
