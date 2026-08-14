@@ -46,6 +46,11 @@ final class LegacyAccountingNormalizer
         $date = (string) ($row->tgl_transaksi ?? '');
         $rawAmount = $row->jumlah ?? '';
 
+        if ($debitCode === '' || $creditCode === '' || $debitCode === '-' || $creditCode === '-') {
+            // Incomplete legacy transaction row (missing debit/credit account) — skip, do not fail batch.
+            return ['ok' => null, 'error' => null, 'skip' => true];
+        }
+
         $rawStr = is_scalar($rawAmount) ? trim((string) $rawAmount) : '';
         if ($rawStr === '' || $rawStr === '0' || $rawStr === '0.0' || $rawStr === '0.00' || $rawStr === '0,00') {
             // Placeholder / empty legacy rows — skip, do not fail batch.
