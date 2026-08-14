@@ -47,7 +47,7 @@ jobs:
           TENANT_DB_DRIVER: sqlite
           TENANT_DB_DATABASE: ":memory:"
           RUN_TENANCY_INTEGRATION_TESTS: "true"
-        run: php artisan test --parallel
+        run: php artisan test
 
   frontend-build:
     name: Build Frontend Assets (Vite)
