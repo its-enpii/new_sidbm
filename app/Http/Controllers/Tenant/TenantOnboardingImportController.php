@@ -25,7 +25,11 @@ final class TenantOnboardingImportController extends Controller
             ->get(['row_id', 'code', 'name', 'account_type']);
 
         $existingOpening = JournalEntry::query()
-            ->where('reference', 'like', 'SALDO-AWAL-%')
+            ->where(function ($q): void {
+                $q->where('transaction_type', 'pemindahan_saldo')
+                    ->orWhere('description', 'like', '%Opening Balances%')
+                    ->orWhere('description', 'like', '%Saldo Awal%');
+            })
             ->with(['lines.account:row_id,code,name'])
             ->latest('row_id')
             ->first();
@@ -35,8 +39,8 @@ final class TenantOnboardingImportController extends Controller
             'existingOpening' => $existingOpening ? [
                 'row_id' => $existingOpening->row_id,
                 'as_of_date' => $existingOpening->transaction_date?->toDateString(),
-                'reference' => $existingOpening->reference,
-                'amount' => (float) $existingOpening->amount,
+                'reference' => $existingOpening->journal_number ?: ('SALDO-AWAL-'.$existingOpening->row_id),
+                'amount' => (float) $existingOpening->lines->sum('debit'),
                 'lines' => $existingOpening->lines->map(fn ($l) => [
                     'account_row_id' => $l->account_row_id,
                     'account_code' => $l->account?->code,

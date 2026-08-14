@@ -764,16 +764,19 @@ function formatTime(iso) {
     } catch { return iso; }
 }
 
-const tabs = [
-    { id: 'overview', label: 'Overview', icon: 'dashboard' },
-    { id: 'tripay', label: 'Tripay Gateway', icon: 'payments' },
+const paymentTabs = [
+    { id: 'overview', label: 'Status & Gateway Utama', icon: 'dashboard' },
     { id: 'duitku', label: 'Duitku Gateway', icon: 'account_balance_wallet' },
+    { id: 'tripay', label: 'Tripay Gateway', icon: 'payments' },
     { id: 'xendit', label: 'Xendit Gateway', icon: 'credit_card' },
-    { id: 'personas', label: 'Personas', icon: 'person' },
-    { id: 'tools', label: 'Tools', icon: 'build' },
-    { id: 'knowledge', label: 'Knowledge Base', icon: 'library_books' },
+];
+
+const aiTabs = [
+    { id: 'personas', label: 'AI Personas', icon: 'person' },
+    { id: 'tools', label: 'AI Tools', icon: 'build' },
+    { id: 'knowledge', label: 'Knowledge Base (RAG)', icon: 'library_books' },
     { id: 'chat', label: 'Test Chat', icon: 'chat' },
-    { id: 'activity', label: 'Activity', icon: 'history' },
+    { id: 'activity', label: 'Aktivitas Log', icon: 'history' },
 ];
 
 onMounted(() => {
@@ -807,22 +810,46 @@ onBeforeUnmount(() => {
                 </div>
             </AppCard>
 
-            <!-- Tabs -->
-            <nav class="flex flex-wrap gap-1 rounded-xl border border-outline-variant bg-surface-container-lowest p-1">
-                <button
-                    v-for="tab in tabs"
-                    :key="tab.id"
-                    type="button"
-                    class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-                    :class="activeTab === tab.id
-                        ? 'bg-primary text-on-primary shadow-sm'
-                        : 'text-on-surface-variant hover:bg-surface-container-low hover:text-primary'"
-                    @click="activeTab = tab.id"
-                >
-                    <AppIcon :name="tab.icon" class="text-lg" />
-                    {{ tab.label }}
-                </button>
-            </nav>
+            <!-- Navigation Tabs Grouped by Category -->
+            <div class="space-y-3">
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-primary">Payment Gateways:</span>
+                    <nav class="flex flex-wrap gap-1 rounded-xl border border-outline-variant bg-surface-container-lowest p-1">
+                        <button
+                            v-for="tab in paymentTabs"
+                            :key="tab.id"
+                            type="button"
+                            class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+                            :class="activeTab === tab.id
+                                ? 'bg-primary text-on-primary shadow-sm'
+                                : 'text-on-surface-variant hover:bg-surface-container-low hover:text-primary'"
+                            @click="activeTab = tab.id"
+                        >
+                            <AppIcon :name="tab.icon" class="text-base" />
+                            {{ tab.label }}
+                        </button>
+                    </nav>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-primary">AI Assistant:</span>
+                    <nav class="flex flex-wrap gap-1 rounded-xl border border-outline-variant bg-surface-container-lowest p-1">
+                        <button
+                            v-for="tab in aiTabs"
+                            :key="tab.id"
+                            type="button"
+                            class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+                            :class="activeTab === tab.id
+                                ? 'bg-primary text-on-primary shadow-sm'
+                                : 'text-on-surface-variant hover:bg-surface-container-low hover:text-primary'"
+                            @click="activeTab = tab.id"
+                        >
+                            <AppIcon :name="tab.icon" class="text-base" />
+                            {{ tab.label }}
+                        </button>
+                    </nav>
+                </div>
+            </div>
 
             <!-- ============= OVERVIEW TAB ============= -->
             <div v-if="activeTab === 'overview'" class="space-y-6">
@@ -838,43 +865,75 @@ onBeforeUnmount(() => {
                     </header>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div 
-                            class="flex cursor-pointer items-center justify-between rounded-xl border-2 p-4 transition"
-                            :class="props.active_gateway === 'duitku' ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary/40 bg-surface'"
-                            @click="setGateway('duitku')"
+                            class="flex flex-col justify-between rounded-xl border-2 p-4 transition"
+                            :class="props.active_gateway === 'duitku' ? 'border-primary bg-primary/5' : 'border-outline-variant bg-surface'"
                         >
-                            <div>
-                                <h4 class="font-bold text-sm text-primary">Duitku Payment Gateway</h4>
-                                <p class="text-xs text-on-surface-variant">Metode: Virtual Account, QRIS (ShopeePay/Duitku), Credit Card, dll.</p>
+                            <div class="space-y-1 mb-4">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="font-bold text-sm text-primary">Duitku Gateway</h4>
+                                    <AppBadge :tone="props.active_gateway === 'duitku' ? 'success' : 'neutral'">
+                                        {{ props.active_gateway === 'duitku' ? 'Aktif Utama' : 'Nonaktif' }}
+                                    </AppBadge>
+                                </div>
+                                <p class="text-xs text-on-surface-variant">Virtual Account, QRIS (ShopeePay/Duitku), Credit Card, dll.</p>
                             </div>
-                            <AppBadge :tone="props.active_gateway === 'duitku' ? 'primary' : 'neutral'">
-                                {{ props.active_gateway === 'duitku' ? 'Aktif' : 'Pilih Duitku' }}
-                            </AppBadge>
+                            <AppButton 
+                                size="compact" 
+                                :variant="props.active_gateway === 'duitku' ? 'success' : 'secondary'"
+                                :disabled="props.active_gateway === 'duitku' || gatewayForm.processing"
+                                icon="check_circle"
+                                @click="setGateway('duitku')"
+                            >
+                                {{ props.active_gateway === 'duitku' ? 'Aktif Digunakan' : 'Aktifkan Duitku' }}
+                            </AppButton>
                         </div>
+
                         <div 
-                            class="flex cursor-pointer items-center justify-between rounded-xl border-2 p-4 transition"
-                            :class="props.active_gateway === 'tripay' ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary/40 bg-surface'"
-                            @click="setGateway('tripay')"
+                            class="flex flex-col justify-between rounded-xl border-2 p-4 transition"
+                            :class="props.active_gateway === 'tripay' ? 'border-primary bg-primary/5' : 'border-outline-variant bg-surface'"
                         >
-                            <div>
-                                <h4 class="font-bold text-sm text-primary">Tripay Payment Gateway</h4>
-                                <p class="text-xs text-on-surface-variant">Metode: QRIS, BCA VA, BRI VA, Mandiri VA, BNI VA, dll.</p>
+                            <div class="space-y-1 mb-4">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="font-bold text-sm text-primary">Tripay Gateway</h4>
+                                    <AppBadge :tone="props.active_gateway === 'tripay' ? 'success' : 'neutral'">
+                                        {{ props.active_gateway === 'tripay' ? 'Aktif Utama' : 'Nonaktif' }}
+                                    </AppBadge>
+                                </div>
+                                <p class="text-xs text-on-surface-variant">QRIS, BCA VA, BRI VA, Mandiri VA, BNI VA, dll.</p>
                             </div>
-                            <AppBadge :tone="props.active_gateway === 'tripay' ? 'primary' : 'neutral'">
-                                {{ props.active_gateway === 'tripay' ? 'Aktif' : 'Pilih Tripay' }}
-                            </AppBadge>
+                            <AppButton 
+                                size="compact" 
+                                :variant="props.active_gateway === 'tripay' ? 'success' : 'secondary'"
+                                :disabled="props.active_gateway === 'tripay' || gatewayForm.processing"
+                                icon="check_circle"
+                                @click="setGateway('tripay')"
+                            >
+                                {{ props.active_gateway === 'tripay' ? 'Aktif Digunakan' : 'Aktifkan Tripay' }}
+                            </AppButton>
                         </div>
+
                         <div 
-                            class="flex cursor-pointer items-center justify-between rounded-xl border-2 p-4 transition"
-                            :class="props.active_gateway === 'xendit' ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary/40 bg-surface'"
-                            @click="setGateway('xendit')"
+                            class="flex flex-col justify-between rounded-xl border-2 p-4 transition"
+                            :class="props.active_gateway === 'xendit' ? 'border-primary bg-primary/5' : 'border-outline-variant bg-surface'"
                         >
-                            <div>
-                                <h4 class="font-bold text-sm text-primary">Xendit Payment Gateway</h4>
-                                <p class="text-xs text-on-surface-variant">Metode: QRIS, Virtual Account (BCA, BRI, BNI, Mandiri, Permata), Kartu Kredit, dll.</p>
+                            <div class="space-y-1 mb-4">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="font-bold text-sm text-primary">Xendit Gateway</h4>
+                                    <AppBadge :tone="props.active_gateway === 'xendit' ? 'success' : 'neutral'">
+                                        {{ props.active_gateway === 'xendit' ? 'Aktif Utama' : 'Nonaktif' }}
+                                    </AppBadge>
+                                </div>
+                                <p class="text-xs text-on-surface-variant">QRIS, VA (BCA, BRI, BNI, Mandiri, Permata), Credit Card, dll.</p>
                             </div>
-                            <AppBadge :tone="props.active_gateway === 'xendit' ? 'primary' : 'neutral'">
-                                {{ props.active_gateway === 'xendit' ? 'Aktif' : 'Pilih Xendit' }}
-                            </AppBadge>
+                            <AppButton 
+                                size="compact" 
+                                :variant="props.active_gateway === 'xendit' ? 'success' : 'secondary'"
+                                :disabled="props.active_gateway === 'xendit' || gatewayForm.processing"
+                                icon="check_circle"
+                                @click="setGateway('xendit')"
+                            >
+                                {{ props.active_gateway === 'xendit' ? 'Aktif Digunakan' : 'Aktifkan Xendit' }}
+                            </AppButton>
                         </div>
                     </div>
                 </AppCard>

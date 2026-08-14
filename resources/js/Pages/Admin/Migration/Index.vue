@@ -16,7 +16,6 @@ const props = defineProps({
     runs: { type: Object, required: true },
 });
 
-const showAdvanced = ref(false);
 const selectedRun = ref(null);
 const activeLogModal = ref(false);
 let pollInterval = null;
@@ -197,20 +196,8 @@ const getStepStatusVariant = (status) => {
                                 />
                             </div>
 
-                            <!-- Toggle Opsi Lanjutan -->
-                            <div>
-                                <AppButton
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    :icon="showAdvanced ? 'expand_less' : 'tune'"
-                                    @click="showAdvanced = !showAdvanced"
-                                >
-                                    {{ showAdvanced ? 'Sembunyikan Opsi Lanjutan' : 'Tampilkan Opsi Lanjutan (Skipping / Chunk Size / Year)' }}
-                                </AppButton>
-                            </div>
-
-                            <div v-if="showAdvanced" class="space-y-4 rounded-xl border border-outline-variant p-4">
+                            <!-- Opsi Lanjutan & Skipping -->
+                            <div class="space-y-4 rounded-xl border border-outline-variant p-4">
                                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                                     <div>
                                         <AppInput v-model="form.chunk" label="Chunk Size" type="number" min="10" max="5000" />

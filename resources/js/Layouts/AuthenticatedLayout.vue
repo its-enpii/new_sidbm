@@ -308,7 +308,6 @@ const sections = [
     {
         label: 'Pengaturan',
         items: [
-            { label: 'Impor & Saldo Awal', icon: 'cloud_upload', href: '/onboarding/import' },
             { label: 'Pengaturan', icon: 'settings', href: '/settings' },
         ],
     },
