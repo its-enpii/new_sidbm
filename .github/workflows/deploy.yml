@@ -1,0 +1,45 @@
+name: CD / Auto Deploy to Server
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy via SSH
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-build]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script: |
+            set -e
+            echo "Deploying to ${{ secrets.DEPLOY_PATH || '/home/enpii/new_sidbm' }}..."
+            cd ${{ secrets.DEPLOY_PATH || '/home/enpii/new_sidbm' }}
+            
+            echo "Pulling latest code from Git..."
+            git pull origin main
+            
+            echo "Rebuilding and restarting Docker containers..."
+            docker compose up -d --build
+            
+            echo "Running platform migrations..."
+            docker compose exec -T app php artisan migrate --database=platform --path=database/migrations/platform --force
+            
+            echo "Running tenant shard migrations..."
+            docker compose exec -T app php artisan tenancy:migrate-shards --force
+            
+            echo "Optimizing Laravel caches..."
+            docker compose exec -T app php artisan config:cache
+            docker compose exec -T app php artisan route:cache
+            docker compose exec -T app php artisan view:cache
+            
+            echo "Deployment completed successfully!"

@@ -1,0 +1,70 @@
+name: CI / Quality & Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-tests:
+    name: PHPUnit & Code Style
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_sqlite, mbstring, intl, bcmath
+          coverage: none
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer Dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Check Code Style (Pint)
+        run: vendor/bin/pint --test
+
+      - name: Run PHPUnit Tests
+        env:
+          APP_ENV: testing
+          PLATFORM_DB_DRIVER: sqlite
+          PLATFORM_DB_DATABASE: ":memory:"
+          TENANT_DB_DRIVER: sqlite
+          TENANT_DB_DATABASE: ":memory:"
+          RUN_TENANCY_INTEGRATION_TESTS: "true"
+        run: php artisan test --parallel
+
+  frontend-build:
+    name: Build Frontend Assets (Vite)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install NPM Dependencies
+        run: npm ci
+
+      - name: Build Assets with Vite
+        run: npm run build
