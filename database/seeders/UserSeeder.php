@@ -52,6 +52,7 @@ final class UserSeeder extends Seeder
             [
                 'public_id' => (string) Str::ulid(),
                 'name' => 'Local Development Tenant',
+                'district_code' => '320101',
                 'status' => 'active',
                 'timezone' => 'Asia/Jakarta',
                 'metadata' => ['domains' => ['localhost', '127.0.0.1']],

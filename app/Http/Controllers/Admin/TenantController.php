@@ -123,12 +123,24 @@ final class TenantController
     public function update(UpdateTenantRequest $request, Tenant $tenant): RedirectResponse
     {
         $data = $request->validated();
+        $oldDistrict = (string) $tenant->district_code;
+        $newDistrict = isset($data['district_code']) && is_string($data['district_code']) ? $data['district_code'] : null;
+
         $tenant->forceFill([
             'name' => $data['name'],
+            'district_code' => $newDistrict,
             'status' => $data['status'],
             'timezone' => $data['timezone'] ?? $tenant->timezone,
             'suspended_at' => $data['status'] === 'suspended' ? ($tenant->suspended_at ?? now()) : null,
         ])->save();
+
+        if ($newDistrict !== null && $newDistrict !== $oldDistrict) {
+            try {
+                app(TenantRegistrationService::class)->repair($tenant);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
 
         return to_route('admin.tenants.show', $tenant)->with('success', 'Tenant diperbarui.');
     }

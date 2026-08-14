@@ -18,6 +18,7 @@ final class UpdateTenantRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:150'],
+            'district_code' => ['nullable', 'string', 'regex:/^\d{6}$/'],
             'status' => ['required', Rule::in(['active', 'suspended', 'provisioning', 'provisioning_failed'])],
             'timezone' => ['nullable', 'string', 'max:50'],
         ];
