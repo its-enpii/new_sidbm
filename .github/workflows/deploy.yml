@@ -130,4 +130,7 @@ jobs:
             docker compose exec -T app php artisan route:cache
             docker compose exec -T app php artisan view:cache
             
+            echo "Restarting PHP FPM and queue worker containers..."
+            docker compose restart app queue
+
             echo "Deployment completed successfully!"
