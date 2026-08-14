@@ -59,7 +59,7 @@ const tripayForm = useForm({
 });
 
 const submitTripay = () => {
-    tripayForm.post(route('admin.payment-gateways.tripay'), {
+    tripayForm.post('/admin/payment-gateways/tripay', {
         preserveScroll: true,
         onSuccess: () => showToast('Pengaturan Tripay tersimpan'),
     });
@@ -91,7 +91,7 @@ const gatewayForm = useForm({
 
 const setGateway = (gw) => {
     gatewayForm.gateway = gw;
-    gatewayForm.post(route('admin.payment-gateways.active-gateway'), {
+    gatewayForm.post('/admin/payment-gateways/active', {
         preserveScroll: true,
         onSuccess: () => showToast(`Payment Gateway utama diubah ke ${gw.toUpperCase()}`),
     });
@@ -123,7 +123,7 @@ const xenditForm = useForm({
 });
 
 const submitXendit = () => {
-    xenditForm.post(route('admin.payment-gateways.xendit'), {
+    xenditForm.post('/admin/payment-gateways/xendit', {
         preserveScroll: true,
         onSuccess: () => showToast('Pengaturan Xendit tersimpan'),
     });
@@ -171,7 +171,7 @@ const duitkuForm = useForm({
 });
 
 const submitDuitku = () => {
-    duitkuForm.post(route('admin.payment-gateways.duitku'), {
+    duitkuForm.post('/admin/payment-gateways/duitku', {
         preserveScroll: true,
         onSuccess: () => showToast('Pengaturan Duitku tersimpan'),
     });
@@ -1318,3 +1318,4 @@ onBeforeUnmount(() => {
 .fade-enter-active, .fade-leave-active { transition: opacity 200ms ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>
+

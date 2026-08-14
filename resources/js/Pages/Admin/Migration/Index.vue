@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, onUnmounted, computed } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
@@ -60,7 +60,7 @@ const form = useForm({
 });
 
 const submitCutover = () => {
-    form.post(route('admin.migrations.store'), {
+    form.post('/admin/migrations', {
         preserveScroll: true,
         onSuccess: () => {
             if (props.runs.data && props.runs.data.length > 0) {
@@ -102,7 +102,7 @@ const stopPolling = () => {
 
 const fetchRunDetails = async (runId) => {
     try {
-        const response = await fetch(route('admin.migrations.show', runId));
+        const response = await fetch('/admin/migrations/' + runId);
         if (response.ok) {
             const data = await response.json();
             selectedRun.value = data;
@@ -403,3 +403,5 @@ const getStepStatusVariant = (status) => {
         </div>
     </AdminLayout>
 </template>
+
+

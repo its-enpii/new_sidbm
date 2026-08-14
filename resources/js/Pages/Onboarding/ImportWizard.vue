@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import AuthenticatedLayout from '../../Layouts/AuthenticatedLayout.vue';
@@ -59,7 +59,7 @@ const submitOpeningBalances = () => {
             credit: parseFloat(l.credit) || 0,
         }));
 
-    balanceForm.post(route('onboarding.opening-balances.store'), {
+    balanceForm.post('/onboarding/opening-balances', {
         preserveScroll: true,
     });
 };
@@ -71,7 +71,7 @@ const loanFileForm = useForm({ file: null });
 
 const uploadMembers = () => {
     if (!memberFileForm.file) return;
-    memberFileForm.post(route('membership.members.import'), {
+    memberFileForm.post('/membership/members/import', {
         preserveScroll: true,
         onSuccess: () => memberFileForm.reset(),
     });
@@ -79,7 +79,7 @@ const uploadMembers = () => {
 
 const uploadGroups = () => {
     if (!groupFileForm.file) return;
-    groupFileForm.post(route('membership.groups.import'), {
+    groupFileForm.post('/membership/groups/import', {
         preserveScroll: true,
         onSuccess: () => groupFileForm.reset(),
     });
@@ -87,7 +87,7 @@ const uploadGroups = () => {
 
 const uploadLoans = () => {
     if (!loanFileForm.file) return;
-    loanFileForm.post(route('onboarding.active-loans.import'), {
+    loanFileForm.post('/onboarding/active-loans', {
         preserveScroll: true,
         onSuccess: () => loanFileForm.reset(),
     });
@@ -286,7 +286,7 @@ const uploadLoans = () => {
                             />
                         </div>
                         <div class="flex justify-between items-center pt-2">
-                            <a :href="route('onboarding.templates.download', 'anggota')" class="text-xs text-emerald-600 hover:underline font-semibold">
+                            <a :href="'/onboarding/templates/download/anggota'" class="text-xs text-emerald-600 hover:underline font-semibold">
                                 ?? Download Template CSV Anggota
                             </a>
                             <AppButton type="submit" variant="primary" size="sm" :disabled="!memberFileForm.file || memberFileForm.processing">
@@ -314,7 +314,7 @@ const uploadLoans = () => {
                             />
                         </div>
                         <div class="flex justify-between items-center pt-2">
-                            <a :href="route('onboarding.templates.download', 'kelompok')" class="text-xs text-emerald-600 hover:underline font-semibold">
+                            <a :href="'/onboarding/templates/download/kelompok'" class="text-xs text-emerald-600 hover:underline font-semibold">
                                 ?? Download Template CSV Kelompok
                             </a>
                             <AppButton type="submit" variant="primary" size="sm" :disabled="!groupFileForm.file || groupFileForm.processing">
@@ -356,7 +356,7 @@ const uploadLoans = () => {
                                 />
                             </div>
                             <div class="flex justify-between items-center pt-2">
-                                <a :href="route('onboarding.templates.download', 'pinjaman-aktif')" class="text-xs text-emerald-600 hover:underline font-semibold">
+                                <a :href="'/onboarding/templates/download/pinjaman-aktif'" class="text-xs text-emerald-600 hover:underline font-semibold">
                                     ?? Download Format Template CSV Pinjaman Aktif (.csv)
                                 </a>
                                 <AppButton type="submit" variant="primary" size="sm" :disabled="!loanFileForm.file || loanFileForm.processing">
@@ -373,33 +373,35 @@ const uploadLoans = () => {
                 <AppCard class="hover:border-emerald-500 transition-colors">
                     <h3 class="font-bold text-sm text-slate-900 dark:text-white">1. Template Saldo Awal</h3>
                     <p class="text-xs text-slate-500 mt-1">Format neraca saldo awal akun COA debit/kredit.</p>
-                    <a :href="route('onboarding.templates.download', 'saldo-awal')" class="mt-4 inline-block text-xs font-semibold text-emerald-600">?? Download CSV Template</a>
+                    <a :href="'/onboarding/templates/download/saldo-awal'" class="mt-4 inline-block text-xs font-semibold text-emerald-600">?? Download CSV Template</a>
                 </AppCard>
 
                 <AppCard class="hover:border-emerald-500 transition-colors">
                     <h3 class="font-bold text-sm text-slate-900 dark:text-white">2. Template Anggota</h3>
                     <p class="text-xs text-slate-500 mt-1">Format data NIK, Nama, Alamat, Desa, Phone.</p>
-                    <a :href="route('onboarding.templates.download', 'anggota')" class="mt-4 inline-block text-xs font-semibold text-emerald-600">?? Download CSV Template</a>
+                    <a :href="'/onboarding/templates/download/anggota'" class="mt-4 inline-block text-xs font-semibold text-emerald-600">?? Download CSV Template</a>
                 </AppCard>
 
                 <AppCard class="hover:border-emerald-500 transition-colors">
                     <h3 class="font-bold text-sm text-slate-900 dark:text-white">3. Template Kelompok</h3>
                     <p class="text-xs text-slate-500 mt-1">Format nama kelompok, alamat, desa, pengurus.</p>
-                    <a :href="route('onboarding.templates.download', 'kelompok')" class="mt-4 inline-block text-xs font-semibold text-emerald-600">?? Download CSV Template</a>
+                    <a :href="'/onboarding/templates/download/kelompok'" class="mt-4 inline-block text-xs font-semibold text-emerald-600">?? Download CSV Template</a>
                 </AppCard>
 
                 <AppCard class="hover:border-emerald-500 transition-colors">
                     <h3 class="font-bold text-sm text-slate-900 dark:text-white">4. Template Pinjaman Aktif & Angsuran</h3>
                     <p class="text-xs text-slate-500 mt-1">Format portofolio pinjaman berjalan & akumulasi angsuran.</p>
-                    <a :href="route('onboarding.templates.download', 'pinjaman-aktif')" class="mt-4 inline-block text-xs font-semibold text-emerald-600">?? Download CSV Template</a>
+                    <a :href="'/onboarding/templates/download/pinjaman-aktif'" class="mt-4 inline-block text-xs font-semibold text-emerald-600">?? Download CSV Template</a>
                 </AppCard>
 
                 <AppCard class="hover:border-emerald-500 transition-colors">
                     <h3 class="font-bold text-sm text-slate-900 dark:text-white">5. Template Aset Tetap Awal</h3>
                     <p class="text-xs text-slate-500 mt-1">Format barang inventaris, harga perolehan, depresiasi.</p>
-                    <a :href="route('onboarding.templates.download', 'aset-tetap')" class="mt-4 inline-block text-xs font-semibold text-emerald-600">?? Download CSV Template</a>
+                    <a :href="'/onboarding/templates/download/aset-tetap'" class="mt-4 inline-block text-xs font-semibold text-emerald-600">?? Download CSV Template</a>
                 </AppCard>
             </div>
         </div>
     </AuthenticatedLayout>
 </template>
+
+
