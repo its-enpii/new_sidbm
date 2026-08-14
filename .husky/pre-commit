@@ -10,11 +10,11 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# 2. Run PHPUnit Unit Tests
-echo "🧪 Running Unit Tests..."
-php artisan test --testsuite=Unit
+# 2. Run All PHPUnit Tests
+echo "🧪 Running Full Test Suite..."
+php artisan test
 if [ $? -ne 0 ]; then
-    echo "❌ Unit tests failed! Commit aborted."
+    echo "❌ Tests failed! Commit aborted."
     exit 1
 fi
 

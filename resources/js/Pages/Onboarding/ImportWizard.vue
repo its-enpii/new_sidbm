@@ -5,7 +5,7 @@ import AuthenticatedLayout from '../../Layouts/AuthenticatedLayout.vue';
 import AppCard from '../../Components/AppCard.vue';
 import AppButton from '../../Components/AppButton.vue';
 import AppBadge from '../../Components/AppBadge.vue';
-import { useMoney } from '../../Composables/useMoney';
+import { useMoney } from '../../composables/useMoney';
 
 const props = defineProps({
     accounts: { type: Array, required: true },
