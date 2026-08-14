@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppIcon from '../Components/AppIcon.vue';
@@ -15,11 +15,11 @@ const logoutForm = useForm({});
 const navigation = [
     { label: 'Dashboard', icon: 'dashboard', href: '/admin', exact: true },
     { label: 'Tenant', icon: 'domain', href: '/admin/tenants' },
-    { label: 'Invoice', icon: 'receipt_long', href: '/admin/invoices' },
     { label: 'Plan', icon: 'workspace_premium', href: '/admin/plans' },
-    { label: 'Migrasi Data', icon: 'transform', href: '/admin/migration' },
+    { label: 'Invoice', icon: 'receipt_long', href: '/admin/invoices' },
     { label: 'Payment Gateway', icon: 'payments', href: '/admin/payment-gateways' },
     { label: 'AI Assistant', icon: 'smart_toy', href: '/admin/ai-assistant' },
+    { label: 'Migrasi Data', icon: 'transform', href: '/admin/migration' },
 ];
 
 function isActive(item) {
