@@ -145,6 +145,38 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
 
     // AI Assistant
     Route::get('/ai-assistant', [AiAssistantController::class, 'index'])->name('ai-assistant.index');
+    Route::get('/ai-assistant/personas', [AiAssistantController::class, 'personas'])->name('ai-assistant.personas');
+    Route::post('/ai-assistant/personas/store', [AiAssistantController::class, 'storePersona'])->name('ai-assistant.personas.store');
+    Route::post('/ai-assistant/personas', [AiAssistantController::class, 'storePersona']);
+    Route::put('/ai-assistant/personas/{id}', [AiAssistantController::class, 'updatePersona'])->name('ai-assistant.personas.update');
+    Route::delete('/ai-assistant/personas/{id}', [AiAssistantController::class, 'deletePersona'])->name('ai-assistant.personas.delete');
+    Route::post('/ai-assistant/personas/{id}/toggle', [AiAssistantController::class, 'togglePersona'])->name('ai-assistant.personas.toggle');
+    Route::get('/ai-assistant/tools', [AiAssistantController::class, 'tools'])->name('ai-assistant.tools');
+    Route::post('/ai-assistant/tools/sync', [AiAssistantController::class, 'syncTools'])->name('ai-assistant.tools.sync');
+    Route::put('/ai-assistant/tools/{id}', [AiAssistantController::class, 'updateTool'])->name('ai-assistant.tools.update');
+    Route::get('/ai-assistant/documents', [AiAssistantController::class, 'documents'])->name('ai-assistant.documents');
+    Route::get('/ai-assistant/documents/{id}', [AiAssistantController::class, 'documentDetail'])->name('ai-assistant.documents.show');
+    Route::delete('/ai-assistant/documents/{id}', [AiAssistantController::class, 'deleteDocument'])->name('ai-assistant.documents.delete');
+    Route::post('/ai-assistant/upload', [AiAssistantController::class, 'uploadDocument'])->name('ai-assistant.upload');
+    Route::post('/ai-assistant/chat', [AiAssistantController::class, 'chatStream'])->name('ai-assistant.chat');
+    Route::get('/ai-assistant/conversations', [AiAssistantController::class, 'conversations'])->name('ai-assistant.conversations');
+    Route::get('/ai-assistant/audit-logs', [AiAssistantController::class, 'auditLogs'])->name('ai-assistant.audit-logs');
+    // Backward compatibility for Orchestrator AI routes
+    Route::get('/integrations/orchestrator/personas', [AiAssistantController::class, 'personas']);
+    Route::post('/integrations/orchestrator/personas/store', [AiAssistantController::class, 'storePersona']);
+    Route::put('/integrations/orchestrator/personas/{id}', [AiAssistantController::class, 'updatePersona']);
+    Route::delete('/integrations/orchestrator/personas/{id}', [AiAssistantController::class, 'deletePersona']);
+    Route::post('/integrations/orchestrator/personas/{id}/toggle', [AiAssistantController::class, 'togglePersona']);
+    Route::get('/integrations/orchestrator/tools', [AiAssistantController::class, 'tools']);
+    Route::post('/integrations/orchestrator/tools/sync', [AiAssistantController::class, 'syncTools']);
+    Route::put('/integrations/orchestrator/tools/{id}', [AiAssistantController::class, 'updateTool']);
+    Route::get('/integrations/orchestrator/documents', [AiAssistantController::class, 'documents']);
+    Route::get('/integrations/orchestrator/documents/{id}', [AiAssistantController::class, 'documentDetail']);
+    Route::delete('/integrations/orchestrator/documents/{id}', [AiAssistantController::class, 'deleteDocument']);
+    Route::post('/integrations/orchestrator/upload', [AiAssistantController::class, 'uploadDocument']);
+    Route::post('/integrations/orchestrator/chat', [AiAssistantController::class, 'chatStream']);
+    Route::get('/integrations/orchestrator/conversations', [AiAssistantController::class, 'conversations']);
+    Route::get('/integrations/orchestrator/audit-logs', [AiAssistantController::class, 'auditLogs']);
 
     // Backward compatibility aliases
     Route::get('/integrations', fn () => redirect()->route('payment-gateways.index'))->name('integrations.index');

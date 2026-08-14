@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref } from 'vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
@@ -24,7 +24,7 @@ const toast = ref(null);
 const setGatewayForm = useForm({ gateway: props.active_gateway || 'duitku' });
 const setGateway = (gw) => {
     setGatewayForm.gateway = gw;
-    setGatewayForm.post(route('admin.payment-gateways.active'), {
+    setGatewayForm.post('/admin/payment-gateways/active', {
         preserveScroll: true,
         onSuccess: () => showToast(`Payment Gateway utama diubah ke ${gw.toUpperCase()}`),
     });
@@ -69,7 +69,7 @@ const duitkuForm = useForm({
     default_method: props.duitku?.default_method || 'VC',
 });
 const submitDuitku = () => {
-    duitkuForm.post(route('admin.payment-gateways.duitku'), {
+    duitkuForm.post('/admin/payment-gateways/duitku', {
         preserveScroll: true,
         onSuccess: () => showToast('Pengaturan Duitku tersimpan'),
     });
@@ -114,7 +114,7 @@ const tripayForm = useForm({
     default_method: props.tripay?.default_method || 'QRIS2',
 });
 const submitTripay = () => {
-    tripayForm.post(route('admin.payment-gateways.tripay'), {
+    tripayForm.post('/admin/payment-gateways/tripay', {
         preserveScroll: true,
         onSuccess: () => showToast('Pengaturan Tripay tersimpan'),
     });
@@ -157,7 +157,7 @@ const xenditForm = useForm({
     default_method: props.xendit?.default_method || 'QRIS',
 });
 const submitXendit = () => {
-    xenditForm.post(route('admin.payment-gateways.xendit'), {
+    xenditForm.post('/admin/payment-gateways/xendit', {
         preserveScroll: true,
         onSuccess: () => showToast('Pengaturan Xendit tersimpan'),
     });
@@ -411,3 +411,4 @@ const gatewayTabs = [
         </div>
     </AdminLayout>
 </template>
+

@@ -109,6 +109,52 @@ final class AiAssistantController extends Controller
         ]);
     }
 
+    public function personas(): JsonResponse
+    {
+        $personas = Persona::query()
+            ->with('tools:id,name')
+            ->orderByDesc('is_default')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Persona $p) => [
+                'id' => $p->id,
+                'slug' => $p->slug,
+                'name' => $p->name,
+                'system_prompt' => $p->system_prompt,
+                'is_default' => (bool) $p->is_default,
+                'is_active' => (bool) $p->is_active,
+                'tools' => $p->tools->map(fn (Tool $t) => [
+                    'id' => $t->id,
+                    'name' => $t->name,
+                ]),
+                'tools_count' => $p->tools->count(),
+                'created_at' => optional($p->created_at)->toIso8601String(),
+            ]);
+
+        return response()->json(['ok' => true, 'personas' => $personas]);
+    }
+
+    public function tools(ToolRegistry $registry): JsonResponse
+    {
+        $registeredNames = collect($registry->all())->pluck('name')->all();
+
+        $tools = Tool::query()
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Tool $t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'description' => $t->description,
+                'json_schema' => $t->json_schema,
+                'requires_confirmation' => (bool) $t->requires_confirmation,
+                'is_active' => (bool) $t->is_active,
+                'is_registered' => in_array($t->name, $registeredNames, true),
+                'created_at' => optional($t->created_at)->toIso8601String(),
+            ]);
+
+        return response()->json(['ok' => true, 'tools' => $tools]);
+    }
+
     public function storePersona(OrchestratorRequest $request): JsonResponse
     {
         $data = $request->validate([
@@ -253,82 +299,74 @@ final class AiAssistantController extends Controller
     public function uploadDocument(Request $request, DocumentIngestService $ingestService): JsonResponse
     {
         $request->validate([
+            'file' => ['required', 'file', 'mimes:pdf,txt,md,doc,docx,csv,json', 'max:20480'],
             'title' => ['nullable', 'string', 'max:255'],
-            'persona_id' => ['nullable', 'uuid'],
-            'file' => ['required', 'file', 'mimes:txt,md,html,pdf,docx', 'max:20480'],
         ]);
 
-        $file = $request->file('file');
-        $title = $request->input('title') ?: $file->getClientOriginalName();
-        $personaId = $request->input('persona_id') ?: null;
+        $uploaded = $request->file('file');
+        if (! $uploaded) {
+            return response()->json(['ok' => false, 'message' => 'File tidak ditemukan.'], 422);
+        }
 
-        $doc = $ingestService->ingestFile($file, $title, $personaId);
+        $tenantId = $this->resolveTenantId($request);
+        $title = $request->input('title') ?: $uploaded->getClientOriginalName();
 
-        return response()->json([
-            'ok' => true,
-            'message' => sprintf('Dokumen "%s" berhasil di-chunk (%d chunks) dan disimpan.', $doc->title, $doc->chunks()->count()),
-            'document_id' => $doc->id,
-        ]);
+        try {
+            $doc = $ingestService->ingestUploadedFile($uploaded, $tenantId, $title);
+
+            return response()->json([
+                'ok' => true,
+                'message' => "Dokumen '{$title}' berhasil diproses dan disimpan ke Knowledge Base.",
+                'document' => [
+                    'id' => $doc->id,
+                    'title' => $doc->title,
+                    'chunks_count' => $doc->chunks()->count(),
+                    'created_at' => optional($doc->created_at)->toIso8601String(),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Gagal memproses dokumen: '.$e->getMessage(),
+            ], 500);
+        }
     }
 
     public function documents(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'persona_id' => ['nullable', 'uuid'],
-        ]);
-
-        $items = Document::query()
-            ->with('source.persona')
+        $docs = Document::query()
             ->withCount('chunks')
-            ->whereHas('source', function ($q) use ($data): void {
-                $q->where('status', 'active');
-                if (! empty($data['persona_id'])) {
-                    $q->where('persona_id', $data['persona_id']);
-                }
-            })
             ->orderByDesc('created_at')
-            ->get(['id', 'knowledge_source_id', 'title', 'content_raw', 'source_format', 'created_at'])
-            ->map(static fn (Document $d): array => [
+            ->limit(50)
+            ->get()
+            ->map(fn (Document $d) => [
                 'id' => $d->id,
-                'title' => $d->title ?: '(untitled)',
-                'format' => $d->source_format,
-                'preview' => $d->content_raw ? mb_substr($d->content_raw, 0, 200) : '',
-                'content_length' => $d->content_raw ? mb_strlen($d->content_raw) : 0,
-                'chunks_count' => (int) ($d->chunks_count ?? 0),
-                'persona_id' => optional($d->source)->persona_id,
-                'persona_name' => optional(optional($d->source)->persona)->name,
+                'title' => $d->title,
+                'status' => $d->status,
+                'chunks_count' => $d->chunks_count,
                 'created_at' => optional($d->created_at)->toIso8601String(),
-            ])
-            ->values();
+            ]);
 
-        return response()->json([
-            'ok' => true,
-            'count' => $items->count(),
-            'items' => $items,
-        ]);
+        return response()->json(['ok' => true, 'documents' => $docs]);
     }
 
     public function documentDetail(string $id): JsonResponse
     {
-        $doc = Document::query()
-            ->with(['source.persona', 'chunks'])
-            ->findOrFail($id);
+        $doc = Document::query()->with('chunks')->findOrFail($id);
 
         return response()->json([
             'ok' => true,
             'document' => [
                 'id' => $doc->id,
                 'title' => $doc->title,
-                'format' => $doc->source_format,
-                'content_raw' => $doc->content_raw,
-                'created_at' => optional($doc->created_at)->toIso8601String(),
-                'persona_name' => optional(optional($doc->source)->persona)->name,
+                'status' => $doc->status,
+                'metadata' => $doc->metadata,
                 'chunks' => $doc->chunks->map(fn ($c) => [
                     'id' => $c->id,
                     'chunk_index' => $c->chunk_index,
-                    'chunk_text' => $c->chunk_text,
-                    'has_embedding' => ! empty($c->embedding_json),
+                    'content' => $c->content,
                 ]),
+                'created_at' => optional($doc->created_at)->toIso8601String(),
             ],
         ]);
     }

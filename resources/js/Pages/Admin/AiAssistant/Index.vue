@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import AppBadge from '../../../Components/AppBadge.vue';
@@ -59,7 +59,7 @@ const tripayForm = useForm({
 });
 
 const submitTripay = () => {
-    tripayForm.post(route('admin.integrations.tripay'), {
+    tripayForm.post(route('admin.payment-gateways.tripay'), {
         preserveScroll: true,
         onSuccess: () => showToast('Pengaturan Tripay tersimpan'),
     });
@@ -91,7 +91,7 @@ const gatewayForm = useForm({
 
 const setGateway = (gw) => {
     gatewayForm.gateway = gw;
-    gatewayForm.post(route('admin.integrations.active-gateway'), {
+    gatewayForm.post(route('admin.payment-gateways.active-gateway'), {
         preserveScroll: true,
         onSuccess: () => showToast(`Payment Gateway utama diubah ke ${gw.toUpperCase()}`),
     });
@@ -123,7 +123,7 @@ const xenditForm = useForm({
 });
 
 const submitXendit = () => {
-    xenditForm.post(route('admin.integrations.xendit'), {
+    xenditForm.post(route('admin.payment-gateways.xendit'), {
         preserveScroll: true,
         onSuccess: () => showToast('Pengaturan Xendit tersimpan'),
     });
@@ -171,7 +171,7 @@ const duitkuForm = useForm({
 });
 
 const submitDuitku = () => {
-    duitkuForm.post(route('admin.integrations.duitku'), {
+    duitkuForm.post(route('admin.payment-gateways.duitku'), {
         preserveScroll: true,
         onSuccess: () => showToast('Pengaturan Duitku tersimpan'),
     });
@@ -243,7 +243,7 @@ async function testConnection() {
     testLoading.value = true;
     testResult.value = null;
     try {
-        testResult.value = await apiCall('/admin/integrations/orchestrator/test', { method: 'POST' });
+        testResult.value = await apiCall('/admin/ai-assistant/test', { method: 'POST' });
     } catch (e) {
         testResult.value = { success: false, status: 'error', message: e.message };
     } finally {
@@ -287,8 +287,8 @@ function openEditPersona(persona) {
 async function submitPersona() {
     const payload = personaModal.value.data;
     const url = personaModal.value.mode === 'create'
-        ? '/admin/integrations/orchestrator/personas/store'
-        : `/admin/integrations/orchestrator/personas/${payload.id}`;
+        ? '/admin/ai-assistant/personas/store'
+        : `/admin/ai-assistant/personas/${payload.id}`;
     const method = personaModal.value.mode === 'create' ? 'POST' : 'PUT';
     try {
         const data = await apiCall(url, {
@@ -310,7 +310,7 @@ async function deletePersona(persona) {
     });
     if (!ok) return;
     try {
-        const data = await apiCall(`/admin/integrations/orchestrator/personas/${persona.id}`, { method: 'DELETE' });
+        const data = await apiCall(`/admin/ai-assistant/personas/${persona.id}`, { method: 'DELETE' });
         await refreshPersonas();
         showToast(data.message || 'Persona berhasil dihapus.');
     } catch (e) {
@@ -319,7 +319,7 @@ async function deletePersona(persona) {
 }
 async function togglePersona(persona, field) {
     try {
-        const data = await apiCall(`/admin/integrations/orchestrator/personas/${persona.id}/toggle`, {
+        const data = await apiCall(`/admin/ai-assistant/personas/${persona.id}/toggle`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ field }),
@@ -332,7 +332,7 @@ async function togglePersona(persona, field) {
 }
 async function refreshPersonas() {
     try {
-        const data = await apiCall('/admin/integrations/orchestrator/personas', { method: 'GET' });
+        const data = await apiCall('/admin/ai-assistant/personas', { method: 'GET' });
         personas.value = data.personas;
     } catch (e) {
         showToast(e.message, 'error');
@@ -351,7 +351,7 @@ const toolSyncing = ref(false);
 async function syncTools() {
     toolSyncing.value = true;
     try {
-        const data = await apiCall('/admin/integrations/orchestrator/tools/sync', { method: 'POST' });
+        const data = await apiCall('/admin/ai-assistant/tools/sync', { method: 'POST' });
         showToast(data.message || 'Sinkronisasi selesai.');
         await refreshTools();
     } catch (e) {
@@ -363,7 +363,7 @@ async function syncTools() {
 async function toggleTool(tool, field) {
     try {
         const payload = { [field]: ! tool[field] };
-        await apiCall(`/admin/integrations/orchestrator/tools/${tool.id}`, {
+        await apiCall(`/admin/ai-assistant/tools/${tool.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
@@ -376,7 +376,7 @@ async function toggleTool(tool, field) {
 }
 async function refreshTools() {
     try {
-        const data = await apiCall('/admin/integrations/orchestrator/tools', { method: 'GET' });
+        const data = await apiCall('/admin/ai-assistant/tools', { method: 'GET' });
         tools.value = data.tools;
     } catch (e) {
         showToast(e.message, 'error');
@@ -406,7 +406,7 @@ async function fetchDocuments() {
     try {
         const params = new URLSearchParams();
         if (uploadForm.persona_id) params.set('persona_id', uploadForm.persona_id);
-        const url = '/admin/integrations/orchestrator/documents'
+        const url = '/admin/ai-assistant/documents'
             + (params.toString() ? `?${params.toString()}` : '');
         const data = await apiCall(url, { method: 'GET' });
         docs.value = { loading: false, items: data.items, error: '' };
@@ -416,11 +416,11 @@ async function fetchDocuments() {
 }
 
 const kbPersonaOptions = computed(() => [
-    { value: '', label: '— Semua persona —', description: 'Tampilkan semua' },
+    { value: '', label: 'â€” Semua persona â€”', description: 'Tampilkan semua' },
     ...personas.value.map((p) => ({ value: p.id, label: p.name, description: p.slug })),
 ]);
 const uploadPersonaOptions = computed(() => [
-    { value: '', label: '— Tanpa persona (global) —', description: 'Dokumen tersedia global' },
+    { value: '', label: 'â€” Tanpa persona (global) â€”', description: 'Dokumen tersedia global' },
     ...personas.value.map((p) => ({ value: p.id, label: p.name, description: p.slug })),
 ]);
 
@@ -457,7 +457,7 @@ async function submitUpload() {
         if (uploadForm.title) fd.append('title', uploadForm.title);
         if (uploadForm.persona_id) fd.append('persona_id', uploadForm.persona_id);
         fd.append('file', uploadForm.file);
-        const data = await apiCall('/admin/integrations/orchestrator/upload', {
+        const data = await apiCall('/admin/ai-assistant/upload', {
             method: 'POST',
             body: fd,
         });
@@ -475,7 +475,7 @@ async function submitUpload() {
 
 async function viewDocument(doc) {
     try {
-        const data = await apiCall(`/admin/integrations/orchestrator/documents/${doc.id}`, { method: 'GET' });
+        const data = await apiCall(`/admin/ai-assistant/documents/${doc.id}`, { method: 'GET' });
         docModal.value = { open: true, doc: data.document };
     } catch (e) {
         showToast(e.message, 'error');
@@ -488,7 +488,7 @@ async function deleteDocument(doc) {
     });
     if (!ok) return;
     try {
-        const data = await apiCall(`/admin/integrations/orchestrator/documents/${doc.id}`, { method: 'DELETE' });
+        const data = await apiCall(`/admin/ai-assistant/documents/${doc.id}`, { method: 'DELETE' });
         showToast(data.message || 'Dokumen dihapus.');
         await fetchDocuments();
     } catch (e) {
@@ -511,7 +511,7 @@ let chatAbort = null;
 let chatSeq = 0;
 
 const chatPersonaOptions = computed(() => [
-    { value: '', label: '— Default persona —', description: 'Gunakan persona default sistem' },
+    { value: '', label: 'â€” Default persona â€”', description: 'Gunakan persona default sistem' },
     ...personas.value.filter((p) => p.is_active).map((p) => ({ value: p.id, label: p.name, description: p.slug })),
 ]);
 
@@ -604,20 +604,20 @@ function handleChatEvent(event, data, assistantMsg) {
     }
     if (event === 'tool_use') {
         chatTyping.value = true;
-        chatTypingLabel.value = 'Mencari data…';
+        chatTypingLabel.value = 'Mencari dataâ€¦';
         nextTick(scrollChatBottom);
         return;
     }
     if (event === 'tool_result') {
         chatTyping.value = true;
-        chatTypingLabel.value = 'Menyusun jawaban…';
+        chatTypingLabel.value = 'Menyusun jawabanâ€¦';
         nextTick(scrollChatBottom);
         return;
     }
     if (event === 'confirmation_required') {
         chatTyping.value = false;
         const summary = data?.summary ?? 'Aksi perlu konfirmasi.';
-        pushChat({ role: 'assistant', content: `⚠️ **Konfirmasi diperlukan:** ${summary}` });
+        pushChat({ role: 'assistant', content: `âš ï¸ **Konfirmasi diperlukan:** ${summary}` });
         return;
     }
     if (event === 'error') {
@@ -639,7 +639,7 @@ async function sendChatTest(content) {
     chatTypingLabel.value = 'Sedang mengetik';
     chatAbort = new AbortController();
     try {
-        const res = await fetch('/admin/integrations/orchestrator/chat', {
+        const res = await fetch('/admin/ai-assistant/chat', {
             method: 'POST',
             headers: {
                 Accept: 'text/event-stream',
@@ -710,7 +710,7 @@ const auditLogs = ref({ loading: false, items: [], error: '' });
 async function fetchConversations() {
     conversations.value.loading = true;
     try {
-        const data = await apiCall('/admin/integrations/orchestrator/conversations', { method: 'GET' });
+        const data = await apiCall('/admin/ai-assistant/conversations', { method: 'GET' });
         conversations.value = { loading: false, items: data.conversations, error: '' };
     } catch (e) {
         conversations.value = { loading: false, items: [], error: e.message };
@@ -719,7 +719,7 @@ async function fetchConversations() {
 async function fetchAuditLogs() {
     auditLogs.value.loading = true;
     try {
-        const data = await apiCall('/admin/integrations/orchestrator/audit-logs', { method: 'GET' });
+        const data = await apiCall('/admin/ai-assistant/audit-logs', { method: 'GET' });
         auditLogs.value = { loading: false, items: data.logs, error: '' };
     } catch (e) {
         auditLogs.value = { loading: false, items: [], error: e.message };
@@ -749,7 +749,7 @@ function formatBytes(n) {
     return `${v.toFixed(1)} ${u[i]}`;
 }
 function formatDate(iso) {
-    if (!iso) return '—';
+    if (!iso) return 'â€”';
     try {
         return new Date(iso).toLocaleString('id-ID', {
             day: '2-digit', month: 'short', year: 'numeric',
@@ -758,7 +758,7 @@ function formatDate(iso) {
     } catch { return iso; }
 }
 function formatTime(iso) {
-    if (!iso) return '—';
+    if (!iso) return 'â€”';
     try {
         return new Date(iso).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     } catch { return iso; }
@@ -798,7 +798,7 @@ onBeforeUnmount(() => {
             <!-- Flash success -->
             <AppCard v-if="flash">
                 <div class="flex items-center gap-3">
-                    <div class="grid size-10 shrink-0 place-items-center rounded-full bg-secondary-container text-secondary">✓</div>
+                    <div class="grid size-10 shrink-0 place-items-center rounded-full bg-secondary-container text-secondary">âœ“</div>
                     <p class="font-bold text-primary">{{ flash.message }}</p>
                 </div>
             </AppCard>
@@ -960,7 +960,7 @@ onBeforeUnmount(() => {
                                 v-model="uploadForm.persona_id"
                                 label="Persona (opsional)"
                                 :options="uploadPersonaOptions"
-                                placeholder="— Pilih persona —"
+                                placeholder="â€” Pilih persona â€”"
                                 hint="Dokumen akan di-scope ke persona ini. Kosongkan untuk global."
                                 :clearable="false"
                             />
@@ -978,7 +978,7 @@ onBeforeUnmount(() => {
                                 <p class="text-sm text-on-surface-variant">
                                     <span class="font-semibold text-primary">Klik untuk pilih</span> atau drop file di sini
                                 </p>
-                                <p class="text-xs text-on-surface-variant">PDF / DOCX / MD / HTML / TXT — maks 20 MB</p>
+                                <p class="text-xs text-on-surface-variant">PDF / DOCX / MD / HTML / TXT â€” maks 20 MB</p>
                                 <input type="file" class="hidden" accept=".pdf,.docx,.md,.markdown,.html,.htm,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html" @change="onUploadFile">
                             </label>
                             <p v-if="uploadFileName" class="mt-2 text-xs text-on-surface-variant">
@@ -1002,12 +1002,12 @@ onBeforeUnmount(() => {
                             <SmartSelect v-model="uploadForm.persona_id" :options="kbPersonaOptions" placeholder="Semua persona" hide-label class="min-w-44" />
                             <button type="button" class="inline-flex items-center gap-1 rounded-md border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-on-surface-variant transition-colors hover:bg-surface-container" :disabled="docs.loading" @click="fetchDocuments">
                                 <AppIcon name="refresh" />
-                                <span>{{ docs.loading ? 'Memuat…' : 'Refresh' }}</span>
+                                <span>{{ docs.loading ? 'Memuatâ€¦' : 'Refresh' }}</span>
                             </button>
                         </div>
                     </header>
 
-                    <div v-if="docs.loading" class="rounded-xl bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">Memuat…</div>
+                    <div v-if="docs.loading" class="rounded-xl bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">Memuatâ€¦</div>
                     <div v-else-if="docs.error" class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ docs.error }}</div>
                     <AppEmptyState v-else-if="!docs.items.length" icon="library_books" title="Belum ada dokumen" description="Upload file di atas untuk mulai membangun knowledge base." />
                     <div v-else class="overflow-x-auto rounded-xl border border-outline-variant">
@@ -1031,7 +1031,7 @@ onBeforeUnmount(() => {
                                     </td>
                                     <td class="px-4 py-2 text-xs text-on-surface-variant">{{ d.persona_name ?? 'Global' }}</td>
                                     <td class="px-4 py-2">
-                                        <span class="rounded bg-surface-container-lowest px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">{{ d.format || '—' }}</span>
+                                        <span class="rounded bg-surface-container-lowest px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">{{ d.format || 'â€”' }}</span>
                                     </td>
                                     <td class="px-4 py-2 text-right tabular-nums">{{ formatBytes(d.content_length) }}</td>
                                     <td class="px-4 py-2 text-right tabular-nums">{{ d.chunks_count }}</td>
@@ -1112,7 +1112,7 @@ onBeforeUnmount(() => {
                         <textarea
                             v-model="chatInput"
                             rows="2"
-                            placeholder="Tulis pertanyaan…"
+                            placeholder="Tulis pertanyaanâ€¦"
                             class="min-h-12 max-h-32 flex-1 resize-none rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm leading-5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
                             :disabled="chatBusy"
                             @keydown.enter.exact.prevent="sendChat"
@@ -1134,10 +1134,10 @@ onBeforeUnmount(() => {
                         <h2 class="text-lg font-bold text-primary">Percakapan Terbaru</h2>
                         <button type="button" class="inline-flex items-center gap-1 rounded-md border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-on-surface-variant transition-colors hover:bg-surface-container" :disabled="conversations.loading" @click="fetchConversations">
                             <AppIcon name="refresh" />
-                            <span>{{ conversations.loading ? 'Memuat…' : 'Refresh' }}</span>
+                            <span>{{ conversations.loading ? 'Memuatâ€¦' : 'Refresh' }}</span>
                         </button>
                     </header>
-                    <div v-if="conversations.loading" class="rounded-xl bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">Memuat…</div>
+                    <div v-if="conversations.loading" class="rounded-xl bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">Memuatâ€¦</div>
                     <AppEmptyState v-else-if="!conversations.items.length" icon="forum" title="Belum ada percakapan" />
                     <div v-else class="overflow-x-auto rounded-xl border border-outline-variant">
                         <table class="w-full text-sm">
@@ -1168,10 +1168,10 @@ onBeforeUnmount(() => {
                         <h2 class="text-lg font-bold text-primary">Audit Log</h2>
                         <button type="button" class="inline-flex items-center gap-1 rounded-md border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-on-surface-variant transition-colors hover:bg-surface-container" :disabled="auditLogs.loading" @click="fetchAuditLogs">
                             <AppIcon name="refresh" />
-                            <span>{{ auditLogs.loading ? 'Memuat…' : 'Refresh' }}</span>
+                            <span>{{ auditLogs.loading ? 'Memuatâ€¦' : 'Refresh' }}</span>
                         </button>
                     </header>
-                    <div v-if="auditLogs.loading" class="rounded-xl bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">Memuat…</div>
+                    <div v-if="auditLogs.loading" class="rounded-xl bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">Memuatâ€¦</div>
                     <AppEmptyState v-else-if="!auditLogs.items.length" icon="history" title="Belum ada audit log" />
                     <div v-else class="overflow-x-auto rounded-xl border border-outline-variant">
                         <table class="w-full text-sm">
@@ -1192,7 +1192,7 @@ onBeforeUnmount(() => {
                                             {{ log.action }}
                                         </AppBadge>
                                     </td>
-                                    <td class="px-4 py-2 font-mono text-xs text-on-surface-variant">{{ log.entity_type }} #{{ log.entity_id?.slice(0, 8) ?? '—' }}</td>
+                                    <td class="px-4 py-2 font-mono text-xs text-on-surface-variant">{{ log.entity_type }} #{{ log.entity_id?.slice(0, 8) ?? 'â€”' }}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1205,7 +1205,7 @@ onBeforeUnmount(() => {
                 <div class="space-y-4">
                     <AppInput v-model="personaModal.data.name" label="Nama" placeholder="Contoh: Koperasi Assistant" />
                     <AppInput v-model="personaModal.data.slug" label="Slug" placeholder="Contoh: koperasi-assistant (otomatis dari nama jika kosong)" />
-                    <AppTextarea v-model="personaModal.data.system_prompt" label="System Prompt" placeholder="Deskripsikan kepribadian, gaya bahasa, dan batasan persona ini…" :rows="8" />
+                    <AppTextarea v-model="personaModal.data.system_prompt" label="System Prompt" placeholder="Deskripsikan kepribadian, gaya bahasa, dan batasan persona iniâ€¦" :rows="8" />
                     <div>
                         <label class="mb-2 block text-sm font-bold uppercase tracking-wider text-primary">Tool Scope (kosongkan = semua tools)</label>
                         <div class="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto rounded-xl border border-outline-variant bg-surface-container-lowest p-3 sm:grid-cols-2">
