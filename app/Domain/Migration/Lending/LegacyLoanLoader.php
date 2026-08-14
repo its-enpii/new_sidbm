@@ -79,76 +79,118 @@ final class LegacyLoanLoader
                     }
                 }
 
-                $loanRowId = $db->table('loans')->insertGetId([
-                    'tenant_id' => $tenantId,
-                    'id' => $loan->legacyId,
-                    'legacy_source' => 'group_loan',
-                    'public_id' => (string) Str::ulid(),
-                    'loan_number' => $loanNumber,
-                    'loan_product_row_id' => $loan->productRowId,
-                    'sequence_number' => $loan->sequenceNumber,
-                    'proposed_at' => $loan->proposedAt,
-                    'verified_at' => $loan->verifiedAt,
-                    'approved_at' => $loan->approvedAt,
-                    'funded_at' => $loan->fundedAt,
-                    'disbursed_at' => $loan->disbursedAt,
-                    'completed_at' => $loan->completedAt,
-                    'disbursement_account_row_id' => null,
-                    'disbursement_notes' => null,
-                    'principal_amount' => $loan->principal,
-                    'interest_rate' => $loan->interestRate,
-                    'term_months' => $loan->termMonths,
-                    'installment_method' => $loan->installmentMethod,
-                    'principal_frequency' => 'monthly',
-                    'interest_frequency' => 'monthly',
-                    'service_rate_total' => $loan->interestRate,
-                    'status' => $loan->status,
-                    'verification_notes' => $loan->verificationNotes,
-                    'guidance_notes' => $loan->guidanceNotes,
-                    'verification_time' => $loan->verificationTime,
-                    'disbursement_schedule_text' => $loan->disbursementScheduleText,
-                    'created_by_user_id' => null,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ], 'row_id');
+                $existingLoan = $db->table('loans')
+                    ->where('tenant_id', $tenantId)
+                    ->where('id', $loan->legacyId)
+                    ->first(['row_id']);
 
-                $borrowerId = $this->sequences->next('loan_borrowers');
-                $db->table('loan_borrowers')->insert([
-                    'tenant_id' => $tenantId,
-                    'id' => $borrowerId,
-                    'loan_row_id' => $loanRowId,
-                    'member_row_id' => null,
-                    'group_row_id' => $groupRowId,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
+                if ($existingLoan !== null) {
+                    $loanRowId = (int) $existingLoan->row_id;
+                    $db->table('loans')
+                        ->where('row_id', $loanRowId)
+                        ->update([
+                            'loan_number' => $loanNumber,
+                            'loan_product_row_id' => $loan->productRowId,
+                            'sequence_number' => $loan->sequenceNumber,
+                            'proposed_at' => $loan->proposedAt,
+                            'verified_at' => $loan->verifiedAt,
+                            'approved_at' => $loan->approvedAt,
+                            'funded_at' => $loan->fundedAt,
+                            'disbursed_at' => $loan->disbursedAt,
+                            'completed_at' => $loan->completedAt,
+                            'principal_amount' => $loan->principal,
+                            'interest_rate' => $loan->interestRate,
+                            'term_months' => $loan->termMonths,
+                            'installment_method' => $loan->installmentMethod,
+                            'status' => $loan->status,
+                            'updated_at' => $now,
+                        ]);
+                } else {
+                    $loanRowId = (int) $db->table('loans')->insertGetId([
+                        'tenant_id' => $tenantId,
+                        'id' => $loan->legacyId,
+                        'legacy_source' => 'group_loan',
+                        'public_id' => (string) Str::ulid(),
+                        'loan_number' => $loanNumber,
+                        'loan_product_row_id' => $loan->productRowId,
+                        'sequence_number' => $loan->sequenceNumber,
+                        'proposed_at' => $loan->proposedAt,
+                        'verified_at' => $loan->verifiedAt,
+                        'approved_at' => $loan->approvedAt,
+                        'funded_at' => $loan->fundedAt,
+                        'disbursed_at' => $loan->disbursedAt,
+                        'completed_at' => $loan->completedAt,
+                        'disbursement_account_row_id' => null,
+                        'disbursement_notes' => null,
+                        'principal_amount' => $loan->principal,
+                        'interest_rate' => $loan->interestRate,
+                        'term_months' => $loan->termMonths,
+                        'installment_method' => $loan->installmentMethod,
+                        'principal_frequency' => 'monthly',
+                        'interest_frequency' => 'monthly',
+                        'service_rate_total' => $loan->interestRate,
+                        'status' => $loan->status,
+                        'verification_notes' => $loan->verificationNotes,
+                        'guidance_notes' => $loan->guidanceNotes,
+                        'verification_time' => $loan->verificationTime,
+                        'disbursement_schedule_text' => $loan->disbursementScheduleText,
+                        'created_by_user_id' => null,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ], 'row_id');
+                }
 
-                $histId = $this->sequences->next('loan_status_histories');
-                $db->table('loan_status_histories')->insert([
-                    'tenant_id' => $tenantId,
-                    'id' => $histId,
-                    'loan_row_id' => $loanRowId,
-                    'from_status' => null,
-                    'to_status' => $loan->status,
-                    'notes' => 'legacy import',
-                    'changed_by_user_id' => null,
-                    'changed_at' => $loan->disbursedAt ? $loan->disbursedAt.' 00:00:00' : $now,
-                    'created_at' => $now,
-                ]);
+                $hasBorrower = $db->table('loan_borrowers')
+                    ->where('loan_row_id', $loanRowId)
+                    ->exists();
+                if (! $hasBorrower) {
+                    $borrowerId = $this->sequences->next('loan_borrowers');
+                    $db->table('loan_borrowers')->insert([
+                        'tenant_id' => $tenantId,
+                        'id' => $borrowerId,
+                        'loan_row_id' => $loanRowId,
+                        'member_row_id' => null,
+                        'group_row_id' => $groupRowId,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+                }
 
-                $db->table('legacy_record_mappings')->insert([
-                    'tenant_id' => $tenantId,
-                    'batch_row_id' => $batchRowId,
-                    'source_table' => $sourceTable,
-                    'source_id' => (string) $loan->legacyId,
-                    'source_secondary_key' => 'loan',
-                    'target_table' => 'loans',
-                    'target_row_id' => $loanRowId,
-                    'target_local_id' => $loan->legacyId,
-                    'source_snapshot' => json_encode($loan->snapshot, JSON_THROW_ON_ERROR),
-                    'migrated_at' => $now,
-                    'created_at' => $now,
-                ]);
+                $hasHist = $db->table('loan_status_histories')
+                    ->where('loan_row_id', $loanRowId)
+                    ->exists();
+                if (! $hasHist) {
+                    $histId = $this->sequences->next('loan_status_histories');
+                    $db->table('loan_status_histories')->insert([
+                        'tenant_id' => $tenantId,
+                        'id' => $histId,
+                        'loan_row_id' => $loanRowId,
+                        'from_status' => null,
+                        'to_status' => $loan->status,
+                        'notes' => 'legacy import',
+                        'changed_by_user_id' => null,
+                        'changed_at' => $loan->disbursedAt ? $loan->disbursedAt.' 00:00:00' : $now,
+                        'created_at' => $now,
+                    ]);
+                }
+
+                $db->table('legacy_record_mappings')->updateOrInsert(
+                    [
+                        'tenant_id' => $tenantId,
+                        'source_table' => $sourceTable,
+                        'source_id' => (string) $loan->legacyId,
+                        'source_secondary_key' => 'loan',
+                    ],
+                    [
+                        'batch_row_id' => $batchRowId,
+                        'target_table' => 'loans',
+                        'target_row_id' => $loanRowId,
+                        'target_local_id' => $loan->legacyId,
+                        'source_snapshot' => json_encode($loan->snapshot, JSON_THROW_ON_ERROR),
+                        'migrated_at' => $now,
+                        'created_at' => $now,
+                    ]
+                );
 
                 $inserted++;
             }

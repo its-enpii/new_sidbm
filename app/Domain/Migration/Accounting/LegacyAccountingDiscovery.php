@@ -82,15 +82,23 @@ final class LegacyAccountingDiscovery
             ];
 
             if ($trxExists) {
-                $stats = $this->legacy->selectOne(
-                    "SELECT COUNT(*) AS c,
+                $hasDeletedAt = false;
+                foreach ($this->legacy->columns($trx) as $col) {
+                    if ((string) ($col->COLUMN_NAME ?? '') === 'deleted_at') {
+                        $hasDeletedAt = true;
+                        break;
+                    }
+                }
+                $statsQuery = "SELECT COUNT(*) AS c,
                             MIN(tgl_transaksi) AS min_date,
                             MAX(tgl_transaksi) AS max_date,
                             MIN(idt) AS min_idt,
                             MAX(idt) AS max_idt
-                     FROM `{$trx}`
-                     WHERE deleted_at IS NULL",
-                );
+                     FROM `{$trx}`";
+                if ($hasDeletedAt) {
+                    $statsQuery .= ' WHERE deleted_at IS NULL';
+                }
+                $stats = $this->legacy->selectOne($statsQuery);
                 $item['transaksi_count'] = (int) ($stats->c ?? 0);
                 $item['min_date'] = $stats->min_date !== null ? (string) $stats->min_date : null;
                 $item['max_date'] = $stats->max_date !== null ? (string) $stats->max_date : null;

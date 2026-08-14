@@ -36,7 +36,7 @@ final class LegacyGroupLoader
         $errors = [];
         $warnings = [];
 
-        // Preload member maps: legacy id → row_id, name lower → row_id
+        // Preload member maps: legacy id -> row_id, name lower -> row_id
         $memberByLegacyId = [];
         $memberByName = [];
         $memberRows = DB::connection($connName)->table('members as m')
@@ -85,80 +85,126 @@ final class LegacyGroupLoader
                 $codeTaken = $db->table('groups')
                     ->where('tenant_id', $tenantId)
                     ->where('code', $code)
+                    ->where('id', '!=', $g->legacyId)
                     ->exists();
                 if ($codeTaken) {
                     $code = (string) $g->legacyId;
                 }
 
-                $groupRowId = $db->table('groups')->insertGetId([
-                    'tenant_id' => $tenantId,
-                    'id' => $g->legacyId,
-                    'public_id' => (string) Str::ulid(),
-                    'organization_unit_row_id' => $g->organizationUnitRowId,
-                    'business_type_row_id' => $g->businessTypeRowId,
-                    'activity_type_row_id' => $g->activityTypeRowId,
-                    'group_level_row_id' => $g->groupLevelRowId,
-                    'group_function_row_id' => $g->groupFunctionRowId,
-                    'code' => $code,
-                    'name' => $g->name,
-                    'address' => $g->address,
-                    'phone' => $g->phone,
-                    'established_at' => $g->establishedAt,
-                    'status' => $g->status,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                    'deleted_at' => null,
-                ], 'row_id');
+                $existingGroup = $db->table('groups')
+                    ->where('tenant_id', $tenantId)
+                    ->where('id', $g->legacyId)
+                    ->first(['row_id']);
 
-                $db->table('legacy_record_mappings')->insert([
-                    'tenant_id' => $tenantId,
-                    'batch_row_id' => $batchRowId,
-                    'source_table' => $sourceTable,
-                    'source_id' => (string) $g->legacyId,
-                    'source_secondary_key' => 'group',
-                    'target_table' => 'groups',
-                    'target_row_id' => $groupRowId,
-                    'target_local_id' => $g->legacyId,
-                    'source_snapshot' => json_encode($g->snapshot, JSON_THROW_ON_ERROR),
-                    'migrated_at' => $now,
-                    'created_at' => $now,
-                ]);
+                if ($existingGroup !== null) {
+                    $groupRowId = (int) $existingGroup->row_id;
+                    $db->table('groups')
+                        ->where('row_id', $groupRowId)
+                        ->update([
+                            'organization_unit_row_id' => $g->organizationUnitRowId,
+                            'business_type_row_id' => $g->businessTypeRowId,
+                            'activity_type_row_id' => $g->activityTypeRowId,
+                            'group_level_row_id' => $g->groupLevelRowId,
+                            'group_function_row_id' => $g->groupFunctionRowId,
+                            'code' => $code,
+                            'name' => $g->name,
+                            'address' => $g->address,
+                            'phone' => $g->phone,
+                            'established_at' => $g->establishedAt,
+                            'status' => $g->status,
+                            'updated_at' => $now,
+                        ]);
+                } else {
+                    $groupRowId = (int) $db->table('groups')->insertGetId([
+                        'tenant_id' => $tenantId,
+                        'id' => $g->legacyId,
+                        'public_id' => (string) Str::ulid(),
+                        'organization_unit_row_id' => $g->organizationUnitRowId,
+                        'business_type_row_id' => $g->businessTypeRowId,
+                        'activity_type_row_id' => $g->activityTypeRowId,
+                        'group_level_row_id' => $g->groupLevelRowId,
+                        'group_function_row_id' => $g->groupFunctionRowId,
+                        'code' => $code,
+                        'name' => $g->name,
+                        'address' => $g->address,
+                        'phone' => $g->phone,
+                        'established_at' => $g->establishedAt,
+                        'status' => $g->status,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                        'deleted_at' => null,
+                    ], 'row_id');
+                }
+
+                $db->table('legacy_record_mappings')->updateOrInsert(
+                    [
+                        'tenant_id' => $tenantId,
+                        'source_table' => $sourceTable,
+                        'source_id' => (string) $g->legacyId,
+                        'source_secondary_key' => 'group',
+                    ],
+                    [
+                        'batch_row_id' => $batchRowId,
+                        'target_table' => 'groups',
+                        'target_row_id' => $groupRowId,
+                        'target_local_id' => $g->legacyId,
+                        'source_snapshot' => json_encode($g->snapshot, JSON_THROW_ON_ERROR),
+                        'migrated_at' => $now,
+                        'created_at' => $now,
+                    ]
+                );
 
                 $joinedMembers = [];
-                foreach ($g->memberLegacyIds as $mid) {
+                foreach ($g->memberLegacyIds as $mIdRaw) {
+                    $mid = (int) $mIdRaw;
                     $memberRowId = $memberByLegacyId[$mid] ?? null;
                     if ($memberRowId === null) {
-                        $errors[] = "kelompok id={$g->legacyId}: member legacy id={$mid} not found";
+                        $errors[] = "kelompok id={$g->legacyId}: member legacy id={$mid} not found in members table";
 
                         continue;
                     }
-                    $gmId = $this->sequences->next('group_members');
-                    $gmRowId = $db->table('group_members')->insertGetId([
-                        'tenant_id' => $tenantId,
-                        'id' => $gmId,
-                        'group_row_id' => $groupRowId,
-                        'member_row_id' => $memberRowId,
-                        'joined_at' => $g->establishedAt ?? substr($now, 0, 10),
-                        'left_at' => null,
-                        'status' => 'active',
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ], 'row_id');
                     $joinedMembers[$memberRowId] = true;
 
-                    $db->table('legacy_record_mappings')->insert([
-                        'tenant_id' => $tenantId,
-                        'batch_row_id' => $batchRowId,
-                        'source_table' => $sourceTable,
-                        'source_id' => (string) $g->legacyId,
-                        'source_secondary_key' => 'gm:'.$mid,
-                        'target_table' => 'group_members',
-                        'target_row_id' => $gmRowId,
-                        'target_local_id' => $gmId,
-                        'source_snapshot' => json_encode(['member_legacy_id' => $mid], JSON_THROW_ON_ERROR),
-                        'migrated_at' => $now,
-                        'created_at' => $now,
-                    ]);
+                    $existsGM = $db->table('group_members')
+                        ->where('group_row_id', $groupRowId)
+                        ->where('member_row_id', $memberRowId)
+                        ->first(['row_id', 'id']);
+
+                    if ($existsGM !== null) {
+                        $gmRowId = (int) $existsGM->row_id;
+                        $gmId = (int) $existsGM->id;
+                    } else {
+                        $gmId = $this->sequences->next('group_members');
+                        $gmRowId = (int) $db->table('group_members')->insertGetId([
+                            'tenant_id' => $tenantId,
+                            'id' => $gmId,
+                            'group_row_id' => $groupRowId,
+                            'member_row_id' => $memberRowId,
+                            'joined_at' => $g->establishedAt ?? substr($now, 0, 10),
+                            'left_at' => null,
+                            'status' => 'active',
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ], 'row_id');
+                    }
+
+                    $db->table('legacy_record_mappings')->updateOrInsert(
+                        [
+                            'tenant_id' => $tenantId,
+                            'source_table' => $sourceTable,
+                            'source_id' => (string) $g->legacyId,
+                            'source_secondary_key' => 'gm:'.$mid,
+                        ],
+                        [
+                            'batch_row_id' => $batchRowId,
+                            'target_table' => 'group_members',
+                            'target_row_id' => $gmRowId,
+                            'target_local_id' => $gmId,
+                            'source_snapshot' => json_encode(['member_legacy_id' => $mid], JSON_THROW_ON_ERROR),
+                            'migrated_at' => $now,
+                            'created_at' => $now,
+                        ]
+                    );
                 }
 
                 foreach ($g->officers as $position => $ref) {
@@ -170,7 +216,6 @@ final class LegacyGroupLoader
                         $memberRowId = $this->resolveMemberByName($ref, $memberByName);
                     }
                     if ($memberRowId === null) {
-                        // Free-text officer names often don't match anggota — keep group, warn only.
                         $warnings[] = "kelompok id={$g->legacyId}: officer {$position} unresolved [".(string) $ref.']';
 
                         continue;
@@ -178,47 +223,68 @@ final class LegacyGroupLoader
 
                     // Ensure officer is also a group member
                     if (! isset($joinedMembers[$memberRowId])) {
-                        $gmId = $this->sequences->next('group_members');
-                        $db->table('group_members')->insert([
-                            'tenant_id' => $tenantId,
-                            'id' => $gmId,
-                            'group_row_id' => $groupRowId,
-                            'member_row_id' => $memberRowId,
-                            'joined_at' => $g->establishedAt ?? substr($now, 0, 10),
-                            'left_at' => null,
-                            'status' => 'active',
-                            'created_at' => $now,
-                            'updated_at' => $now,
-                        ]);
+                        $existsGM = $db->table('group_members')
+                            ->where('group_row_id', $groupRowId)
+                            ->where('member_row_id', $memberRowId)
+                            ->first(['row_id']);
+                        if ($existsGM === null) {
+                            $gmId = $this->sequences->next('group_members');
+                            $db->table('group_members')->insert([
+                                'tenant_id' => $tenantId,
+                                'id' => $gmId,
+                                'group_row_id' => $groupRowId,
+                                'member_row_id' => $memberRowId,
+                                'joined_at' => $g->establishedAt ?? substr($now, 0, 10),
+                                'left_at' => null,
+                                'status' => 'active',
+                                'created_at' => $now,
+                                'updated_at' => $now,
+                            ]);
+                        }
                         $joinedMembers[$memberRowId] = true;
                     }
 
-                    $goId = $this->sequences->next('group_officers');
-                    $goRowId = $db->table('group_officers')->insertGetId([
-                        'tenant_id' => $tenantId,
-                        'id' => $goId,
-                        'group_row_id' => $groupRowId,
-                        'member_row_id' => $memberRowId,
-                        'position' => $position,
-                        'started_at' => $g->establishedAt,
-                        'ended_at' => null,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ], 'row_id');
+                    $existsGO = $db->table('group_officers')
+                        ->where('group_row_id', $groupRowId)
+                        ->where('member_row_id', $memberRowId)
+                        ->where('position', $position)
+                        ->first(['row_id', 'id']);
 
-                    $db->table('legacy_record_mappings')->insert([
-                        'tenant_id' => $tenantId,
-                        'batch_row_id' => $batchRowId,
-                        'source_table' => $sourceTable,
-                        'source_id' => (string) $g->legacyId,
-                        'source_secondary_key' => 'go:'.$position,
-                        'target_table' => 'group_officers',
-                        'target_row_id' => $goRowId,
-                        'target_local_id' => $goId,
-                        'source_snapshot' => json_encode(['position' => $position, 'ref' => $ref], JSON_THROW_ON_ERROR),
-                        'migrated_at' => $now,
-                        'created_at' => $now,
-                    ]);
+                    if ($existsGO !== null) {
+                        $goRowId = (int) $existsGO->row_id;
+                        $goId = (int) $existsGO->id;
+                    } else {
+                        $goId = $this->sequences->next('group_officers');
+                        $goRowId = (int) $db->table('group_officers')->insertGetId([
+                            'tenant_id' => $tenantId,
+                            'id' => $goId,
+                            'group_row_id' => $groupRowId,
+                            'member_row_id' => $memberRowId,
+                            'position' => $position,
+                            'started_at' => $g->establishedAt,
+                            'ended_at' => null,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ], 'row_id');
+                    }
+
+                    $db->table('legacy_record_mappings')->updateOrInsert(
+                        [
+                            'tenant_id' => $tenantId,
+                            'source_table' => $sourceTable,
+                            'source_id' => (string) $g->legacyId,
+                            'source_secondary_key' => 'go:'.$position,
+                        ],
+                        [
+                            'batch_row_id' => $batchRowId,
+                            'target_table' => 'group_officers',
+                            'target_row_id' => $goRowId,
+                            'target_local_id' => $goId,
+                            'source_snapshot' => json_encode(['position' => $position, 'ref' => $ref], JSON_THROW_ON_ERROR),
+                            'migrated_at' => $now,
+                            'created_at' => $now,
+                        ]
+                    );
                 }
 
                 $inserted++;
@@ -237,7 +303,6 @@ final class LegacyGroupLoader
         if ($raw === '' || $raw === '0' || $raw === '-') {
             return null;
         }
-        // "Juminah / Waliyo Sum" → try full, then each side
         $candidates = array_map('trim', preg_split('/\s*\/\s*/', $raw) ?: [$raw]);
         array_unshift($candidates, $raw);
         foreach ($candidates as $c) {
@@ -250,7 +315,6 @@ final class LegacyGroupLoader
             }
         }
 
-        // Prefix match (truncated names like "Ninik S")
         $needle = strtolower($raw);
         $hits = [];
         foreach ($memberByName as $name => $rowId) {
