@@ -17,7 +17,6 @@ final class EnsureFiscalPeriods extends Command
 {
     protected $signature = 'legacy:ensure-fiscal-periods
         {tenant : Tenant row ID or code}
-        {--suffix= : Legacy database table suffix to auto-detect transaction date range}
         {--from=2018 : First fiscal year}
         {--to= : Last fiscal year (default: current)}
         {--status=open : Period status}';

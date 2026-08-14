@@ -353,7 +353,6 @@ final class TenantCutoverRunnerService
                 'command' => 'legacy:ensure-fiscal-periods',
                 'params' => [
                     'tenant' => $tenantCode,
-                    '--suffix' => $suffix,
                     '--from' => $fromYear,
                     '--to' => $toYear,
                 ],

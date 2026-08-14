@@ -180,7 +180,6 @@ final class CutoverTenant extends Command
                 'command' => 'legacy:ensure-fiscal-periods',
                 'params' => [
                     'tenant' => $tenant,
-                    '--suffix' => $suffix,
                     '--from' => $fromYear,
                     '--to' => $toYear,
                 ],
