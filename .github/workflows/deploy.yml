@@ -73,16 +73,21 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT || 22 }}
+          port: ${{ secrets.SERVER_PORT }}
           command_timeout: 15m
           script: |
             set -e
-            echo "ðŸš€ Deploying to ${{ secrets.DEPLOY_PATH || '/home/enpii/new_sidbm' }}..."
-            cd ${{ secrets.DEPLOY_PATH || '/home/enpii/new_sidbm' }}
+            TARGET_PATH="${{ secrets.DEPLOY_PATH }}"
+            if [ -z "$TARGET_PATH" ]; then
+              TARGET_PATH="/home/enpii/new_sidbm"
+            fi
+            
+            echo "Deploying to $TARGET_PATH..."
+            cd "$TARGET_PATH"
             
             OLD_HEAD=$(git rev-parse HEAD 2>/dev/null || echo "")
             
-            echo "ðŸ“¥ Pulling latest code from Git..."
+            echo "Pulling latest code from Git..."
             git pull origin main
             
             NEEDS_BUILD=false
@@ -92,15 +97,15 @@ jobs:
               fi
             fi
             
-            if [ "$NEEDS_BUILD" = true ]; then
-              echo "ðŸ› ï¸ Docker configuration changes detected! Rebuilding images..."
+            if [ "$NEEDS_BUILD" = "true" ]; then
+              echo "Docker configuration changes detected! Rebuilding images..."
               docker compose up -d --build
             else
-              echo "ðŸ³ Ensuring Docker containers are running..."
+              echo "Ensuring Docker containers are running..."
               docker compose up -d
             fi
             
-            echo "ðŸ“¦ Building Vite frontend assets on server..."
+            echo "Building Vite frontend assets on server..."
             if command -v npm >/dev/null 2>&1; then
               npm ci --prefer-offline --no-audit
               npm run build
@@ -108,13 +113,16 @@ jobs:
               docker run --rm -v "$(pwd)":/app -w /app node:22-alpine sh -c "npm ci && npm run build"
             fi
             
-            echo "ðŸ—„ï¸ Running platform migrations..."
+            echo "Running platform migrations..."
             docker compose exec -T app php artisan migrate --database=platform --path=database/migrations/platform --force
             
-            echo "ðŸ¢ Running tenant shard migrations..."
+            echo "Running tenant shard migrations..."
             docker compose exec -T app php artisan tenancy:migrate-shards --force
             
-            echo "âš¡ Refreshing & optimizing Laravel caches..."
+            echo "Running assistant RAG database migrations..."
+            docker compose exec -T app php artisan migrate --database=rag --path=packages/assistant/database/migrations --force || true
+            
+            echo "Refreshing & optimizing Laravel caches..."
             docker compose exec -T app php artisan config:clear
             docker compose exec -T app php artisan route:clear
             docker compose exec -T app php artisan view:clear
@@ -122,4 +130,4 @@ jobs:
             docker compose exec -T app php artisan route:cache
             docker compose exec -T app php artisan view:cache
             
-            echo "ðŸŽ‰ Deployment completed successfully!"
+            echo "Deployment completed successfully!"
