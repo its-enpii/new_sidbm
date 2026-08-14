@@ -13,24 +13,31 @@ use App\Services\Admin\TenantCutoverRunnerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class MigrationController extends Controller
 {
-    public function index(Request $request, LegacyAccountingDiscovery $discovery): Response
+    /**
+     * Cache TTL for legacy suffix discovery (seconds). Discovery runs MIN/MAX
+     * queries against the remote legacy MySQL across all suffixes — too slow
+     * to call on every page render, so we cache the result for 5 minutes.
+     */
+    private const DISCOVERY_CACHE_TTL = 300;
+
+    public function index(Request $request): Response
     {
         $tenants = Tenant::query()
             ->select(['row_id', 'code', 'name', 'status'])
             ->orderBy('name')
             ->get();
 
-        try {
-            $discoveredSuffixes = $discovery->discover();
-        } catch (\Throwable $e) {
-            $discoveredSuffixes = [];
-        }
+        // Discovery is intentionally NOT called here — it can take 60+ seconds
+        // against a remote legacy MySQL. The Vue page loads instantly and
+        // triggers /admin/migration/discover via AJAX (cached for 5 min).
+        $discoveredSuffixes = [];
 
         $runs = CutoverRun::query()
             ->with(['tenant:row_id,code,name'])
@@ -169,6 +176,42 @@ final class MigrationController extends Controller
             'started_at' => $run->started_at?->toIso8601String(),
             'completed_at' => $run->completed_at?->toIso8601String(),
             'created_at' => $run->created_at?->toIso8601String(),
+        ]);
+    }
+
+    /**
+     * AJAX endpoint that returns the cached legacy suffix discovery.
+     * The first call scans the remote MySQL (slow), subsequent calls hit the cache.
+     */
+    public function discover(Request $request, LegacyAccountingDiscovery $discovery): JsonResponse
+    {
+        $force = $request->boolean('refresh');
+
+        $cacheKey = 'admin.migration.discovery.v1';
+
+        if ($force) {
+            Cache::forget($cacheKey);
+        }
+
+        try {
+            $suffixes = Cache::remember(
+                $cacheKey,
+                self::DISCOVERY_CACHE_TTL,
+                fn () => $discovery->discover(),
+            );
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'error' => $e->getMessage(),
+                'suffixes' => [],
+            ], 502);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'count' => count($suffixes),
+            'cached_until' => now()->addSeconds(self::DISCOVERY_CACHE_TTL)->toIso8601String(),
+            'suffixes' => $suffixes,
         ]);
     }
 }

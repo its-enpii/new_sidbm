@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onUnmounted, computed, watch, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import AppCard from '../../../Components/AppCard.vue';
@@ -25,6 +25,41 @@ const isUserScrolledUp = ref(false);
 let pollInterval = null;
 let sseSource = null;
 
+// Discovery loaded lazily via AJAX — querying MIN/MAX on every suffix in
+// the remote legacy MySQL can take 60+ seconds, so the page renders
+// immediately and only runs discovery when the user opens the form.
+const discoveredSuffixes = ref(props.discovered_suffixes ?? []);
+const isDiscovering = ref(false);
+const discoveryError = ref(null);
+const discoveryCount = ref(discoveredSuffixes.value.length);
+
+const runDiscovery = async (force = false) => {
+    if (isDiscovering.value) return;
+    isDiscovering.value = true;
+    discoveryError.value = null;
+    try {
+        const url = '/admin/migration/discover' + (force ? '?refresh=1' : '');
+        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok === false) {
+            discoveryError.value = data.error || `HTTP ${res.status}`;
+            return;
+        }
+        discoveredSuffixes.value = Array.isArray(data.suffixes) ? data.suffixes : [];
+        discoveryCount.value = data.count ?? discoveredSuffixes.value.length;
+    } catch (e) {
+        discoveryError.value = e?.message ?? 'Gagal memanggil endpoint discover.';
+    } finally {
+        isDiscovering.value = false;
+    }
+};
+
+onMounted(() => {
+    if (!discoveredSuffixes.value || discoveredSuffixes.value.length === 0) {
+        runDiscovery(false);
+    }
+});
+
 const tenantOptions = computed(() =>
     props.tenants.map(t => ({
         value: t.row_id,
@@ -35,10 +70,10 @@ const tenantOptions = computed(() =>
 );
 
 const suffixOptions = computed(() => {
-    if (!props.discovered_suffixes || props.discovered_suffixes.length === 0) {
+    if (!discoveredSuffixes.value || discoveredSuffixes.value.length === 0) {
         return [{ value: '1', label: 'Suffix 1', subtitle: 'Default manual input (transaksi_1 / saldo_1)' }];
     }
-    return props.discovered_suffixes.map(s => {
+    return discoveredSuffixes.value.map(s => {
         const countText = s.transaksi_count !== null
             ? `${s.transaksi_count.toLocaleString('id-ID')} transaksi`
             : 'Tabel Ditemukan';
@@ -292,9 +327,9 @@ const getStepStatusVariant = (status) => {
                                 </div>
 
                                 <!-- Suffix Lokasi ID Selection -->
-                                <div>
+                                <div class="space-y-2">
                                     <SmartSelect
-                                        v-if="props.discovered_suffixes && props.discovered_suffixes.length > 0"
+                                        v-if="discoveredSuffixes.length > 0"
                                         v-model="form.suffix"
                                         label="ID Lokasi (Suffix Terdeteksi)"
                                         :options="suffixOptions"
@@ -311,6 +346,30 @@ const getStepStatusVariant = (status) => {
                                         required
                                         :error="form.errors.suffix"
                                     />
+                                    <div class="flex items-center justify-between gap-2 text-xs">
+                                        <span class="text-on-surface-variant">
+                                            <template v-if="isDiscovering">Memindai database legacy… ({{ Math.round(70) }}s)</template>
+                                            <template v-else-if="discoveryError">
+                                                <span class="text-error">Gagal memindai: {{ discoveryError }}</span>
+                                            </template>
+                                            <template v-else-if="discoveredSuffixes.length > 0">
+                                                {{ discoveryCount }} suffix terdeteksi.
+                                            </template>
+                                            <template v-else>
+                                                Belum ada suffix terdeteksi — klik "Pindai Ulang DB Legacy".
+                                            </template>
+                                        </span>
+                                        <AppButton
+                                            type="button"
+                                            variant="ghost"
+                                            size="compact"
+                                            icon="search"
+                                            :disabled="isDiscovering"
+                                            @click="runDiscovery(true)"
+                                        >
+                                            Pindai Ulang DB Legacy
+                                        </AppButton>
+                                    </div>
                                 </div>
                             </div>
 

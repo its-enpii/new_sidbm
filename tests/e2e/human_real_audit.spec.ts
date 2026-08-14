@@ -11,19 +11,19 @@ async function humanType(page: Page, locator: any, text: string) {
 }
 
 async function loginAs(page: Page, username: string) {
+    await page.request.post(`${BASE}/logout`).catch(() => {});
     await page.context().clearCookies();
     await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' });
+
     const userIn = page.locator('input[autocomplete="username"]').first();
     await userIn.waitFor({ state: 'visible', timeout: 15000 });
-    await userIn.fill('');
-    await userIn.pressSequentially(username, { delay: 25 });
+    await userIn.fill(username);
 
     const passIn = page.locator('input[autocomplete="current-password"]').first();
-    await passIn.fill('');
-    await passIn.pressSequentially('password', { delay: 25 });
+    await passIn.fill('password');
 
     await page.getByRole('button', { name: /Masuk/i }).first().click();
-    await page.waitForFunction(() => !window.location.pathname.includes('/login'), { timeout: 20000 });
+    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 20000 });
     await page.waitForTimeout(500);
 }
 

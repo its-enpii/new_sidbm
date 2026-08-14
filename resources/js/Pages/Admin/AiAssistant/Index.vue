@@ -72,7 +72,7 @@ const testTripayConnection = async () => {
     tripayTesting.value = true;
     tripayTestResult.value = null;
     try {
-        const data = await apiCall('/admin/integrations/tripay/test', { method: 'POST' });
+        const data = await apiCall('/admin/payment-gateways/tripay/test', { method: 'POST' });
         tripayTestResult.value = data;
         showToast(data.message, data.ok ? 'success' : 'error');
     } catch (e) {
@@ -136,7 +136,7 @@ const testXenditConnection = async () => {
     xenditTesting.value = true;
     xenditTestResult.value = null;
     try {
-        const data = await apiCall('/admin/integrations/xendit/test', { method: 'POST' });
+        const data = await apiCall('/admin/payment-gateways/xendit/test', { method: 'POST' });
         xenditTestResult.value = data;
         showToast(data.message, data.ok ? 'success' : 'error');
     } catch (e) {
@@ -184,7 +184,7 @@ const testDuitkuConnection = async () => {
     duitkuTesting.value = true;
     duitkuTestResult.value = null;
     try {
-        const data = await apiCall('/admin/integrations/duitku/test', { method: 'POST' });
+        const data = await apiCall('/admin/payment-gateways/duitku/test', { method: 'POST' });
         duitkuTestResult.value = data;
         showToast(data.message, data.ok ? 'success' : 'error');
     } catch (e) {
@@ -243,7 +243,7 @@ async function testConnection() {
     testLoading.value = true;
     testResult.value = null;
     try {
-        testResult.value = await apiCall('/admin/ai-assistant/test', { method: 'POST' });
+        testResult.value = await apiCall('/admin/ai-assistant/tools/sync', { method: 'POST' });
     } catch (e) {
         testResult.value = { success: false, status: 'error', message: e.message };
     } finally {
@@ -1318,4 +1318,6 @@ onBeforeUnmount(() => {
 .fade-enter-active, .fade-leave-active { transition: opacity 200ms ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>
+
+
 

@@ -352,7 +352,7 @@ final class AiAssistantController extends Controller
 
     public function documentDetail(string $id): JsonResponse
     {
-        $doc = Document::query()->with('chunks')->findOrFail($id);
+        $doc = Document::query()->with(['source', 'chunks'])->findOrFail($id);
 
         return response()->json([
             'ok' => true,
@@ -361,10 +361,12 @@ final class AiAssistantController extends Controller
                 'title' => $doc->title,
                 'status' => $doc->status,
                 'metadata' => $doc->metadata,
-                'chunks' => $doc->chunks->map(fn ($c) => [
-                    'id' => $c->id,
-                    'chunk_index' => $c->chunk_index,
-                    'content' => $c->content,
+                'chunks_count' => $doc->chunks->count(),
+                'chunks' => $doc->chunks->map(fn ($chunk) => [
+                    'id' => $chunk->id,
+                    'chunk_index' => $chunk->chunk_index,
+                    'token_count' => $chunk->token_count,
+                    'content_preview' => Str::limit($chunk->content, 200),
                 ]),
                 'created_at' => optional($doc->created_at)->toIso8601String(),
             ],
@@ -457,9 +459,12 @@ final class AiAssistantController extends Controller
         }
 
         $conversationId = $data['conversation_id'] ?? null;
+        $conversation = null;
         if ($conversationId) {
             $conversation = Conversation::query()->find($conversationId);
-        } else {
+        }
+
+        if (! $conversation) {
             $conversation = Conversation::query()->create([
                 'tenant_id' => $tenantId,
                 'user_id' => $actorId,
