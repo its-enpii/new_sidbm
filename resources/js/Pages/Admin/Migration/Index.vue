@@ -35,7 +35,7 @@ const suffixOptions = computed(() => {
     }
     return props.discovered_suffixes.map(s => ({
         value: s.suffix,
-        label: `Suffix ${s.suffix} ? ${s.transaksi_table} (${s.transaksi_count !== null ? s.transaksi_count.toLocaleString('id-ID') + ' transaksi' : 'Tabel Ditemukan'}${s.min_date ? ' | ' + s.min_date + ' s/d ' + s.max_date : ''})`,
+        label: `Suffix ${s.suffix} — ${s.transaksi_table} (${s.transaksi_count !== null ? s.transaksi_count.toLocaleString('id-ID') + ' transaksi' : 'Tabel Ditemukan'}${s.min_date ? ' | ' + s.min_date + ' s/d ' + s.max_date : ''})`,
     }));
 });
 
