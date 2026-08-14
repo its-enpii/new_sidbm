@@ -14,6 +14,8 @@ import AppIcon from '../../../Components/AppIcon.vue';
 const props = defineProps({
     tenants: { type: Array, required: true },
     runs: { type: Object, required: true },
+    legacy_config: { type: Object, default: () => ({ host: '127.0.0.1', port: 3306, database: 'sidbm' }) },
+    discovered_suffixes: { type: Array, default: () => [] },
 });
 
 const selectedRun = ref(null);
@@ -26,6 +28,16 @@ const tenantOptions = computed(() =>
         label: `${t.name} (Code: ${t.code})`,
     }))
 );
+
+const suffixOptions = computed(() => {
+    if (!props.discovered_suffixes || props.discovered_suffixes.length === 0) {
+        return [{ value: '1', label: 'Suffix 1 (Default Manual Input)' }];
+    }
+    return props.discovered_suffixes.map(s => ({
+        value: s.suffix,
+        label: `Suffix ${s.suffix} ? ${s.transaksi_table} (${s.transaksi_count !== null ? s.transaksi_count.toLocaleString('id-ID') + ' transaksi' : 'Tabel Ditemukan'}${s.min_date ? ' | ' + s.min_date + ' s/d ' + s.max_date : ''})`,
+    }));
+});
 
 const form = useForm({
     tenant_id: props.tenants[0]?.row_id ?? '',
@@ -166,9 +178,18 @@ const getStepStatusVariant = (status) => {
                                     />
                                 </div>
 
-                                <!-- Suffix Lokasi ID via AppInput -->
+                                <!-- Suffix Lokasi ID Selection -->
                                 <div>
+                                    <SmartSelect
+                                        v-if="props.discovered_suffixes && props.discovered_suffixes.length > 0"
+                                        v-model="form.suffix"
+                                        label="ID Lokasi (Suffix Terdeteksi)"
+                                        :options="suffixOptions"
+                                        :error="form.errors.suffix"
+                                        required
+                                    />
                                     <AppInput
+                                        v-else
                                         v-model="form.suffix"
                                         label="ID Lokasi (Suffix Legacy DB)"
                                         type="number"
@@ -243,21 +264,27 @@ const getStepStatusVariant = (status) => {
                             <h2 class="text-lg font-bold text-primary">Petunjuk Alur Migrasi</h2>
                         </template>
                         <div class="space-y-3 text-xs text-on-surface-variant leading-relaxed">
+                            <div class="rounded-lg border border-outline-variant bg-surface-container-low p-3 space-y-1">
+                                <span class="block font-bold text-primary text-xs">Koneksi Database Legacy Aktif:</span>
+                                <p>Host: <code class="font-mono text-primary font-bold">{{ props.legacy_config?.host || '127.0.0.1' }}:{{ props.legacy_config?.port || 3306 }}</code></p>
+                                <p>Database: <code class="font-mono text-primary font-bold">{{ props.legacy_config?.database || 'sidbm' }}</code></p>
+                            </div>
+
                             <div class="flex items-start space-x-2">
                                 <span class="font-bold text-secondary shrink-0">1.</span>
-                                <p>Pastikan nama database legacy di MySQL lokal (<code class="rounded bg-surface-container px-1 py-0.5 font-mono text-[11px]">db_lokasi_ID</code>) siap diakses.</p>
+                                <p>Sistem membaca database MySQL legacy <code class="rounded bg-surface-container px-1 py-0.5 font-mono text-[11px]">{{ props.legacy_config?.database || 'sidbm' }}</code> yang telah dikonfigurasi di file <code class="rounded bg-surface-container px-1 py-0.5 font-mono text-[11px]">.env</code>.</p>
                             </div>
                             <div class="flex items-start space-x-2">
                                 <span class="font-bold text-secondary shrink-0">2.</span>
-                                <p>Isi kode <strong>Suffix Lokasi ID</strong> sesuai ID kecamatan legacy (misal 1, 1101, dst).</p>
+                                <p>Tabel legacy dibedakan oleh akhiran angka (Suffix ID), seperti <code class="rounded bg-surface-container px-1 py-0.5 font-mono text-[11px]">transaksi_1</code> atau <code class="rounded bg-surface-container px-1 py-0.5 font-mono text-[11px]">saldo_1</code>.</p>
                             </div>
                             <div class="flex items-start space-x-2">
                                 <span class="font-bold text-secondary shrink-0">3.</span>
-                                <p>Disarankan melakukan <strong>Mode Dry-Run</strong> terlebih dahulu sebelum meluncurkan migrasi riil.</p>
+                                <p>Pilihlah <strong>Suffix Terdeteksi</strong> dari daftar dropdown. Sistem akan otomatis memindai tabel yang tersedia.</p>
                             </div>
                             <div class="flex items-start space-x-2">
                                 <span class="font-bold text-secondary shrink-0">4.</span>
-                                <p>Klik tombol <strong>Detail & Log Output</strong> pada tabel riwayat untuk memantau progress konsol secara live.</p>
+                                <p>Disarankan melakukan <strong>Mode Dry-Run</strong> terlebih dahulu untuk mensimulasikan validasi data tanpa mengubah database utama.</p>
                             </div>
                         </div>
                     </AppCard>

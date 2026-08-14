@@ -130,6 +130,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
 
     Route::get('/regional/provinces', [RegionalCodeController::class, 'provinces'])->name('regional.provinces');
     Route::get('/regional/regencies/{province}', [RegionalCodeController::class, 'regencies'])->name('regional.regencies');
+    Route::get('/regional/districts/{regency}', [RegionalCodeController::class, 'districts'])->name('regional.districts');
+    Route::get('/regional/villages/{district}', [RegionalCodeController::class, 'villages'])->name('regional.villages');
 
     // Payment Gateways
     Route::get('/payment-gateways', [PaymentGatewayController::class, 'index'])->name('payment-gateways.index');

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Migration\Accounting\LegacyAccountingDiscovery;
 use App\Http\Controllers\Controller;
 use App\Jobs\RunTenantCutoverJob;
 use App\Models\Platform\CutoverRun;
@@ -17,12 +18,18 @@ use Inertia\Response;
 
 final class MigrationController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, LegacyAccountingDiscovery $discovery): Response
     {
         $tenants = Tenant::query()
             ->select(['row_id', 'code', 'name', 'status'])
             ->orderBy('name')
             ->get();
+
+        try {
+            $discoveredSuffixes = $discovery->discover();
+        } catch (\Throwable $e) {
+            $discoveredSuffixes = [];
+        }
 
         $runs = CutoverRun::query()
             ->with(['tenant:row_id,code,name'])
@@ -47,6 +54,12 @@ final class MigrationController extends Controller
         return Inertia::render('Admin/Migration/Index', [
             'tenants' => $tenants,
             'runs' => $runs,
+            'legacy_config' => [
+                'host' => (string) config('database.connections.legacy.host', '127.0.0.1'),
+                'port' => (int) config('database.connections.legacy.port', 3306),
+                'database' => (string) config('database.connections.legacy.database', 'sidbm'),
+            ],
+            'discovered_suffixes' => $discoveredSuffixes,
         ]);
     }
 

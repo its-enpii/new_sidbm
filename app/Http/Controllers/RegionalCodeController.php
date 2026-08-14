@@ -24,4 +24,9 @@ final class RegionalCodeController
     {
         return response()->json(['data' => $regional->districts((string) $request->route('regency'))]);
     }
+
+    public function villages(Request $request, RegionalCodeApi $regional): JsonResponse
+    {
+        return response()->json(['data' => $regional->villages((string) $request->route('district'))]);
+    }
 }
