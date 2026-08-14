@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, onUnmounted, computed } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
@@ -43,7 +43,7 @@ const form = useForm({
     tenant_id: props.tenants[0]?.row_id ?? '',
     suffix: '1',
     is_dry_run: false,
-    run_immediately: true,
+    run_immediately: false,
     chunk: 500,
     from_year: '2018',
     to_year: String(new Date().getFullYear()),
@@ -102,7 +102,7 @@ const stopPolling = () => {
 
 const fetchRunDetails = async (runId) => {
     try {
-        const response = await fetch('/admin/migrations/' + runId);
+        const response = await fetch('/admin/migrations' + runId);
         if (response.ok) {
             const data = await response.json();
             selectedRun.value = data;
@@ -403,5 +403,6 @@ const getStepStatusVariant = (status) => {
         </div>
     </AdminLayout>
 </template>
+
 
 
