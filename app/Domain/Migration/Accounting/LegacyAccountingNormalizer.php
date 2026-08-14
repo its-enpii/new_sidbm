@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Migration\Accounting;
 
+use App\Domain\Accounting\Models\Account;
 use App\Domain\Migration\Accounting\DTO\NormalizedJournal;
 use App\Domain\Migration\Accounting\DTO\NormalizedOpening;
 use App\Domain\Migration\Support\LegacyAmountParser;
@@ -199,6 +200,9 @@ final class LegacyAccountingNormalizer
     {
         $this->loadAccounts();
         $row = $this->accountsByCode[$code] ?? null;
+        if ($row === null) {
+            $row = $this->autoProvisionAccount($code);
+        }
         if ($row === null || ! $row['is_postable']) {
             return null;
         }
@@ -210,8 +214,80 @@ final class LegacyAccountingNormalizer
     private function resolveAny(string $code): ?array
     {
         $this->loadAccounts();
+        $row = $this->accountsByCode[$code] ?? null;
+        if ($row === null) {
+            $row = $this->autoProvisionAccount($code);
+        }
 
-        return $this->accountsByCode[$code] ?? null;
+        return $row;
+    }
+
+    /** @return array{row_id: int, is_postable: bool}|null */
+    private function autoProvisionAccount(string $code): ?array
+    {
+        if (! $this->looksLikeChartCode($code)) {
+            return null;
+        }
+
+        $tenantId = $this->context->id();
+        $conn = (string) config('tenancy.tenant_connection', 'tenant');
+
+        $parts = explode('.', $code);
+        $level = count($parts);
+        $parentCode = null;
+        if ($level === 4) {
+            $parentCode = "{$parts[0]}.{$parts[1]}.{$parts[2]}.00";
+        } elseif ($level === 3) {
+            $parentCode = "{$parts[0]}.{$parts[1]}.00.00";
+        } elseif ($level === 2) {
+            $parentCode = "{$parts[0]}.0.00.00";
+        }
+
+        $parentRowId = null;
+        if ($parentCode !== null) {
+            $parentRow = DB::connection($conn)->table('accounts')
+                ->where('tenant_id', $tenantId)
+                ->where('code', $parentCode)
+                ->first(['row_id']);
+            if ($parentRow !== null) {
+                $parentRowId = (int) $parentRow->row_id;
+            }
+        }
+
+        $type = match (true) {
+            str_starts_with($code, '1.') => 'asset',
+            str_starts_with($code, '2.') => 'liability',
+            str_starts_with($code, '3.') => 'equity',
+            str_starts_with($code, '4.') => 'revenue',
+            str_starts_with($code, '5.') => 'expense',
+            default => 'unknown',
+        };
+
+        $normal = (str_starts_with($code, '1.') || str_starts_with($code, '5.')) ? 'D' : 'C';
+
+        try {
+            $account = Account::query()->create([
+                'code' => $code,
+                'name' => "Akun Legacy {$code}",
+                'account_type' => $type,
+                'normal_balance' => $normal,
+                'level' => $level,
+                'is_postable' => ($level === 4),
+                'is_active' => true,
+                'parent_row_id' => $parentRowId,
+                'legacy_parent_code' => $parentCode,
+            ]);
+
+            $info = [
+                'row_id' => (int) $account->row_id,
+                'is_postable' => ($level === 4),
+            ];
+            $this->accountsByCode[$code] = $info;
+
+            return $info;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function loadAccounts(): void

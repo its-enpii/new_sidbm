@@ -88,6 +88,7 @@ final class DefaultChartOfAccountsProvisioner
         ['code' => '1.1.01.03', 'normal' => 'D', 'level' => 4, 'parent_code' => '1.1.01.00', 'name' => 'Kas di Bank Ops'],
         ['code' => '1.1.01.04', 'normal' => 'D', 'level' => 4, 'parent_code' => '1.1.01.00', 'name' => 'Kas di Bank SPP'],
         ['code' => '1.1.01.05', 'normal' => 'D', 'level' => 4, 'parent_code' => '1.1.01.00', 'name' => 'Kas di Bank Bumkalma'],
+        ['code' => '1.1.01.06', 'normal' => 'D', 'level' => 4, 'parent_code' => '1.1.01.00', 'name' => 'Kas di Bank Lainnya'],
         ['code' => '1.1.02.01', 'normal' => 'D', 'level' => 4, 'parent_code' => '1.1.02.00', 'name' => 'Deposito'],
         ['code' => '1.1.02.02', 'normal' => 'D', 'level' => 4, 'parent_code' => '1.1.02.00', 'name' => 'Saham'],
         ['code' => '1.1.02.03', 'normal' => 'D', 'level' => 4, 'parent_code' => '1.1.02.00', 'name' => 'Obligasi'],
