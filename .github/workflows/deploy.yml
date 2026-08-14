@@ -22,26 +22,27 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
+          command_timeout: 15m
           script: |
             set -e
-            echo "Deploying to ${{ secrets.DEPLOY_PATH || '/home/enpii/new_sidbm' }}..."
+            echo "🚀 Deploying to ${{ secrets.DEPLOY_PATH || '/home/enpii/new_sidbm' }}..."
             cd ${{ secrets.DEPLOY_PATH || '/home/enpii/new_sidbm' }}
             
-            echo "Pulling latest code from Git..."
+            echo "📥 Pulling latest code from Git..."
             git pull origin main
             
-            echo "Rebuilding and restarting Docker containers..."
-            docker compose up -d --build
+            echo "🐳 Ensuring Docker containers are running..."
+            docker compose up -d
             
-            echo "Running platform migrations..."
+            echo "🗄️ Running platform migrations..."
             docker compose exec -T app php artisan migrate --database=platform --path=database/migrations/platform --force
             
-            echo "Running tenant shard migrations..."
+            echo "🏢 Running tenant shard migrations..."
             docker compose exec -T app php artisan tenancy:migrate-shards --force
             
-            echo "Optimizing Laravel caches..."
+            echo "⚡ Optimizing Laravel caches..."
             docker compose exec -T app php artisan config:cache
             docker compose exec -T app php artisan route:cache
             docker compose exec -T app php artisan view:cache
             
-            echo "Deployment completed successfully!"
+            echo "🎉 Deployment completed successfully!"
