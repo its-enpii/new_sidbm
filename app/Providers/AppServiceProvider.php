@@ -23,6 +23,7 @@ use App\Tenancy\TenantContext;
 use Enpii\Assistant\Contracts\SessionResolver;
 use Enpii\Assistant\Contracts\TenantResolver;
 use Enpii\Assistant\Services\Tools\ToolRegistry;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 final class AppServiceProvider extends ServiceProvider
@@ -65,6 +66,8 @@ final class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        if (str_starts_with((string) config('app.url'), 'https://') || request()->header('X-Forwarded-Proto') === 'https') {
+            URL::forceScheme('https');
+        }
     }
 }

@@ -6,7 +6,10 @@ import AppCard from '../../../Components/AppCard.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppInput from '../../../Components/AppInput.vue';
+import AppDatePicker from '../../../Components/AppDatePicker.vue';
+import AppSwitch from '../../../Components/AppSwitch.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
+import AppIcon from '../../../Components/AppIcon.vue';
 
 const props = defineProps({
     tenants: { type: Array, required: true },
@@ -31,8 +34,8 @@ const form = useForm({
     is_dry_run: false,
     run_immediately: true,
     chunk: 500,
-    from_year: 2018,
-    to_year: new Date().getFullYear(),
+    from_year: '2018',
+    to_year: String(new Date().getFullYear()),
     skip_fiscal: false,
     skip_coa: false,
     skip_accounting: false,
@@ -134,8 +137,8 @@ const getStepStatusVariant = (status) => {
             <!-- Header -->
             <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
-                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Migrasi Data Legacy (Cutover)</h1>
-                    <p class="mt-1 text-slate-600 dark:text-slate-400">
+                    <h1 class="text-2xl font-bold text-primary sm:text-3xl">Migrasi Data Legacy (Cutover)</h1>
+                    <p class="mt-1 text-on-surface-variant">
                         Alat bantu berbasis tampilan GUI untuk mengonversi & memindahkan data dari SIDBM Legacy ke SIDBM Next secara bertahap tanpa perintah terminal.
                     </p>
                 </div>
@@ -147,7 +150,7 @@ const getStepStatusVariant = (status) => {
                 <div class="lg:col-span-2">
                     <AppCard>
                         <template #header>
-                            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Form Eksekusi Migrasi Baru</h2>
+                            <h2 class="text-lg font-bold text-primary">Form Eksekusi Migrasi Baru</h2>
                         </template>
 
                         <form @submit.prevent="submitCutover" class="space-y-5">
@@ -177,31 +180,21 @@ const getStepStatusVariant = (status) => {
                                 </div>
                             </div>
 
-                            <!-- Mode Toggles -->
-                            <div class="space-y-3 rounded-xl bg-surface-container-low p-4">
-                                <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        v-model="form.is_dry_run"
-                                        class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary-container"
-                                    />
-                                    <div>
-                                        <span class="text-sm font-medium text-primary">Mode Dry-Run (Simulasi / Uji Coba)</span>
-                                        <p class="text-xs text-on-surface-variant">Menjalankan simulasi validasi tanpa menyimpan perubahan ke database utama.</p>
-                                    </div>
-                                </label>
+                            <!-- Mode Toggles via AppSwitch -->
+                            <div class="space-y-3 rounded-xl border border-outline-variant bg-surface-container-low p-4">
+                                <AppSwitch
+                                    v-model="form.is_dry_run"
+                                    label="Mode Dry-Run (Simulasi / Uji Coba)"
+                                    description="Menjalankan simulasi validasi tanpa menyimpan perubahan ke database utama."
+                                    icon="science"
+                                />
 
-                                <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        v-model="form.run_immediately"
-                                        class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary-container"
-                                    />
-                                    <div>
-                                        <span class="text-sm font-medium text-primary">Eksekusi Langsung (Synchronous Execution)</span>
-                                        <p class="text-xs text-on-surface-variant">Jalankan langsung di server tanpa menunggu antrean background worker.</p>
-                                    </div>
-                                </label>
+                                <AppSwitch
+                                    v-model="form.run_immediately"
+                                    label="Eksekusi Langsung (Synchronous Execution)"
+                                    description="Jalankan langsung di server tanpa menunggu antrean background worker."
+                                    icon="bolt"
+                                />
                             </div>
 
                             <!-- Toggle Opsi Lanjutan -->
@@ -210,9 +203,10 @@ const getStepStatusVariant = (status) => {
                                     type="button"
                                     variant="ghost"
                                     size="sm"
+                                    :icon="showAdvanced ? 'expand_less' : 'tune'"
                                     @click="showAdvanced = !showAdvanced"
                                 >
-                                    {{ showAdvanced ? 'Sembunyikan Opsi Lanjutan' : 'Tampilkan Opsi Lanjutan (Skipping / Chunk Size)' }}
+                                    {{ showAdvanced ? 'Sembunyikan Opsi Lanjutan' : 'Tampilkan Opsi Lanjutan (Skipping / Chunk Size / Year)' }}
                                 </AppButton>
                             </div>
 
@@ -222,31 +216,31 @@ const getStepStatusVariant = (status) => {
                                         <AppInput v-model="form.chunk" label="Chunk Size" type="number" min="10" max="5000" />
                                     </div>
                                     <div>
-                                        <AppInput v-model="form.from_year" label="Tahun Fiskal Dari" type="number" min="2000" />
+                                        <AppDatePicker v-model="form.from_year" label="Tahun Fiskal Dari" mode="year" placeholder="Pilih Tahun" />
                                     </div>
                                     <div>
-                                        <AppInput v-model="form.to_year" label="Tahun Fiskal Sampai" type="number" min="2000" />
+                                        <AppDatePicker v-model="form.to_year" label="Tahun Fiskal Sampai" mode="year" placeholder="Pilih Tahun" />
                                     </div>
                                 </div>
 
-                                <div class="space-y-2">
-                                    <span class="block text-xs font-semibold text-primary">Lompati Step (Optional Skipping):</span>
-                                    <div class="grid grid-cols-2 gap-2 text-xs">
-                                        <label class="flex items-center space-x-2"><input type="checkbox" v-model="form.skip_fiscal" /> <span>Skip Fiscal Periods</span></label>
-                                        <label class="flex items-center space-x-2"><input type="checkbox" v-model="form.skip_coa" /> <span>Skip COA Import</span></label>
-                                        <label class="flex items-center space-x-2"><input type="checkbox" v-model="form.skip_accounting" /> <span>Skip Accounting Jurnal</span></label>
-                                        <label class="flex items-center space-x-2"><input type="checkbox" v-model="form.skip_membership" /> <span>Skip Keanggotaan</span></label>
-                                        <label class="flex items-center space-x-2"><input type="checkbox" v-model="form.skip_lending" /> <span>Skip Pinjaman</span></label>
-                                        <label class="flex items-center space-x-2"><input type="checkbox" v-model="form.skip_payment_progress" /> <span>Skip Progress Angsuran</span></label>
-                                        <label class="flex items-center space-x-2"><input type="checkbox" v-model="form.skip_reconcile" /> <span>Skip Rekonsiliasi</span></label>
-                                        <label class="flex items-center space-x-2"><input type="checkbox" v-model="form.skip_sequences" /> <span>Skip Sequences</span></label>
+                                <div class="space-y-3">
+                                    <span class="block text-xs font-bold uppercase tracking-wider text-primary">Lompati Step (Optional Skipping):</span>
+                                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <AppSwitch v-model="form.skip_fiscal" label="Lompati Periode Fiskal" description="Skip Fiscal Periods" />
+                                        <AppSwitch v-model="form.skip_coa" label="Lompati Bagan Akun (COA)" description="Skip COA Import" />
+                                        <AppSwitch v-model="form.skip_accounting" label="Lompati Jurnal Akuntansi" description="Skip Accounting Jurnal" />
+                                        <AppSwitch v-model="form.skip_membership" label="Lompati Keanggotaan" description="Skip Keanggotaan" />
+                                        <AppSwitch v-model="form.skip_lending" label="Lompati Data Pinjaman" description="Skip Pinjaman" />
+                                        <AppSwitch v-model="form.skip_payment_progress" label="Lompati Progress Angsuran" description="Skip Progress Angsuran" />
+                                        <AppSwitch v-model="form.skip_reconcile" label="Lompati Rekonsiliasi" description="Skip Rekonsiliasi" />
+                                        <AppSwitch v-model="form.skip_sequences" label="Lompati Sequences" description="Skip Sequences" />
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Submit Button -->
                             <div class="flex justify-end pt-2">
-                                <AppButton type="submit" variant="primary" :disabled="form.processing">
+                                <AppButton type="submit" variant="primary" icon="play_arrow" :disabled="form.processing">
                                     <span v-if="form.processing">Sedang Memproses...</span>
                                     <span v-else>Jalankan Migrasi Data</span>
                                 </AppButton>
@@ -259,78 +253,80 @@ const getStepStatusVariant = (status) => {
                 <div>
                     <AppCard>
                         <template #header>
-                            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Petunjuk Alur Migrasi</h2>
+                            <h2 class="text-lg font-bold text-primary">Petunjuk Alur Migrasi</h2>
                         </template>
-                        <div class="space-y-3 text-xs text-slate-600 dark:text-slate-300">
+                        <div class="space-y-3 text-xs text-on-surface-variant leading-relaxed">
                             <div class="flex items-start space-x-2">
-                                <span class="font-bold text-emerald-600">1.</span>
-                                <p>Pastikan nama database legacy di MySQL lokal (`db_lokasi_ID`) siap diakses.</p>
+                                <span class="font-bold text-secondary shrink-0">1.</span>
+                                <p>Pastikan nama database legacy di MySQL lokal (<code class="rounded bg-surface-container px-1 py-0.5 font-mono text-[11px]">db_lokasi_ID</code>) siap diakses.</p>
                             </div>
                             <div class="flex items-start space-x-2">
-                                <span class="font-bold text-emerald-600">2.</span>
-                                <p>Isi kode **Suffix Lokasi ID** sesuai ID kecamatan legacy (misal ID 1, 1101, dst).</p>
+                                <span class="font-bold text-secondary shrink-0">2.</span>
+                                <p>Isi kode <strong>Suffix Lokasi ID</strong> sesuai ID kecamatan legacy (misal 1, 1101, dst).</p>
                             </div>
                             <div class="flex items-start space-x-2">
-                                <span class="font-bold text-emerald-600">3.</span>
-                                <p>Disarankan melakukan **Mode Dry-Run** terlebih dahulu sebelum meluncurkan migrasi riil.</p>
+                                <span class="font-bold text-secondary shrink-0">3.</span>
+                                <p>Disarankan melakukan <strong>Mode Dry-Run</strong> terlebih dahulu sebelum meluncurkan migrasi riil.</p>
                             </div>
                             <div class="flex items-start space-x-2">
-                                <span class="font-bold text-emerald-600">4.</span>
-                                <p>Klik tombol **Detail Log** pada tabel riwayat di bawah untuk memantau progress konsol secara live.</p>
+                                <span class="font-bold text-secondary shrink-0">4.</span>
+                                <p>Klik tombol <strong>Detail & Log Output</strong> pada tabel riwayat untuk memantau progress konsol secara live.</p>
                             </div>
                         </div>
                     </AppCard>
                 </div>
             </div>
 
-            <!-- Tabel Riwayat Migrasi -->
-            <AppCard class="overflow-hidden">
+            <!-- Tabel Riwayat Executions -->
+            <AppCard>
                 <template #header>
                     <div class="flex items-center justify-between">
-                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Riwayat Process Cutover / Migrasi</h2>
+                        <h2 class="text-lg font-bold text-primary">Riwayat Eksekusi Migrasi (Cutover Runs)</h2>
+                        <AppButton variant="ghost" size="compact" icon="refresh" @click="router.reload({ only: ['runs'] })">
+                            Refresh Data
+                        </AppButton>
                     </div>
                 </template>
 
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-                        <thead class="bg-slate-50 dark:bg-slate-800">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-surface-container-lowest text-xs uppercase tracking-wider text-on-surface-variant">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300">ID</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300">Tenant</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300">Suffix</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300">Mode</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300">Status</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300">Waktu Mulai</th>
-                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
+                                <th class="px-4 py-3 font-bold">ID Run</th>
+                                <th class="px-4 py-3 font-bold">Tenant Target</th>
+                                <th class="px-4 py-3 font-bold">Suffix</th>
+                                <th class="px-4 py-3 font-bold">Mode</th>
+                                <th class="px-4 py-3 font-bold">Status</th>
+                                <th class="px-4 py-3 font-bold">Waktu Mulai</th>
+                                <th class="px-4 py-3 text-right font-bold">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
-                            <tr v-for="run in runs.data" :key="run.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                                <td class="px-4 py-3 text-xs font-mono text-slate-500">#{{ run.id }}</td>
-                                <td class="px-4 py-3 text-xs font-medium text-slate-900 dark:text-white">
-                                    {{ run.tenant_name }} <span class="text-slate-400">({{ run.tenant_code }})</span>
+                        <tbody class="divide-y divide-outline-variant">
+                            <tr v-for="run in runs.data" :key="run.id" class="transition hover:bg-surface-container-low/50">
+                                <td class="px-4 py-3 font-mono font-bold text-primary">#{{ run.id }}</td>
+                                <td class="px-4 py-3 font-medium text-on-surface">{{ run.tenant_name }}</td>
+                                <td class="px-4 py-3 font-mono text-on-surface-variant">{{ run.suffix }}</td>
+                                <td class="px-4 py-3">
+                                    <AppBadge :tone="run.is_dry_run ? 'neutral' : 'warning'">
+                                        {{ run.is_dry_run ? 'Dry Run' : 'Live Cutover' }}
+                                    </AppBadge>
                                 </td>
-                                <td class="px-4 py-3 text-xs font-mono text-slate-700 dark:text-slate-300">{{ run.suffix }}</td>
-                                <td class="px-4 py-3 text-xs">
-                                    <span v-if="run.is_dry_run" class="rounded bg-amber-100 px-2 py-0.5 font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">Simulasi (Dry Run)</span>
-                                    <span v-else class="rounded bg-blue-100 px-2 py-0.5 font-semibold text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">Live Write</span>
-                                </td>
-                                <td class="px-4 py-3 text-xs">
-                                    <AppBadge :variant="getStatusVariant(run.status)">
+                                <td class="px-4 py-3">
+                                    <AppBadge :tone="getStatusVariant(run.status)">
                                         <span class="capitalize">{{ run.status }}</span>
                                     </AppBadge>
                                 </td>
-                                <td class="px-4 py-3 text-xs text-slate-500">
+                                <td class="px-4 py-3 text-xs text-on-surface-variant">
                                     {{ run.started_at ? new Date(run.started_at).toLocaleString('id-ID') : 'Belum dimulai' }}
                                 </td>
                                 <td class="px-4 py-3 text-right text-xs">
-                                    <AppButton variant="secondary" size="xs" @click="openLogModal(run)">
+                                    <AppButton variant="secondary" size="compact" icon="terminal" @click="openLogModal(run)">
                                         Detail & Log Output
                                     </AppButton>
                                 </td>
                             </tr>
                             <tr v-if="runs.data.length === 0">
-                                <td colspan="7" class="px-4 py-8 text-center text-xs text-slate-500">
+                                <td colspan="7" class="px-4 py-8 text-center text-xs text-on-surface-variant">
                                     Belum ada riwayat proses migrasi yang dijalankan.
                                 </td>
                             </tr>
@@ -342,30 +338,30 @@ const getStepStatusVariant = (status) => {
 
         <!-- Modal Detail Output Log & Live Step Progress -->
         <div v-if="activeLogModal && selectedRun" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/70 p-4">
-            <div class="w-full max-w-4xl rounded-xl bg-white shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <div class="flex items-center justify-between border-b border-slate-200 p-4 dark:border-slate-800">
+            <div class="w-full max-w-4xl rounded-xl bg-surface-container-lowest shadow-2xl border border-outline-variant">
+                <div class="flex items-center justify-between border-b border-outline-variant p-4">
                     <div>
-                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">
-                            Monitoring Cutover Run #{{ selectedRun.id }} â€” {{ selectedRun.tenant_name }}
+                        <h3 class="text-lg font-bold text-primary">
+                            Monitoring Cutover Run #{{ selectedRun.id }} ? {{ selectedRun.tenant_name }}
                         </h3>
-                        <p class="text-xs text-slate-500">Suffix: {{ selectedRun.suffix }} | Mode: {{ selectedRun.is_dry_run ? 'Dry Run' : 'Live' }}</p>
+                        <p class="text-xs text-on-surface-variant">Suffix: {{ selectedRun.suffix }} | Mode: {{ selectedRun.is_dry_run ? 'Dry Run' : 'Live' }}</p>
                     </div>
-                    <AppButton variant="ghost" size="xs" @click="closeLogModal">?</AppButton>
+                    <AppButton variant="ghost" size="compact" icon="close" @click="closeLogModal" />
                 </div>
 
                 <div class="space-y-4 p-4">
                     <!-- Step Progress Badges -->
                     <div v-if="selectedRun.steps && selectedRun.steps.length > 0" class="space-y-2">
-                        <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Progress Tahapan Migrasi:</span>
+                        <span class="text-xs font-bold uppercase tracking-wider text-primary">Progress Tahapan Migrasi:</span>
                         <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                            <div v-for="step in selectedRun.steps" :key="step.name" class="rounded-lg border border-slate-200 p-2 dark:border-slate-800 text-xs">
+                            <div v-for="step in selectedRun.steps" :key="step.name" class="rounded-lg border border-outline-variant p-2 text-xs">
                                 <div class="flex items-center justify-between mb-1">
-                                    <span class="font-medium truncate text-slate-700 dark:text-slate-200" :title="step.label">{{ step.name }}</span>
+                                    <span class="font-medium truncate text-primary" :title="step.label">{{ step.name }}</span>
                                     <span :class="['px-1.5 py-0.5 rounded text-[10px] uppercase font-bold', getStepStatusVariant(step.status)]">
                                         {{ step.status }}
                                     </span>
                                 </div>
-                                <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ step.label }}</p>
+                                <p class="text-[11px] text-on-surface-variant truncate">{{ step.label }}</p>
                             </div>
                         </div>
                     </div>
@@ -373,7 +369,7 @@ const getStepStatusVariant = (status) => {
                     <!-- Output Console Terminal Window -->
                     <div>
                         <div class="flex items-center justify-between mb-1">
-                            <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Terminal Console Log Output:</span>
+                            <span class="text-xs font-bold text-primary">Terminal Console Log Output:</span>
                             <span v-if="selectedRun.status === 'running'" class="text-xs font-medium text-amber-500 animate-pulse">
                                 Live Polling Output...
                             </span>
@@ -381,12 +377,12 @@ const getStepStatusVariant = (status) => {
                         <pre class="h-80 w-full overflow-y-auto rounded-lg bg-slate-950 p-4 font-mono text-xs text-emerald-400 shadow-inner border border-slate-800 whitespace-pre-wrap">{{ selectedRun.output_log || 'Menunggu keluaran log...' }}</pre>
                     </div>
 
-                    <div v-if="selectedRun.error_message" class="rounded-lg bg-rose-50 p-3 text-xs text-rose-800 dark:bg-rose-950/40 dark:text-rose-300">
+                    <div v-if="selectedRun.error_message" class="rounded-lg bg-error-container p-3 text-xs text-error">
                         <strong>Error Exception:</strong> {{ selectedRun.error_message }}
                     </div>
                 </div>
 
-                <div class="flex justify-end border-t border-slate-200 p-4 dark:border-slate-800">
+                <div class="flex justify-end border-t border-outline-variant p-4">
                     <AppButton variant="secondary" @click="closeLogModal">Tutup Window Log</AppButton>
                 </div>
             </div>

@@ -786,13 +786,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <Head title="AI Assistant Control Panel" />
+    <Head title="Pengaturan Integrasi & AI Assistant" />
     <AdminLayout>
         <div class="mx-auto max-w-7xl space-y-6">
             <header class="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl font-bold text-primary sm:text-3xl">AI Assistant Control Panel</h1>
-                    <p class="mt-1 text-on-surface-variant">Kelola personas, tools, knowledge base, dan monitor aktivitas asisten in-process.</p>
+                    <h1 class="text-2xl font-bold text-primary sm:text-3xl">Pengaturan Integrasi & AI Assistant</h1>
+                    <p class="mt-1 text-on-surface-variant">Kelola Payment Gateway (Duitku, Tripay, Xendit), AI Assistant, Personas, Tools, dan Knowledge Base.</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <AppBadge tone="success">In-process</AppBadge>
@@ -861,6 +861,19 @@ onBeforeUnmount(() => {
                             </div>
                             <AppBadge :tone="props.active_gateway === 'tripay' ? 'primary' : 'neutral'">
                                 {{ props.active_gateway === 'tripay' ? 'Aktif' : 'Pilih Tripay' }}
+                            </AppBadge>
+                        </div>
+                        <div 
+                            class="flex cursor-pointer items-center justify-between rounded-xl border-2 p-4 transition"
+                            :class="props.active_gateway === 'xendit' ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary/40 bg-surface'"
+                            @click="setGateway('xendit')"
+                        >
+                            <div>
+                                <h4 class="font-bold text-sm text-primary">Xendit Payment Gateway</h4>
+                                <p class="text-xs text-on-surface-variant">Metode: QRIS, Virtual Account (BCA, BRI, BNI, Mandiri, Permata), Kartu Kredit, dll.</p>
+                            </div>
+                            <AppBadge :tone="props.active_gateway === 'xendit' ? 'primary' : 'neutral'">
+                                {{ props.active_gateway === 'xendit' ? 'Aktif' : 'Pilih Xendit' }}
                             </AppBadge>
                         </div>
                     </div>
@@ -1093,11 +1106,11 @@ onBeforeUnmount(() => {
                         <div class="flex flex-wrap items-center justify-between gap-4 border-t border-outline-variant pt-4">
                             <AppButton type="button" variant="secondary" :disabled="tripayTesting" @click="testTripayConnection">
                                 <AppIcon name="network_check" class="mr-1" />
-                                <span>{{ tripayTesting ? 'Menguji Koneksi...' : '?? Uji Koneksi Tripay API' }}</span>
+                                <span>{{ tripayTesting ? 'Menguji Koneksi...' : 'Uji Koneksi Tripay API' }}</span>
                             </AppButton>
 
                             <AppButton type="submit" variant="primary" :disabled="tripayForm.processing">
-                                ?? Simpan Kredensial Tripay
+                                Simpan Kredensial Tripay
                             </AppButton>
                         </div>
                     </form>
@@ -1117,7 +1130,9 @@ onBeforeUnmount(() => {
                             </div>
                         </div>
                     </div>
-                
+                </AppCard>
+            </div>
+
             <!-- ============= XENDIT TAB ============= -->
             <div v-else-if="activeTab === 'xendit'" class="space-y-6">
                 <AppCard>
@@ -1199,9 +1214,6 @@ onBeforeUnmount(() => {
                         </div>
                     </div>
                 </AppCard>
-            </div>
-
-            </AppCard>
             </div>
 
             <!-- ============= PERSONAS TAB ============= -->
