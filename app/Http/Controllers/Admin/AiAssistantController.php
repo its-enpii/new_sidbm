@@ -70,7 +70,7 @@ final class AiAssistantController extends Controller
                 'created_at' => optional($p->created_at)->toIso8601String(),
             ]);
 
-        $registeredNames = collect($registry->all())->pluck('name')->all();
+        $registeredNames = array_map(static fn ($h): string => $h->name(), $registry->all());
 
         $tools = Tool::query()
             ->orderBy('name')
@@ -136,7 +136,7 @@ final class AiAssistantController extends Controller
 
     public function tools(ToolRegistry $registry): JsonResponse
     {
-        $registeredNames = collect($registry->all())->pluck('name')->all();
+        $registeredNames = array_map(static fn ($h): string => $h->name(), $registry->all());
 
         $tools = Tool::query()
             ->orderBy('name')
@@ -269,7 +269,7 @@ final class AiAssistantController extends Controller
                 ['name' => $h->name()],
                 [
                     'description' => $h->description(),
-                    'json_schema' => $h->parametersSchema(),
+                    'json_schema' => $h->jsonSchema(),
                     'requires_confirmation' => $h->requiresConfirmation(),
                     'is_active' => true,
                 ]
