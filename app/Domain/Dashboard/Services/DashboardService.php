@@ -180,21 +180,27 @@ final class DashboardService
      */
     private function activeOutstanding(): array
     {
+        $activeCount = (int) Loan::query()
+            ->whereIn('status', self::ACTIVE_LOAN_STATUSES)
+            ->count();
+
         $row = DB::connection('tenant')
-            ->table('loan_installments as i')
-            ->join('loans as l', function ($join): void {
+            ->table('loans as l')
+            ->leftJoin('loan_installments as i', function ($join): void {
                 $join->on('l.tenant_id', '=', 'i.tenant_id')
                     ->on('l.row_id', '=', 'i.loan_row_id');
             })
-            ->where('i.tenant_id', $this->tenantId())
+            ->where('l.tenant_id', $this->tenantId())
             ->whereIn('l.status', self::ACTIVE_LOAN_STATUSES)
-            ->selectRaw('COUNT(DISTINCT l.row_id) AS loan_count')
-            ->selectRaw('COALESCE(SUM(i.principal_due - i.principal_paid), 0) AS outstanding')
+            ->selectRaw('COALESCE(SUM(i.principal_due - i.principal_paid), 0) AS installment_outstanding')
+            ->selectRaw('COALESCE(SUM(CASE WHEN i.row_id IS NULL THEN l.principal_amount ELSE 0 END), 0) AS no_installment_outstanding')
             ->first();
 
+        $amount = ($row->installment_outstanding ?? 0) + ($row->no_installment_outstanding ?? 0);
+
         return [
-            'count' => (int) ($row->loan_count ?? 0),
-            'amount' => round((float) ($row->outstanding ?? 0), 2),
+            'count' => $activeCount,
+            'amount' => round((float) $amount, 2),
         ];
     }
 
