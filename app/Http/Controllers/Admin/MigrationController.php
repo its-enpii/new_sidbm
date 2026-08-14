@@ -15,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class MigrationController extends Controller
 {
@@ -122,6 +123,31 @@ final class MigrationController extends Controller
             $tenant->name,
             $validated['suffix'],
         ));
+    }
+
+    public function stream(CutoverRun $run, TenantCutoverRunnerService $runner): StreamedResponse
+    {
+        return response()->stream(function () use ($run, $runner): void {
+            @ini_set('zlib.output_compression', '0');
+            @ini_set('implicit_flush', '1');
+            if (function_exists('ob_implicit_flush')) {
+                ob_implicit_flush(true);
+            }
+
+            $runner->executeStream($run, static function (string $event, array $data): void {
+                echo "event: {$event}\n";
+                echo 'data: '.json_encode($data, JSON_THROW_ON_ERROR)."\n\n";
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+            });
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache, no-transform',
+            'Connection' => 'keep-alive',
+            'X-Accel-Buffering' => 'no',
+        ]);
     }
 
     public function show(CutoverRun $run): JsonResponse

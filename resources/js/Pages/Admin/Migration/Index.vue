@@ -70,30 +70,75 @@ const submitCutover = () => {
     });
 };
 
+let sseSource = null;
+
 const openLogModal = (run) => {
     selectedRun.value = run;
     activeLogModal.value = true;
-    startPolling(run.id);
+    startSseOrPolling(run.id);
 };
 
 const closeLogModal = () => {
     activeLogModal.value = false;
-    stopPolling();
+    stopSseOrPolling();
+};
+
+const startSseOrPolling = (runId) => {
+    stopSseOrPolling();
+
+    if (selectedRun.value && (selectedRun.value.status === 'completed' || selectedRun.value.status === 'failed')) {
+        fetchRunDetails(runId);
+        return;
+    }
+
+    try {
+        const streamUrl = `/admin/migrations/${runId}/stream`;
+        sseSource = new EventSource(streamUrl);
+
+        sseSource.addEventListener('update', (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (selectedRun.value) {
+                    if (data.output_log !== undefined) selectedRun.value.output_log = data.output_log;
+                    if (data.steps !== undefined) selectedRun.value.steps = data.steps;
+                    if (data.status !== undefined) selectedRun.value.status = data.status;
+                    if (data.error_message !== undefined) selectedRun.value.error_message = data.error_message;
+                }
+                if (data.status === 'completed' || data.status === 'failed') {
+                    stopSseOrPolling();
+                    router.reload({ only: ['runs'] });
+                }
+            } catch (err) {
+                console.error('SSE parse error:', err);
+            }
+        });
+
+        sseSource.onerror = () => {
+            stopSseOrPolling();
+            startPolling(runId);
+        };
+    } catch (e) {
+        startPolling(runId);
+    }
 };
 
 const startPolling = (runId) => {
-    stopPolling();
+    stopSseOrPolling();
     fetchRunDetails(runId);
     pollInterval = setInterval(() => {
         if (selectedRun.value && (selectedRun.value.status === 'running' || selectedRun.value.status === 'pending')) {
             fetchRunDetails(runId);
         } else {
-            stopPolling();
+            stopSseOrPolling();
         }
     }, 2500);
 };
 
-const stopPolling = () => {
+const stopSseOrPolling = () => {
+    if (sseSource) {
+        sseSource.close();
+        sseSource = null;
+    }
     if (pollInterval) {
         clearInterval(pollInterval);
         pollInterval = null;
@@ -102,7 +147,7 @@ const stopPolling = () => {
 
 const fetchRunDetails = async (runId) => {
     try {
-        const response = await fetch('/admin/migrations' + runId);
+        const response = await fetch(`/admin/migrations/${runId}`);
         if (response.ok) {
             const data = await response.json();
             selectedRun.value = data;
@@ -116,7 +161,7 @@ const fetchRunDetails = async (runId) => {
 };
 
 onUnmounted(() => {
-    stopPolling();
+    stopSseOrPolling();
 });
 
 const getStatusVariant = (status) => {

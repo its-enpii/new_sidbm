@@ -127,6 +127,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::get('/migrations', [AdminMigrationController::class, 'index'])->name('migrations.index');
     Route::post('/migrations', [AdminMigrationController::class, 'store'])->name('migrations.store');
     Route::get('/migrations/{run}', [AdminMigrationController::class, 'show'])->name('migrations.show');
+    Route::get('/migrations/{run}/stream', [AdminMigrationController::class, 'stream'])->name('migrations.stream');
 
     Route::get('/regional/provinces', [RegionalCodeController::class, 'provinces'])->name('regional.provinces');
     Route::get('/regional/regencies/{province}', [RegionalCodeController::class, 'regencies'])->name('regional.regencies');
