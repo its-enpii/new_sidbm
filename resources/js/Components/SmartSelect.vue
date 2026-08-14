@@ -54,9 +54,11 @@ const visibleOptions = computed(() => {
     if (!query) return filtered;
 
     return filtered.filter((option) => {
-        const label = String(option[props.labelKey]).toLocaleLowerCase();
+        const label = String(option[props.labelKey] ?? '').toLocaleLowerCase();
         const group = String(option[props.groupKey] ?? '').toLocaleLowerCase();
-        return label.includes(query) || group.includes(query);
+        const subtitle = String(option.subtitle ?? option.description ?? '').toLocaleLowerCase();
+        const value = String(option[props.valueKey] ?? '').toLocaleLowerCase();
+        return label.includes(query) || group.includes(query) || subtitle.includes(query) || value.includes(query);
     });
 });
 
@@ -276,7 +278,11 @@ watch(() => props.modelValue, (value) => {
                     :style="menuStyle"
                     :data-smart-select="selectId"
                 >
-                    <div v-if="searchable" class="mb-2 shrink-0 bg-surface-container-lowest pb-1"><input ref="searchInput" v-model="search" type="search" class="h-11 w-full rounded-lg border border-outline-variant px-3 text-sm text-primary focus:border-primary focus:outline-none" placeholder="Cari opsi..." @input="onSearch" @keydown="onKeydown"></div>
+                    <div v-if="searchable" class="relative mb-2 shrink-0 bg-surface-container-lowest pb-1">
+                        <AppIcon name="search" class="pointer-events-none absolute left-3 top-2.5 text-base text-on-surface-variant" />
+                        <input ref="searchInput" v-model="search" type="search" class="h-9 w-full rounded-lg border border-outline-variant pl-9 pr-8 text-sm text-primary placeholder:text-on-surface-variant focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Cari..." @input="onSearch" @keydown="onKeydown">
+                        <button v-if="search" type="button" class="absolute right-2 top-1.5 rounded-full p-1 text-on-surface-variant hover:text-primary" @click="search = ''; onSearch()"><AppIcon name="close" class="text-sm" /></button>
+                    </div>
                     <div class="min-h-0 flex-1 overflow-y-auto">
                         <div v-if="loading" class="px-3 py-4 text-center text-sm text-on-surface-variant">Memuat...</div>
                         <template v-else>
@@ -294,12 +300,25 @@ watch(() => props.modelValue, (value) => {
                                     type="button"
                                     role="option"
                                     :aria-selected="String(row.option[valueKey]) === String(modelValue)"
-                                    class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-container-low"
-                                    :class="row.index === highlighted ? 'bg-surface-container-low text-primary' : 'text-on-surface'"
+                                    class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition hover:bg-surface-container-low"
+                                    :class="row.index === highlighted ? 'bg-surface-container-low text-primary font-medium' : 'text-on-surface'"
                                     @mouseenter="highlighted = row.index"
                                     @click="choose(row.option)"
                                 >
-                                    {{ row.option[labelKey] }}
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-semibold" :class="String(row.option[valueKey]) === String(modelValue) ? 'text-primary' : 'text-on-surface'">
+                                                {{ row.option[labelKey] }}
+                                            </span>
+                                            <span v-if="row.option.badge" class="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                                                {{ row.option.badge }}
+                                            </span>
+                                        </div>
+                                        <p v-if="row.option.subtitle || row.option.description" class="mt-0.5 truncate text-xs text-on-surface-variant">
+                                            {{ row.option.subtitle || row.option.description }}
+                                        </p>
+                                    </div>
+                                    <AppIcon v-if="String(row.option[valueKey]) === String(modelValue)" name="check" class="shrink-0 text-base text-primary" />
                                 </button>
                             </template>
                             <button v-if="!visibleOptions.length && emptyActionLabel && search.trim()" type="button" class="flex w-full items-center gap-2 rounded-lg px-3 py-3 text-left text-sm font-semibold text-primary hover:bg-surface-container-low focus:bg-surface-container-low focus:outline-none" @click="runEmptyAction"><AppIcon name="person_add" class="text-xl" />{{ emptyActionLabel }}</button>

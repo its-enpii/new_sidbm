@@ -25,18 +25,28 @@ let pollInterval = null;
 const tenantOptions = computed(() =>
     props.tenants.map(t => ({
         value: t.row_id,
-        label: `${t.name} (Code: ${t.code})`,
+        label: t.name,
+        subtitle: `Code: ${t.code} • Tenant ID #${t.row_id}`,
+        badge: `ID #${t.row_id}`,
     }))
 );
 
 const suffixOptions = computed(() => {
     if (!props.discovered_suffixes || props.discovered_suffixes.length === 0) {
-        return [{ value: '1', label: 'Suffix 1 (Default Manual Input)' }];
+        return [{ value: '1', label: 'Suffix 1', subtitle: 'Default manual input (transaksi_1 / saldo_1)' }];
     }
-    return props.discovered_suffixes.map(s => ({
-        value: s.suffix,
-        label: `Suffix ${s.suffix} — ${s.transaksi_table} (${s.transaksi_count !== null ? s.transaksi_count.toLocaleString('id-ID') + ' transaksi' : 'Tabel Ditemukan'}${s.min_date ? ' | ' + s.min_date + ' s/d ' + s.max_date : ''})`,
-    }));
+    return props.discovered_suffixes.map(s => {
+        const countText = s.transaksi_count !== null
+            ? `${s.transaksi_count.toLocaleString('id-ID')} transaksi`
+            : 'Tabel Ditemukan';
+        const dateRange = s.min_date ? ` (${s.min_date} s/d ${s.max_date})` : '';
+        return {
+            value: String(s.suffix),
+            label: `Suffix ${s.suffix} — ${s.transaksi_table}`,
+            subtitle: `${countText}${dateRange}`,
+            badge: s.transaksi_count !== null ? `${s.transaksi_count.toLocaleString('id-ID')} Trx` : null,
+        };
+    });
 });
 
 const form = useForm({
@@ -231,6 +241,7 @@ const getStepStatusVariant = (status) => {
                                         label="ID Lokasi (Suffix Terdeteksi)"
                                         :options="suffixOptions"
                                         :error="form.errors.suffix"
+                                        searchable
                                         required
                                     />
                                     <AppInput
