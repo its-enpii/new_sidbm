@@ -390,6 +390,52 @@ final class LoanBeneficiaryWriteOffTest extends TestCase
         self::assertSame(2, (int) $writeOffRow->installment_number);
     }
 
+    public function test_reschedule_skips_beneficiaries_already_written_off(): void
+    {
+        $loan = $this->createActiveLoan(10, 6_000_000);
+        $target = $loan->beneficiaries->first();
+
+        // 1) Write-off salah satu beneficiary (sisa pokok alloc 2jt dihapusbukukan).
+        $this->actingAs($this->user)
+            ->post('/lending/loans/'.$loan->row_id.'/beneficiaries/'.$target->member_row_id.'/write-off', [
+                'written_off_at' => now()->toDateString(),
+                'reason' => 'Persiapan reschedule.',
+                'installment_number' => 1,
+            ])
+            ->assertRedirect('/lending/loans/'.$loan->row_id);
+
+        $loanAfterWriteOff = $loan->fresh(['installments', 'beneficiaries']);
+        $principalRemainingBeforeReschedule = (float) $loanAfterWriteOff->installments
+            ->whereIn('component', ['principal', 'write_off'])
+            ->sum(fn ($i) => (float) $i->principal_due - (float) $i->principal_paid);
+
+        // 2) Lakukan reschedule.
+        $newLoan = app(LoanService::class)->reschedule($loanAfterWriteOff, [
+            'rescheduled_at' => now()->toDateString(),
+            'term_months' => 10,
+            'service_rate_total' => 9.0,
+            'installment_method' => 'flat',
+            'principal_frequency' => 'monthly',
+            'interest_frequency' => 'monthly',
+        ], (int) $this->user->row_id);
+
+        self::assertNotNull($newLoan);
+        self::assertSame('active', $newLoan->status);
+        self::assertNotSame($loanAfterWriteOff->row_id, $newLoan->row_id, 'Reschedule harus bikin pinjaman baru.');
+
+        // 3) Pinjaman baru TIDAK boleh copy beneficiary yang written-off.
+        $newBeneficiaryIds = $newLoan->beneficiaries->pluck('member_row_id')->all();
+        self::assertNotContains($target->member_row_id, $newBeneficiaryIds, 'Beneficiary yang di-write-off harus di-skip saat reschedule.');
+
+        // 4) Beneficiaries di pinjaman baru = 2 (yang tidak di-write-off).
+        self::assertCount(2, $newLoan->beneficiaries);
+
+        // 5) Total alokasi pinjaman baru harus sama dengan principalRemaining loan lama
+        //    (write-off sudah kurangi piutang, jadi sisa jatuhnya ke beneficiary aktif).
+        $totalNewAllocated = (float) $newLoan->beneficiaries->sum('allocated_amount');
+        self::assertEqualsWithDelta($principalRemainingBeforeReschedule, $totalNewAllocated, 0.01);
+    }
+
     private function createActiveLoan(int $termMonths, float $principalAmount): Loan
     {
         $this->ensureReceivableAccounts();

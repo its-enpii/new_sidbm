@@ -1065,9 +1065,13 @@ final class LoanService
                 ]);
             }
 
-            $totalAllocated = (float) $loan->beneficiaries->sum(fn ($b) => (float) $b->allocated_amount);
+            $totalAllocated = (float) $loan->beneficiaries
+                ->filter(fn ($b) => $b->written_off_at === null)
+                ->sum(fn ($b) => (float) $b->allocated_amount);
             $assigned = 0.0;
-            $beneficiaries = $loan->beneficiaries->values();
+            $beneficiaries = $loan->beneficiaries
+                ->filter(fn ($b) => $b->written_off_at === null)
+                ->values();
             $count = $beneficiaries->count();
             foreach ($beneficiaries as $index => $beneficiary) {
                 if ($totalAllocated > 0) {
