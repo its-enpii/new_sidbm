@@ -21,7 +21,14 @@ final class LoanBeneficiary extends TenantModel
             'allocated_amount' => 'decimal:2',
             'proposed_amount' => 'decimal:2',
             'verified_amount' => 'decimal:2',
+            'written_off_amount' => 'decimal:2',
+            'written_off_at' => 'datetime',
         ];
+    }
+
+    public function isWrittenOff(): bool
+    {
+        return $this->written_off_at !== null;
     }
 
     public function loan(): BelongsTo

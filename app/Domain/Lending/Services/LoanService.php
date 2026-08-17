@@ -10,6 +10,7 @@ use App\Domain\Accounting\Models\JournalEntry;
 use App\Domain\Accounting\Services\JournalPostingService;
 use App\Domain\Lending\Models\Loan;
 use App\Domain\Lending\Models\LoanBeneficiary;
+use App\Domain\Lending\Models\LoanBeneficiaryWriteOff;
 use App\Domain\Lending\Models\LoanCommittee;
 use App\Domain\Lending\Models\LoanInstallment;
 use App\Domain\Lending\Models\LoanProduct;
@@ -744,6 +745,199 @@ final class LoanService
             ]);
 
             return $loan->fresh();
+        });
+    }
+
+    /**
+     * Write off a single beneficiary's remaining principal in an active loan.
+     *
+     * Use case: anggota meninggal/keluar mid-loan. Pinjaman kelompok tetap aktif,
+     * hanya piutang anggota tersebut yang dihapusbukukan. Tercatat sebagai jurnal
+     * (debit cadangan, kredit piutang) dan tambahan baris write_off pada rencana
+     * angsuran di posisi N+1, dengan sisa angsuran setelahnya direduksi proporsional.
+     */
+    public function writeOffBeneficiary(Loan $loan, int $memberRowId, array $data, int $userId): Loan
+    {
+        if (! in_array($loan->status, ['active', 'disbursed'], true)) {
+            throw new RuntimeException('Penghapusan pemanfaatan hanya untuk pinjaman aktif.');
+        }
+
+        return DB::connection('tenant')->transaction(function () use ($loan, $memberRowId, $data, $userId): Loan {
+            $loan->loadMissing(['product', 'installments', 'beneficiaries']);
+
+            $beneficiary = $loan->beneficiaries->firstWhere('member_row_id', $memberRowId);
+            if ($beneficiary === null) {
+                throw new RuntimeException('Pemanfaat tidak ditemukan pada pinjaman ini.');
+            }
+            if ($beneficiary->written_off_at !== null) {
+                throw new RuntimeException('Pemanfaat sudah dihapusbukukan sebelumnya.');
+            }
+
+            // 1) Compute write-off amount from tracking.
+            $principalPaid = (float) DB::connection('tenant')
+                ->table('loan_installment_tracking')
+                ->where('loan_row_id', $loan->row_id)
+                ->where('member_row_id', $memberRowId)
+                ->sum('principal_paid');
+
+            $allocated = (float) $beneficiary->allocated_amount;
+            $writeOffAmount = round($allocated - $principalPaid, 2);
+
+            if ($writeOffAmount <= 0) {
+                throw new RuntimeException('Tidak ada sisa pokok yang dapat dihapusbukukan (sudah lunas atau lebih).');
+            }
+
+            $N = (int) $data['installment_number'];
+            $writtenOffAt = CarbonImmutable::parse((string) $data['written_off_at']);
+            $reason = trim((string) ($data['reason'] ?? ''));
+
+            // 2) Identify remaining principal periods after write-off insertion point.
+            $remainingPrincipalRows = $loan->installments
+                ->where('component', 'principal')
+                ->where('installment_number', '>', $N)
+                ->sortBy('installment_number')
+                ->values();
+
+            $R = $remainingPrincipalRows->count();
+
+            if ($R === 0) {
+                throw new RuntimeException('Tidak ada periode tersisa setelah angsuran ke-'.$N.' untuk menyerap pengurangan.');
+            }
+
+            // Validate N is within the actual schedule.
+            $totalPrincipalPeriods = $loan->installments
+                ->where('component', 'principal')
+                ->count();
+            if ($N < 1 || $N >= $totalPrincipalPeriods) {
+                throw new RuntimeException('Angsuran ke-'.$N.' di luar jangkauan jadwal pinjaman (1-'.($totalPrincipalPeriods - 1).').');
+            }
+
+            $productCode = (string) ($loan->product?->code ?? '');
+            $receivable = $this->resolveReceivableAccount($productCode);
+            $allowance = $this->resolveAllowanceAccount($productCode);
+            $this->ensureFiscalPeriod($writtenOffAt->toDateString());
+
+            // 3) Journal entry: debit allowance, credit receivable.
+            $entry = JournalEntry::query()->create([
+                'journal_number' => null,
+                'transaction_date' => $writtenOffAt->toDateString(),
+                'sequence_number' => 0,
+                'source_type' => 'loan_beneficiary_write_off',
+                'source_row_id' => (int) $loan->row_id,
+                'transaction_type' => 'hapus_bukuan_pemanfaat',
+                'description' => sprintf(
+                    'Hapus bukukan pemanfaat #%d (%s) pada pinjaman #%s%s',
+                    $memberRowId,
+                    $beneficiary->member?->person?->full_name ?? '—',
+                    $loan->loan_number ?? (string) $loan->row_id,
+                    $reason !== '' ? ' — '.$reason : ''
+                ),
+                'status' => 'draft',
+                'created_by_user_id' => $userId,
+            ]);
+            $entry->lines()->create([
+                'line_number' => 1,
+                'account_row_id' => (int) $allowance->row_id,
+                'organization_unit_row_id' => null,
+                'description' => 'Cadangan kerugian piutang (pemanfaat)',
+                'debit' => $writeOffAmount,
+                'credit' => 0,
+            ]);
+            $entry->lines()->create([
+                'line_number' => 2,
+                'account_row_id' => (int) $receivable->row_id,
+                'organization_unit_row_id' => null,
+                'description' => 'Piutang pemanfaat dihapusbukukan',
+                'debit' => 0,
+                'credit' => $writeOffAmount,
+            ]);
+            $posted = $this->journalPosting->post($entry, $userId);
+
+            // 4) UNIQUE-safe renumber via temp-offset pattern (installments > N).
+            DB::connection('tenant')->statement(
+                'UPDATE loan_installments SET installment_number = -(installment_number + 1) '
+                ."WHERE loan_row_id = ? AND component IN ('principal', 'interest') AND installment_number > ?",
+                [$loan->row_id, $N]
+            );
+            DB::connection('tenant')->statement(
+                'UPDATE loan_installments SET installment_number = -installment_number '
+                .'WHERE loan_row_id = ? AND installment_number < 0',
+                [$loan->row_id]
+            );
+
+            // Same for tracking table.
+            DB::connection('tenant')->statement(
+                'UPDATE loan_installment_tracking SET installment_number = -(installment_number + 1) '
+                .'WHERE loan_row_id = ? AND installment_number > ?',
+                [$loan->row_id, $N]
+            );
+            DB::connection('tenant')->statement(
+                'UPDATE loan_installment_tracking SET installment_number = -installment_number '
+                .'WHERE loan_row_id = ? AND installment_number < 0',
+                [$loan->row_id]
+            );
+
+            // 5) Proportional reduction on remaining principal rows (now at N+2..end+1).
+            $perPeriod = round($writeOffAmount / $R, 2);
+            $assigned = 0.0;
+            $count = $R;
+            foreach ($remainingPrincipalRows as $index => $row) {
+                $newNumber = $row->installment_number + 1;
+                if ($index === $count - 1) {
+                    $reduction = round($writeOffAmount - $assigned, 2);
+                } else {
+                    $reduction = $perPeriod;
+                    $assigned = round($assigned + $reduction, 2);
+                }
+                DB::connection('tenant')->table('loan_installments')
+                    ->where('loan_row_id', $loan->row_id)
+                    ->where('component', 'principal')
+                    ->where('installment_number', $newNumber)
+                    ->update([
+                        'principal_due' => round((float) $row->principal_due - $reduction, 2),
+                    ]);
+            }
+
+            // 6) Insert write_off row at installment_number = N+1.
+            $writeOffDueDate = $loan->installments
+                ->where('component', 'principal')
+                ->where('installment_number', $N)
+                ->first()?->due_date ?? $writtenOffAt->toDateString();
+
+            LoanInstallment::query()->create([
+                'loan_row_id' => $loan->row_id,
+                'component' => 'write_off',
+                'installment_number' => $N + 1,
+                'due_date' => $writeOffDueDate,
+                'principal_due' => $writeOffAmount,
+                'interest_due' => 0,
+                'principal_paid' => $writeOffAmount,
+                'interest_paid' => 0,
+                'penalty_due' => 0,
+                'penalty_paid' => 0,
+                'status' => 'paid',
+                'paid_at' => $writtenOffAt,
+            ]);
+
+            // 7) Mark beneficiary.
+            $beneficiary->update([
+                'written_off_at' => $writtenOffAt,
+                'written_off_amount' => $writeOffAmount,
+            ]);
+
+            // 8) Insert audit row.
+            LoanBeneficiaryWriteOff::query()->create([
+                'loan_row_id' => $loan->row_id,
+                'member_row_id' => $memberRowId,
+                'principal_balance' => $writeOffAmount,
+                'installment_number' => $N,
+                'written_off_at' => $writtenOffAt,
+                'reason' => $reason !== '' ? $reason : null,
+                'journal_entry_row_id' => $posted->row_id,
+                'approved_by_user_id' => $userId,
+            ]);
+
+            return $loan->fresh(['installments', 'beneficiaries', 'product']);
         });
     }
 

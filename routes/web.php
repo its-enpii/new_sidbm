@@ -190,6 +190,19 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::post('/integrations/duitku/test', [PaymentGatewayController::class, 'testDuitku'])->name('integrations.duitku.test');
     Route::post('/integrations/xendit', [PaymentGatewayController::class, 'updateXendit'])->name('integrations.xendit');
     Route::post('/integrations/xendit/test', [PaymentGatewayController::class, 'testXendit'])->name('integrations.xendit.test');
+
+    // Onboarding & Saldo Awal — superadmin only, per-tenant.
+    // {tenant} numeric row_id (resolved via TenantResolver::resolveById).
+    // Middleware 'tenant' agar TenantContext terinisialisasi (Account/JournalEntry
+    // model pakai TenantScope). validateTenantAccess() membypass superadmin.
+    Route::prefix('tenants/{tenant}')->name('tenants.')->group(function (): void {
+        Route::middleware(['superadmin', 'tenant'])->group(function (): void {
+            Route::get('/onboarding/import', [TenantOnboardingImportController::class, 'index'])->name('onboarding.import');
+            Route::post('/onboarding/opening-balances', [TenantOnboardingImportController::class, 'saveOpeningBalances'])->name('onboarding.opening-balances');
+            Route::post('/onboarding/active-loans', [TenantOnboardingImportController::class, 'importActiveLoans'])->name('onboarding.active-loans');
+            Route::get('/onboarding/templates/{type}', [TenantOnboardingImportController::class, 'downloadTemplate'])->name('onboarding.templates');
+        });
+    });
 });
 
 Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function (): void {
@@ -207,11 +220,6 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
     Route::put('/profile/account', [ProfileController::class, 'updateAccount'])->name('profile.account.update');
     Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
     Route::delete('/profile/photo', [ProfileController::class, 'destroyPhoto'])->name('profile.photo.destroy');
-
-    Route::get('/onboarding/import', [TenantOnboardingImportController::class, 'index'])->name('onboarding.import.index');
-    Route::post('/onboarding/opening-balances', [TenantOnboardingImportController::class, 'saveOpeningBalances'])->name('onboarding.opening-balances.store');
-    Route::post('/onboarding/active-loans', [TenantOnboardingImportController::class, 'importActiveLoans'])->name('onboarding.active-loans.import');
-    Route::get('/onboarding/templates/{type}', [TenantOnboardingImportController::class, 'downloadTemplate'])->name('onboarding.templates.download');
 
     Route::prefix('billing')->name('billing.')->group(function (): void {
         Route::get('/invoices', [TenantInvoiceController::class, 'index'])->name('invoices.index');
@@ -309,6 +317,9 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
     Route::patch('/lending/loans/{loan}/committee', [LoanController::class, 'setCommittee'])->name('lending.loans.committee');
     Route::post('/lending/loans/{loan}/reschedule', [LoanController::class, 'reschedule'])->name('lending.loans.reschedule');
     Route::post('/lending/loans/{loan}/write-off', [LoanController::class, 'writeOff'])->name('lending.loans.write-off');
+    Route::post('/lending/loans/{loan}/beneficiaries/{member}/write-off', [LoanController::class, 'writeOffBeneficiary'])
+        ->whereNumber('member')
+        ->name('lending.loans.beneficiaries.write-off');
     Route::patch('/lending/loans/{loan}/complete', [LoanController::class, 'complete'])->name('lending.loans.complete');
 
     Route::get('/lending/payments/create', [LoanController::class, 'create'])->name('lending.payments.create');

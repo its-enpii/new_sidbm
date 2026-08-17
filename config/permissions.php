@@ -6,6 +6,7 @@ use App\Http\Requests\Accounting\LoanInstallmentJournalRequest;
 use App\Http\Requests\Assets\AssetRequest;
 use App\Http\Requests\Budgeting\SaveBudgetMonthRequest;
 use App\Http\Requests\Lending\LoanApproveRequest;
+use App\Http\Requests\Lending\LoanBeneficiaryWriteOffRequest;
 use App\Http\Requests\Lending\LoanDisburseRequest;
 use App\Http\Requests\Lending\LoanRequest;
 use App\Http\Requests\Lending\LoanRescheduleRequest;
@@ -219,6 +220,7 @@ return [
         LoanDisburseRequest::class => 'loans.disburse',
         LoanUpdateRequest::class => 'loans.manage',
         LoanWriteOffRequest::class => 'loans.manage',
+        LoanBeneficiaryWriteOffRequest::class => 'loans.manage',
         LoanRescheduleRequest::class => 'loans.manage',
         MemberRequest::class => 'members.manage',
         QuickMemberRequest::class => 'members.manage',

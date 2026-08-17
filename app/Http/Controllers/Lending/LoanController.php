@@ -13,6 +13,7 @@ use App\Domain\Membership\Models\Group;
 use App\Domain\Membership\Models\Member;
 use App\Domain\Membership\Models\OrganizationProfile;
 use App\Http\Requests\Lending\LoanApproveRequest;
+use App\Http\Requests\Lending\LoanBeneficiaryWriteOffRequest;
 use App\Http\Requests\Lending\LoanDisburseRequest;
 use App\Http\Requests\Lending\LoanRequest;
 use App\Http\Requests\Lending\LoanRescheduleRequest;
@@ -434,6 +435,22 @@ final class LoanController
             ->with('success', 'Penghapusan piutang berhasil dicatat.');
     }
 
+    public function writeOffBeneficiary(
+        LoanBeneficiaryWriteOffRequest $request,
+        Loan $loan,
+        int $member,
+        LoanService $loans,
+    ): RedirectResponse {
+        try {
+            $loans->writeOffBeneficiary($loan, $member, $request->validated(), (int) $request->user()->row_id);
+        } catch (\RuntimeException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        return to_route('lending.loans.show', ['loan' => $loan->row_id])
+            ->with('success', 'Penghapusan piutang pemanfaat berhasil dicatat.');
+    }
+
     public function complete(Request $request, Loan $loan, LoanService $loans): RedirectResponse
     {
         $validated = $request->validate([
@@ -633,6 +650,8 @@ final class LoanController
                 'proposed_amount' => (float) ($b->proposed_amount ?? $b->allocated_amount),
                 'verified_amount' => $b->verified_amount !== null ? (float) $b->verified_amount : null,
                 'allocated_amount' => (float) $b->allocated_amount,
+                'written_off_at' => $b->written_off_at?->format('Y-m-d H:i:s'),
+                'written_off_amount' => $b->written_off_amount !== null ? (float) $b->written_off_amount : null,
             ])->values()->all(),
             'installments' => $loan->installments->map(fn ($i): array => [
                 'row_id' => $i->row_id,

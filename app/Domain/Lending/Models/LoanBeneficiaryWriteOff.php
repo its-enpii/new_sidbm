@@ -10,19 +10,18 @@ use App\Models\Tenant\TenantModel;
 use App\Tenancy\Concerns\HasTenantLocalId;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-final class LoanInstallmentTracking extends TenantModel
+final class LoanBeneficiaryWriteOff extends TenantModel
 {
     use HasTenantLocalId;
 
-    protected $table = 'loan_installment_tracking';
+    protected $table = 'loan_beneficiary_write_offs';
 
     protected function casts(): array
     {
         return [
-            'principal_paid' => 'decimal:2',
-            'interest_paid' => 'decimal:2',
-            'penalty_paid' => 'decimal:2',
-            'recorded_at' => 'datetime',
+            'principal_balance' => 'decimal:2',
+            'written_off_at' => 'datetime',
+            'installment_number' => 'integer',
         ];
     }
 

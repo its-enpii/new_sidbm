@@ -210,7 +210,7 @@ const canVerifyBeneficiary = computed(() => can('loans.verify') && props.loan.st
 const canAllocatePerBeneficiary = computed(() => can('loans.approve') && props.loan.status === 'verified');
 const canShowAllocatedAmount = computed(() => ['verified', 'waiting', 'approved', 'active', 'disbursed', 'completed', 'written_off', 'rescheduled'].includes(props.loan.status));
 const canShowVerifiedAmount = computed(() => ['draft', 'verified', 'waiting', 'approved', 'active', 'disbursed', 'completed', 'written_off', 'rescheduled'].includes(props.loan.status));
-const beneficiaryColumnCount = computed(() => 1 + 1 + (canShowVerifiedAmount.value ? 1 : 0) + (canShowAllocatedAmount.value ? 1 : 0) + (canRemoveBeneficiary.value ? 1 : 0));
+const beneficiaryColumnCount = computed(() => 1 + 1 + (canShowVerifiedAmount.value ? 1 : 0) + (canShowAllocatedAmount.value ? 1 : 0) + (canRemoveBeneficiary.value ? 1 : 0) + (canWriteOffBeneficiary.value ? 1 : 0));
 const verifiedTotalColspan = computed(() => beneficiaryColumnCount.value - 1);
 const removeError = ref('');
 
@@ -271,6 +271,7 @@ const canRevert = computed(() => can('loans.manage') && ['verified', 'waiting', 
 const isActiveLoan = computed(() => ['active', 'disbursed'].includes(props.loan.status));
 const canReschedule = computed(() => can('loans.manage') && isActiveLoan.value && Number(props.loan.principal_remaining) > 0);
 const canWriteOff = computed(() => can('loans.manage') && isActiveLoan.value && Number(props.loan.principal_remaining) > 0);
+const canWriteOffBeneficiary = computed(() => can('loans.manage') && isActiveLoan.value && Number(props.loan.principal_remaining) > 0);
 const canDisburseAction = computed(() => can('loans.disburse'));
 const canPrintDocument = computed(() => can('loans.view'));
 
@@ -477,6 +478,35 @@ function submitWriteOff() {
     });
 }
 
+const beneficiaryWriteOffModalOpen = ref(false);
+const beneficiaryWriteOffTarget = ref(null);
+const beneficiaryWriteOffForm = useForm({
+    written_off_at: props.today,
+    reason: '',
+    installment_number: 1,
+});
+
+function openBeneficiaryWriteOffModal(b) {
+    beneficiaryWriteOffTarget.value = b;
+    const nextUnpaid = (props.loan.installments || []).find(
+        (i) => i.component === 'principal' && Number(i.principal_due) > Number(i.principal_paid)
+    );
+    beneficiaryWriteOffForm.installment_number = nextUnpaid ? Number(nextUnpaid.installment_number) : 1;
+    beneficiaryWriteOffForm.written_off_at = props.today;
+    beneficiaryWriteOffForm.reason = '';
+    beneficiaryWriteOffForm.clearErrors();
+    beneficiaryWriteOffModalOpen.value = true;
+}
+
+function submitBeneficiaryWriteOff() {
+    if (!beneficiaryWriteOffTarget.value) return;
+    const target = beneficiaryWriteOffTarget.value;
+    beneficiaryWriteOffForm.post(
+        `/lending/loans/${props.loan.row_id}/beneficiaries/${target.member_row_id}/write-off`,
+        { preserveScroll: true, onSuccess: () => { beneficiaryWriteOffModalOpen.value = false; } }
+    );
+}
+
 const completeModalOpen = ref(false);
 const completeForm = useForm({
     completed_at: props.today,
@@ -544,7 +574,7 @@ function setAllocatedAmount(memberRowId, value) {
                     <AppButton v-if="canCompleteAction" variant="success" icon="task_alt" @click="openCompleteModal">Validasi Lunas</AppButton>
                     <AppButton v-if="canEdit" variant="secondary" icon="edit" @click="openEditModal">Edit Proposal</AppButton>
                     <AppButton v-if="canReschedule" variant="secondary" icon="event_repeat" @click="openRescheduleModal">Reschedule Pinjaman</AppButton>
-                    <AppButton v-if="canWriteOff" variant="danger" icon="delete_forever" @click="openWriteOffModal">Penghapusan Pinjaman</AppButton>
+                    <AppButton v-if="canWriteOff" variant="danger" icon="delete_sweep" @click="openWriteOffModal">Penghapusan Piutang</AppButton>
                 </div>
             </header>
 
@@ -915,6 +945,7 @@ function setAllocatedAmount(memberRowId, value) {
                                 <th v-if="canShowVerifiedAmount" class="py-3 px-4 text-right">Verifikasi (Rp)</th>
                                 <th v-if="canShowAllocatedAmount" class="py-3 px-4 text-right">Alokasi (Rp)</th>
                                 <th v-if="canRemoveBeneficiary" class="py-3 px-4 text-right">Aksi</th>
+                                <th v-if="canWriteOffBeneficiary" class="py-3 px-4 text-right">Penghapusan</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-outline-variant">
@@ -937,6 +968,16 @@ function setAllocatedAmount(memberRowId, value) {
                                         <AppIcon name="delete_outline" class="text-lg" />
                                     </button>
                                 </td>
+                                <td v-if="canWriteOffBeneficiary" class="py-3 px-4 text-right">
+                                    <div v-if="b.written_off_at" class="flex flex-col items-end gap-1">
+                                        <AppBadge tone="error">Dihapus</AppBadge>
+                                        <span class="text-xs text-on-surface-variant">{{ formatDate(b.written_off_at) }}</span>
+                                        <span class="text-xs font-semibold text-primary">{{ currency(b.written_off_amount) }}</span>
+                                    </div>
+                                    <button v-else type="button" class="grid size-9 place-items-center rounded-full text-on-surface-variant hover:bg-error-container hover:text-error focus:outline-none focus:ring-2 focus:ring-error/30" :aria-label="`Hapus bukukan ${b.name}`" @click="openBeneficiaryWriteOffModal(b)">
+                                        <AppIcon name="delete_sweep" class="text-lg" />
+                                    </button>
+                                </td>
                             </tr>
                         </tbody>
                         <tfoot v-if="canShowVerifiedAmount">
@@ -952,6 +993,7 @@ function setAllocatedAmount(memberRowId, value) {
                                     <span v-else>{{ currency(totalAllocation) }}</span>
                                 </td>
                                 <td v-if="canRemoveBeneficiary"></td>
+                                <td v-if="canWriteOffBeneficiary"></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -1184,7 +1226,28 @@ function setAllocatedAmount(memberRowId, value) {
                 </form>
                 <template #footer>
                     <AppButton variant="secondary" @click="writeOffModalOpen = false" :disabled="writeOffForm.processing">Batal</AppButton>
-                    <AppButton variant="danger" :loading="writeOffForm.processing" @click="submitWriteOff">Hapus Pinjaman</AppButton>
+                    <AppButton variant="danger" :loading="writeOffForm.processing" @click="submitWriteOff">Hapus Bukukan Piutang</AppButton>
+                </template>
+            </AppModal>
+
+            <AppModal v-model="beneficiaryWriteOffModalOpen" title="Penghapusan Pemanfaat" size="md">
+                <p v-if="beneficiaryWriteOffTarget" class="mb-4 text-sm text-on-surface-variant">
+                    Pemanfaat <strong>{{ beneficiaryWriteOffTarget.name || '—' }}</strong> akan dihapusbukukan.
+                    Sisa pokok alokasi <strong>{{ currency(beneficiaryWriteOffTarget.allocated_amount) }}</strong>
+                    akan dicatat sebagai penghapusan piutang. Jadwal angsuran setelah posisi penghapusan akan disesuaikan
+                    secara proporsional. Tindakan ini tidak dapat dibatalkan.
+                </p>
+                <form class="space-y-5" @submit.prevent="submitBeneficiaryWriteOff">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <AppDatePicker v-model="beneficiaryWriteOffForm.written_off_at" label="Tanggal Penghapusan" :max="today" :error="beneficiaryWriteOffForm.errors.written_off_at" required />
+                        <AppInput v-model="beneficiaryWriteOffForm.installment_number" label="Sisipkan Setelah Angsuran Ke-" icon="schedule" type="number" inputmode="numeric" min="1" required :error="beneficiaryWriteOffForm.errors.installment_number" />
+                    </div>
+                    <AppCurrencyInput :model-value="beneficiaryWriteOffTarget ? beneficiaryWriteOffTarget.allocated_amount : 0" label="Alokasi Pokok Pemanfaat" icon="payments" readonly />
+                    <AppTextarea v-model="beneficiaryWriteOffForm.reason" label="Alasan Penghapusan" :error="beneficiaryWriteOffForm.errors.reason" required placeholder="Misal: Anggota meninggal dunia, hasil musyawarah kelompok, dll." />
+                </form>
+                <template #footer>
+                    <AppButton variant="secondary" @click="beneficiaryWriteOffModalOpen = false" :disabled="beneficiaryWriteOffForm.processing">Batal</AppButton>
+                    <AppButton variant="danger" icon="delete_sweep" :loading="beneficiaryWriteOffForm.processing" @click="submitBeneficiaryWriteOff">Hapus Bukukan Pemanfaat</AppButton>
                 </template>
             </AppModal>
 
