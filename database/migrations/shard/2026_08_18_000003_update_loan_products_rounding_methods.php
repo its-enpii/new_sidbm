@@ -12,12 +12,25 @@ return new class extends Migration
         return (string) config('tenancy.tenant_connection', 'tenant');
     }
 
+    private function dropRoundingCheckConstraint($conn): void
+    {
+        try {
+            $conn->statement('ALTER TABLE loan_products DROP CHECK chk_loan_products_rounding');
+        } catch (Throwable) {
+            try {
+                $conn->statement('ALTER TABLE loan_products DROP CONSTRAINT chk_loan_products_rounding');
+            } catch (Throwable) {
+                // Ignore if constraint does not exist
+            }
+        }
+    }
+
     public function up(): void
     {
         $conn = DB::connection($this->connectionName());
 
         if ($conn->getDriverName() !== 'sqlite') {
-            $conn->statement('ALTER TABLE loan_products DROP CONSTRAINT IF EXISTS chk_loan_products_rounding');
+            $this->dropRoundingCheckConstraint($conn);
             $conn->statement(
                 "ALTER TABLE loan_products ADD CONSTRAINT chk_loan_products_rounding CHECK (rounding_method IN ('decimal_2', 'rupiah_bersih', 'ceil_100', 'floor_100', '0', '100', '500', '1000', '5000', '10000', '50000'))"
             );
@@ -29,7 +42,7 @@ return new class extends Migration
         $conn = DB::connection($this->connectionName());
 
         if ($conn->getDriverName() !== 'sqlite') {
-            $conn->statement('ALTER TABLE loan_products DROP CONSTRAINT IF EXISTS chk_loan_products_rounding');
+            $this->dropRoundingCheckConstraint($conn);
             $conn->statement(
                 "ALTER TABLE loan_products ADD CONSTRAINT chk_loan_products_rounding CHECK (rounding_method IN ('decimal_2', 'rupiah_bersih', 'ceil_100', 'floor_100'))"
             );

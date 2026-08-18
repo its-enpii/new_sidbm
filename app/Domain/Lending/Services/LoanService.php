@@ -210,6 +210,8 @@ final class LoanService
 
             $loan->beneficiaries()->whereNotIn('member_row_id', $keep)->delete();
 
+            $this->regenerateInstallmentSchedule($loan, (float) $data['principal_amount']);
+
             $loan->refresh();
             $loan->load(['product', 'borrower.group', 'committee', 'beneficiaries', 'installments']);
 

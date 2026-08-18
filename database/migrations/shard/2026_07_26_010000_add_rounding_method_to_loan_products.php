@@ -34,7 +34,15 @@ return new class extends Migration
         $conn = DB::connection($this->connectionName());
 
         if ($conn->getDriverName() !== 'sqlite') {
-            $conn->statement('ALTER TABLE loan_products DROP CONSTRAINT IF EXISTS chk_loan_products_rounding');
+            try {
+                $conn->statement('ALTER TABLE loan_products DROP CHECK chk_loan_products_rounding');
+            } catch (Throwable) {
+                try {
+                    $conn->statement('ALTER TABLE loan_products DROP CONSTRAINT chk_loan_products_rounding');
+                } catch (Throwable) {
+                    // Ignore if constraint does not exist
+                }
+            }
         }
 
         Schema::connection($this->connectionName())->table('loan_products', function (Blueprint $table): void {
