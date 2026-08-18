@@ -2,6 +2,7 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
+import AppCurrencyInput from '../../../Components/AppCurrencyInput.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import AppSwitch from '../../../Components/AppSwitch.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
@@ -53,7 +54,7 @@ function submit() {
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <AppInput v-model="form.code" class="min-w-0" label="Kode" required :error="form.errors.code" :disabled="editing" />
                         <AppInput v-model="form.name" class="min-w-0" label="Nama" required :error="form.errors.name" />
-                        <AppInput v-model="form.price_amount" class="min-w-0" label="Harga" type="number" step="0.01" min="0" required :error="form.errors.price_amount" />
+                        <AppCurrencyInput v-model="form.price_amount" class="min-w-0" label="Harga" :min="0" :step="0.01" required :error="form.errors.price_amount" />
                         <SmartSelect v-model="form.currency" class="min-w-0" label="Mata uang" :options="currencyOptions" required :error="form.errors.currency" />
                         <SmartSelect v-model="form.billing_period" class="min-w-0" label="Periode" :options="periodOptions" required :error="form.errors.billing_period" />
                         <AppSwitch v-model="form.is_active" class="min-w-0" field label="Status" />

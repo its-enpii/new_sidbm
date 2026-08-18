@@ -7,6 +7,7 @@ import AppButton from '../../../Components/AppButton.vue';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import AppIcon from '../../../Components/AppIcon.vue';
+import AppTabs from '../../../Components/AppTabs.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 
 const props = defineProps({
@@ -180,10 +181,10 @@ const testXenditConnection = async () => {
 };
 
 const gatewayTabs = [
-    { id: 'overview', label: 'Status & Gateway Utama', icon: 'dashboard' },
-    { id: 'duitku', label: 'Duitku Gateway', icon: 'account_balance_wallet' },
-    { id: 'tripay', label: 'Tripay Gateway', icon: 'payments' },
-    { id: 'xendit', label: 'Xendit Gateway', icon: 'credit_card' },
+    { key: 'overview', label: 'Status & Gateway Utama', icon: 'dashboard' },
+    { key: 'duitku', label: 'Duitku Gateway', icon: 'account_balance_wallet' },
+    { key: 'tripay', label: 'Tripay Gateway', icon: 'payments' },
+    { key: 'xendit', label: 'Xendit Gateway', icon: 'credit_card' },
 ];
 </script>
 
@@ -207,19 +208,12 @@ const gatewayTabs = [
             </AppCard>
 
             <!-- Navigation Tabs -->
-            <nav class="flex flex-wrap gap-1 rounded-xl border border-outline-variant bg-surface-container-lowest p-1">
-                <button
-                    v-for="tab in gatewayTabs"
-                    :key="tab.id"
-                    type="button"
-                    class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-                    :class="activeTab === tab.id ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-low hover:text-primary'"
-                    @click="activeTab = tab.id"
-                >
-                    <AppIcon :name="tab.icon" class="text-lg" />
-                    {{ tab.label }}
-                </button>
-            </nav>
+            <AppTabs
+                v-model="activeTab"
+                :items="gatewayTabs"
+                variant="pills-bar"
+                aria-label="Tab payment gateway"
+            />
 
             <!-- OVERVIEW TAB -->
             <div v-if="activeTab === 'overview'" class="space-y-6">

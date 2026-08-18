@@ -22,6 +22,7 @@ final class LoanUpdateRequest extends FormRequest
             'installment_method' => ['required', Rule::in(['flat', 'annuity', 'effective'])],
             'principal_frequency' => ['required', Rule::in(['weekly', 'biweekly', 'monthly', 'bimonthly', 'quarterly', 'at_maturity'])],
             'interest_frequency' => ['required', Rule::in(['weekly', 'biweekly', 'monthly', 'bimonthly', 'quarterly'])],
+            'rounding_step' => ['nullable', 'integer', 'in:0,100,500,1000,5000,10000,50000'],
             'beneficiary_amounts' => ['required', 'array', 'min:1'],
             'beneficiary_amounts.*' => ['required', 'numeric', 'min:0'],
         ];
@@ -37,6 +38,7 @@ final class LoanUpdateRequest extends FormRequest
             'installment_method' => 'jenis jasa',
             'principal_frequency' => 'sistem angsuran pokok',
             'interest_frequency' => 'sistem angsuran jasa',
+            'rounding_step' => 'pembulatan angsuran',
             'beneficiary_amounts' => 'pengajuan pemanfaat',
             'beneficiary_amounts.*' => 'pengajuan pemanfaat',
         ];

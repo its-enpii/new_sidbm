@@ -112,6 +112,7 @@ final class LoanService
                 'installment_method' => $method,
                 'principal_frequency' => $principalFreq,
                 'interest_frequency' => $interestFreq,
+                'rounding_step' => isset($data['rounding_step']) && $data['rounding_step'] !== '' ? (int) $data['rounding_step'] : null,
                 'status' => 'draft',
                 'created_by_user_id' => $userId,
             ]);
@@ -190,6 +191,7 @@ final class LoanService
                 'installment_method' => $data['installment_method'],
                 'principal_frequency' => $data['principal_frequency'],
                 'interest_frequency' => $data['interest_frequency'],
+                'rounding_step' => array_key_exists('rounding_step', $data) && $data['rounding_step'] !== '' ? (int) $data['rounding_step'] : $loan->rounding_step,
             ]);
 
             $previousBeneficiaries = $loan->beneficiaries()->pluck('member_row_id', 'allocated_amount')->all();
@@ -1043,9 +1045,11 @@ final class LoanService
                 'installment_method' => $method,
                 'principal_frequency' => $principalFreq,
                 'interest_frequency' => $interestFreq,
+                'rounding_step' => isset($data['rounding_step']) && $data['rounding_step'] !== '' ? (int) $data['rounding_step'] : $loan->rounding_step,
                 'status' => 'active',
                 'verification_notes' => $loan->verification_notes,
                 'disbursement_account_row_id' => $cashAccountRowId,
+                'rescheduled_from_loan_row_id' => (int) $loan->row_id,
                 'disbursement_notes' => sprintf('Pencairan reschedule dari pinjaman #%s', $loan->loan_number ?? (string) $loan->row_id),
                 'created_by_user_id' => $userId,
             ]);
@@ -1149,6 +1153,82 @@ final class LoanService
         });
     }
 
+    public function cancelReschedule(Loan $newLoan, array $data, int $userId): Loan
+    {
+        if ($newLoan->rescheduled_from_loan_row_id === null) {
+            throw new RuntimeException('Pinjaman ini bukan hasil reschedule.');
+        }
+        if (! in_array($newLoan->status, ['active', 'disbursed'], true)) {
+            throw new RuntimeException('Cancel reschedule hanya untuk pinjaman aktif.');
+        }
+
+        return DB::connection('tenant')->transaction(function () use ($newLoan, $data, $userId): Loan {
+            $newLoan->loadMissing(['installments', 'payments']);
+            $oldLoan = Loan::query()->where('row_id', $newLoan->rescheduled_from_loan_row_id)->firstOrFail();
+
+            // 1) Precondition: no payments on new loan.
+            $principalPaid = (float) $newLoan->installments->sum('principal_paid');
+            if ($principalPaid > 0.0) {
+                throw new RuntimeException('Tidak dapat membatalkan reschedule: sudah ada angsuran dibayar.');
+            }
+
+            // 2) Find original status of old loan (from history).
+            $historyEntry = $oldLoan->statusHistories()
+                ->where('to_status', 'rescheduled')
+                ->orderByDesc('changed_at')
+                ->first();
+            if ($historyEntry === null) {
+                throw new RuntimeException('Histori reschedule loan asal tidak ditemukan.');
+            }
+            $restoreTo = (string) $historyEntry->from_status;
+            if (! in_array($restoreTo, ['active', 'disbursed'], true)) {
+                throw new RuntimeException("Status asal loan tidak valid: {$restoreTo}");
+            }
+
+            // 3) Hard-delete the 2 offsetting journal entries.
+            // Posted jurnal normally immutable (JournalEntry booted hooks), but cancel
+            // reschedule is a legitimate reverse — bypass hooks via raw query.
+            $closeEntry = JournalEntry::query()
+                ->where('source_type', 'loan_reschedule_close')
+                ->where('source_row_id', $oldLoan->row_id)
+                ->first();
+            $openEntry = JournalEntry::query()
+                ->where('source_type', 'loan_reschedule_open')
+                ->where('source_row_id', $newLoan->row_id)
+                ->first();
+
+            if ($closeEntry === null || $openEntry === null) {
+                throw new RuntimeException('Jurnal reschedule tidak ditemukan. Cancel gagal.');
+            }
+            DB::connection('tenant')->table('journal_entries')->where('row_id', $closeEntry->row_id)->delete();
+            DB::connection('tenant')->table('journal_entries')->where('row_id', $openEntry->row_id)->delete();
+
+            // 4) Hard-delete new loan (cascade beneficiaries/installments/committees/borrower).
+            // Note: loan_payments restrictOnDelete, but precondition guarantees none exist.
+            $newLoanNumber = $newLoan->loan_number ?? (string) $newLoan->row_id;
+            $newLoan->delete();
+
+            // 5) Restore old loan.
+            $oldLoan->update([
+                'status' => $restoreTo,
+                'completed_at' => null,
+            ]);
+            $reason = trim((string) ($data['reason'] ?? ''));
+            $oldLoan->statusHistories()->create([
+                'from_status' => 'rescheduled',
+                'to_status' => $restoreTo,
+                'principal_amount' => $oldLoan->principal_amount,
+                'product_row_id' => $oldLoan->loan_product_row_id,
+                'term_months' => (int) $oldLoan->term_months,
+                'notes' => sprintf('Cancel reschedule ke pinjaman #%s.%s', $newLoanNumber, $reason !== '' ? ' Alasan: '.$reason : ''),
+                'changed_by_user_id' => $userId,
+                'changed_at' => now(),
+            ]);
+
+            return $oldLoan->fresh(['product', 'borrower.group', 'committee', 'beneficiaries', 'installments']);
+        });
+    }
+
     private function principalRemaining(Loan $loan): float
     {
         $remaining = 0.0;
@@ -1188,13 +1268,50 @@ final class LoanService
         return (int) max(1, round($term * self::FREQUENCY_PER_MONTH[$frequency]));
     }
 
+    public function resolveRoundingStep(Loan $loan): int
+    {
+        if ($loan->rounding_step !== null) {
+            return (int) $loan->rounding_step;
+        }
+
+        $loan->loadMissing('product');
+        $productRounding = (string) ($loan->product?->rounding_method ?? '0');
+        if (is_numeric($productRounding)) {
+            return (int) $productRounding;
+        }
+
+        return match ($productRounding) {
+            'ceil_100', 'floor_100' => 100,
+            'rupiah_bersih' => 1,
+            default => 0,
+        };
+    }
+
+    public function applyRounding(float $amount, int $step): float
+    {
+        if ($step <= 0) {
+            return round($amount, 2);
+        }
+
+        return (float) (round($amount / $step) * $step);
+    }
+
     private function generatePrincipalSchedule(Loan $loan, float $principal, int $periods, float $ratePerPeriod, string $frequency, string $startDate): void
     {
         $start = CarbonImmutable::parse($startDate);
-        $perPeriod = round($principal / max(1, $periods), 2);
+        $roundingStep = $this->resolveRoundingStep($loan);
+        $rawPerPeriod = $principal / max(1, $periods);
+        $roundedPerPeriod = $this->applyRounding($rawPerPeriod, $roundingStep);
+        $totalScheduled = 0.0;
 
         for ($i = 1; $i <= $periods; $i++) {
-            $amount = ($i === $periods) ? round($principal - ($perPeriod * ($periods - 1)), 2) : $perPeriod;
+            if ($i === $periods) {
+                $amount = round($principal - $totalScheduled, 2);
+            } else {
+                $amount = $roundedPerPeriod;
+                $totalScheduled = round($totalScheduled + $amount, 2);
+            }
+
             $due = $frequency === 'at_maturity'
                 ? $start->addMonths((int) $loan->term_months)
                 : $this->advance($start, $frequency, $i);
@@ -1214,9 +1331,12 @@ final class LoanService
     private function generateInterestSchedule(Loan $loan, float $principal, int $periods, float $ratePerPeriod, string $method, string $frequency, string $startDate): void
     {
         $start = CarbonImmutable::parse($startDate);
+        $roundingStep = $this->resolveRoundingStep($loan);
 
         if ($method === 'flat') {
-            $perPeriod = round($principal * ($ratePerPeriod / 100), 2);
+            $rawPerPeriod = $principal * ($ratePerPeriod / 100);
+            $perPeriod = $this->applyRounding($rawPerPeriod, $roundingStep);
+
             for ($i = 1; $i <= $periods; $i++) {
                 LoanInstallment::query()->create([
                     'loan_row_id' => $loan->row_id,
@@ -1230,17 +1350,22 @@ final class LoanService
             }
         } elseif ($method === 'annuity') {
             $r = $ratePerPeriod / 100;
-            $installment = $r > 0
-                ? round($principal * ($r * (1 + $r) ** $periods) / ((1 + $r) ** $periods - 1), 2)
-                : round($principal / $periods, 2);
+            $rawInstallment = $r > 0
+                ? $principal * ($r * (1 + $r) ** $periods) / ((1 + $r) ** $periods - 1)
+                : $principal / $periods;
+            $installment = $this->applyRounding($rawInstallment, $roundingStep);
             $balance = $principal;
+
             for ($i = 1; $i <= $periods; $i++) {
-                $interestPart = round($balance * $r, 2);
+                $rawInterestPart = $balance * $r;
+                $interestPart = $this->applyRounding($rawInterestPart, $roundingStep);
                 $principalPart = round($installment - $interestPart, 2);
+
                 if ($i === $periods) {
                     $principalPart = round($balance, 2);
                     $installment = round($principalPart + $interestPart, 2);
                 }
+
                 LoanInstallment::query()->create([
                     'loan_row_id' => $loan->row_id,
                     'component' => 'interest',
@@ -1255,12 +1380,17 @@ final class LoanService
         } else {
             $r = $ratePerPeriod / 100;
             $balance = $principal;
-            $perPeriod = round($principal / max(1, $periods), 2);
+            $rawPerPeriod = $principal / max(1, $periods);
+            $perPeriod = $this->applyRounding($rawPerPeriod, $roundingStep);
+
             for ($i = 1; $i <= $periods; $i++) {
-                $interestPart = round($balance * $r, 2);
+                $rawInterestPart = $balance * $r;
+                $interestPart = $this->applyRounding($rawInterestPart, $roundingStep);
+
                 if ($i === $periods) {
                     $perPeriod = round($balance, 2);
                 }
+
                 LoanInstallment::query()->create([
                     'loan_row_id' => $loan->row_id,
                     'component' => 'interest',

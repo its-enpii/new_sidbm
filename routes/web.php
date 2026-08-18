@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\InvoicePaymentController as AdminInvoicePaymentCo
 use App\Http\Controllers\Admin\MigrationController as AdminMigrationController;
 use App\Http\Controllers\Admin\PaymentGatewayController;
 use App\Http\Controllers\Admin\PlanController as AdminPlanController;
+use App\Http\Controllers\Admin\RevenueController as AdminRevenueController;
 use App\Http\Controllers\Admin\TenantController as AdminTenantController;
 use App\Http\Controllers\Admin\TenantUserController as AdminTenantUserController;
 use App\Http\Controllers\Assets\AssetController;
@@ -122,6 +123,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::post('/invoices/{invoice}/void', [AdminInvoiceController::class, 'void'])->name('invoices.void');
     Route::post('/invoices/{invoice}/payments/manual', [AdminInvoicePaymentController::class, 'storeManual'])->name('invoices.payments.manual');
     Route::post('/invoices/{invoice}/payments/tripay', [AdminInvoicePaymentController::class, 'storeTripay'])->name('invoices.payments.tripay');
+    Route::get('/revenue', AdminRevenueController::class)->name('revenue.index');
 
     Route::get('/migration', [AdminMigrationController::class, 'index'])->name('migration.index');
     Route::get('/migrations', [AdminMigrationController::class, 'index'])->name('migrations.index');
@@ -199,6 +201,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
         Route::middleware(['superadmin', 'tenant'])->group(function (): void {
             Route::get('/onboarding/import', [TenantOnboardingImportController::class, 'index'])->name('onboarding.import');
             Route::post('/onboarding/opening-balances', [TenantOnboardingImportController::class, 'saveOpeningBalances'])->name('onboarding.opening-balances');
+            Route::post('/onboarding/opening-balances/manual', [TenantOnboardingImportController::class, 'saveManualOpening'])->name('onboarding.opening-balances.manual');
+            Route::post('/onboarding/aggregate-journal', [TenantOnboardingImportController::class, 'saveAggregateJournal'])->name('onboarding.aggregate-journal');
             Route::post('/onboarding/active-loans', [TenantOnboardingImportController::class, 'importActiveLoans'])->name('onboarding.active-loans');
             Route::get('/onboarding/templates/{type}', [TenantOnboardingImportController::class, 'downloadTemplate'])->name('onboarding.templates');
         });
@@ -316,6 +320,7 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
     Route::patch('/lending/loans/{loan}/revert', [LoanController::class, 'revert'])->name('lending.loans.revert');
     Route::patch('/lending/loans/{loan}/committee', [LoanController::class, 'setCommittee'])->name('lending.loans.committee');
     Route::post('/lending/loans/{loan}/reschedule', [LoanController::class, 'reschedule'])->name('lending.loans.reschedule');
+    Route::post('/lending/loans/{loan}/cancel-reschedule', [LoanController::class, 'cancelReschedule'])->name('lending.loans.cancel-reschedule');
     Route::post('/lending/loans/{loan}/write-off', [LoanController::class, 'writeOff'])->name('lending.loans.write-off');
     Route::post('/lending/loans/{loan}/beneficiaries/{member}/write-off', [LoanController::class, 'writeOffBeneficiary'])
         ->whereNumber('member')
@@ -347,6 +352,8 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
 
     Route::prefix('accounting')->name('accounting.')->group(function (): void {
         Route::get('/journals', [JournalBrowseController::class, 'index'])->name('journals.index');
+        Route::get('/journals/{entry}/edit', [JournalBrowseController::class, 'edit'])->name('journals.edit');
+        Route::put('/journals/{entry}', [JournalBrowseController::class, 'update'])->name('journals.update');
         Route::post('/journals/{entry}/reverse', [JournalBrowseController::class, 'reverse'])->name('journals.reverse');
 
         // Bukti Kas (BKM/BKK/BM)

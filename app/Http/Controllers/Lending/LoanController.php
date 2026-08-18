@@ -16,6 +16,7 @@ use App\Http\Requests\Lending\LoanApproveRequest;
 use App\Http\Requests\Lending\LoanBeneficiaryWriteOffRequest;
 use App\Http\Requests\Lending\LoanDisburseRequest;
 use App\Http\Requests\Lending\LoanRequest;
+use App\Http\Requests\Lending\LoanRescheduleCancelRequest;
 use App\Http\Requests\Lending\LoanRescheduleRequest;
 use App\Http\Requests\Lending\LoanUpdateRequest;
 use App\Http\Requests\Lending\LoanVerifyRequest;
@@ -423,6 +424,18 @@ final class LoanController
             ->with('success', 'Reschedule berhasil. Pinjaman baru dibuat dari sisa pokok.');
     }
 
+    public function cancelReschedule(LoanRescheduleCancelRequest $request, Loan $loan, LoanService $loans): RedirectResponse
+    {
+        try {
+            $oldLoan = $loans->cancelReschedule($loan, $request->validated(), (int) $request->user()->row_id);
+        } catch (\RuntimeException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        return to_route('lending.loans.show', ['loan' => $oldLoan->row_id])
+            ->with('success', 'Reschedule berhasil dibatalkan. Pinjaman asal dikembalikan ke status aktif.');
+    }
+
     public function writeOff(LoanWriteOffRequest $request, Loan $loan, LoanService $loans): RedirectResponse
     {
         try {
@@ -619,15 +632,17 @@ final class LoanController
             'installment_method' => $loan->installment_method,
             'principal_frequency' => $loan->principal_frequency,
             'interest_frequency' => $loan->interest_frequency,
+            'rounding_step' => $loan->rounding_step !== null ? (int) $loan->rounding_step : null,
             'verification_notes' => $loan->verification_notes,
             'guidance_notes' => $loan->guidance_notes,
             'disbursement_notes' => $loan->disbursement_notes,
             'disbursement_account_row_id' => $loan->disbursement_account_row_id,
+            'rescheduled_from_loan_row_id' => $loan->rescheduled_from_loan_row_id !== null ? (int) $loan->rescheduled_from_loan_row_id : null,
             'next_due_date' => $nextDue?->format('Y-m-d'),
             'paid_installments' => $paidInstallments,
             'total_installments' => $totalInstallments,
             'progress_percent' => $totalInstallments > 0 ? (int) round(($paidInstallments / $totalInstallments) * 100) : 0,
-            'product' => $loan->product?->only(['row_id', 'code', 'name', 'default_interest_rate', 'default_term_months']),
+            'product' => $loan->product?->only(['row_id', 'code', 'name', 'default_interest_rate', 'default_term_months', 'rounding_method']),
             'group' => $group ? [
                 'row_id' => $group->row_id,
                 'name' => $group->name,

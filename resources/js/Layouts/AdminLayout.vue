@@ -1,7 +1,8 @@
-﻿<script setup>
+<script setup>
 import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppIcon from '../Components/AppIcon.vue';
+import AppIconButton from '../Components/AppIconButton.vue';
 import AppConfirmDialog from '../Components/AppConfirmDialog.vue';
 import AppToast from '../Components/AppToast.vue';
 
@@ -17,6 +18,7 @@ const navigation = [
     { label: 'Tenant', icon: 'domain', href: '/admin/tenants' },
     { label: 'Plan', icon: 'workspace_premium', href: '/admin/plans' },
     { label: 'Invoice', icon: 'receipt_long', href: '/admin/invoices' },
+    { label: 'Pendapatan', icon: 'monitoring', href: '/admin/revenue' },
     { label: 'Payment Gateway', icon: 'payments', href: '/admin/payment-gateways' },
     { label: 'AI Assistant', icon: 'smart_toy', href: '/admin/ai-assistant' },
     { label: 'Migrasi Data', icon: 'transform', href: '/admin/migration' },
@@ -74,27 +76,13 @@ function logout() {
                         <p class="truncate font-bold text-on-primary">{{ user?.name || 'Admin' }}</p>
                         <p class="truncate text-xs text-primary-fixed-dim">Superadmin</p>
                     </div>
-                    <button
-                        type="button"
-                        class="rounded-lg p-2 text-primary-fixed-dim hover:bg-on-primary/10 hover:text-on-primary"
-                        aria-label="Keluar"
-                        @click="logout"
-                    >
-                        <AppIcon name="logout" class="text-xl" />
-                    </button>
+                    <AppIconButton name="logout" tone="neutral" size="sm" rounded="lg" aria-label="Keluar" class="text-primary-fixed-dim hover:bg-on-primary/10 hover:text-on-primary" @click="logout" />
                 </div>
             </div>
         </aside>
 
         <header class="sticky top-0 z-30 flex h-16 items-center border-b border-outline-variant bg-surface px-4 lg:ml-64 lg:px-6">
-            <button
-                type="button"
-                class="mr-3 rounded-lg p-2 text-primary lg:hidden"
-                aria-label="Buka navigasi"
-                @click="mobileMenuOpen = true"
-            >
-                <AppIcon name="menu" />
-            </button>
+            <AppIconButton name="menu" tone="primary" size="sm" rounded="lg" aria-label="Buka navigasi" class="mr-3 lg:hidden" @click="mobileMenuOpen = true" />
             <p class="text-sm font-bold text-primary">Panel Admin Platform</p>
         </header>
 

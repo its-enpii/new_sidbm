@@ -33,34 +33,47 @@ function formatCurrency(val) {
 
     let str = String(val).trim();
 
-    if (/^\d+\.\d+$/.test(str)) {
-        str = str.replace('.', ',');
+    // Number primitive dari JS native (mis. backend kirim 100000.5) → "100000.5".
+    // Titik di sini = desimal JS, bukan ribuan. Normalisasi: kalau Number, kita
+    // eksplisit tentukan format — integer tanpa desimal suffix, desimal dengan
+    // koma (preserve digit count as-is, truncate ke maxDecimals kalau overflow).
+    if (typeof val === 'number' && Number.isFinite(val)) {
+        if (props.allowDecimal && !Number.isInteger(val)) {
+            // Preserve digit count original (jangan pad ke maxDecimals). Pakai
+            // String(val) untuk dapat representasi natural — mis. 100000.5 →
+            // "100000.5", bukan "100000.50".
+            str = String(val).replace('.', ',');
+        } else {
+            str = String(Math.trunc(val));
+        }
     }
 
-    const hasComma = str.includes(',');
-    const hasDot = str.includes('.');
+    // id-ID invariant: koma = desimal, titik = ribuan. Pisah via koma pertama.
+    const firstComma = str.indexOf(',');
+    let intPartRaw;
+    let decPartRaw;
 
-    let intPart = '';
-    let decPart = '';
-
-    if (hasComma) {
-        const parts = str.split(',');
-        intPart = parts[0].replace(/\D/g, '');
-        decPart = parts.slice(1).join('').replace(/\D/g, '');
-    } else if (hasDot && props.allowDecimal) {
-        const lastDotIdx = str.lastIndexOf('.');
-        intPart = str.substring(0, lastDotIdx).replace(/\D/g, '');
-        decPart = str.substring(lastDotIdx + 1).replace(/\D/g, '');
+    if (firstComma >= 0) {
+        intPartRaw = str.substring(0, firstComma);
+        decPartRaw = str.substring(firstComma + 1);
     } else {
-        intPart = str.replace(/\D/g, '');
+        intPartRaw = str;
+        decPartRaw = '';
     }
 
-    if (intPart === '' && decPart === '') return '';
+    // Bersihkan: intPart — hanya digit (titik ribuan auto-strip).
+    const intDigits = intPartRaw.replace(/\D/g, '');
+    // Bersihkan: decPart — hanya digit (koma tambahan diabaikan — user error).
+    const decDigits = decPartRaw.replace(/\D/g, '');
 
-    const formattedInt = intPart ? Number(intPart).toLocaleString('id-ID') : '0';
+    if (intDigits === '' && decDigits === '') return '';
 
-    if (props.allowDecimal && (hasComma || (hasDot && decPart !== ''))) {
-        const slicedDec = decPart.slice(0, props.maxDecimals);
+    const formattedInt = intDigits
+        ? Number(intDigits).toLocaleString('id-ID')
+        : '0';
+
+    if (props.allowDecimal && decDigits !== '') {
+        const slicedDec = decDigits.slice(0, props.maxDecimals);
         return `${formattedInt},${slicedDec}`;
     }
 
@@ -71,17 +84,36 @@ function parseToNumber(val) {
     if (val === null || val === undefined || val === '') return null;
     let str = String(val).trim();
 
-    if (str.includes(',') && str.includes('.')) {
-        str = str.replace(/\./g, '').replace(',', '.');
-    } else if (str.includes(',')) {
-        str = str.replace(',', '.');
+    // id-ID invariant: koma = desimal, titik = ribuan. Pisah via koma pertama.
+    const firstComma = str.indexOf(',');
+    let intRaw;
+    let decRaw;
+
+    if (firstComma >= 0) {
+        intRaw = str.substring(0, firstComma);
+        decRaw = str.substring(firstComma + 1);
+    } else {
+        intRaw = str;
+        decRaw = '';
     }
 
-    str = str.replace(/[^0-9.-]/g, '');
-    if (str === '' || str === '-' || str === '.') return null;
+    // Strip semua non-digit. Titik ribuan di intRaw otomatis hilang.
+    const intDigits = intRaw.replace(/\D/g, '');
+    const decDigits = decRaw.replace(/\D/g, '');
 
-    const num = parseFloat(str);
-    return isNaN(num) ? null : num;
+    if (intDigits === '' && decDigits === '') return null;
+
+    const intNum = intDigits === '' ? 0 : parseInt(intDigits, 10);
+    if (decDigits === '') return intNum;
+
+    // Truncate ke maxDecimals, preserve nilai desimal via integer division.
+    const slicedDec = decDigits.slice(0, props.maxDecimals);
+    if (slicedDec === '') return intNum;
+
+    const fractionValue = parseInt(slicedDec, 10);
+    const divisor = Math.pow(10, slicedDec.length);
+
+    return intNum + fractionValue / divisor;
 }
 
 watch(model, (newVal) => {

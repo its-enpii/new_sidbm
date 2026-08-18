@@ -330,7 +330,8 @@ const triggerIcon = computed(() => props.mode === 'year' ? 'event' : 'calendar_m
 
 <template>
     <div ref="root" class="space-y-2">
-        <label :for="inputId" class="ml-1 block text-sm font-bold uppercase tracking-wider text-primary">{{ label }}</label>
+        <label v-if="!hideLabel" :for="inputId" class="ml-1 block text-sm font-bold uppercase tracking-wider text-primary">{{ label }}</label>
+        <label v-else :for="inputId" class="sr-only">{{ label }}</label>
         <div class="relative">
             <button
                 :id="inputId"

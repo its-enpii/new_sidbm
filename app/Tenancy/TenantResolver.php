@@ -55,10 +55,12 @@ final class TenantResolver
         return $this->validateTenantAccess($tenant, $user);
     }
 
-    public function resolveById(int $tenantId): Tenant
+    public function resolveById(int $tenantId, ?Authenticatable $user = null): Tenant
     {
-        return Tenant::query()->with(['placement.shard'])->whereKey($tenantId)
+        $tenant = Tenant::query()->with(['placement.shard'])->whereKey($tenantId)
             ->whereIn('status', ['active', 'read_only', 'migrating'])->firstOrFail();
+
+        return $user !== null ? $this->validateTenantAccess($tenant, $user) : $tenant;
     }
 
     private function validateTenantAccess(Tenant $tenant, ?Authenticatable $user): Tenant
@@ -68,6 +70,13 @@ final class TenantResolver
         }
 
         if ($user === null) {
+            return $tenant;
+        }
+
+        // Platform superadmin: bypass tenant membership gate so they can manage
+        // onboarding / setup screens (saldo awal, import master data) against
+        // any tenant they choose via the admin UI.
+        if ((bool) ($user->getAttribute('is_superadmin') ?? false) === true) {
             return $tenant;
         }
 

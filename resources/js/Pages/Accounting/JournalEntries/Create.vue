@@ -348,15 +348,15 @@ function openHistoryModal() {
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
                             <SmartSelect v-model="form.sumber_dana_row_id" :options="sumberDanaOptions" :label="sumberDanaLabel + ' (Kredit)'" placeholder="Pilih akun" :disabled="!currentType" required :error="form.errors.sumber_dana_row_id" />
-                            <button v-if="form.sumber_dana_row_id" type="button" class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline" @click="inspectAccount(form.sumber_dana_row_id)">
-                                <AppIcon name="search" class="text-xs" /> Cek riwayat/saldo kredit
-                            </button>
+                            <AppButton v-if="form.sumber_dana_row_id" type="button" variant="ghost" size="compact" icon="search" class="!min-h-0 !px-0 !text-xs" @click="inspectAccount(form.sumber_dana_row_id)">
+                                Cek riwayat/saldo kredit
+                            </AppButton>
                         </div>
                         <div>
                             <SmartSelect v-model="form.disimpan_ke_row_id" :options="disimpanKeOptions" :label="disimpanKeLabel + ' (Debit)'" placeholder="Pilih akun" :disabled="!currentType" required :error="form.errors.disimpan_ke_row_id" />
-                            <button v-if="form.disimpan_ke_row_id" type="button" class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline" @click="inspectAccount(form.disimpan_ke_row_id)">
-                                <AppIcon name="search" class="text-xs" /> Cek riwayat/saldo debit
-                            </button>
+                            <AppButton v-if="form.disimpan_ke_row_id" type="button" variant="ghost" size="compact" icon="search" class="!min-h-0 !px-0 !text-xs" @click="inspectAccount(form.disimpan_ke_row_id)">
+                                Cek riwayat/saldo debit
+                            </AppButton>
                         </div>
                     </div>
 

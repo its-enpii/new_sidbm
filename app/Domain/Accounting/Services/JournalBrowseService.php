@@ -143,6 +143,8 @@ final class JournalBrowseService
                 || (string) $e->source_type === 'journal_reversal';
             $alreadyReversed = isset($reversedOf[$rowId]);
             $canReverse = ! $isReversal && ! $alreadyReversed;
+            $canEdit = $canReverse
+                && in_array((string) ($e->source_type ?? ''), JournalEditService::EDITABLE_SOURCE_TYPES, true);
 
             $rows[] = [
                 'row_id' => $rowId,
@@ -158,6 +160,7 @@ final class JournalBrowseService
                 'already_reversed' => $alreadyReversed,
                 'reversal' => $reversedOf[$rowId] ?? null,
                 'can_reverse' => $canReverse,
+                'can_edit' => $canEdit,
                 'receipt_url' => $this->receiptUrl($rowId, (string) ($e->source_type ?? ''), (string) ($e->description ?? '')),
                 'cash_evidence_kind' => $this->cashEvidenceKind($sideCodes[$rowId] ?? ['debit' => null, 'credit' => null]),
                 'cash_evidence_url' => '/accounting/journals/'.$rowId.'/cash-evidence',

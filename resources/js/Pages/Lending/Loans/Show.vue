@@ -13,6 +13,8 @@ import AppIconButton from '../../../Components/AppIconButton.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import AppModal from '../../../Components/AppModal.vue';
 import AppTextarea from '../../../Components/AppTextarea.vue';
+import AppFilterPill from '../../../Components/AppFilterPill.vue';
+import AppTabs from '../../../Components/AppTabs.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
 import { useCan } from '../../../composables/useCan';
@@ -31,6 +33,17 @@ function currency(value) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value ?? 0);
 }
 
+const roundingOptions = [
+    { value: '', label: 'Default Produk' },
+    { value: '0', label: 'Tanpa Pembulatan (2 Desimal)' },
+    { value: '100', label: 'Rp 100' },
+    { value: '500', label: 'Rp 500 (<=250: 0, >250: 500)' },
+    { value: '1000', label: 'Rp 1.000' },
+    { value: '5000', label: 'Rp 5.000' },
+    { value: '10000', label: 'Rp 10.000' },
+    { value: '50000', label: 'Rp 50.000' },
+];
+
 const installmentMethodOptions = [
     { value: 'flat', label: 'Flat' },
     { value: 'annuity', label: 'Anuitas' },
@@ -45,6 +58,18 @@ const frequencyOptions = [
     { value: 'quarterly', label: 'Tiga Bulanan' },
     { value: 'at_maturity', label: 'Sekaligus di Akhir' },
 ];
+
+function roundingLabel(step, productRounding) {
+    const effective = step !== null && step !== undefined && step !== '' ? step : productRounding;
+    if (!effective || effective === '0' || effective === 'decimal_2') return 'Tanpa Pembulatan';
+    if (effective === '100') return 'Rp 100';
+    if (effective === '500') return 'Rp 500';
+    if (effective === '1000') return 'Rp 1.000';
+    if (effective === '5000') return 'Rp 5.000';
+    if (effective === '10000') return 'Rp 10.000';
+    if (effective === '50000') return 'Rp 50.000';
+    return String(effective);
+}
 
 function percent(value) {
     return `${Number(value ?? 0).toFixed(2)}%`;
@@ -202,6 +227,7 @@ const editForm = useForm({
     installment_method: props.loan.installment_method ?? 'flat',
     principal_frequency: props.loan.principal_frequency ?? 'monthly',
     interest_frequency: props.loan.interest_frequency ?? 'monthly',
+    rounding_step: props.loan.rounding_step !== null && props.loan.rounding_step !== undefined ? String(props.loan.rounding_step) : '',
     beneficiary_amounts: Object.fromEntries((props.loan.beneficiaries ?? []).map((b) => [String(b.member_row_id), Number(b.allocated_amount ?? 0)])),
 });
 
@@ -229,6 +255,7 @@ const editTotal = computed(() => Object.values(editForm.beneficiary_amounts).red
 
 function openEditModal() {
     editForm.beneficiary_amounts = Object.fromEntries((props.loan.beneficiaries ?? []).map((b) => [String(b.member_row_id), Number(b.allocated_amount ?? 0)]));
+    editForm.rounding_step = props.loan.rounding_step !== null && props.loan.rounding_step !== undefined ? String(props.loan.rounding_step) : '';
     editForm.clearErrors();
     editModalOpen.value = true;
 }
@@ -327,10 +354,17 @@ const LOAN_DOCUMENTS = [
     { key: 'daftar_hadir_pencairan',       label: 'Daftar Hadir Pencairan',        stage: 'disbursement', icon: 'event_available' },
 ];
 
-// Tab state
+
 const activeTab = ref('overview');
 const docStageFilter = ref('all');
 const docSearch = ref('');
+
+const detailTabs = computed(() => [
+    { key: 'overview', label: 'Ringkasan', icon: 'dashboard' },
+    ...(canPrintDocument.value
+        ? [{ key: 'documents', label: 'Dokumen Cetak', icon: 'description', badge: availableDocuments.value.length }]
+        : []),
+]);
 
 const STAGE_META = {
     proposal:     { label: 'Proposal',     description: 'Dokumen yang disiapkan pada tahap pengajuan proposal.', tone: 'warning' },
@@ -447,6 +481,7 @@ const rescheduleForm = useForm({
     installment_method: props.loan.installment_method ?? 'flat',
     principal_frequency: props.loan.principal_frequency ?? 'monthly',
     interest_frequency: props.loan.interest_frequency ?? 'monthly',
+    rounding_step: props.loan.rounding_step !== null && props.loan.rounding_step !== undefined ? String(props.loan.rounding_step) : '',
 });
 
 const writeOffForm = useForm({
@@ -461,6 +496,7 @@ function openRescheduleModal() {
     rescheduleForm.installment_method = props.loan.installment_method ?? 'flat';
     rescheduleForm.principal_frequency = props.loan.principal_frequency ?? 'monthly';
     rescheduleForm.interest_frequency = props.loan.interest_frequency ?? 'monthly';
+    rescheduleForm.rounding_step = props.loan.rounding_step !== null && props.loan.rounding_step !== undefined ? String(props.loan.rounding_step) : '';
     rescheduleForm.clearErrors();
     rescheduleModalOpen.value = true;
 }
@@ -604,43 +640,12 @@ function setAllocatedAmount(memberRowId, value) {
             </header>
 
             <nav class="border-b border-outline-variant" aria-label="Bagian detail pinjaman">
-                <div class="-mb-px flex flex-wrap gap-x-6 gap-y-1" role="tablist">
-                    <button
-                        type="button"
-                        role="tab"
-                        :aria-selected="activeTab === 'overview'"
-                        class="flex items-center gap-2 border-b-2 px-1 pb-3 pt-2 text-sm font-medium transition-colors"
-                        :class="activeTab === 'overview'
-                            ? 'border-primary text-primary'
-                            : 'border-transparent text-on-surface-variant hover:border-outline hover:text-on-surface'"
-                        @click="activeTab = 'overview'"
-                    >
-                        <AppIcon name="dashboard" class="text-base" />
-                        <span>Ringkasan</span>
-                    </button>
-                    <button
-                        v-if="canPrintDocument"
-                        type="button"
-                        role="tab"
-                        :aria-selected="activeTab === 'documents'"
-                        class="flex items-center gap-2 border-b-2 px-1 pb-3 pt-2 text-sm font-medium transition-colors"
-                        :class="activeTab === 'documents'
-                            ? 'border-primary text-primary'
-                            : 'border-transparent text-on-surface-variant hover:border-outline hover:text-on-surface'"
-                        @click="activeTab = 'documents'"
-                    >
-                        <AppIcon name="description" class="text-base" />
-                        <span>Dokumen Cetak</span>
-                        <span
-                            class="rounded-full px-2 py-0.5 text-xs font-semibold"
-                            :class="activeTab === 'documents'
-                                ? 'bg-primary text-on-primary'
-                                : 'bg-surface-container-high text-on-surface-variant'"
-                        >
-                            {{ availableDocuments.length }}
-                        </span>
-                    </button>
-                </div>
+                <AppTabs
+                    v-model="activeTab"
+                    :items="detailTabs"
+                    variant="underline"
+                    aria-label="Bagian detail pinjaman"
+                />
             </nav>
 
             <div v-if="activeTab === 'overview'" class="space-y-6">
@@ -714,6 +719,10 @@ function setAllocatedAmount(memberRowId, value) {
                     <div>
                         <dt class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Jasa Periode</dt>
                         <dd class="text-sm font-semibold text-primary">{{ percent(loan.interest_rate) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Pembulatan</dt>
+                        <dd class="text-sm font-semibold text-primary">{{ roundingLabel(loan.rounding_step, loan.product?.rounding_method) }}</dd>
                     </div>
                 </dl>
             </AppCard>
@@ -801,30 +810,14 @@ function setAllocatedAmount(memberRowId, value) {
                         </div>
                     </template>
 
-                    <div class="flex flex-wrap gap-2 border-b border-outline-variant pb-3">
-                        <button
-                            type="button"
-                            class="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
-                            :class="docStageFilter === 'all'
-                                ? 'bg-primary text-on-primary'
-                                : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container'"
-                            @click="docStageFilter = 'all'"
-                        >
-                            Semua ({{ availableDocuments.length }})
-                        </button>
-                        <button
-                            v-for="stage in ['proposal', 'verification', 'disbursement']"
-                            :key="stage"
-                            type="button"
-                            class="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
-                            :class="docStageFilter === stage
-                                ? 'bg-primary text-on-primary'
-                                : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container'"
-                            :disabled="documentStageCounts[stage] === 0"
-                            @click="docStageFilter = stage"
-                        >
-                            {{ STAGE_META[stage].label }} ({{ documentStageCounts[stage] }})
-                        </button>
+                    <div class="border-b border-outline-variant pb-3">
+                        <AppFilterPill
+                            v-model="docStageFilter"
+                            :items="documentStagePills"
+                            variant="solid"
+                            size="compact"
+                            aria-label="Filter tahap dokumen"
+                        />
                     </div>
                 </AppCard>
 
@@ -1227,6 +1220,7 @@ function setAllocatedAmount(memberRowId, value) {
                         <SmartSelect v-model="rescheduleForm.installment_method" label="Metode Hitung Jasa" :options="installmentMethodOptions" required :error="rescheduleForm.errors.installment_method" />
                         <SmartSelect v-model="rescheduleForm.principal_frequency" label="Angsuran Pokok" :options="frequencyOptions" required :error="rescheduleForm.errors.principal_frequency" />
                         <SmartSelect v-model="rescheduleForm.interest_frequency" label="Angsuran Jasa" :options="frequencyOptions" required :error="rescheduleForm.errors.interest_frequency" />
+                        <SmartSelect v-model="rescheduleForm.rounding_step" label="Pembulatan Angsuran" :options="roundingOptions" :error="rescheduleForm.errors.rounding_step" />
                     </div>
                 </form>
                 <template #footer>
@@ -1313,6 +1307,7 @@ function setAllocatedAmount(memberRowId, value) {
                         <SmartSelect v-model="editForm.installment_method" label="Metode Hitung Jasa" :options="installmentMethodOptions" required :error="editForm.errors.installment_method" />
                         <SmartSelect v-model="editForm.principal_frequency" label="Angsuran Pokok" :options="frequencyOptions" required :error="editForm.errors.principal_frequency" />
                         <SmartSelect v-model="editForm.interest_frequency" label="Angsuran Jasa" :options="frequencyOptions" required :error="editForm.errors.interest_frequency" />
+                        <SmartSelect v-model="editForm.rounding_step" label="Pembulatan Angsuran" :options="roundingOptions" :error="editForm.errors.rounding_step" />
                     </div>
                     <div>
                         <h3 class="text-sm font-bold uppercase tracking-wider text-primary">Pengajuan per Pemanfaat</h3>

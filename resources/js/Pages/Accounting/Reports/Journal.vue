@@ -1,6 +1,7 @@
 <script setup>
 import { Head, router } from '@inertiajs/vue3';
 import AppBadge from '../../../Components/AppBadge.vue';
+import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import ReportPeriodFilter from '../../../Components/ReportPeriodFilter.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
@@ -106,22 +107,27 @@ function goPage(page) {
                         Halaman {{ pagination.page }} / {{ pagination.last_page }} · {{ pagination.total }} baris
                     </span>
                     <div class="flex gap-2">
-                        <button
+                        <AppButton
                             type="button"
-                            class="rounded-lg border px-3 py-1 disabled:opacity-40"
+                            variant="secondary"
+                            size="compact"
+                            icon="chevron_left"
                             :disabled="pagination.page <= 1"
                             @click="goPage(pagination.page - 1)"
                         >
                             Prev
-                        </button>
-                        <button
+                        </AppButton>
+                        <AppButton
                             type="button"
-                            class="rounded-lg border px-3 py-1 disabled:opacity-40"
+                            variant="secondary"
+                            size="compact"
+                            class="!flex-row-reverse"
+                            icon="chevron_right"
                             :disabled="pagination.page >= pagination.last_page"
                             @click="goPage(pagination.page + 1)"
                         >
                             Next
-                        </button>
+                        </AppButton>
                     </div>
                 </div>
             </AppCard>

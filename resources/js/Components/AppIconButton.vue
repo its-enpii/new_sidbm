@@ -52,11 +52,23 @@ const toneClasses = {
     tertiary: 'bg-tertiary-fixed text-tertiary hover:bg-tertiary-fixed/80',
 };
 
+const toneClassesFilled = {
+    neutral: 'bg-surface-container-low text-on-surface hover:bg-surface-container',
+    primary: 'bg-primary text-on-primary hover:brightness-110',
+    secondary: 'bg-secondary text-on-secondary hover:brightness-110',
+    success: 'bg-secondary text-on-secondary hover:brightness-110',
+    warning: 'bg-tertiary text-on-tertiary hover:brightness-110',
+    danger: 'bg-error text-on-error hover:brightness-90',
+    error: 'bg-error text-on-error hover:brightness-90',
+    info: 'bg-primary text-on-primary hover:brightness-110',
+    tertiary: 'bg-tertiary text-on-tertiary hover:brightness-110',
+};
+
 const buttonClass = computed(() => [
     'inline-flex shrink-0 items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-container focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest',
     sizeClasses[props.size],
     roundedMap[props.rounded],
-    toneClasses[props.tone] || toneClasses.neutral,
+    (props.filled ? toneClassesFilled[props.tone] : toneClasses[props.tone]) || toneClasses.neutral,
     (props.disabled || props.loading) && 'cursor-not-allowed opacity-60',
 ]);
 

@@ -688,6 +688,7 @@ final class JournalEntryController
                 'value' => $m['row_id'],
                 'label' => sprintf('#%d · %s', $m['row_id'], $m['full_name']),
                 'status' => $m['status'],
+                'allocated_amount' => $m['allocated_amount'] ?? 0.0,
             ], $members),
         ]);
     }

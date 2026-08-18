@@ -3,6 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
+import AppCurrencyInput from '../../../Components/AppCurrencyInput.vue';
 import AppDatePicker from '../../../Components/AppDatePicker.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import AppTextarea from '../../../Components/AppTextarea.vue';
@@ -118,13 +119,12 @@ function submit() {
                     />
 
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <AppInput
+                        <AppCurrencyInput
                             v-model="form.amount"
                             class="min-w-0"
                             label="Nominal"
-                            type="number"
-                            step="0.01"
-                            min="0.01"
+                            :min="0.01"
+                            :step="0.01"
                             required
                             :error="form.errors.amount"
                         />

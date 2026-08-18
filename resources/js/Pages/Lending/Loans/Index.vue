@@ -7,6 +7,7 @@ import AppCard from '../../../Components/AppCard.vue';
 import AppDatePicker from '../../../Components/AppDatePicker.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import AppModal from '../../../Components/AppModal.vue';
+import AppTabs from '../../../Components/AppTabs.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import SmartDataTable from '../../../Components/SmartDataTable.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
@@ -117,18 +118,13 @@ const emptyMessages = {
             </header>
 
             <div class="border-b border-outline-variant">
-                <nav class="-mb-px flex gap-6" aria-label="Tabs Status Pinjaman">
-                    <button
-                        v-for="t in tabs"
-                        :key="t.key"
-                        type="button"
-                        class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-semibold transition-colors duration-150"
-                        :class="tab === t.key ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:border-outline hover:text-primary'"
-                        @click="switchTab(t.key)"
-                    >
-                        {{ t.label }}
-                    </button>
-                </nav>
+                <AppTabs
+                    :model-value="tab"
+                    :items="tabs"
+                    variant="underline"
+                    aria-label="Tabs Status Pinjaman"
+                    @update:model-value="switchTab($event)"
+                />
             </div>
 
             <AppCard :padded="false">

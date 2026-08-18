@@ -210,19 +210,19 @@ const sourceLabel = {
                         <AppBadge tone="primary">{{ pipelineTotal }}</AppBadge>
                     </header>
                     <div class="flex flex-1 flex-col justify-between gap-3">
-                        <button
+                        <AppButton
                             v-for="stage in pipeline"
                             :key="stage.status"
-                            type="button"
-                            class="flex items-center justify-between rounded-xl border border-outline-variant px-4 py-3 text-left transition hover:bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-primary-container/30"
+                            variant="secondary"
+                            class="!min-h-0 !justify-between !rounded-xl !px-4 !py-3 !text-left"
                             @click="openPipeline(stage)"
                         >
-                            <div>
+                            <span>
                                 <p class="font-semibold text-primary">{{ stage.label }}</p>
                                 <p class="text-xs text-on-surface-variant">{{ formatMoney(stage.amount) }}</p>
-                            </div>
-                            <p class="text-xl font-bold text-primary">{{ stage.count }}</p>
-                        </button>
+                            </span>
+                            <span class="text-xl font-bold text-primary">{{ stage.count }}</span>
+                        </AppButton>
                     </div>
                 </section>
             </div>

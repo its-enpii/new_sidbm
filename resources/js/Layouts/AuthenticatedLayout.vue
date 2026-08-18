@@ -3,6 +3,7 @@ import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import AppButton from '../Components/AppButton.vue';
 import AppIcon from '../Components/AppIcon.vue';
+import AppIconButton from '../Components/AppIconButton.vue';
 import AppModal from '../Components/AppModal.vue';
 import AppConfirmDialog from '../Components/AppConfirmDialog.vue';
 import AppToast from '../Components/AppToast.vue';
@@ -448,13 +449,13 @@ function logout() {
                 <div class="flex items-center gap-3 rounded-xl bg-primary-container/50 p-3">
                     <div class="grid size-10 shrink-0 place-items-center rounded-full bg-primary-fixed text-sm font-bold text-primary">{{ user?.name?.charAt(0).toUpperCase() || 'U' }}</div>
                     <div class="min-w-0 flex-1"><p class="truncate font-bold text-on-primary">{{ user?.name || 'Pengguna' }}</p><p class="truncate text-xs text-primary-fixed-dim">{{ props.unitName || 'Unit belum dipilih' }}</p></div>
-                    <button type="button" class="rounded-lg p-2 text-primary-fixed-dim hover:bg-on-primary/10 hover:text-on-primary" aria-label="Keluar" @click="askLogout"><AppIcon name="logout" class="text-xl" /></button>
+                    <AppIconButton name="logout" tone="neutral" size="sm" rounded="lg" aria-label="Keluar" class="text-primary-fixed-dim hover:bg-on-primary/10 hover:text-on-primary" @click="askLogout" />
                 </div>
             </div>
         </aside>
 
         <header class="sticky top-0 z-30 flex h-16 items-center border-b border-outline-variant bg-surface px-4 lg:ml-64 lg:px-6">
-            <button type="button" class="mr-3 rounded-lg p-2 text-primary lg:hidden" aria-label="Buka navigasi" @click="mobileMenuOpen = true"><AppIcon name="menu" /></button>
+            <AppIconButton name="menu" tone="primary" size="sm" rounded="lg" aria-label="Buka navigasi" class="mr-3 lg:hidden" @click="mobileMenuOpen = true" />
             <button
                 type="button"
                 class="flex w-full max-w-md items-center gap-3 rounded-full border-0 bg-surface-container-low py-2 pr-3 pl-3 text-left text-sm text-on-surface-variant transition hover:bg-surface-container focus:outline-none focus:ring-2 focus:ring-primary-container/30"
@@ -467,18 +468,18 @@ function logout() {
             </button>
             <p v-if="props.unitName" class="ml-6 hidden items-center gap-2 text-sm font-bold text-primary xl:flex"><AppIcon name="location_on" class="text-secondary" />{{ props.unitName }}</p>
             <div class="ml-auto flex items-center gap-1 pl-3">
-                <button
-                    type="button"
+                <AppIconButton
+                    name="palette"
+                    tone="neutral"
+                    rounded="full"
                     data-theme-trigger
-                    class="grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary"
+                    class="shrink-0 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary"
                     :class="themeOpen && 'bg-surface-container text-primary'"
                     aria-label="Pilih tema tampilan"
                     aria-haspopup="menu"
                     :aria-expanded="themeOpen"
                     @click="themeOpen = !themeOpen"
-                >
-                    <AppIcon name="palette" class="text-2xl leading-none" />
-                </button>
+                />
                 <NotificationDropdown />
                 <Link href="/profile" class="grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary" aria-label="Profil"><AppIcon name="account_circle" class="text-2xl leading-none" /></Link>
             </div>
@@ -528,24 +529,26 @@ function logout() {
                                 autocomplete="off"
                                 @input="onSearchInput"
                             />
-                            <button
+                            <AppIconButton
                                 v-if="searchQ"
-                                type="button"
-                                class="grid size-9 shrink-0 place-items-center rounded-full text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
+                                name="close"
+                                tone="neutral"
+                                rounded="full"
+                                size="sm"
                                 aria-label="Hapus kata kunci"
+                                class="shrink-0 text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
                                 @click="clearSearchQuery"
-                            >
-                                <AppIcon name="close" class="text-xl" />
-                            </button>
-                            <button
+                            />
+                            <AppIconButton
                                 v-else
-                                type="button"
-                                class="grid size-9 shrink-0 place-items-center rounded-full text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
+                                name="close"
+                                tone="neutral"
+                                rounded="full"
+                                size="sm"
                                 aria-label="Tutup pencarian"
+                                class="shrink-0 text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
                                 @click="closeSearch"
-                            >
-                                <AppIcon name="close" class="text-xl" />
-                            </button>
+                            />
                         </div>
 
                         <div class="min-h-0 flex-1 overflow-y-auto py-2" role="listbox">

@@ -231,6 +231,18 @@ final class TenantOnboardingService
      */
     public function downloadCsvTemplate(string $type): StreamedResponse
     {
+        // Canonicalize English variants to the Indonesian type names so that
+        // /onboarding/templates/{type} accepts both `members` and `anggota`,
+        // `groups` / `kelompok`, `active-loans` / `pinjaman-aktif`, dst.
+        $type = match ($type) {
+            'members', 'member' => 'anggota',
+            'groups', 'group', 'kelompoks' => 'kelompok',
+            'active-loans', 'active-loan', 'loans-active' => 'pinjaman-aktif',
+            'opening-balances', 'opening-balance' => 'saldo-awal',
+            'assets', 'asset', 'fixed-assets' => 'aset-tetap',
+            default => $type,
+        };
+
         return match ($type) {
             'saldo-awal' => Csv::download('template_saldo_awal.csv', [
                 'kode_akun', 'nama_akun', 'debit', 'kredit',

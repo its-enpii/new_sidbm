@@ -569,15 +569,17 @@ const getStepStatusVariant = (status) => {
                             </div>
                             <div class="relative">
                                 <pre ref="logTerminal" class="h-80 w-full overflow-y-auto rounded-lg border border-outline bg-surface-container-lowest p-4 font-mono text-xs text-secondary shadow-inner whitespace-pre-wrap" @scroll="onLogScroll">{{ selectedRun.output_log || 'Menunggu keluaran log...' }}</pre>
-                                <button
+                                <AppButton
                                     v-if="isUserScrolledUp"
                                     type="button"
-                                    class="absolute bottom-3 right-4 flex items-center gap-1.5 rounded-full bg-primary/90 px-3 py-1.5 text-xs font-semibold text-on-primary shadow-lg backdrop-blur transition hover:bg-primary"
+                                    variant="primary"
+                                    size="compact"
+                                    icon="arrow_downward"
+                                    class="absolute bottom-3 right-4 !rounded-full backdrop-blur"
                                     @click="scrollToBottom"
                                 >
-                                    <AppIcon name="arrow_downward" class="text-sm" />
                                     Scroll ke Bawah
-                                </button>
+                                </AppButton>
                             </div>
                         </div>
 

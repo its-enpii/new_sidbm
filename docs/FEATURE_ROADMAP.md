@@ -7,14 +7,14 @@ Dokumentasi Arsitektur: PROJECT_OVERVIEW.md, DATABASE_STRUCTURE.md, CUTOVER_RUNB
 
 ---
 
-## Status Fitur & Zona (Update 2026-08-11)
+## Status Fitur & Zona (Update 2026-08-18)
 
 | Zona | Status Next | Keterangan |
 |---|---|---|
 | Landing Page & Auth | ✅ Selesai | Redesain halaman depan profesional (hero, features, steps, FAQ accordion, smooth scroll, CTA), halaman login clean & modern tanpa kebocoran stack teknis. |
 | Master Data | ✅ Selesai | Anggota, Kelompok, Lembaga, Desa + Riwayat Pinjaman + Import/Export CSV |
 | Alur Perguliran Pinjaman | ✅ Selesai | Proposal → Verifikasi → Alokasi → Pencairan → Angsuran → Reschedule/Write-off |
-| Jurnal & Akuntansi | ✅ Selesai | Jurnal Umum, Jurnal Angsuran, Reversal, COA Read-only |
+| Jurnal & Akuntansi | ✅ Selesai | Jurnal Umum, Jurnal Angsuran, Reversal, **Edit Jurnal (Reverse + Recreate Atomik)**, COA Read-only |
 | Cetak Struk & Kuitansi | ✅ Selesai | Struk/Kuitansi PDF langsung dari posting jurnal |
 | Laporan Akuntansi Core | ✅ Selesai | Neraca, Laba Rugi, Buku Besar, Arus Kas, Perubahan Ekuitas, CALK, Neraca Saldo, Jurnal Transaksi |
 | Laporan Piutang & Kolektibilitas | ✅ Selesai | Portofolio Pinjaman (Aging per Desa/Kelompok), Rencana vs Realisasi, LPP Rekap Desa, LPP Rincian Kelompok, Kolektibilitas Desa, CKPN |
@@ -31,18 +31,18 @@ Dokumentasi Arsitektur: PROJECT_OVERVIEW.md, DATABASE_STRUCTURE.md, CUTOVER_RUNB
 | Pembatasan Operator Desa (Village Scope) | ✅ Selesai | Restriksi data anggota, kelompok, dan proposal pinjaman berbasis village_row_id dengan global scope VillageScope |
 | AI Assistant & RAG | ✅ Selesai | Asisten AI (enpii/assistant) dengan Vector RAG (pgvector), Ollama, & Komponen Chat Interaktif |
 | Redis Infrastructure | ✅ Selesai | Redis Cache Store, Redis Session Driver, & Dedicated Redis Queue Worker |
-| Automated Testing Suite | ✅ Selesai | PHPUnit 201 tests (1.506 assertions) + Playwright 47 E2E page tests + Playwright 25 Interactive CRUD tests |
+| Automated Testing Suite | ✅ Selesai | PHPUnit 258 tests (1.779 assertions) + Playwright 47 E2E page tests + Playwright 25 Interactive CRUD tests |
 
 ---
 
-## Statistik Pengujian Automated (Terakhir: 2026-08-11)
+## Statistik Pengujian Automated (Terakhir: 2026-08-18)
 
 | Suite Pengujian | Total Tests | Assertions | Durasi | Status |
 |---|:---:|:---:|:---:|:---:|
-| **Backend PHPUnit** (Unit & Feature) | 201 | 1.506 | ~4 menit | ✅ 100% Pass |
+| **Backend PHPUnit** (Unit & Feature) | 258 | 1.779 | ~5.5 menit | ✅ 100% Pass |
 | **Playwright E2E Page & Route** (`all_features.spec.ts`) | 47 | — | ~4 menit | ✅ 100% Pass |
 | **Playwright Interactive CRUD** (`all_interactive_crud.spec.ts`) | 25 | — | ~5 menit | ✅ 100% Pass |
-| **Total** | **273** | **1.506+** | **~13 menit** | **✅ 100% Pass** |
+| **Total** | **330** | **1.779+** | **~14.5 menit** | **✅ 100% Pass** |
 
 ---
 
@@ -93,3 +93,4 @@ Dokumentasi Arsitektur: PROJECT_OVERVIEW.md, DATABASE_STRUCTURE.md, CUTOVER_RUNB
 | 2026-08-10 | P4.3 Suite E2E Playwright menyeluruh (47 Page Tests + Smoke UI). P4.4 Suite Backend PHPUnit komprehensif (201 Tests / 1.506 Assertions). |
 | 2026-08-11 | P4.2 Redesain halaman Landing Page & Login (hero profesional, FAQ accordion interaktif, smooth scroll, CTA Masuk/Mulai Sekarang terpisah, tanpa bocor versi teknis). |
 | 2026-08-11 | P4.3 Suite E2E Playwright Interactive CRUD (25 tests): form fill, radio select, SmartSelect dropdown, toggle switch, submit data, edit, search, tab switching, dan wrong credentials test. |
+| 2026-08-18 | **Fitur Edit Jurnal** — Reverse jurnal lama + buat jurnal baru dalam satu DB transaction atomik (`JournalEditService` outer transaction dengan retry). Hanya untuk `source_type=manual` & `asset_purchase`. Alasan wajib (max 500 char). Untuk `asset_purchase`: asset baru terdaftar otomatis, asset lama tetap terkait jurnal lama (audit trail utuh). Lihat `docs/audit/2026-08-18/journal-edit-feature.md`. |

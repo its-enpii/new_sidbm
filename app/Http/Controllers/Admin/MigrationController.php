@@ -142,7 +142,7 @@ final class MigrationController extends Controller
                 ob_implicit_flush(true);
             }
 
-            $runner->executeStream($run, static function (string $event, array $data): void {
+            $runner->observeStream($run, static function (string $event, array $data): void {
                 echo "event: {$event}\n";
                 echo 'data: '.json_encode($data, JSON_THROW_ON_ERROR)."\n\n";
                 if (ob_get_level() > 0) {

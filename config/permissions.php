@@ -1,14 +1,17 @@
 <?php
 
 declare(strict_types=1);
+use App\Http\Requests\Accounting\AggregateJournalRequest;
 use App\Http\Requests\Accounting\JournalEntryRequest;
 use App\Http\Requests\Accounting\LoanInstallmentJournalRequest;
+use App\Http\Requests\Accounting\ManualOpeningBalanceRequest;
 use App\Http\Requests\Assets\AssetRequest;
 use App\Http\Requests\Budgeting\SaveBudgetMonthRequest;
 use App\Http\Requests\Lending\LoanApproveRequest;
 use App\Http\Requests\Lending\LoanBeneficiaryWriteOffRequest;
 use App\Http\Requests\Lending\LoanDisburseRequest;
 use App\Http\Requests\Lending\LoanRequest;
+use App\Http\Requests\Lending\LoanRescheduleCancelRequest;
 use App\Http\Requests\Lending\LoanRescheduleRequest;
 use App\Http\Requests\Lending\LoanUpdateRequest;
 use App\Http\Requests\Lending\LoanVerifyRequest;
@@ -213,6 +216,8 @@ return [
      */
     'request_map' => [
         JournalEntryRequest::class => 'journals.create',
+        ManualOpeningBalanceRequest::class => 'journals.create',
+        AggregateJournalRequest::class => 'journals.create',
         LoanInstallmentJournalRequest::class => 'installments.record',
         LoanRequest::class => 'loans.propose',
         LoanVerifyRequest::class => 'loans.verify',
@@ -222,6 +227,7 @@ return [
         LoanWriteOffRequest::class => 'loans.manage',
         LoanBeneficiaryWriteOffRequest::class => 'loans.manage',
         LoanRescheduleRequest::class => 'loans.manage',
+        LoanRescheduleCancelRequest::class => 'loans.manage',
         MemberRequest::class => 'members.manage',
         QuickMemberRequest::class => 'members.manage',
         GroupRequest::class => 'groups.manage',

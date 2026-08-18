@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppCard from '../../../Components/AppCard.vue';
+import AppTabs from '../../../Components/AppTabs.vue';
 import ReportPeriodFilter from '../../../Components/ReportPeriodFilter.vue';
 import { useMoney } from '../../../composables/useMoney';
 import ProvinceLayout from '../../../Layouts/ProvinceLayout.vue';
@@ -18,11 +19,11 @@ const activeTab = ref('balance');
 const baseUrl = '/province/reports/pack';
 
 const tabs = [
-    { id: 'balance', label: '1. Neraca Konsolidasi' },
-    { id: 'income', label: '2. Laba Rugi Konsolidasi' },
-    { id: 'cash', label: '3. Arus Kas' },
-    { id: 'equity', label: '4. Perubahan Ekuitas' },
-    { id: 'calk', label: '5. CALK' },
+    { key: 'balance', label: '1. Neraca Konsolidasi' },
+    { key: 'income', label: '2. Laba Rugi Konsolidasi' },
+    { key: 'cash', label: '3. Arus Kas' },
+    { key: 'equity', label: '4. Perubahan Ekuitas' },
+    { key: 'calk', label: '5. CALK' },
 ];
 </script>
 
@@ -47,17 +48,13 @@ const tabs = [
             </div>
 
             <!-- Tab Buttons -->
-            <div class="flex flex-wrap gap-2 border-b border-outline-variant pb-3">
-                <button
-                    v-for="tab in tabs"
-                    :key="tab.id"
-                    type="button"
-                    class="rounded-lg px-4 py-2.5 text-sm font-semibold transition"
-                    :class="activeTab === tab.id ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'"
-                    @click="activeTab = tab.id"
-                >
-                    {{ tab.label }}
-                </button>
+            <div class="border-b border-outline-variant pb-3">
+                <AppTabs
+                    v-model="activeTab"
+                    :items="tabs"
+                    variant="underline"
+                    aria-label="Tab paket laporan konsolidasi"
+                />
             </div>
 
             <!-- Content Tab 1: Neraca -->

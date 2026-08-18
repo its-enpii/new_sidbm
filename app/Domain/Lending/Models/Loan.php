@@ -79,4 +79,9 @@ final class Loan extends TenantModel
     {
         return $this->hasMany(LoanWriteOff::class, 'loan_row_id', 'row_id');
     }
+
+    public function rescheduledFrom(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'rescheduled_from_loan_row_id', 'row_id');
+    }
 }

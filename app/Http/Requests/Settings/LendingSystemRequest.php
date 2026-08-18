@@ -19,7 +19,7 @@ final class LendingSystemRequest extends FormRequest
             'products.*.row_id' => ['required', 'integer'],
             'products.*.default_interest_rate' => ['required', 'numeric', 'min:0', 'max:100'],
             'products.*.default_term_months' => ['required', 'integer', 'min:1', 'max:240'],
-            'products.*.rounding_method' => ['required', Rule::in(['decimal_2', 'rupiah_bersih', 'ceil_100', 'floor_100'])],
+            'products.*.rounding_method' => ['required', Rule::in(['decimal_2', 'rupiah_bersih', 'ceil_100', 'floor_100', '0', '100', '500', '1000', '5000', '10000', '50000'])],
         ];
     }
 

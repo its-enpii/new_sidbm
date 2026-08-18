@@ -38,7 +38,12 @@ final readonly class ResolveTenant
         }
 
         if (is_string($code) && trim($code) !== '') {
-            $tenant = $this->resolver->resolveByCode(trim($code), $request->user());
+            $trimmed = trim($code);
+            // Numeric route param = row_id (e.g. /admin/tenants/{tenant}/onboarding).
+            // String route param = tenant code (e.g. /admin/tenants/local/onboarding).
+            $tenant = ctype_digit($trimmed)
+                ? $this->resolver->resolveById((int) $trimmed, $request->user())
+                : $this->resolver->resolveByCode($trimmed, $request->user());
         } elseif ($request->user() !== null && $request->user()->getAttribute('tenant_id') !== null) {
             $tenant = $this->resolver->resolveForUser($request->user());
         } else {

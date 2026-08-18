@@ -75,12 +75,16 @@ final class LoanTrackingService
      */
     public function getGroupMembers(int $loanId): array
     {
-        $loan = Loan::query()->with('borrower')->where('row_id', $loanId)->firstOrFail();
+        $loan = Loan::query()->with(['borrower', 'beneficiaries'])->where('row_id', $loanId)->firstOrFail();
         $groupRowId = (int) ($loan->borrower?->group_row_id ?? 0);
 
         if ($groupRowId === 0) {
             return [];
         }
+
+        $beneficiaryMap = $loan->beneficiaries
+            ->keyBy('member_row_id')
+            ->map(fn ($b) => (float) $b->allocated_amount);
 
         return DB::connection('tenant')
             ->table('group_members as gm')
@@ -103,6 +107,7 @@ final class LoanTrackingService
                 'row_id' => (int) $r->row_id,
                 'full_name' => (string) $r->full_name,
                 'status' => (string) $r->status,
+                'allocated_amount' => $beneficiaryMap->get((int) $r->row_id, 0.0),
             ])
             ->all();
     }

@@ -211,14 +211,25 @@ function submitReverse() {
                                         >
                                             {{ cashEvidenceLabel(row.cash_evidence_kind) }}
                                         </a>
-                                        <button
+                                        <a
+                                            v-if="allowReverse && row.can_edit"
+                                            :href="`/accounting/journals/${row.row_id}/edit`"
+                                            class="rounded-lg px-2 py-1 text-xs font-semibold text-warning hover:bg-warning/10"
+                                            title="Koreksi jurnal (reverse + buat baru)"
+                                        >
+                                            Edit
+                                        </a>
+                                        <AppButton
                                             v-if="allowReverse && row.can_reverse"
                                             type="button"
-                                            class="rounded-lg px-2 py-1 text-xs font-semibold text-error hover:bg-error/10"
+                                            variant="ghost"
+                                            size="compact"
+                                            icon="undo"
+                                            class="!min-h-0 !px-2 !text-error"
                                             @click="openReverse(row)"
                                         >
                                             Reverse
-                                        </button>
+                                        </AppButton>
                                     </div>
                                 </td>
                             </tr>

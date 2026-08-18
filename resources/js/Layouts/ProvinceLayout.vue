@@ -2,6 +2,7 @@
 import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppIcon from '../Components/AppIcon.vue';
+import AppIconButton from '../Components/AppIconButton.vue';
 import AppConfirmDialog from '../Components/AppConfirmDialog.vue';
 import AppToast from '../Components/AppToast.vue';
 
@@ -74,28 +75,14 @@ function logout() {
                         <p class="truncate font-bold text-on-primary">{{ user?.name || 'Supervisor' }}</p>
                         <p class="truncate text-xs text-primary-fixed-dim">Level Provinsi</p>
                     </div>
-                    <button
-                        type="button"
-                        class="rounded-lg p-2 text-primary-fixed-dim hover:bg-on-primary/10 hover:text-on-primary"
-                        aria-label="Keluar"
-                        @click="logout"
-                    >
-                        <AppIcon name="logout" class="text-xl" />
-                    </button>
+                    <AppIconButton name="logout" tone="neutral" size="sm" rounded="lg" aria-label="Keluar" class="text-primary-fixed-dim hover:bg-on-primary/10 hover:text-on-primary" @click="logout" />
                 </div>
             </div>
         </aside>
 
         <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-outline-variant bg-surface px-4 lg:ml-64 lg:px-6">
             <div class="flex items-center gap-3">
-                <button
-                    type="button"
-                    class="rounded-lg p-2 text-primary lg:hidden"
-                    aria-label="Buka navigasi"
-                    @click="mobileMenuOpen = true"
-                >
-                    <AppIcon name="menu" />
-                </button>
+                <AppIconButton name="menu" tone="primary" size="sm" rounded="lg" aria-label="Buka navigasi" class="lg:hidden" @click="mobileMenuOpen = true" />
                 <div>
                     <p class="text-sm font-bold text-primary">Monitoring & Konsolidasi Laporan Provinsi</p>
                 </div>

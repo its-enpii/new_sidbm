@@ -5,6 +5,7 @@ import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import AppDatePicker from '../../../Components/AppDatePicker.vue';
+import AppFilterPill from '../../../Components/AppFilterPill.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
 
 const props = defineProps({
@@ -123,20 +124,12 @@ const villageSections = computed(() => {
                     <AppDatePicker v-model="asOf" mode="day" label="Posisi per" />
                     <div>
                         <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Filter</p>
-                        <div class="flex flex-wrap gap-2">
-                            <button
-                                v-for="opt in filterOptions"
-                                :key="opt.value"
-                                type="button"
-                                class="rounded-xl border px-3 py-2 text-sm font-semibold transition"
-                                :class="filter === opt.value
-                                    ? 'border-primary bg-primary text-on-primary'
-                                    : 'border-outline-variant bg-surface-container-lowest text-primary hover:border-primary/40'"
-                                @click="filter = opt.value"
-                            >
-                                {{ opt.label }}
-                            </button>
-                        </div>
+                        <AppFilterPill
+                            v-model="filter"
+                            :items="filterOptions"
+                            variant="outline"
+                            aria-label="Filter status pinjaman"
+                        />
                     </div>
                 </div>
             </AppCard>

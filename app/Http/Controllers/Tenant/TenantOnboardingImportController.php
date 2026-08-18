@@ -6,17 +6,23 @@ namespace App\Http\Controllers\Tenant;
 
 use App\Domain\Accounting\Models\Account;
 use App\Domain\Accounting\Models\JournalEntry;
+use App\Domain\Accounting\Services\AccountOpeningBalanceService;
+use App\Domain\Accounting\Services\JournalPostingService;
 use App\Domain\Onboarding\Services\TenantOnboardingService;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Accounting\AggregateJournalRequest;
+use App\Http\Requests\Accounting\ManualOpeningBalanceRequest;
+use App\Models\Platform\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class TenantOnboardingImportController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Tenant $tenant, AccountOpeningBalanceService $openingService): Response
     {
         $accounts = Account::query()
             ->where('is_postable', true)
@@ -34,7 +40,17 @@ final class TenantOnboardingImportController extends Controller
             ->latest('row_id')
             ->first();
 
+        $currentYear = $openingService->currentFiscalYear();
+        $manualOpeningsByYear = [];
+        foreach ([$currentYear, $currentYear - 1, $currentYear + 1] as $year) {
+            $rows = $openingService->getByYear($year);
+            if ($rows !== []) {
+                $manualOpeningsByYear[$year] = $rows;
+            }
+        }
+
         return Inertia::render('Onboarding/ImportWizard', [
+            'tenantRowId' => (int) $tenant->row_id,
             'accounts' => $accounts,
             'existingOpening' => $existingOpening ? [
                 'row_id' => $existingOpening->row_id,
@@ -49,10 +65,12 @@ final class TenantOnboardingImportController extends Controller
                     'credit' => (float) $l->credit,
                 ]),
             ] : null,
+            'manualOpeningsByYear' => $manualOpeningsByYear,
+            'currentFiscalYear' => $currentYear,
         ]);
     }
 
-    public function saveOpeningBalances(Request $request, TenantOnboardingService $service): RedirectResponse
+    public function saveOpeningBalances(Tenant $tenant, Request $request, TenantOnboardingService $service): RedirectResponse
     {
         $validated = $request->validate([
             'as_of_date' => ['required', 'date', 'before_or_equal:today'],
@@ -68,7 +86,91 @@ final class TenantOnboardingImportController extends Controller
         return redirect()->back()->with('success', 'Jurnal Saldo Awal Keuangan tenant berhasil disimpan & diposting.');
     }
 
-    public function importActiveLoans(Request $request, TenantOnboardingService $service): RedirectResponse
+    /**
+     * Simpan opening balance per-fiscal_year ke tabel `account_opening_balances`
+     * dengan source='manual'. Idempotent; preserve 'year_close' (tidak overwrite).
+     */
+    public function saveManualOpening(
+        Tenant $tenant,
+        ManualOpeningBalanceRequest $request,
+        AccountOpeningBalanceService $openingService,
+    ): RedirectResponse {
+        $userId = (int) $request->user()->row_id;
+        $fiscalYear = (int) $request->validated('fiscal_year');
+        $lines = $request->validated('lines');
+
+        try {
+            $written = $openingService->upsert($fiscalYear, $lines, $userId);
+        } catch (\DomainException $e) {
+            return back()->withErrors(['lines' => $e->getMessage()]);
+        }
+
+        $msg = $written > 0
+            ? "Saldo awal tahun {$fiscalYear} berhasil disimpan ({$written} akun diupdate)."
+            : "Saldo awal tahun {$fiscalYear} tidak berubah (tidak ada baris valid).";
+
+        return back()->with('success', $msg);
+    }
+
+    /**
+     * Posting jurnal agregat multi-line untuk backfill transaksi antar tanggal
+     * opening balance dan tanggal join (mis. Jan-Mei jika join Juni).
+     */
+    public function saveAggregateJournal(
+        Tenant $tenant,
+        AggregateJournalRequest $request,
+        JournalPostingService $poster,
+    ): RedirectResponse {
+        $data = $request->validated();
+        $userId = (int) $request->user()->row_id;
+
+        $entry = DB::connection('tenant')->transaction(function () use ($data, $userId): JournalEntry {
+            $entry = JournalEntry::query()->create([
+                'journal_number' => null,
+                'transaction_date' => $data['transaction_date'],
+                'sequence_number' => 0,
+                'source_type' => 'manual',
+                'transaction_type' => 'pemindahan_saldo',
+                'source_row_id' => null,
+                'description' => $data['description'],
+                'status' => 'draft',
+                'created_by_user_id' => $userId,
+            ]);
+
+            $lineNumber = 1;
+            foreach ($data['lines'] as $line) {
+                $debit = round((float) ($line['debit'] ?? 0), 2);
+                $credit = round((float) ($line['credit'] ?? 0), 2);
+                if ($debit <= 0.0 && $credit <= 0.0) {
+                    continue;
+                }
+                $entry->lines()->create([
+                    'line_number' => $lineNumber++,
+                    'account_row_id' => (int) $line['account_row_id'],
+                    'description' => $line['description'] ?? null,
+                    'debit' => $debit,
+                    'credit' => $credit,
+                ]);
+            }
+
+            return $entry->fresh(['lines']);
+        });
+
+        try {
+            $posted = $poster->post($entry, $userId);
+        } catch (\DomainException $e) {
+            return back()->withErrors(['lines' => 'Jurnal agregat gagal diposting: '.$e->getMessage()]);
+        }
+
+        return back()->with('success', sprintf(
+            'Jurnal agregat 5-bulanan berhasil dicatat (#%d · %s · Rp total %s).',
+            $posted->row_id,
+            $posted->transaction_date?->toDateString() ?? '-',
+            number_format((float) $posted->lines->sum('debit'), 0, ',', '.'),
+        ));
+    }
+
+    public function importActiveLoans(Tenant $tenant, Request $request, TenantOnboardingService $service): RedirectResponse
     {
         $request->validate([
             'file' => ['required', 'file', 'mimes:csv,txt', 'max:10240'],
@@ -90,7 +192,7 @@ final class TenantOnboardingImportController extends Controller
         return $redirect;
     }
 
-    public function downloadTemplate(string $type, TenantOnboardingService $service): StreamedResponse
+    public function downloadTemplate(Tenant $tenant, string $type, TenantOnboardingService $service): StreamedResponse
     {
         return $service->downloadCsvTemplate($type);
     }

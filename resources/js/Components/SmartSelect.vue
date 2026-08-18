@@ -256,7 +256,7 @@ watch(() => props.modelValue, (value) => {
                 @click="open ? closeMenu() : openMenu()"
                 @keydown="onKeydown"
             >
-                <span :class="selectedLabel ? 'text-primary' : 'text-outline'">{{ selectedLabel || (placeholder ?? `Pilih ${label.toLowerCase()}`) }}</span>
+                <span class="block min-w-0 flex-1 truncate whitespace-nowrap" :class="selectedLabel ? 'text-primary' : 'text-outline'">{{ selectedLabel || (placeholder ?? `Pilih ${label.toLowerCase()}`) }}</span>
                 <AppIcon :name="open ? 'expand_less' : 'expand_more'" class="absolute right-3 text-xl text-outline" />
             </button>
             <button

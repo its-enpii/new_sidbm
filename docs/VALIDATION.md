@@ -3,6 +3,9 @@
 ## Pemeriksaan statis
 
 - Seluruh file PHP harus lolos `php -l`.
+## Pemeriksaan statis
+
+- Seluruh file PHP harus lolos `php -l`.
 - `composer.json` dan `package.json` harus valid.
 - Foreign key tenant komposit tidak menggunakan `ON DELETE SET NULL` pada `tenant_id`.
 - Nama constraint/index MySQL harus maksimal 64 karakter.
@@ -42,8 +45,8 @@ Jangan menjalankan pipeline migrasi langsung terhadap satu-satunya salinan produ
 
 ## Suite Pengujian Otomatis (100% Passed)
 
-### 1. Backend PHPUnit Suite (201 Tests - 1.506 Assertions)
-Menguji logika transaksi akuntansi double-entry, lifecycle pinjaman, isolasi multi-tenant sharding, perpanjangan otomatis Tripay billing, scope operator desa (VillageScope), dan konsolidasi laporan supervisi kabupaten/provinsi:
+### 1. Backend PHPUnit Suite (258 Tests - 1.779 Assertions)
+Menguji logika transaksi akuntansi double-entry (termasuk reverse + recreate atomik via `JournalEditService`), lifecycle pinjaman, isolasi multi-tenant sharding, perpanjangan otomatis Tripay billing, scope operator desa (VillageScope), dan konsolidasi laporan supervisi kabupaten/provinsi:
 `ash
 php artisan test
 `

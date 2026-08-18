@@ -13,6 +13,7 @@ import { useConfirm } from '../../../composables/useConfirm';
 import AppModal from '../../../Components/AppModal.vue';
 import AppSwitch from '../../../Components/AppSwitch.vue';
 import AppTextarea from '../../../Components/AppTextarea.vue';
+import AppTabs from '../../../Components/AppTabs.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import ArtifactCard from '../../../Components/AssistantComponents/ArtifactCard.vue';
 import ArtifactModal from '../../../Components/AssistantComponents/ArtifactModal.vue';
@@ -767,11 +768,11 @@ function formatTime(iso) {
 }
 
 const aiTabs = [
-    { id: 'personas', label: 'AI Personas', icon: 'person' },
-    { id: 'tools', label: 'AI Tools', icon: 'build' },
-    { id: 'knowledge', label: 'Knowledge Base (RAG)', icon: 'library_books' },
-    { id: 'chat', label: 'Test Chat', icon: 'chat' },
-    { id: 'activity', label: 'Aktivitas Log', icon: 'history' },
+    { key: 'personas', label: 'AI Personas', icon: 'person' },
+    { key: 'tools', label: 'AI Tools', icon: 'build' },
+    { key: 'knowledge', label: 'Knowledge Base (RAG)', icon: 'library_books' },
+    { key: 'chat', label: 'Test Chat', icon: 'chat' },
+    { key: 'activity', label: 'Aktivitas Log', icon: 'history' },
 ];
 
 onMounted(() => {
@@ -806,21 +807,12 @@ onBeforeUnmount(() => {
             </AppCard>
 
             <!-- Navigation Tabs -->
-            <nav class="flex flex-wrap gap-1 rounded-xl border border-outline-variant bg-surface-container-lowest p-1">
-                <button
-                    v-for="tab in aiTabs"
-                    :key="tab.id"
-                    type="button"
-                    class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-                    :class="activeTab === tab.id
-                        ? 'bg-primary text-on-primary shadow-sm'
-                        : 'text-on-surface-variant hover:bg-surface-container-low hover:text-primary'"
-                    @click="activeTab = tab.id"
-                >
-                    <AppIcon :name="tab.icon" class="text-lg" />
-                    {{ tab.label }}
-                </button>
-            </nav>
+            <AppTabs
+                v-model="activeTab"
+                :items="aiTabs"
+                variant="pills-bar"
+                aria-label="Tab AI Assistant"
+            />
 
             <!-- ============= PERSONAS TAB ============= -->
             <div v-if="activeTab === 'personas'" class="space-y-6">
@@ -866,18 +858,10 @@ onBeforeUnmount(() => {
                                     </td>
                                     <td class="px-4 py-3">
                                         <div class="flex items-center justify-end gap-1">
-                                            <button type="button" class="grid size-9 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary" title="Edit" @click="openEditPersona(p)">
-                                                <AppIcon name="edit" />
-                                            </button>
-                                            <button v-if="!p.is_default" type="button" class="grid size-9 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary" title="Set as default" @click="togglePersona(p, 'is_default')">
-                                                <AppIcon name="star" />
-                                            </button>
-                                            <button type="button" class="grid size-9 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary" :title="p.is_active ? 'Nonaktifkan' : 'Aktifkan'" @click="togglePersona(p, 'is_active')">
-                                                <AppIcon :name="p.is_active ? 'toggle_on' : 'toggle_off'" />
-                                            </button>
-                                            <button v-if="!p.is_default" type="button" class="grid size-9 place-items-center rounded-lg text-on-surface-variant hover:bg-error-container hover:text-error" title="Hapus" @click="deletePersona(p)">
-                                                <AppIcon name="delete" />
-                                            </button>
+                                            <AppIconButton name="edit" size="sm" tooltip="Edit" @click="openEditPersona(p)" />
+                                            <AppIconButton v-if="!p.is_default" name="star" size="sm" tooltip="Set as default" @click="togglePersona(p, 'is_default')" />
+                                            <AppIconButton :name="p.is_active ? 'toggle_on' : 'toggle_off'" size="sm" :tooltip="p.is_active ? 'Nonaktifkan' : 'Aktifkan'" @click="togglePersona(p, 'is_active')" />
+                                            <AppIconButton v-if="!p.is_default" name="delete" size="sm" tone="danger" tooltip="Hapus" @click="deletePersona(p)" />
                                         </div>
                                     </td>
                                 </tr>
@@ -1008,10 +992,9 @@ onBeforeUnmount(() => {
                         </div>
                         <div class="flex items-center gap-2">
                             <SmartSelect v-model="uploadForm.persona_id" :options="kbPersonaOptions" placeholder="Semua persona" hide-label class="min-w-44" />
-                            <button type="button" class="inline-flex items-center gap-1 rounded-md border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-on-surface-variant transition-colors hover:bg-surface-container" :disabled="docs.loading" @click="fetchDocuments">
-                                <AppIcon name="refresh" />
-                                <span>{{ docs.loading ? 'Memuatâ€¦' : 'Refresh' }}</span>
-                            </button>
+                            <AppButton type="button" variant="secondary" size="compact" icon="refresh" :loading="docs.loading" @click="fetchDocuments">
+                                Refresh
+                            </AppButton>
                         </div>
                     </header>
 
@@ -1067,10 +1050,9 @@ onBeforeUnmount(() => {
                         </div>
                         <div class="flex items-center gap-2">
                             <SmartSelect v-model="chatPersonaId" :options="chatPersonaOptions" hide-label placeholder="Pilih persona" class="min-w-56" />
-                            <button v-if="chatMessages.length" type="button" class="inline-flex items-center gap-1 rounded-md border border-outline-variant bg-surface px-3 py-2 text-xs font-semibold text-on-surface-variant transition-colors hover:bg-surface-container" @click="clearChat">
-                                <AppIcon name="delete_sweep" />
-                                <span>Reset</span>
-                            </button>
+                            <AppButton v-if="chatMessages.length" type="button" variant="secondary" size="compact" icon="delete_sweep" @click="clearChat">
+                                Reset
+                            </AppButton>
                         </div>
                     </header>
 
@@ -1121,12 +1103,8 @@ onBeforeUnmount(() => {
                             :disabled="chatBusy"
                             @keydown.enter.exact.prevent="sendChat"
                         />
-                        <button v-if="chatBusy" type="button" class="grid size-12 shrink-0 place-items-center rounded-xl bg-secondary text-on-secondary" aria-label="Batal" @click="cancelChat">
-                            <AppIcon name="close" />
-                        </button>
-                        <button v-else type="submit" class="grid size-12 shrink-0 place-items-center rounded-xl bg-primary text-on-primary disabled:opacity-50" :disabled="!chatInput.trim()" aria-label="Kirim">
-                            <AppIcon name="send" />
-                        </button>
+                        <AppIconButton v-if="chatBusy" name="close" size="lg" tone="secondary" filled type="button" aria-label="Batal" @click="cancelChat" />
+                        <AppIconButton v-else name="send" size="lg" type="submit" aria-label="Kirim" :disabled="!chatInput.trim()" />
                     </form>
                 </AppCard>
             </div>
@@ -1136,10 +1114,9 @@ onBeforeUnmount(() => {
                 <AppCard>
                     <header class="mb-4 flex items-center justify-between gap-3">
                         <h2 class="text-lg font-bold text-primary">Percakapan Terbaru</h2>
-                        <button type="button" class="inline-flex items-center gap-1 rounded-md border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-on-surface-variant transition-colors hover:bg-surface-container" :disabled="conversations.loading" @click="fetchConversations">
-                            <AppIcon name="refresh" />
-                            <span>{{ conversations.loading ? 'Memuatâ€¦' : 'Refresh' }}</span>
-                        </button>
+                        <AppButton type="button" variant="secondary" size="compact" icon="refresh" :loading="conversations.loading" @click="fetchConversations">
+                            Refresh
+                        </AppButton>
                     </header>
                     <div v-if="conversations.loading" class="rounded-xl bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">Memuatâ€¦</div>
                     <AppEmptyState v-else-if="!conversations.items.length" icon="forum" title="Belum ada percakapan" />
@@ -1170,10 +1147,9 @@ onBeforeUnmount(() => {
                 <AppCard>
                     <header class="mb-4 flex items-center justify-between gap-3">
                         <h2 class="text-lg font-bold text-primary">Audit Log</h2>
-                        <button type="button" class="inline-flex items-center gap-1 rounded-md border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-on-surface-variant transition-colors hover:bg-surface-container" :disabled="auditLogs.loading" @click="fetchAuditLogs">
-                            <AppIcon name="refresh" />
-                            <span>{{ auditLogs.loading ? 'Memuatâ€¦' : 'Refresh' }}</span>
-                        </button>
+                        <AppButton type="button" variant="secondary" size="compact" icon="refresh" :loading="auditLogs.loading" @click="fetchAuditLogs">
+                            Refresh
+                        </AppButton>
                     </header>
                     <div v-if="auditLogs.loading" class="rounded-xl bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">Memuatâ€¦</div>
                     <AppEmptyState v-else-if="!auditLogs.items.length" icon="history" title="Belum ada audit log" />

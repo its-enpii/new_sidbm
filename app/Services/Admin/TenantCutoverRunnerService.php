@@ -11,7 +11,16 @@ use Throwable;
 
 final class TenantCutoverRunnerService
 {
-    public function executeStream(CutoverRun $run, ?callable $onEvent = null): void
+    /**
+     * Pure observer — membaca state CutoverRun dari DB per detik, emit event
+     * kalau ada perubahan. TIDAK mengeksekusi step apapun. Queue worker
+     * (RunTenantCutoverJob) adalah single writer; SSE handler di sini hanya
+     * reader. Ini menggantikan `executeStream` lama yang me-re-eksekusi
+     * cutover setiap kali SSE dibuka → race condition dengan queue worker.
+     *
+     * @param  ?callable(string, array<string, mixed>): void  $onEvent
+     */
+    public function observeStream(CutoverRun $run, ?callable $onEvent = null): void
     {
         $notify = static function (string $event, array $data) use ($onEvent): void {
             if ($onEvent !== null) {
@@ -19,179 +28,31 @@ final class TenantCutoverRunnerService
             }
         };
 
-        if (in_array($run->status, ['completed', 'failed'], true)) {
+        $emit = static function (CutoverRun $fresh) use ($notify): void {
             $notify('update', [
-                'status' => $run->status,
-                'steps' => $run->steps,
-                'output_log' => $run->output_log,
-                'error_message' => $run->error_message,
+                'status' => $fresh->status,
+                'steps' => $fresh->steps,
+                'output_log' => $fresh->output_log,
+                'error_message' => $fresh->error_message,
             ]);
+        };
 
+        // Emit state terkini sekali di awal (catch up display).
+        $fresh = $run->fresh();
+        if ($fresh === null) {
             return;
         }
+        $emit($fresh);
 
-        $run->update([
-            'status' => 'running',
-            'started_at' => now(),
-            'output_log' => '',
-            'error_message' => null,
-        ]);
-
-        try {
-            $tenant = Tenant::query()->where('row_id', $run->tenant_id)->first();
-            if ($tenant === null) {
-                throw new \RuntimeException("Tenant ID {$run->tenant_id} tidak ditemukan.");
+        // Poll sampai terminal. Default 1 detik — cukup untuk UX real-time
+        // tanpa membebani DB (1 SELECT per detik per SSE subscriber).
+        while (! in_array($fresh->status, ['completed', 'failed'], true)) {
+            sleep(1);
+            $fresh = $run->fresh();
+            if ($fresh === null) {
+                return;
             }
-
-            $options = $run->options ?? [];
-            $dryRun = (bool) ($run->is_dry_run ?? false);
-            $chunk = (int) ($options['chunk'] ?? 500);
-            $noFailFast = (bool) ($options['no_fail_fast'] ?? false);
-            $continueOnError = (bool) ($options['continue_on_error'] ?? false);
-            $fromYear = (int) ($options['from_year'] ?? 2018);
-            $toYear = (int) ($options['to_year'] ?? (int) date('Y'));
-
-            $stepsDef = $this->buildSteps(
-                tenantCode: (string) $tenant->code,
-                suffix: (string) $run->suffix,
-                dryRun: $dryRun,
-                chunk: $chunk,
-                noFailFast: $noFailFast,
-                fromYear: $fromYear,
-                toYear: $toYear,
-                options: $options,
-            );
-
-            $stepTracker = array_map(static fn (array $s): array => [
-                'name' => $s['name'],
-                'label' => $s['label'],
-                'command' => $s['command'],
-                'status' => $s['skip'] ? 'skipped' : 'pending',
-                'exit' => null,
-            ], $stepsDef);
-
-            $run->update(['steps' => $stepTracker]);
-
-            $logBuffer = sprintf(
-                "=== MEMULAI CUTOVER DATA TENANT ===\nTenant: %s (ID: %d)\nSuffix Lokasi: %s\nMode Dry-Run: %s\nTanggal: %s\n\n",
-                $tenant->code,
-                $tenant->row_id,
-                $run->suffix,
-                $dryRun ? 'YA' : 'TIDAK',
-                now()->toDateTimeString(),
-            );
-
-            $run->update(['output_log' => $logBuffer]);
-            $notify('update', [
-                'status' => 'running',
-                'steps' => $stepTracker,
-                'output_log' => $logBuffer,
-            ]);
-
-            $failed = false;
-
-            foreach ($stepsDef as $index => $step) {
-                if ($step['skip']) {
-                    $logBuffer .= sprintf("[SKIP] %s (%s)\n", $step['label'], $step['name']);
-                    $run->update(['output_log' => $logBuffer]);
-                    $notify('update', [
-                        'status' => 'running',
-                        'steps' => $stepTracker,
-                        'output_log' => $logBuffer,
-                    ]);
-
-                    continue;
-                }
-
-                $logBuffer .= sprintf(">>> Executing: %s...\n", $step['label']);
-                $stepTracker[$index]['status'] = 'running';
-                $run->update([
-                    'steps' => $stepTracker,
-                    'output_log' => $logBuffer,
-                ]);
-                $notify('update', [
-                    'status' => 'running',
-                    'steps' => $stepTracker,
-                    'output_log' => $logBuffer,
-                ]);
-
-                $exitCode = Artisan::call($step['command'], $step['params']);
-                $output = trim(Artisan::output());
-
-                if ($output !== '') {
-                    $logBuffer .= $output."\n";
-                }
-
-                $ok = ($exitCode === 0);
-                $stepTracker[$index]['status'] = $ok ? 'ok' : 'failed';
-                $stepTracker[$index]['exit'] = $exitCode;
-
-                if (! $ok) {
-                    $logBuffer .= sprintf("<<< FAILED: %s (Exit Code: %d)\n\n", $step['label'], $exitCode);
-                    $failed = true;
-                    $run->update([
-                        'steps' => $stepTracker,
-                        'output_log' => $logBuffer,
-                    ]);
-                    $notify('update', [
-                        'status' => 'running',
-                        'steps' => $stepTracker,
-                        'output_log' => $logBuffer,
-                    ]);
-
-                    if (! $continueOnError) {
-                        break;
-                    }
-                } else {
-                    $logBuffer .= sprintf("<<< OK: %s\n\n", $step['label']);
-                    $run->update([
-                        'steps' => $stepTracker,
-                        'output_log' => $logBuffer,
-                    ]);
-                    $notify('update', [
-                        'status' => 'running',
-                        'steps' => $stepTracker,
-                        'output_log' => $logBuffer,
-                    ]);
-                }
-            }
-
-            $logBuffer .= sprintf(
-                "=== SELESAI CUTOVER DATA ===\nStatus: %s\nWaktu Selesai: %s\n",
-                $failed ? 'GAGAL' : 'BERHASIL',
-                now()->toDateTimeString(),
-            );
-
-            $finalStatus = $failed ? 'failed' : 'completed';
-            $errorMsg = $failed ? 'Beberapa step migrasi mengalami kegagalan. Cek log detail.' : null;
-
-            $run->update([
-                'status' => $finalStatus,
-                'completed_at' => now(),
-                'output_log' => $logBuffer,
-                'error_message' => $errorMsg,
-            ]);
-
-            $notify('update', [
-                'status' => $finalStatus,
-                'steps' => $stepTracker,
-                'output_log' => $logBuffer,
-                'error_message' => $errorMsg,
-            ]);
-        } catch (Throwable $e) {
-            $logBuffer = ($run->output_log ?? '')."\n[ERROR EXCEPTION] ".$e->getMessage()."\n".$e->getTraceAsString();
-            $run->update([
-                'status' => 'failed',
-                'completed_at' => now(),
-                'error_message' => $e->getMessage(),
-                'output_log' => $logBuffer,
-            ]);
-            $notify('update', [
-                'status' => 'failed',
-                'steps' => $stepTracker ?? [],
-                'output_log' => $logBuffer,
-                'error_message' => $e->getMessage(),
-            ]);
+            $emit($fresh);
         }
     }
 
@@ -346,6 +207,12 @@ final class TenantCutoverRunnerService
         }
         if ($toYear > 0) {
             $accountingFlags['--to-date'] = sprintf('%04d-12-31', $toYear);
+        }
+        // Jika `skip_reconcile` diaktifkan, propagate ke migrate-accounting juga agar
+        // reconcile bawaan pipeline tidak menggugurkan run (mis. legacy DB punya
+        // baris dengan jumlah=0 yang lolos pre-pass tapi di-skip di recon).
+        if (! empty($options['skip_reconcile'])) {
+            $accountingFlags['--skip-reconcile'] = true;
         }
 
         return [

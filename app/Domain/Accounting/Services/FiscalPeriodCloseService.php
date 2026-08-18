@@ -283,6 +283,8 @@ final class FiscalPeriodCloseService
         $conn = DB::connection('tenant');
         $now = now()->format('Y-m-d H:i:s');
 
+        // Hitung hanya row 'year_close' — 'manual' & 'migration' adalah otoritas
+        // masing-masing dan TIDAK di-overwrite (di-handle di upsertOpening()).
         $existing = $conn->table('account_opening_balances')
             ->where('tenant_id', $tenantId)
             ->where('fiscal_year', $nextYear)
@@ -296,6 +298,7 @@ final class FiscalPeriodCloseService
         }
 
         if ($force) {
+            // Hanya hapus row sumber tutup buku, BUKAN row manual/migration.
             $conn->table('account_opening_balances')
                 ->where('tenant_id', $tenantId)
                 ->where('fiscal_year', $nextYear)
@@ -353,9 +356,16 @@ final class FiscalPeriodCloseService
             ->where('tenant_id', $tenantId)
             ->where('account_row_id', $accountRowId)
             ->where('fiscal_year', $year)
-            ->first(['row_id']);
+            ->lockForUpdate()
+            ->first(['row_id', 'source']);
 
         if ($existing !== null) {
+            // JANGAN overwrite row 'manual' (admin onboarding) atau 'migration' (legacy).
+            // Hanya izinkan overwrite row 'year_close' (yang memang produk tutup buku).
+            if ($existing->source !== 'year_close') {
+                return;
+            }
+
             $conn->table('account_opening_balances')
                 ->where('tenant_id', $tenantId)
                 ->where('row_id', $existing->row_id)

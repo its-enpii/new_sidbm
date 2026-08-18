@@ -9,6 +9,7 @@ import AppCurrencyInput from '../../../Components/AppCurrencyInput.vue';
 import AppDatePicker from '../../../Components/AppDatePicker.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import AppSwitch from '../../../Components/AppSwitch.vue';
+import AppFilterPill from '../../../Components/AppFilterPill.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
 import { useCan } from '../../../composables/useCan';
@@ -40,9 +41,9 @@ const forceRewrite = ref(false);
 /** periods | trial_balance | allocate */
 const tab = ref('periods');
 const tabs = [
-    { key: 'periods', label: '1. Periode', short: 'Periode' },
-    { key: 'trial_balance', label: '2. Neraca Saldo', short: 'Neraca Saldo' },
-    { key: 'allocate', label: '3. Alokasi laba', short: 'Alokasi' },
+    { value: 'periods', label: '1. Periode', short: 'Periode' },
+    { value: 'trial_balance', label: '2. Neraca Saldo', short: 'Neraca Saldo' },
+    { value: 'allocate', label: '3. Alokasi laba', short: 'Alokasi' },
 ];
 
 watch(
@@ -243,22 +244,13 @@ async function submitAllocation() {
             </div>
 
             <!-- Step tabs -->
-            <div class="flex flex-wrap gap-2 border-b border-outline-variant pb-3">
-                <button
-                    v-for="t in tabs"
-                    :key="t.key"
-                    type="button"
-                    class="rounded-xl border px-3 py-2 text-sm font-semibold transition sm:px-4"
-                    :class="
-                        tab === t.key
-                            ? 'border-primary bg-primary text-on-primary'
-                            : 'border-outline-variant bg-surface-container-lowest text-primary hover:border-primary/40'
-                    "
-                    @click="tab = t.key"
-                >
-                    <span class="sm:hidden">{{ t.short }}</span>
-                    <span class="hidden sm:inline">{{ t.label }}</span>
-                </button>
+            <div class="border-b border-outline-variant pb-3">
+                <AppFilterPill
+                    v-model="tab"
+                    :items="tabs"
+                    variant="outline"
+                    aria-label="Tab langkah tutup buku"
+                />
             </div>
 
             <!-- TAB 1: periods -->
@@ -578,13 +570,15 @@ async function submitAllocation() {
                                         </p>
                                         <h3 class="text-sm font-bold text-primary">Laba ditahan</h3>
                                     </div>
-                                    <button
+                                    <AppButton
                                         type="button"
-                                        class="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/5"
+                                        variant="ghost"
+                                        size="compact"
+                                        class="!min-h-0 !px-2 !text-xs"
                                         @click="fillRetained"
                                     >
                                         Isi sisa
-                                    </button>
+                                    </AppButton>
                                 </div>
                                 <AppCurrencyInput
                                     v-model="allocForm.retained"

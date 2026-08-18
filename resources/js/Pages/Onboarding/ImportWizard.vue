@@ -6,7 +6,10 @@ import AppCard from '../../Components/AppCard.vue';
 import AppButton from '../../Components/AppButton.vue';
 import AppBadge from '../../Components/AppBadge.vue';
 import AppCurrencyInput from '../../Components/AppCurrencyInput.vue';
+import AppDatePicker from '../../Components/AppDatePicker.vue';
 import AppInput from '../../Components/AppInput.vue';
+import AppIconButton from '../../Components/AppIconButton.vue';
+import AppTabs from '../../Components/AppTabs.vue';
 import SmartSelect from '../../Components/SmartSelect.vue';
 import { useMoney } from '../../composables/useMoney';
 
@@ -22,6 +25,15 @@ const baseUrl = computed(() => `/admin/tenants/${props.tenantRowId}`);
 
 const { money: formatMoney } = useMoney();
 const activeTab = ref('balances');
+
+const wizardTabs = [
+    { key: 'balances', label: '1. Saldo Awal Keuangan (Neraca)' },
+    { key: 'masterdata', label: '2. Impor Anggota & Kelompok' },
+    { key: 'loans', label: '3. Impor Pinjaman Aktif & Angsuran' },
+    { key: 'templates', label: '4. Template File Excel/CSV' },
+    { key: 'manual-opening', label: '5. Saldo Awal Manual per Tahun' },
+    { key: 'aggregate-journal', label: '6. Jurnal Agregat Mid-Year' },
+];
 
 // ============================================================
 // TAB 1: Form Saldo Awal Keuangan (existing, post jurnal)
@@ -258,74 +270,12 @@ const uploadLoans = () => {
 
             <!-- Navigation Tabs -->
             <div class="border-b border-outline-variant">
-                <nav class="-mb-px flex flex-wrap gap-x-6 gap-y-2">
-                    <button
-                        @click="activeTab = 'balances'"
-                        :class="[
-                            'py-3 px-1 border-b-2 font-medium text-sm transition-colors',
-                            activeTab === 'balances'
-                                ? 'border-primary text-primary'
-                                : 'border-transparent text-on-surface-variant hover:text-on-surface'
-                        ]"
-                    >
-                        ?? 1. Saldo Awal Keuangan (Neraca)
-                    </button>
-                    <button
-                        @click="activeTab = 'masterdata'"
-                        :class="[
-                            'py-3 px-1 border-b-2 font-medium text-sm transition-colors',
-                            activeTab === 'masterdata'
-                                ? 'border-primary text-primary'
-                                : 'border-transparent text-on-surface-variant hover:text-on-surface'
-                        ]"
-                    >
-                        ?? 2. Impor Anggota & Kelompok
-                    </button>
-                    <button
-                        @click="activeTab = 'loans'"
-                        :class="[
-                            'py-3 px-1 border-b-2 font-medium text-sm transition-colors',
-                            activeTab === 'loans'
-                                ? 'border-primary text-primary'
-                                : 'border-transparent text-on-surface-variant hover:text-on-surface'
-                        ]"
-                    >
-                        ?? 3. Impor Pinjaman Aktif & Angsuran
-                    </button>
-                    <button
-                        @click="activeTab = 'templates'"
-                        :class="[
-                            'py-3 px-1 border-b-2 font-medium text-sm transition-colors',
-                            activeTab === 'templates'
-                                ? 'border-primary text-primary'
-                                : 'border-transparent text-on-surface-variant hover:text-on-surface'
-                        ]"
-                    >
-                        ?? 4. Template File Excel/CSV
-                    </button>
-                    <button
-                        @click="activeTab = 'manual-opening'"
-                        :class="[
-                            'py-3 px-1 border-b-2 font-medium text-sm transition-colors',
-                            activeTab === 'manual-opening'
-                                ? 'border-primary text-primary'
-                                : 'border-transparent text-on-surface-variant hover:text-on-surface'
-                        ]"
-                    >
-                        ?? 5. Saldo Awal Manual per Tahun
-                    </button>
-                    <button
-                        @click="activeTab = 'aggregate-journal'"
-                        :class="[
-                            'py-3 px-1 border-b-2 font-medium text-sm transition-colors',
-                            activeTab === 'aggregate-journal'
-                                ? 'border-primary text-primary'
-                                : 'border-transparent text-on-surface-variant hover:text-on-surface'
-                        ]"
-                    >
-                        ?? 6. Jurnal Agregat Mid-Year
-                    </button>
-                </nav>
+                <AppTabs
+                    v-model="activeTab"
+                    :items="wizardTabs"
+                    variant="underline"
+                    aria-label="Langkah wizard onboarding"
+                />
             </div>
 
             <!-- TAB 1: Saldo Awal Keuangan -->
@@ -339,10 +289,10 @@ const uploadLoans = () => {
                             </div>
                             <div class="flex items-center space-x-3">
                                 <label class="text-xs font-semibold text-on-surface">Tanggal Saldo Awal:</label>
-                                <input
-                                    type="date"
+                                <AppDatePicker
                                     v-model="asOfDate"
-                                    class="rounded-lg border-outline-variant sm:text-xs bg-surface-container-lowest"
+                                    label="Tanggal Saldo Awal"
+                                    hide-label
                                 />
                             </div>
                         </div>
@@ -580,12 +530,14 @@ const uploadLoans = () => {
                             </div>
                             <div class="flex items-center space-x-3">
                                 <label class="text-xs font-semibold text-on-surface">Tahun Fiskal:</label>
-                                <input
+                                <AppInput
+                                    v-model="manualFiscalYear"
                                     type="number"
+                                    label="Tahun Fiskal"
+                                    hide-label
                                     min="2000"
                                     max="2100"
-                                    v-model.number="manualFiscalYear"
-                                    class="w-24 rounded-lg border-outline-variant sm:text-xs bg-surface-container-lowest"
+                                    class="w-24"
                                 />
                             </div>
                         </div>
@@ -721,11 +673,11 @@ const uploadLoans = () => {
                         />
                         <div>
                             <label class="block text-xs font-semibold text-on-surface mb-1">Keterangan</label>
-                            <input
+                            <AppInput
                                 v-model="aggregateForm.description"
-                                type="text"
-                                class="w-full rounded-lg border-outline-variant sm:text-xs bg-surface-container-lowest"
-                                placeholder="Penyesuaian saldo awal migrasi..."
+                                label="Keterangan"
+                                hide-label
+                                placeholder="Opsional"
                             />
                         </div>
                     </div>
@@ -772,23 +724,22 @@ const uploadLoans = () => {
                                         />
                                     </td>
                                     <td class="px-3 py-2">
-                                        <input
+                                        <AppInput
                                             v-model="line.description"
-                                            type="text"
-                                            class="w-full rounded-lg border-outline-variant sm:text-xs bg-surface-container-lowest"
+                                            label="Keterangan baris"
+                                            hide-label
                                             placeholder="Opsional"
                                         />
                                     </td>
                                     <td class="px-3 py-2 text-center">
-                                        <button
-                                            type="button"
-                                            @click="removeAggregateLine(idx)"
+                                        <AppIconButton
+                                            name="delete"
+                                            size="sm"
+                                            tone="danger"
+                                            tooltip="Hapus baris"
                                             :disabled="aggregateForm.lines.length <= 2"
-                                            class="text-on-error-container hover:text-error disabled:opacity-30"
-                                            title="Hapus baris"
-                                        >
-                                            🗑️
-                                        </button>
+                                            @click="removeAggregateLine(idx)"
+                                        />
                                     </td>
                                 </tr>
                             </tbody>
@@ -825,6 +776,5 @@ const uploadLoans = () => {
         </div>
     </AuthenticatedLayout>
 </template>
-
 
 

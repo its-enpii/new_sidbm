@@ -156,21 +156,19 @@ function monthMeta(month) {
             <AppDatePicker v-model="selectedYear" mode="year" label="Tahun" />
 
             <div class="grid gap-2 sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-12">
-                <button
+                <AppButton
                     v-for="m in 12"
                     :key="m"
                     type="button"
-                    class="rounded-xl border px-2 py-3 text-left transition"
-                    :class="m === month
-                        ? 'border-primary bg-primary text-on-primary shadow-sm'
-                        : 'border-outline-variant bg-surface-container-lowest text-primary hover:border-primary/40'"
+                    :variant="m === month ? 'primary' : 'secondary'"
+                    class="!min-h-0 !flex-col !items-start !gap-0 !rounded-xl !px-2 !py-3 !text-left"
                     @click="selectMonth(m)"
                 >
-                    <div class="text-xs font-bold uppercase tracking-wide opacity-80">{{ monthLabels[m]?.slice(0, 3) }}</div>
-                    <div class="mt-1 text-sm font-semibold">
+                    <span class="text-xs font-bold uppercase tracking-wide opacity-80">{{ monthLabels[m]?.slice(0, 3) }}</span>
+                    <span class="mt-1 text-sm font-semibold">
                         {{ monthMeta(m).line_count > 0 ? formatMoney(monthMeta(m).surplus) : '—' }}
-                    </div>
-                </button>
+                    </span>
+                </AppButton>
             </div>
 
             <div class="grid gap-4 md:grid-cols-3">

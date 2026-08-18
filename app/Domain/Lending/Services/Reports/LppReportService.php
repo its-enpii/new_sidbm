@@ -49,7 +49,7 @@ final class LppReportService
             $productsQuery->where('code', $productCode);
         }
 
-        $products = $productsQuery->get(['row_id', 'code', 'name', 'interest_rate_percent', 'interest_type']);
+        $products = $productsQuery->get(['row_id', 'code', 'name', 'default_interest_rate', 'interest_method']);
 
         // 2. Ambil Pinjaman Aktif
         $loansQuery = DB::connection('tenant')
@@ -79,7 +79,6 @@ final class LppReportService
             'l.loan_product_row_id',
             'l.disbursed_at',
             'l.principal_amount',
-            'l.borrower_count',
             'g.row_id as group_row_id',
             'g.name as group_name',
             'v.row_id as village_row_id',
@@ -348,7 +347,7 @@ final class LppReportService
             $productsQuery->where('code', $productCode);
         }
 
-        $products = $productsQuery->get(['row_id', 'code', 'name', 'interest_rate_percent', 'interest_type']);
+        $products = $productsQuery->get(['row_id', 'code', 'name', 'default_interest_rate', 'interest_method']);
 
         // 2. Ambil Pinjaman Aktif
         $loansQuery = DB::connection('tenant')

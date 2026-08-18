@@ -4,6 +4,7 @@ import { ref } from 'vue';
 import AppButton from '../../Components/AppButton.vue';
 import AppCheckbox from '../../Components/AppCheckbox.vue';
 import AppIcon from '../../Components/AppIcon.vue';
+import AppIconButton from '../../Components/AppIconButton.vue';
 import AppInput from '../../Components/AppInput.vue';
 
 const showPassword = ref(false);
@@ -119,14 +120,14 @@ function submit() {
                         :error="form.errors.password"
                     >
                         <template #trailing>
-                            <button
-                                type="button"
-                                class="grid size-8 place-items-center text-outline transition hover:text-primary"
+                            <AppIconButton
+                                :name="showPassword ? 'visibility_off' : 'visibility'"
+                                size="sm"
+                                tone="neutral"
+                                rounded="lg"
                                 :aria-label="showPassword ? 'Sembunyikan password' : 'Tampilkan password'"
                                 @click="showPassword = !showPassword"
-                            >
-                                <AppIcon :name="showPassword ? 'visibility_off' : 'visibility'" class="text-lg" />
-                            </button>
+                            />
                         </template>
                     </AppInput>
 

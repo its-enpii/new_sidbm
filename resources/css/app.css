@@ -9,6 +9,9 @@
 @theme {
     --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 
+    /* Breakpoints: 3xl for 24"+ widescreen desktop monitors (1920px) */
+    --breakpoint-3xl: 120rem;
+
     --color-surface: #f7f9fb;
     --color-surface-container-lowest: #ffffff;
     --color-surface-container-low: #f2f4f6;

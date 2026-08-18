@@ -216,13 +216,14 @@ function methodLabel(payment) {
                                         <span class="font-mono text-2xl font-black tracking-wider text-primary">
                                             {{ active_payment.pay_code }}
                                         </span>
-                                        <button
-                                            type="button"
-                                            class="rounded-lg bg-surface-container px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-on-primary transition"
+                                        <AppButton
+                                            size="compact"
+                                            variant="secondary"
+                                            icon="content_copy"
                                             @click="copyToClipboard(active_payment.pay_code, 'va')"
                                         >
                                             {{ copiedField === 'va' ? 'Tersalin ✓' : 'Salin VA' }}
-                                        </button>
+                                        </AppButton>
                                     </div>
                                 </div>
 
@@ -232,13 +233,14 @@ function methodLabel(payment) {
                                         <span class="text-2xl font-bold text-on-surface">
                                             {{ money(active_payment.total_amount) }}
                                         </span>
-                                        <button
-                                            type="button"
-                                            class="rounded-lg bg-surface-container px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-on-primary transition"
+                                        <AppButton
+                                            size="compact"
+                                            variant="secondary"
+                                            icon="content_copy"
                                             @click="copyToClipboard(active_payment.total_amount, 'amount')"
                                         >
                                             {{ copiedField === 'amount' ? 'Tersalin ✓' : 'Salin Nominal' }}
-                                        </button>
+                                        </AppButton>
                                     </div>
                                 </div>
 

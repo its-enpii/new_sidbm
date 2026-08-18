@@ -11,7 +11,7 @@ Indeks dokumentasi lengkap untuk arsitektur, basis data, billing, modul supervis
 7. [ASSISTANT_INTEGRATION.md](ASSISTANT_INTEGRATION.md) — Spesifikasi integrasi Asisten AI (`enpii/assistant`), pgvector store RAG, Ollama embedding server, dan komponen chat interaktif.
 8. [RBAC_MATRIX.md](RBAC_MATRIX.md) — Matriks hak akses (*Role-Based Access Control*) dan permission granular modul tenant, supervisor provinsi, supervisor kabupaten, operator desa, & platform superadmin.
 9. [CUTOVER_RUNBOOK.md](CUTOVER_RUNBOOK.md) — Panduan teknis migrasi dan cutover data per tenant dari database legacy ke SIDBM Next.
-10. [VALIDATION.md](VALIDATION.md) — Panduan verifikasi statis, pengujian PHPUnit backend (201 tests), dan pengujian E2E Playwright browser (47 page tests + 25 interactive CRUD tests + tests supervisi provinsi).
+10. [VALIDATION.md](VALIDATION.md) — Panduan verifikasi statis, pengujian PHPUnit backend (258 tests), dan pengujian E2E Playwright browser (47 page tests + 25 interactive CRUD tests + tests supervisi provinsi).
 
 ---
 
@@ -19,10 +19,10 @@ Indeks dokumentasi lengkap untuk arsitektur, basis data, billing, modul supervis
 
 - **Topologi**: Platform Database + Multi-Tenant Shard Database (`tenant_id` column-based isolation) dengan opsi MySQL 8.4 dan SQLite support.
 - **Identitas**: `row_id` sebagai PK internal teknis, `id` lama dipertahankan utuh untuk laporan & audit.
-- **Akuntansi**: Double-entry journal (`journal_entries` & `journal_lines`) yang seimbang dan bersifat *immutable*.
+- **Akuntansi**: Double-entry journal (`journal_entries` & `journal_lines`) yang seimbang dan bersifat *immutable* — koreksi jurnal posted melalui reverse + recreate atomik (`JournalEditService`).
 - **Supervisi Berjenjang (Kabupaten & Provinsi)**: Dashboard & laporan keuangan konsolidasi real-time lintas kecamatan & kabupaten (Neraca, LR, BB, Arus Kas, CALK, PDF Pack).
 - **Pembatasan Operator Desa (Village Scope)**: Pengguna level desa (`is_village_user`) hanya dapat melihat dan mengelola data anggota/kelompok/proposal pinjaman milik desa bersangkutan via global scope `VillageScope`.
 - **SaaS Billing**: Integrasi Tripay (Scan QRIS & 8 Virtual Account Bank) dengan scheduler auto-invoice & penangguhan otomatis tenant overdue.
 - **Redesain Landing Page & Auth**: Tampilan bisnis profesional, bersih, modern, animasi smooth scroll, FAQ accordion interaktif, tanpa bocor stack teknis.
-- **Automated Testing**: 100% Passed across layers (PHPUnit 201 tests/1506 assertions + Playwright 47 E2E page tests + Playwright 25 Interactive CRUD tests).
+- **Automated Testing**: 100% Passed across layers (PHPUnit 258 tests/1779 assertions + Playwright 47 E2E page tests + Playwright 25 Interactive CRUD tests).
 - **Infrastruktur**: Stack Dockerized lengkap (PHP-FPM 8.4, Nginx 1.29, MySQL 8.4, Redis Cache/Session/Queue Worker, PostgreSQL pgvector 16, Ollama LLM).

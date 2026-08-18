@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Accounting\Services\Reports;
 
 use App\Domain\Membership\Models\OrganizationProfile;
-use App\Domain\Membership\Models\OrganizationUnit;
+use App\Models\Tenant\OrganizationUnit;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 

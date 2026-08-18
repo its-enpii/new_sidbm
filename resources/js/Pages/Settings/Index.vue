@@ -12,6 +12,7 @@ import AppSwitch from '../../Components/AppSwitch.vue';
 import AppTextarea from '../../Components/AppTextarea.vue';
 import SmartSelect from '../../Components/SmartSelect.vue';
 import AppRichEditor from '../../Components/AppRichEditor.vue';
+import AppTabs from '../../Components/AppTabs.vue';
 import AuthenticatedLayout from '../../Layouts/AuthenticatedLayout.vue';
 
 const props = defineProps({
@@ -305,22 +306,15 @@ function applySignatureStarter() {
             </AppCard>
 
             <div class="grid gap-6 lg:grid-cols-[14rem_1fr]">
-                <nav class="rounded-xl bg-surface-container-low p-2 lg:sticky lg:top-20 lg:self-start" aria-label="Tab pengaturan">
-                    <ul class="flex gap-1 lg:flex-col">
-                        <li v-for="t in tabs" :key="t.key" class="flex-1">
-                            <button
-                                type="button"
-                                class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors"
-                                :class="activeTab === t.key ? 'bg-primary-container font-bold text-on-primary' : 'text-on-surface-variant hover:bg-surface-container'"
-                                :aria-current="activeTab === t.key ? 'page' : undefined"
-                                @click="go(t.key)"
-                            >
-                                <AppIcon :name="t.icon" />
-                                <span>{{ t.label }}</span>
-                            </button>
-                        </li>
-                    </ul>
-                </nav>
+                <div class="rounded-xl bg-surface-container-low p-2 lg:sticky lg:top-20 lg:self-start">
+                    <AppTabs
+                        v-model="activeTab"
+                        :items="tabs"
+                        variant="pill"
+                        aria-label="Tab pengaturan"
+                        @update:model-value="go($event)"
+                    />
+                </div>
 
                 <div class="space-y-6">
                     <AppCard v-show="activeTab === 'identity'" bordered>

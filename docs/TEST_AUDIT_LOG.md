@@ -48,7 +48,7 @@ Seluruh 45 Controller backend Laravel beserta jalurnya telah di-inventarisasi da
 - `BudgetController.php`: Penganggaran operasional (`/budgeting`, `/budgeting/{year}/{month}`, `/approve`, `/reopen`).
 
 ### 7. Import Data Legacy (`app/Http/Controllers/Tenant/`)
-- `TenantOnboardingImportController.php`: Import Saldo Awal (`/onboarding/opening-balances`), Import Anggota (`/membership/members/import`), Import Kelompok (`/membership/groups/import`), Import Pinjaman Aktif (`/onboarding/active-loans`), Download Template CSV (`/onboarding/templates/{type}`).
+- `TenantOnboardingImportController.php`: Import Saldo Awal (`/onboarding/opening-balances`), Saldo Awal Manual per Tahun (`/onboarding/opening-balances/manual`, source=`manual` di `account_opening_balances`), Jurnal Agregat Mid-Year (`/onboarding/aggregate-journal`, multi-line `pemindahan_saldo`), Import Anggota (`/membership/members/import`), Import Kelompok (`/membership/groups/import`), Import Pinjaman Aktif (`/onboarding/active-loans`), Download Template CSV (`/onboarding/templates/{type}`).
 
 ### 8. Platform Admin & Migration (`app/Http/Controllers/Admin/`)
 - `Admin\DashboardController.php`: Dashboard Admin Platform (`/admin`).

@@ -230,6 +230,25 @@ const allocationMismatch = computed(() => {
     };
 });
 
+
+const allocationSelisih = computed(() => {
+    const expectedPrincipal = Number(form.principal_amount) || 0;
+    const expectedInterest = Number(form.interest_amount) || 0;
+    const expectedPenalty = Number(form.penalty_amount) || 0;
+    const diffPrincipal = Math.round((allocationTotals.value.principal - expectedPrincipal) * 100) / 100;
+    const diffInterest = Math.round((allocationTotals.value.interest - expectedInterest) * 100) / 100;
+    const diffPenalty = Math.round((allocationTotals.value.penalty - expectedPenalty) * 100) / 100;
+    const hasDiff = diffPrincipal !== 0 || diffInterest !== 0 || diffPenalty !== 0;
+    return { diffPrincipal, diffInterest, diffPenalty, hasDiff };
+});
+
+function selisihLabel(diff) {
+    if (diff === 0) return null;
+    const abs = Math.abs(diff);
+    const formatted = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(abs);
+    return diff > 0 ? `Lebih ${formatted}` : `Kurang ${formatted}`;
+}
+
 async function openAllocationModal() {
     if (!selectedLoan.value) return;
     allocationModalOpen.value = true;
@@ -249,16 +268,21 @@ function prefillAllocations(members) {
     const principal = Number(form.principal_amount) || 0;
     const interest = Number(form.interest_amount) || 0;
     const penalty = Number(form.penalty_amount) || 0;
-    const principalPer = memberCount > 0 ? Math.round((principal / memberCount) * 100) / 100 : 0;
-    const interestPer = memberCount > 0 ? Math.round((interest / memberCount) * 100) / 100 : 0;
-    const penaltyPer = memberCount > 0 ? Math.round((penalty / memberCount) * 100) / 100 : 0;
-    return members.map((m) => ({
-        member_row_id: m.value,
-        full_name: m.label,
-        principal_paid: principalPer,
-        interest_paid: interestPer,
-        penalty_paid: penaltyPer,
-    }));
+    const totalAllocated = members.reduce((sum, m) => sum + (Number(m.allocated_amount) || 0), 0);
+    const useProportional = totalAllocated > 0;
+    return members.map((m) => {
+        const ratio = useProportional
+            ? (Number(m.allocated_amount) || 0) / totalAllocated
+            : (memberCount > 0 ? 1 / memberCount : 0);
+        return {
+            member_row_id: m.value,
+            full_name: m.label,
+            allocated_amount: Number(m.allocated_amount) || 0,
+            principal_paid: Math.round(principal * ratio * 100) / 100,
+            interest_paid: Math.round(interest * ratio * 100) / 100,
+            penalty_paid: Math.round(penalty * ratio * 100) / 100,
+        };
+    });
 }
 
 function applyAllocationToForm() {
@@ -268,6 +292,9 @@ function applyAllocationToForm() {
         interest_paid: Number(r.interest_paid) || 0,
         penalty_paid: Number(r.penalty_paid) || 0,
     }));
+    form.principal_amount = Math.round(allocationTotals.value.principal * 100) / 100;
+    form.interest_amount = Math.round(allocationTotals.value.interest * 100) / 100;
+    form.penalty_amount = Math.round(allocationTotals.value.penalty * 100) / 100;
 }
 
 function balanceAllocationRemainder(field) {
@@ -454,12 +481,13 @@ function balanceAllocationRemainder(field) {
             <AppModal v-model="allocationModalOpen" title="Catatan Angsuran Per-Anggota" size="lg">
                 <div v-if="allocationLoading" class="py-8 text-center text-on-surface-variant">Memuat…</div>
                 <div v-else-if="allocationMembers.length" class="space-y-4">
-                    <p class="text-sm text-on-surface-variant">Atur nominal Pokok, Jasa, dan Denda per anggota. Total harus sama dengan nominal jurnal.</p>
+                    <p class="text-sm text-on-surface-variant">Atur nominal Pokok, Jasa, dan Denda per anggota. Nilai awal dihitung proporsional sesuai alokasi pinjaman masing-masing.</p>
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
                             <thead class="bg-surface-container-low text-xs uppercase tracking-wider text-on-surface-variant">
                                 <tr>
                                     <th class="px-3 py-2 text-left">Anggota</th>
+                                    <th class="px-3 py-2 text-right">Alokasi</th>
                                     <th class="px-3 py-2 text-right">Pokok</th>
                                     <th class="px-3 py-2 text-right">Jasa</th>
                                     <th class="px-3 py-2 text-right">Denda</th>
@@ -468,6 +496,7 @@ function balanceAllocationRemainder(field) {
                             <tbody>
                                 <tr v-for="(row, idx) in allocationRows" :key="row.member_row_id" class="border-t border-outline-variant">
                                     <td class="px-3 py-3 font-bold text-primary">{{ row.full_name }}</td>
+                                    <td class="px-3 py-2 text-right text-on-surface-variant">{{ currency(row.allocated_amount) }}</td>
                                     <td class="px-3 py-2"><AppCurrencyInput v-model="allocationRows[idx].principal_paid" placeholder="0" /></td>
                                     <td class="px-3 py-2"><AppCurrencyInput v-model="allocationRows[idx].interest_paid" placeholder="0" /></td>
                                     <td class="px-3 py-2"><AppCurrencyInput v-model="allocationRows[idx].penalty_paid" placeholder="0" /></td>
@@ -476,12 +505,22 @@ function balanceAllocationRemainder(field) {
                             <tfoot class="border-t-2 border-outline-variant bg-surface-container-low text-xs">
                                 <tr>
                                     <td class="px-3 py-2 font-bold uppercase text-on-surface-variant">Total</td>
+                                    <td></td>
                                     <td class="px-3 py-2 text-right font-bold" :class="allocationMismatch.principal ? 'text-error' : 'text-primary'">{{ currency(allocationTotals.principal) }}<span v-if="allocationMismatch.principal" class="ml-1 text-error">≠</span></td>
                                     <td class="px-3 py-2 text-right font-bold" :class="allocationMismatch.interest ? 'text-error' : 'text-primary'">{{ currency(allocationTotals.interest) }}<span v-if="allocationMismatch.interest" class="ml-1 text-error">≠</span></td>
                                     <td class="px-3 py-2 text-right font-bold" :class="allocationMismatch.penalty ? 'text-error' : 'text-primary'">{{ currency(allocationTotals.penalty) }}<span v-if="allocationMismatch.penalty" class="ml-1 text-error">≠</span></td>
                                 </tr>
                             </tfoot>
                         </table>
+                    </div>
+                    <div v-if="allocationSelisih.hasDiff" class="rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 text-sm">
+                        <p class="mb-1 font-bold text-on-surface-variant">Selisih dengan form angsuran kelompok:</p>
+                        <ul class="space-y-0.5">
+                            <li v-if="allocationSelisih.diffPrincipal !== 0" :class="allocationSelisih.diffPrincipal > 0 ? 'text-tertiary' : 'text-error'">Pokok: <span class="font-semibold">{{ selisihLabel(allocationSelisih.diffPrincipal) }}</span></li>
+                            <li v-if="allocationSelisih.diffInterest !== 0" :class="allocationSelisih.diffInterest > 0 ? 'text-tertiary' : 'text-error'">Jasa: <span class="font-semibold">{{ selisihLabel(allocationSelisih.diffInterest) }}</span></li>
+                            <li v-if="allocationSelisih.diffPenalty !== 0" :class="allocationSelisih.diffPenalty > 0 ? 'text-tertiary' : 'text-error'">Denda: <span class="font-semibold">{{ selisihLabel(allocationSelisih.diffPenalty) }}</span></li>
+                        </ul>
+                        <p class="mt-1 text-xs text-on-surface-variant">Saat diterapkan, nominal pada form angsuran kelompok akan otomatis diperbarui sesuai total di atas.</p>
                     </div>
                     <div class="flex flex-wrap justify-end gap-2">
                         <AppButton variant="secondary" type="button" icon="balance" @click="() => { balanceAllocationRemainder('principal_paid'); balanceAllocationRemainder('interest_paid'); balanceAllocationRemainder('penalty_paid'); }">Ratakan Selisih</AppButton>
@@ -490,7 +529,7 @@ function balanceAllocationRemainder(field) {
                 <div v-else class="py-8 text-center text-on-surface-variant">Pinjaman ini tidak terkait kelompok. Catatan per-anggota tidak tersedia.</div>
                 <template #footer>
                     <AppButton variant="secondary" type="button" @click="allocationModalOpen = false">Batal</AppButton>
-                    <AppButton type="button" icon="check" :disabled="allocationMismatch.principal || allocationMismatch.interest || allocationMismatch.penalty" @click="() => { applyAllocationToForm(); allocationModalOpen = false; }">Terapkan ke Form</AppButton>
+                    <AppButton type="button" icon="check" @click="() => { applyAllocationToForm(); allocationModalOpen = false; }">Terapkan ke Form</AppButton>
                 </template>
             </AppModal>
         </div>

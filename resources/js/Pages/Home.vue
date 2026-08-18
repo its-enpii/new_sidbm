@@ -163,21 +163,19 @@ function smoothScrollTo(id) {
                     </Link>
 
                     <!-- Tombol Mulai Sekarang -> Scroll ke Bagian Onboarding / Pendaftaran -->
-                    <button type="button" @click="smoothScrollTo('daftar')" class="hidden sm:inline-flex">
-                        <AppButton variant="success" size="compact" icon="how_to_reg">
-                            Mulai Sekarang
-                        </AppButton>
-                    </button>
+                    <AppButton variant="success" size="compact" icon="how_to_reg" class="hidden sm:inline-flex" @click="smoothScrollTo('daftar')">
+                        Mulai Sekarang
+                    </AppButton>
 
                     <!-- Mobile Menu Toggle -->
-                    <button
-                        type="button"
-                        class="inline-flex size-10 items-center justify-center rounded-xl border border-outline-variant bg-surface-container-low text-primary md:hidden"
+                    <AppIconButton
+                        :name="mobileNavOpen ? 'close' : 'menu'"
+                        tone="primary"
+                        rounded="lg"
                         aria-label="Buka Menu"
+                        class="md:hidden"
                         @click="mobileNavOpen = !mobileNavOpen"
-                    >
-                        <AppIcon :name="mobileNavOpen ? 'close' : 'menu'" class="text-xl" />
-                    </button>
+                    />
                 </div>
             </div>
 
@@ -189,9 +187,9 @@ function smoothScrollTo(id) {
                     <a href="#statistik" class="block text-sm font-semibold text-on-surface-variant hover:text-primary" @click.prevent="smoothScrollTo('statistik')">Capaian</a>
                     <a href="#faq" class="block text-sm font-semibold text-on-surface-variant hover:text-primary" @click.prevent="smoothScrollTo('faq')">Tanya Jawab</a>
                     <div class="pt-2 border-t border-outline-variant/40">
-                        <button type="button" @click="smoothScrollTo('daftar')" class="w-full text-left font-bold text-secondary text-sm">
+                        <AppButton variant="ghost" size="compact" class="w-full !justify-start !text-secondary" @click="smoothScrollTo('daftar')">
                             Konsultasi & Pendaftaran BUMDesma →
-                        </button>
+                        </AppButton>
                     </div>
                 </div>
             </transition>
@@ -231,11 +229,9 @@ function smoothScrollTo(id) {
                                     </AppButton>
                                 </Link>
 
-                                <button type="button" @click="smoothScrollTo('daftar')">
-                                    <AppButton variant="secondary" size="large" icon="arrow_downward">
-                                        Pelajari Alur Pendaftaran
-                                    </AppButton>
-                                </button>
+                                <AppButton variant="secondary" size="large" icon="arrow_downward" @click="smoothScrollTo('daftar')">
+                                    Pelajari Alur Pendaftaran
+                                </AppButton>
                             </div>
 
                             <!-- Trust Badges -->
