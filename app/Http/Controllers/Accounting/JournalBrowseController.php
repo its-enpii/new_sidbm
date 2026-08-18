@@ -188,7 +188,7 @@ final class JournalBrowseController
         }
 
         return Inertia::render('Accounting/JournalEntries/Edit', [
-            'entry' => [
+            'originalEntry' => [
                 'row_id' => (int) $entry->row_id,
                 'id' => (int) $entry->id,
                 'journal_number' => $entry->journal_number ?: (string) $entry->id,
