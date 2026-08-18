@@ -442,10 +442,10 @@ function applySignatureStarter() {
                                 </div>
                             </div>
 
-                            <div v-if="qrCode" class="mt-4 flex flex-col items-center justify-center p-4 bg-white rounded-lg border border-outline-variant">
-                                <p class="mb-2 text-xs font-bold text-gray-700">Scan QR Code ini menggunakan WhatsApp di HP Anda:</p>
+                            <div v-if="qrCode" class="mt-4 flex flex-col items-center justify-center p-4 bg-surface rounded-lg border border-outline-variant">
+                                <p class="mb-2 text-xs font-bold text-on-surface-variant">Scan QR Code ini menggunakan WhatsApp di HP Anda:</p>
                                 <img :src="qrCode" alt="QR Code WhatsApp" class="size-64 object-contain" />
-                                <p class="mt-2 text-xs text-gray-500 animate-pulse">Menunggu scan QR... (auto-refresh status tiap 3 detik)</p>
+                                <p class="mt-2 text-xs text-on-surface-variant animate-pulse">Menunggu scan QR... (auto-refresh status tiap 3 detik)</p>
                             </div>
 
                             <div v-if="createResult" class="mt-2 text-xs" :class="createResult.success ? 'text-primary font-semibold' : 'text-error font-semibold'">

@@ -53,7 +53,7 @@ const tabs = [
                     :key="tab.id"
                     type="button"
                     class="rounded-lg px-4 py-2.5 text-sm font-semibold transition"
-                    :class="activeTab === tab.id ? 'bg-emerald-600 text-white shadow-sm' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'"
+                    :class="activeTab === tab.id ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'"
                     @click="activeTab = tab.id"
                 >
                     {{ tab.label }}
@@ -75,18 +75,18 @@ const tabs = [
                             </tr>
                         </thead>
                         <tbody>
-                            <tr class="font-bold bg-surface-container-lowest"><td colspan="3" class="px-4 py-2 text-emerald-700">ASET</td></tr>
+                            <tr class="font-bold bg-surface-container-lowest"><td colspan="3" class="px-4 py-2 text-secondary">ASET</td></tr>
                             <tr v-for="row in pack.balance_sheet.assets.rows" :key="row.code" class="hover:bg-surface-container-low/50">
                                 <td class="px-4 py-2 font-mono text-xs">{{ row.code }}</td>
                                 <td class="px-4 py-2" :class="row.level === 1 ? 'font-bold' : ''">{{ row.name }}</td>
                                 <td class="px-4 py-2 text-right" :class="row.level === 1 ? 'font-bold' : ''">{{ money(row.balance) }}</td>
                             </tr>
-                            <tr class="font-bold bg-emerald-50 text-emerald-900">
+                            <tr class="font-bold bg-secondary-container text-on-secondary-container">
                                 <td colspan="2" class="px-4 py-3 text-right">TOTAL ASET</td>
                                 <td class="px-4 py-3 text-right">{{ money(pack.balance_sheet.assets.total) }}</td>
                             </tr>
 
-                            <tr class="font-bold bg-surface-container-lowest"><td colspan="3" class="px-4 py-2 text-emerald-700">KEWAJIBAN & EKUITAS</td></tr>
+                            <tr class="font-bold bg-surface-container-lowest"><td colspan="3" class="px-4 py-2 text-secondary">KEWAJIBAN & EKUITAS</td></tr>
                             <tr v-for="row in pack.balance_sheet.liabilities.rows" :key="row.code" class="hover:bg-surface-container-low/50">
                                 <td class="px-4 py-2 font-mono text-xs">{{ row.code }}</td>
                                 <td class="px-4 py-2" :class="row.level === 1 ? 'font-bold' : ''">{{ row.name }}</td>
@@ -106,7 +106,7 @@ const tabs = [
                                 <td colspan="2" class="px-4 py-2 text-right">TOTAL EKUITAS</td>
                                 <td class="px-4 py-2 text-right">{{ money(pack.balance_sheet.equity.total) }}</td>
                             </tr>
-                            <tr class="font-bold bg-emerald-50 text-emerald-900">
+                            <tr class="font-bold bg-secondary-container text-on-secondary-container">
                                 <td colspan="2" class="px-4 py-3 text-right">TOTAL KEWAJIBAN & EKUITAS</td>
                                 <td class="px-4 py-3 text-right">{{ money(pack.balance_sheet.total_liabilities_and_equity) }}</td>
                             </tr>
@@ -146,8 +146,8 @@ const tabs = [
                             </tr>
                             <tr class="font-bold bg-surface-container-low"><td colspan="2" class="px-4 py-2 text-right">SUBTOTAL BEBAN OPS</td><td class="px-4 py-2 text-right">{{ money(pack.income_statement.expense_ops.total) }}</td></tr>
 
-                            <tr class="font-bold bg-emerald-50 text-emerald-900"><td colspan="2" class="px-4 py-3 text-right">LABA OPERASIONAL</td><td class="px-4 py-3 text-right">{{ money(pack.income_statement.summary.operating_profit.ytd) }}</td></tr>
-                            <tr class="font-bold bg-emerald-100 text-emerald-950 text-base"><td colspan="2" class="px-4 py-3 text-right">LABA BERSIH (NET PROFIT)</td><td class="px-4 py-3 text-right">{{ money(pack.income_statement.summary.after_tax.ytd) }}</td></tr>
+                            <tr class="font-bold bg-secondary-container text-on-secondary-container"><td colspan="2" class="px-4 py-3 text-right">LABA OPERASIONAL</td><td class="px-4 py-3 text-right">{{ money(pack.income_statement.summary.operating_profit.ytd) }}</td></tr>
+                            <tr class="font-bold bg-secondary text-on-secondary text-base"><td colspan="2" class="px-4 py-3 text-right">LABA BERSIH (NET PROFIT)</td><td class="px-4 py-3 text-right">{{ money(pack.income_statement.summary.after_tax.ytd) }}</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -171,7 +171,7 @@ const tabs = [
                             <tr><td class="px-4 py-3">Arus Kas Aktivitas Investasi</td><td class="px-4 py-3 text-right">{{ money(pack.cash_flow.investing_activities) }}</td></tr>
                             <tr><td class="px-4 py-3">Arus Kas Aktivitas Pendanaan</td><td class="px-4 py-3 text-right">{{ money(pack.cash_flow.financing_activities) }}</td></tr>
                             <tr class="font-bold bg-surface-container-low"><td class="px-4 py-3">Kenaikan / (Penurunan) Kas Bersih</td><td class="px-4 py-3 text-right">{{ money(pack.cash_flow.net_cash_change) }}</td></tr>
-                            <tr class="font-bold bg-emerald-50 text-emerald-900"><td class="px-4 py-3">SALDO KAS & BANK AKHIR PERIODE</td><td class="px-4 py-3 text-right">{{ money(pack.cash_flow.ending_cash) }}</td></tr>
+                            <tr class="font-bold bg-secondary-container text-on-secondary-container"><td class="px-4 py-3">SALDO KAS & BANK AKHIR PERIODE</td><td class="px-4 py-3 text-right">{{ money(pack.cash_flow.ending_cash) }}</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -193,7 +193,7 @@ const tabs = [
                         <tbody>
                             <tr><td class="px-4 py-3">Ekuitas Awal Periode</td><td class="px-4 py-3 text-right">{{ money(pack.equity_changes.opening_equity) }}</td></tr>
                             <tr><td class="px-4 py-3">Laba Bersih Berjalan</td><td class="px-4 py-3 text-right">{{ money(pack.equity_changes.net_income) }}</td></tr>
-                            <tr class="font-bold bg-emerald-50 text-emerald-900"><td class="px-4 py-3">TOTAL EKUITAS AKHIR PERIODE</td><td class="px-4 py-3 text-right">{{ money(pack.equity_changes.ending_equity) }}</td></tr>
+                            <tr class="font-bold bg-secondary-container text-on-secondary-container"><td class="px-4 py-3">TOTAL EKUITAS AKHIR PERIODE</td><td class="px-4 py-3 text-right">{{ money(pack.equity_changes.ending_equity) }}</td></tr>
                         </tbody>
                     </table>
                 </div>

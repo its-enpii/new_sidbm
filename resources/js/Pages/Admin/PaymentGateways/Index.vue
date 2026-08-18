@@ -202,9 +202,9 @@ const gatewayTabs = [
             </header>
 
             <!-- Toast alert -->
-            <div v-if="toast" class="rounded-xl border p-4 shadow-sm" :class="toast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-rose-200 bg-rose-50 text-rose-900'">
+            <AppCard v-if="toast" :class="toast.type === 'success' ? 'border-secondary-container bg-secondary-container/30 text-secondary' : 'border-error-container bg-error-container/30 text-on-error-container'">
                 <p class="font-bold text-sm">{{ toast.msg }}</p>
-            </div>
+            </AppCard>
 
             <!-- Navigation Tabs -->
             <nav class="flex flex-wrap gap-1 rounded-xl border border-outline-variant bg-surface-container-lowest p-1">
@@ -317,11 +317,11 @@ const gatewayTabs = [
                         </div>
                     </form>
 
-                    <div v-if="duitkuTestResult" class="mt-6 rounded-xl border p-4" :class="duitkuTestResult.ok ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'">
-                        <h4 class="font-bold text-sm" :class="duitkuTestResult.ok ? 'text-emerald-800' : 'text-rose-800'">
+                    <AppCard v-if="duitkuTestResult" :class="duitkuTestResult.ok ? 'border-secondary-container bg-secondary-container/30' : 'border-error-container bg-error-container/30'" class="mt-6">
+                        <h4 class="font-bold text-sm" :class="duitkuTestResult.ok ? 'text-secondary' : 'text-on-error-container'">
                             {{ duitkuTestResult.ok ? '? ' : '? ' }}{{ duitkuTestResult.message }}
                         </h4>
-                    </div>
+                    </AppCard>
                 </AppCard>
             </div>
 
@@ -359,11 +359,11 @@ const gatewayTabs = [
                         </div>
                     </form>
 
-                    <div v-if="tripayTestResult" class="mt-6 rounded-xl border p-4" :class="tripayTestResult.ok ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'">
-                        <h4 class="font-bold text-sm" :class="tripayTestResult.ok ? 'text-emerald-800' : 'text-rose-800'">
+                    <AppCard v-if="tripayTestResult" :class="tripayTestResult.ok ? 'border-secondary-container bg-secondary-container/30' : 'border-error-container bg-error-container/30'" class="mt-6">
+                        <h4 class="font-bold text-sm" :class="tripayTestResult.ok ? 'text-secondary' : 'text-on-error-container'">
                             {{ tripayTestResult.ok ? '? ' : '? ' }}{{ tripayTestResult.message }}
                         </h4>
-                    </div>
+                    </AppCard>
                 </AppCard>
             </div>
 
@@ -401,11 +401,11 @@ const gatewayTabs = [
                         </div>
                     </form>
 
-                    <div v-if="xenditTestResult" class="mt-6 rounded-xl border p-4" :class="xenditTestResult.ok ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'">
-                        <h4 class="font-bold text-sm" :class="xenditTestResult.ok ? 'text-emerald-800' : 'text-rose-800'">
+                    <AppCard v-if="xenditTestResult" :class="xenditTestResult.ok ? 'border-secondary-container bg-secondary-container/30' : 'border-error-container bg-error-container/30'" class="mt-6">
+                        <h4 class="font-bold text-sm" :class="xenditTestResult.ok ? 'text-secondary' : 'text-on-error-container'">
                             {{ xenditTestResult.ok ? '? ' : '? ' }}{{ xenditTestResult.message }}
                         </h4>
-                    </div>
+                    </AppCard>
                 </AppCard>
             </div>
         </div>

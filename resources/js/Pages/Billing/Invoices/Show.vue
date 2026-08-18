@@ -282,7 +282,7 @@ function methodLabel(payment) {
                         </div>
                         <div class="py-2.5 flex justify-between">
                             <dt class="text-on-surface-variant">Sudah Dibayar</dt>
-                            <dd class="font-bold text-emerald-600">{{ money(invoice.amount_paid, invoice.currency) }}</dd>
+                            <dd class="font-bold text-secondary">{{ money(invoice.amount_paid, invoice.currency) }}</dd>
                         </div>
                         <div class="py-2.5 flex justify-between">
                             <dt class="text-on-surface-variant font-semibold">Sisa Kewajiban</dt>
@@ -389,14 +389,12 @@ function methodLabel(payment) {
                 </AppCard>
 
                 <!-- Paid Status Card -->
-                <AppCard v-else-if="invoice.status === 'paid'" class="lg:col-span-2 bg-emerald-500/10 border border-emerald-500/20 p-6">
+                <AppCard v-else-if="invoice.status === 'paid'" class="lg:col-span-2 border border-secondary bg-secondary-container/30 p-6">
                     <div class="flex items-center gap-3">
-                        <span class="grid size-12 place-items-center rounded-full bg-emerald-500 text-white">
-                            <AppIcon name="check_circle" size="28" />
-                        </span>
+                        <AppIcon name="check_circle" tone="success" size="28" container-size="12" container-shape="pill" />
                         <div>
-                            <h2 class="text-xl font-bold text-emerald-700">Tagihan Telah Lunas</h2>
-                            <p class="text-sm text-emerald-600">
+                            <h2 class="text-xl font-bold text-secondary">Tagihan Telah Lunas</h2>
+                            <p class="text-sm text-on-secondary-container">
                                 Pembayaran telah diterima{{ invoice.paid_at ? ` pada ${invoice.paid_at}` : '' }}. Masa langganan aktif.
                             </p>
                         </div>

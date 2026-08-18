@@ -48,7 +48,7 @@ const baseUrl = '/province/reports/income-statement';
                 </AppCard>
                 <AppCard>
                     <span class="text-sm font-semibold text-on-surface-variant">Laba Bersih YTD</span>
-                    <p class="mt-2 text-2xl font-bold text-emerald-600">{{ money(report.summary?.after_tax?.ytd) }}</p>
+                    <p class="mt-2 text-2xl font-bold text-secondary">{{ money(report.summary?.after_tax?.ytd) }}</p>
                 </AppCard>
             </div>
 
@@ -66,7 +66,7 @@ const baseUrl = '/province/reports/income-statement';
                             </tr>
                         </thead>
                         <tbody>
-                            <tr class="font-bold bg-surface-container-lowest"><td colspan="3" class="px-4 py-2 text-emerald-700">PENDAPATAN OPERASIONAL</td></tr>
+                            <tr class="font-bold bg-surface-container-lowest"><td colspan="3" class="px-4 py-2 text-secondary">PENDAPATAN OPERASIONAL</td></tr>
                             <tr v-for="row in report.revenue_ops.rows" :key="row.code">
                                 <td class="px-4 py-2 font-mono text-xs">{{ row.code }}</td>
                                 <td class="px-4 py-2">{{ row.name }}</td>
@@ -74,7 +74,7 @@ const baseUrl = '/province/reports/income-statement';
                             </tr>
                             <tr class="font-bold bg-surface-container-low"><td colspan="2" class="px-4 py-2 text-right">SUBTOTAL PENDAPATAN OPERASIONAL</td><td class="px-4 py-2 text-right">{{ money(report.revenue_ops.total) }}</td></tr>
 
-                            <tr class="font-bold bg-surface-container-lowest"><td colspan="3" class="px-4 py-2 text-emerald-700">BEBAN OPERASIONAL</td></tr>
+                            <tr class="font-bold bg-surface-container-lowest"><td colspan="3" class="px-4 py-2 text-secondary">BEBAN OPERASIONAL</td></tr>
                             <tr v-for="row in report.expense_ops.rows" :key="row.code">
                                 <td class="px-4 py-2 font-mono text-xs">{{ row.code }}</td>
                                 <td class="px-4 py-2">{{ row.name }}</td>
@@ -82,8 +82,8 @@ const baseUrl = '/province/reports/income-statement';
                             </tr>
                             <tr class="font-bold bg-surface-container-low"><td colspan="2" class="px-4 py-2 text-right">SUBTOTAL BEBAN OPERASIONAL</td><td class="px-4 py-2 text-right">{{ money(report.expense_ops.total) }}</td></tr>
 
-                            <tr class="font-bold bg-emerald-50 text-emerald-900"><td colspan="2" class="px-4 py-3 text-right">LABA OPERASIONAL</td><td class="px-4 py-3 text-right">{{ money(report.summary.operating_profit.ytd) }}</td></tr>
-                            <tr class="font-bold bg-emerald-100 text-emerald-950 text-base"><td colspan="2" class="px-4 py-3 text-right">LABA BERSIH (NET PROFIT)</td><td class="px-4 py-3 text-right">{{ money(report.summary.after_tax.ytd) }}</td></tr>
+                            <tr class="font-bold bg-secondary-container text-on-secondary-container"><td colspan="2" class="px-4 py-3 text-right">LABA OPERASIONAL</td><td class="px-4 py-3 text-right">{{ money(report.summary.operating_profit.ytd) }}</td></tr>
+                            <tr class="font-bold bg-secondary text-on-secondary text-base"><td colspan="2" class="px-4 py-3 text-right">LABA BERSIH (NET PROFIT)</td><td class="px-4 py-3 text-right">{{ money(report.summary.after_tax.ytd) }}</td></tr>
                         </tbody>
                     </table>
                 </div>

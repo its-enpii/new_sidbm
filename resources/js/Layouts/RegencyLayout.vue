@@ -42,13 +42,13 @@ function logout() {
         />
 
         <aside
-            class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-slate-900 py-6 shadow-xl transition-transform lg:translate-x-0"
+            class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-primary py-6 shadow-xl transition-transform lg:translate-x-0"
             :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'"
         >
             <div class="mb-8 px-6">
-                <p class="text-xs font-bold uppercase tracking-[0.2em] text-amber-400">Portal Kabupaten</p>
-                <p class="mt-1 text-lg font-bold text-white">{{ user?.regency_name || 'Kabupaten' }}</p>
-                <p class="text-xs text-slate-400">Konsolidasi Multi-Kecamatan</p>
+                <p class="text-xs font-bold uppercase tracking-[0.2em] text-on-primary-container">Portal Kabupaten</p>
+                <p class="mt-1 text-lg font-bold text-on-primary">{{ user?.regency_name || 'Kabupaten' }}</p>
+                <p class="text-xs text-primary-fixed-dim">Konsolidasi Multi-Kecamatan</p>
             </div>
 
             <nav class="flex-1 space-y-1 overflow-y-auto px-3">
@@ -57,7 +57,7 @@ function logout() {
                     :key="item.label"
                     :href="item.href"
                     class="flex items-center gap-3 rounded-lg px-4 py-2.5 transition-colors"
-                    :class="isActive(item) ? 'bg-primary text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'"
+                    :class="isActive(item) ? 'bg-primary-container text-on-primary font-semibold' : 'text-primary-fixed-dim hover:bg-primary-container hover:text-on-primary'"
                     @click="mobileMenuOpen = false"
                 >
                     <AppIcon :name="item.icon" :filled="isActive(item)" />
@@ -65,18 +65,18 @@ function logout() {
                 </Link>
             </nav>
 
-            <div class="mt-4 border-t border-slate-800 px-4 pt-4">
-                <div class="flex items-center gap-3 rounded-xl bg-slate-800/80 p-3">
-                    <div class="grid size-10 shrink-0 place-items-center rounded-full bg-amber-500 text-sm font-bold text-slate-900">
+            <div class="mt-4 border-t border-primary-container px-4 pt-4">
+                <div class="flex items-center gap-3 rounded-xl bg-primary-container/50 p-3">
+                    <div class="grid size-10 shrink-0 place-items-center rounded-full bg-primary-fixed text-sm font-bold text-primary">
                         {{ user?.name?.charAt(0).toUpperCase() || 'K' }}
                     </div>
                     <div class="min-w-0 flex-1">
-                        <p class="truncate font-bold text-white">{{ user?.name || 'Supervisor' }}</p>
-                        <p class="truncate text-xs text-slate-400">Level Kabupaten</p>
+                        <p class="truncate font-bold text-on-primary">{{ user?.name || 'Supervisor' }}</p>
+                        <p class="truncate text-xs text-primary-fixed-dim">Level Kabupaten</p>
                     </div>
                     <button
                         type="button"
-                        class="rounded-lg p-2 text-slate-400 hover:bg-white/10 hover:text-white"
+                        class="rounded-lg p-2 text-primary-fixed-dim hover:bg-on-primary/10 hover:text-on-primary"
                         aria-label="Keluar"
                         @click="logout"
                     >
@@ -101,8 +101,8 @@ function logout() {
                 </div>
             </div>
             <div class="flex items-center gap-2">
-                <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
-                    <span class="size-1.5 rounded-full bg-amber-500"></span>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-primary-fixed px-3 py-1 text-xs font-semibold text-primary">
+                    <span class="size-1.5 rounded-full bg-primary"></span>
                     {{ user?.regency_name || 'Kabupaten' }}
                 </span>
             </div>

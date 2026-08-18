@@ -66,18 +66,18 @@ const baseUrl = '/province/reports/balance-sheet';
                             </tr>
                         </thead>
                         <tbody>
-                            <tr class="font-bold bg-surface-container-lowest"><td colspan="3" class="px-4 py-2 text-emerald-700">ASET</td></tr>
+                            <tr class="font-bold bg-surface-container-lowest"><td colspan="3" class="px-4 py-2 text-secondary">ASET</td></tr>
                             <tr v-for="row in report.assets.rows" :key="row.code" class="hover:bg-surface-container-low/50">
                                 <td class="px-4 py-2 font-mono text-xs">{{ row.code }}</td>
                                 <td class="px-4 py-2" :class="row.level === 1 ? 'font-bold' : ''">{{ row.name }}</td>
                                 <td class="px-4 py-2 text-right" :class="row.level === 1 ? 'font-bold' : ''">{{ money(row.balance) }}</td>
                             </tr>
-                            <tr class="font-bold bg-emerald-50 text-emerald-900">
+                            <tr class="font-bold bg-secondary-container text-on-secondary-container">
                                 <td colspan="2" class="px-4 py-3 text-right">TOTAL ASET</td>
                                 <td class="px-4 py-3 text-right">{{ money(report.assets.total) }}</td>
                             </tr>
 
-                            <tr class="font-bold bg-surface-container-lowest"><td colspan="3" class="px-4 py-2 text-emerald-700">KEWAJIBAN & EKUITAS</td></tr>
+                            <tr class="font-bold bg-surface-container-lowest"><td colspan="3" class="px-4 py-2 text-secondary">KEWAJIBAN & EKUITAS</td></tr>
                             <tr v-for="row in report.liabilities.rows" :key="row.code" class="hover:bg-surface-container-low/50">
                                 <td class="px-4 py-2 font-mono text-xs">{{ row.code }}</td>
                                 <td class="px-4 py-2" :class="row.level === 1 ? 'font-bold' : ''">{{ row.name }}</td>
@@ -97,7 +97,7 @@ const baseUrl = '/province/reports/balance-sheet';
                                 <td colspan="2" class="px-4 py-2 text-right">TOTAL EKUITAS</td>
                                 <td class="px-4 py-2 text-right">{{ money(report.equity.total) }}</td>
                             </tr>
-                            <tr class="font-bold bg-emerald-50 text-emerald-900">
+                            <tr class="font-bold bg-secondary-container text-on-secondary-container">
                                 <td colspan="2" class="px-4 py-3 text-right">TOTAL KEWAJIBAN & EKUITAS</td>
                                 <td class="px-4 py-3 text-right">{{ money(report.total_liabilities_and_equity) }}</td>
                             </tr>

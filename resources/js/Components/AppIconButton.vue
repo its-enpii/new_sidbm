@@ -1,0 +1,94 @@
+<script setup>
+import { computed } from 'vue';
+import AppIcon from './AppIcon.vue';
+import AppTooltip from './AppTooltip.vue';
+
+const props = defineProps({
+    name: { type: String, required: true },
+    tone: {
+        type: String,
+        default: 'neutral',
+        validator: (value) => ['neutral', 'success', 'warning', 'danger', 'error', 'info', 'primary', 'secondary', 'tertiary'].includes(value),
+    },
+    size: {
+        type: String,
+        default: 'md',
+        validator: (value) => ['sm', 'md', 'lg'].includes(value),
+    },
+    rounded: {
+        type: String,
+        default: 'lg',
+        validator: (value) => ['square', 'lg', 'full'].includes(value),
+    },
+    filled: { type: Boolean, default: false },
+    loading: { type: Boolean, default: false },
+    disabled: { type: Boolean, default: false },
+    type: { type: String, default: 'button' },
+    ariaLabel: { type: String, default: null },
+    tooltip: { type: String, default: null },
+});
+
+const sizeClasses = {
+    sm: 'size-8',
+    md: 'size-10',
+    lg: 'size-12',
+};
+
+const roundedMap = {
+    square: 'rounded',
+    lg: 'rounded-lg',
+    full: 'rounded-full',
+};
+
+const toneClasses = {
+    neutral: 'bg-transparent text-on-surface-variant hover:bg-surface-container-low hover:text-primary',
+    primary: 'bg-primary-container text-on-primary-container hover:bg-primary-container/80',
+    secondary: 'bg-secondary-container text-on-secondary-container hover:bg-secondary-container/80',
+    success: 'bg-secondary-container text-on-secondary-container hover:bg-secondary-container/80',
+    warning: 'bg-tertiary-fixed text-tertiary hover:bg-tertiary-fixed/80',
+    danger: 'bg-error-container text-on-error-container hover:bg-error-container/80',
+    error: 'bg-error-container text-on-error-container hover:bg-error-container/80',
+    info: 'bg-primary-container text-on-primary-container hover:bg-primary-container/80',
+    tertiary: 'bg-tertiary-fixed text-tertiary hover:bg-tertiary-fixed/80',
+};
+
+const buttonClass = computed(() => [
+    'inline-flex shrink-0 items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-container focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest',
+    sizeClasses[props.size],
+    roundedMap[props.rounded],
+    toneClasses[props.tone] || toneClasses.neutral,
+    (props.disabled || props.loading) && 'cursor-not-allowed opacity-60',
+]);
+
+const iconSize = computed(() => {
+    if (props.size === 'sm') return 'text-lg';
+    if (props.size === 'lg') return 'text-2xl';
+    return 'text-xl';
+});
+</script>
+
+<template>
+    <AppTooltip v-if="tooltip" :text="tooltip">
+        <button
+            :type="type"
+            :class="buttonClass"
+            :disabled="disabled || loading"
+            :aria-label="ariaLabel || name"
+            :aria-busy="loading || undefined"
+        >
+            <AppIcon v-if="!loading" :name="name" :class="iconSize" />
+            <span v-else class="material-symbols-outlined animate-spin" :class="iconSize">progress_activity</span>
+        </button>
+    </AppTooltip>
+    <button
+        v-else
+        :type="type"
+        :class="buttonClass"
+        :disabled="disabled || loading"
+        :aria-label="ariaLabel || name"
+        :aria-busy="loading || undefined"
+    >
+        <AppIcon v-if="!loading" :name="name" :class="iconSize" />
+        <span v-else class="material-symbols-outlined animate-spin" :class="iconSize">progress_activity</span>
+    </button>
+</template>

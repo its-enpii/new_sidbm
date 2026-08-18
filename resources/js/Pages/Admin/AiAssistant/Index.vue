@@ -4,8 +4,10 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
+import AppCheckbox from '../../../Components/AppCheckbox.vue';
 import AppEmptyState from '../../../Components/AppEmptyState.vue';
 import AppIcon from '../../../Components/AppIcon.vue';
+import AppIconButton from '../../../Components/AppIconButton.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import { useConfirm } from '../../../composables/useConfirm';
 import AppModal from '../../../Components/AppModal.vue';
@@ -923,20 +925,26 @@ onBeforeUnmount(() => {
                                         </AppBadge>
                                     </td>
                                     <td class="px-4 py-3 text-center">
-                                        <button type="button" class="grid size-10 place-items-center rounded-lg" :class="t.requires_confirmation ? 'text-amber-600' : 'text-on-surface-variant'" @click="toggleTool(t, 'requires_confirmation')">
-                                            <AppIcon :name="t.requires_confirmation ? 'lock' : 'lock_open'" />
-                                        </button>
+                                        <AppIconButton
+                                            size="sm"
+                                            :tone="t.requires_confirmation ? 'warning' : 'neutral'"
+                                            :name="t.requires_confirmation ? 'lock' : 'lock_open'"
+                                            :tooltip="t.requires_confirmation ? 'Wajib konfirmasi' : 'Tanpa konfirmasi'"
+                                            @click="toggleTool(t, 'requires_confirmation')"
+                                        />
                                     </td>
                                     <td class="px-4 py-3 text-center">
-                                        <button type="button" class="grid size-10 place-items-center rounded-lg" :class="t.is_active ? 'text-secondary' : 'text-on-surface-variant'" @click="toggleTool(t, 'is_active')">
-                                            <AppIcon :name="t.is_active ? 'toggle_on' : 'toggle_off'" />
-                                        </button>
+                                        <AppIconButton
+                                            size="sm"
+                                            :tone="t.is_active ? 'success' : 'neutral'"
+                                            :name="t.is_active ? 'toggle_on' : 'toggle_off'"
+                                            :tooltip="t.is_active ? 'Aktif' : 'Nonaktif'"
+                                            @click="toggleTool(t, 'is_active')"
+                                        />
                                     </td>
                                     <td class="px-4 py-3">
                                         <div class="flex items-center justify-end gap-1">
-                                            <button type="button" class="grid size-9 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary" title="Detail" @click="openToolDetail(t)">
-                                                <AppIcon name="info" />
-                                            </button>
+                                            <AppIconButton size="sm" name="info" tooltip="Detail" @click="openToolDetail(t)" />
                                         </div>
                                     </td>
                                 </tr>
@@ -1008,7 +1016,7 @@ onBeforeUnmount(() => {
                     </header>
 
                     <div v-if="docs.loading" class="rounded-xl bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">Memuatâ€¦</div>
-                    <div v-else-if="docs.error" class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ docs.error }}</div>
+                    <AppCard v-else-if="docs.error" class="border-tertiary bg-tertiary-fixed/30 text-tertiary">{{ docs.error }}</AppCard>
                     <AppEmptyState v-else-if="!docs.items.length" icon="library_books" title="Belum ada dokumen" description="Upload file di atas untuk mulai membangun knowledge base." />
                     <div v-else class="overflow-x-auto rounded-xl border border-outline-variant">
                         <table class="w-full text-sm">
@@ -1038,12 +1046,8 @@ onBeforeUnmount(() => {
                                     <td class="px-4 py-2 text-xs text-on-surface-variant">{{ formatDate(d.created_at) }}</td>
                                     <td class="px-4 py-2">
                                         <div class="flex items-center justify-end gap-1">
-                                            <button type="button" class="grid size-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary" title="Lihat detail" @click="viewDocument(d)">
-                                                <AppIcon name="visibility" />
-                                            </button>
-                                            <button type="button" class="grid size-8 place-items-center rounded-lg text-on-surface-variant hover:bg-error-container hover:text-error" title="Hapus" @click="deleteDocument(d)">
-                                                <AppIcon name="delete" />
-                                            </button>
+                                            <AppIconButton size="sm" name="visibility" tooltip="Lihat detail" @click="viewDocument(d)" />
+                                            <AppIconButton size="sm" name="delete" tone="danger" tooltip="Hapus" @click="deleteDocument(d)" />
                                         </div>
                                     </td>
                                 </tr>
@@ -1210,20 +1214,18 @@ onBeforeUnmount(() => {
                         <label class="mb-2 block text-sm font-bold uppercase tracking-wider text-primary">Tool Scope (kosongkan = semua tools)</label>
                         <div class="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto rounded-xl border border-outline-variant bg-surface-container-lowest p-3 sm:grid-cols-2">
                             <label v-for="t in tools" :key="t.id" class="flex items-start gap-2 rounded-lg p-2 hover:bg-surface-container-low">
-                                <input
-                                    type="checkbox"
+                                <AppCheckbox
+                                    class="mt-1"
                                     :value="t.id"
-                                    :checked="personaModal.data.tool_ids.includes(t.id)"
-                                    class="mt-1 size-4 rounded border-outline-variant text-primary focus:ring-primary"
-                                    @change="(e) => {
-                                        const checked = e.target.checked;
+                                    :model-value="personaModal.data.tool_ids.includes(t.id)"
+                                    @update:model-value="(checked) => {
                                         if (checked && !personaModal.data.tool_ids.includes(t.id)) {
                                             personaModal.data.tool_ids.push(t.id);
                                         } else if (!checked) {
                                             personaModal.data.tool_ids = personaModal.data.tool_ids.filter((id) => id !== t.id);
                                         }
                                     }"
-                                >
+                                />
                                 <div class="min-w-0 flex-1">
                                     <p class="truncate font-mono text-xs font-bold text-primary">{{ t.name }}</p>
                                     <p class="mt-0.5 line-clamp-1 text-xs text-on-surface-variant">{{ t.description }}</p>

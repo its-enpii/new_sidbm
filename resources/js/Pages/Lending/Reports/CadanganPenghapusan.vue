@@ -138,9 +138,9 @@ const pdfUrl = computed(() => {
                             <tr v-for="v in prod.villages" :key="v.village_name" class="hover:bg-surface-variant/20">
                                 <td class="p-3 font-medium text-on-surface">{{ v.village_name }}</td>
                                 <td class="p-3 text-right font-semibold text-primary">{{ formatMoney(v.saldo) }}</td>
-                                <td class="p-3 text-right border-l border-outline-variant/20 text-emerald-700">{{ formatMoney(v.kolek1_lancar) }}</td>
-                                <td class="p-3 text-right" :class="v.kolek2_diragukan > 0 ? 'text-amber-600' : ''">{{ formatMoney(v.kolek2_diragukan) }}</td>
-                                <td class="p-3 text-right" :class="v.kolek3_macet > 0 ? 'text-red-600' : ''">{{ formatMoney(v.kolek3_macet) }}</td>
+                                <td class="p-3 text-right border-l border-outline-variant/20 text-secondary">{{ formatMoney(v.kolek1_lancar) }}</td>
+                                <td class="p-3 text-right" :class="v.kolek2_diragukan > 0 ? 'text-tertiary' : ''">{{ formatMoney(v.kolek2_diragukan) }}</td>
+                                <td class="p-3 text-right" :class="v.kolek3_macet > 0 ? 'text-error' : ''">{{ formatMoney(v.kolek3_macet) }}</td>
                                 <td class="p-3 text-right border-l border-outline-variant/20">{{ formatMoney(v.ckpn_lancar) }}</td>
                                 <td class="p-3 text-right">{{ formatMoney(v.ckpn_diragukan) }}</td>
                                 <td class="p-3 text-right">{{ formatMoney(v.ckpn_macet) }}</td>
@@ -151,9 +151,9 @@ const pdfUrl = computed(() => {
                             <tr class="border-t border-outline-variant/40">
                                 <td class="p-3">TOTAL {{ prod.product_code }}</td>
                                 <td class="p-3 text-right text-primary">{{ formatMoney(prod.totals.saldo) }}</td>
-                                <td class="p-3 text-right border-l border-outline-variant/20 text-emerald-700">{{ formatMoney(prod.totals.kolek1_lancar) }}</td>
-                                <td class="p-3 text-right" :class="prod.totals.kolek2_diragukan > 0 ? 'text-amber-600' : ''">{{ formatMoney(prod.totals.kolek2_diragukan) }}</td>
-                                <td class="p-3 text-right" :class="prod.totals.kolek3_macet > 0 ? 'text-red-600' : ''">{{ formatMoney(prod.totals.kolek3_macet) }}</td>
+                                <td class="p-3 text-right border-l border-outline-variant/20 text-secondary">{{ formatMoney(prod.totals.kolek1_lancar) }}</td>
+                                <td class="p-3 text-right" :class="prod.totals.kolek2_diragukan > 0 ? 'text-tertiary' : ''">{{ formatMoney(prod.totals.kolek2_diragukan) }}</td>
+                                <td class="p-3 text-right" :class="prod.totals.kolek3_macet > 0 ? 'text-error' : ''">{{ formatMoney(prod.totals.kolek3_macet) }}</td>
                                 <td class="p-3 text-right border-l border-outline-variant/20">{{ formatMoney(prod.totals.ckpn_lancar) }}</td>
                                 <td class="p-3 text-right">{{ formatMoney(prod.totals.ckpn_diragukan) }}</td>
                                 <td class="p-3 text-right">{{ formatMoney(prod.totals.ckpn_macet) }}</td>

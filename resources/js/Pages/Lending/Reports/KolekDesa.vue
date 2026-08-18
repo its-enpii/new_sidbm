@@ -144,9 +144,9 @@ const pdfUrl = computed(() => {
                                 <td class="p-3 text-center font-medium">{{ v.alokasi > 0 ? Math.round((v.saldo / v.alokasi) * 100) : 0 }}%</td>
                                 <td class="p-3 text-right border-l border-outline-variant/20" :class="v.tunggakan_pokok > 0 ? 'text-error font-medium' : ''">{{ formatMoney(v.tunggakan_pokok) }}</td>
                                 <td class="p-3 text-right" :class="v.tunggakan_jasa > 0 ? 'text-error font-medium' : ''">{{ formatMoney(v.tunggakan_jasa) }}</td>
-                                <td class="p-3 text-right border-l border-outline-variant/20 font-medium text-emerald-700">{{ formatMoney(v.kolek1_lancar) }}</td>
-                                <td class="p-3 text-right font-medium" :class="v.kolek2_diragukan > 0 ? 'text-amber-600' : ''">{{ formatMoney(v.kolek2_diragukan) }}</td>
-                                <td class="p-3 text-right font-medium" :class="v.kolek3_macet > 0 ? 'text-red-600' : ''">{{ formatMoney(v.kolek3_macet) }}</td>
+                                <td class="p-3 text-right border-l border-outline-variant/20 font-medium text-secondary">{{ formatMoney(v.kolek1_lancar) }}</td>
+                                <td class="p-3 text-right font-medium" :class="v.kolek2_diragukan > 0 ? 'text-tertiary' : ''">{{ formatMoney(v.kolek2_diragukan) }}</td>
+                                <td class="p-3 text-right font-medium" :class="v.kolek3_macet > 0 ? 'text-error' : ''">{{ formatMoney(v.kolek3_macet) }}</td>
                             </tr>
                         </tbody>
                         <tfoot class="bg-surface-variant/40 font-bold text-on-surface">
@@ -157,9 +157,9 @@ const pdfUrl = computed(() => {
                                 <td class="p-3 text-center">{{ prod.totals.alokasi > 0 ? Math.round((prod.totals.saldo / prod.totals.alokasi) * 100) : 0 }}%</td>
                                 <td class="p-3 text-right border-l border-outline-variant/20" :class="prod.totals.tunggakan_pokok > 0 ? 'text-error' : ''">{{ formatMoney(prod.totals.tunggakan_pokok) }}</td>
                                 <td class="p-3 text-right" :class="prod.totals.tunggakan_jasa > 0 ? 'text-error' : ''">{{ formatMoney(prod.totals.tunggakan_jasa) }}</td>
-                                <td class="p-3 text-right border-l border-outline-variant/20 text-emerald-700">{{ formatMoney(prod.totals.kolek1_lancar) }}</td>
-                                <td class="p-3 text-right" :class="prod.totals.kolek2_diragukan > 0 ? 'text-amber-600' : ''">{{ formatMoney(prod.totals.kolek2_diragukan) }}</td>
-                                <td class="p-3 text-right" :class="prod.totals.kolek3_macet > 0 ? 'text-red-600' : ''">{{ formatMoney(prod.totals.kolek3_macet) }}</td>
+                                <td class="p-3 text-right border-l border-outline-variant/20 text-secondary">{{ formatMoney(prod.totals.kolek1_lancar) }}</td>
+                                <td class="p-3 text-right" :class="prod.totals.kolek2_diragukan > 0 ? 'text-tertiary' : ''">{{ formatMoney(prod.totals.kolek2_diragukan) }}</td>
+                                <td class="p-3 text-right" :class="prod.totals.kolek3_macet > 0 ? 'text-error' : ''">{{ formatMoney(prod.totals.kolek3_macet) }}</td>
                             </tr>
                         </tfoot>
                     </table>

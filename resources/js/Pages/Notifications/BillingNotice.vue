@@ -4,6 +4,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import AppBadge from '../../Components/AppBadge.vue';
 import AppButton from '../../Components/AppButton.vue';
 import AppCard from '../../Components/AppCard.vue';
+import AppCheckbox from '../../Components/AppCheckbox.vue';
 import AppDatePicker from '../../Components/AppDatePicker.vue';
 import AppEmptyState from '../../Components/AppEmptyState.vue';
 import AuthenticatedLayout from '../../Layouts/AuthenticatedLayout.vue';
@@ -193,10 +194,8 @@ const sourceLabel = {
                                 :class="!item.can_send && 'opacity-60'"
                             >
                                 <td class="px-4 py-3">
-                                    <input
+                                    <AppCheckbox
                                         v-model="selected[item.installment_row_id]"
-                                        type="checkbox"
-                                        class="size-4 rounded border-outline-variant text-primary focus:ring-primary"
                                         :disabled="!item.can_send"
                                     />
                                 </td>

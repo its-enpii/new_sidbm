@@ -1,6 +1,7 @@
 <script setup>
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
@@ -130,7 +131,7 @@ const pdfUrl = computed(() => {
                         </div>
                         <div class="p-3 rounded-lg bg-surface-variant/30">
                             <span class="text-on-surface-variant block">Surplus Bersih</span>
-                            <span class="font-bold text-sm text-emerald-700">{{ formatMoney(financial_data.surplus) }}</span>
+                            <span class="font-bold text-sm text-secondary">{{ formatMoney(financial_data.surplus) }}</span>
                         </div>
                         <div class="p-3 rounded-lg bg-surface-variant/30">
                             <span class="text-on-surface-variant block">Total Aset</span>
@@ -182,9 +183,11 @@ const pdfUrl = computed(() => {
                             <td class="p-3 text-center">{{ ind.weight }}</td>
                             <td class="p-3 text-right font-bold text-primary">{{ ind.score }}</td>
                             <td class="p-3 text-center">
-                                <span class="px-2 py-0.5 rounded font-semibold text-[11px]" :class="ind.status === 'Sehat' ? 'bg-emerald-100 text-emerald-800' : (ind.status === 'Cukup Sehat' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800')">
+                                <AppBadge
+                                    :tone="ind.status === 'Sehat' ? 'success-soft' : (ind.status === 'Cukup Sehat' ? 'warning-soft' : 'error-soft')"
+                                >
                                     {{ ind.status }}
-                                </span>
+                                </AppBadge>
                             </td>
                         </tr>
                     </tbody>

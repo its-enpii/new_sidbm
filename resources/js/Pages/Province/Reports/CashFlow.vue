@@ -53,7 +53,7 @@ const baseUrl = '/province/reports/cash-flow';
                             <tr><td class="px-4 py-3">Arus Kas Aktivitas Investasi</td><td class="px-4 py-3 text-right">{{ money(report.investing_activities) }}</td></tr>
                             <tr><td class="px-4 py-3">Arus Kas Aktivitas Pendanaan</td><td class="px-4 py-3 text-right">{{ money(report.financing_activities) }}</td></tr>
                             <tr class="font-bold bg-surface-container-low"><td class="px-4 py-3">Kenaikan / (Penurunan) Kas Bersih</td><td class="px-4 py-3 text-right">{{ money(report.net_cash_change) }}</td></tr>
-                            <tr class="font-bold bg-emerald-50 text-emerald-900"><td class="px-4 py-3">SALDO KAS & BANK AKHIR PERIODE</td><td class="px-4 py-3 text-right">{{ money(report.ending_cash) }}</td></tr>
+                            <tr class="font-bold bg-secondary-container text-on-secondary-container"><td class="px-4 py-3">SALDO KAS & BANK AKHIR PERIODE</td><td class="px-4 py-3 text-right">{{ money(report.ending_cash) }}</td></tr>
                         </tbody>
                     </table>
                 </div>

@@ -51,7 +51,7 @@ const baseUrl = '/province/reports/equity-changes';
                         <tbody>
                             <tr><td class="px-4 py-3">Ekuitas Awal Periode</td><td class="px-4 py-3 text-right">{{ money(report.opening_equity) }}</td></tr>
                             <tr><td class="px-4 py-3">Laba Bersih Tahun / Periode Berjalan</td><td class="px-4 py-3 text-right">{{ money(report.net_income) }}</td></tr>
-                            <tr class="font-bold bg-emerald-50 text-emerald-900"><td class="px-4 py-3">TOTAL EKUITAS AKHIR PERIODE</td><td class="px-4 py-3 text-right">{{ money(report.ending_equity) }}</td></tr>
+                            <tr class="font-bold bg-secondary-container text-on-secondary-container"><td class="px-4 py-3">TOTAL EKUITAS AKHIR PERIODE</td><td class="px-4 py-3 text-right">{{ money(report.ending_equity) }}</td></tr>
                         </tbody>
                     </table>
                 </div>

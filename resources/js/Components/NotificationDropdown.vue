@@ -11,17 +11,17 @@ const unreadCount = ref(0);
 let dropdownRef = ref(null);
 
 const variants = {
-    warning: 'bg-warning-container/20 text-warning border-warning/30',
-    danger: 'bg-error/10 text-error border-error/20',
-    info: 'bg-info-container/20 text-info border-info/30',
-    success: 'bg-success/10 text-success border-success/20',
+    warning: 'bg-tertiary-fixed/30 text-tertiary border-tertiary/40',
+    danger: 'bg-error-container/40 text-error border-error/40',
+    info: 'bg-primary-container/30 text-primary border-primary/30',
+    success: 'bg-secondary-container/40 text-secondary border-secondary/40',
 };
 
-const iconVariants = {
-    warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-    danger: 'bg-red-500/10 text-red-600 dark:text-red-400',
-    info: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-    success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+const iconTones = {
+    warning: 'warning',
+    danger: 'error',
+    info: 'info',
+    success: 'success',
 };
 
 async function fetchNotifications() {
@@ -192,12 +192,12 @@ onBeforeUnmount(() => {
                         :class="!item.read ? 'bg-primary-container/10' : ''"
                         @click="handleItemClick(item)"
                     >
-                        <div
-                            class="grid size-9 shrink-0 place-items-center rounded-xl border border-outline-variant/30"
-                            :class="iconVariants[item.variant] || iconVariants.info"
-                        >
-                            <AppIcon :name="item.icon || 'info'" class="text-xl" />
-                        </div>
+                        <AppIcon
+                            :name="item.icon || 'info'"
+                            :tone="iconTones[item.variant] || 'info'"
+                            container-size="9"
+                            container-shape="pill"
+                        />
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center justify-between gap-1">
                                 <p class="text-xs font-bold text-primary truncate">{{ item.title }}</p>

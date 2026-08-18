@@ -279,11 +279,11 @@ const getStatusVariant = (status) => {
 
 const getStepStatusVariant = (status) => {
     switch (status) {
-        case 'ok': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
-        case 'running': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 animate-pulse';
-        case 'failed': return 'bg-rose-500/10 text-rose-600 dark:text-rose-400';
-        case 'skipped': return 'bg-slate-500/10 text-slate-500';
-        default: return 'bg-slate-500/10 text-slate-400';
+        case 'ok': return 'success';
+        case 'running': return 'warning';
+        case 'failed': return 'error';
+        case 'skipped': return 'neutral';
+        default: return 'neutral';
     }
 };
 </script>
@@ -530,7 +530,7 @@ const getStepStatusVariant = (status) => {
 
         <!-- Modal Detail Output Log & Live Step Progress -->
         <Teleport to="body">
-            <div v-if="activeLogModal && selectedRun" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/70 p-4 backdrop-blur-sm">
+            <div v-if="activeLogModal && selectedRun" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm">
                 <div class="w-full max-w-4xl overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-2xl">
                     <div class="flex items-center justify-between border-b border-outline-variant p-4">
                         <div>
@@ -550,9 +550,9 @@ const getStepStatusVariant = (status) => {
                                 <div v-for="step in selectedRun.steps" :key="step.name" class="rounded-lg border border-outline-variant p-2 text-xs">
                                     <div class="mb-1 flex items-center justify-between">
                                         <span class="truncate font-medium text-primary" :title="step.label">{{ step.name }}</span>
-                                        <span :class="['px-1.5 py-0.5 rounded text-[10px] uppercase font-bold', getStepStatusVariant(step.status)]">
+                                        <AppBadge :tone="getStepStatusVariant(step.status)" class="text-[10px] uppercase">
                                             {{ step.status }}
-                                        </span>
+                                        </AppBadge>
                                     </div>
                                     <p class="truncate text-[11px] text-on-surface-variant">{{ step.label }}</p>
                                 </div>
@@ -563,12 +563,12 @@ const getStepStatusVariant = (status) => {
                         <div class="relative space-y-1">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-bold text-primary">Terminal Console Log Output:</span>
-                                <span v-if="selectedRun.status === 'running'" class="animate-pulse text-xs font-medium text-amber-500">
+                                <span v-if="selectedRun.status === 'running'" class="animate-pulse text-xs font-medium text-tertiary">
                                     Live Polling Output...
                                 </span>
                             </div>
                             <div class="relative">
-                                <pre ref="logTerminal" class="h-80 w-full overflow-y-auto rounded-lg border border-slate-800 bg-slate-950 p-4 font-mono text-xs text-emerald-400 shadow-inner whitespace-pre-wrap" @scroll="onLogScroll">{{ selectedRun.output_log || 'Menunggu keluaran log...' }}</pre>
+                                <pre ref="logTerminal" class="h-80 w-full overflow-y-auto rounded-lg border border-outline bg-surface-container-lowest p-4 font-mono text-xs text-secondary shadow-inner whitespace-pre-wrap" @scroll="onLogScroll">{{ selectedRun.output_log || 'Menunggu keluaran log...' }}</pre>
                                 <button
                                     v-if="isUserScrolledUp"
                                     type="button"

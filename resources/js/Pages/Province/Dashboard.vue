@@ -73,10 +73,9 @@ function applyFilter() {
                     <a
                         :href="`/province/reports/pdf?year=${selectedYear}&month=${selectedMonth || ''}`"
                         target="_blank"
-                        class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 shadow-sm transition"
+                        class="inline-flex items-center"
                     >
-                        <AppIcon name="picture_as_pdf" />
-                        <span>Cetak Paket 5 Laporan (PDF)</span>
+                        <AppButton variant="primary" icon="picture_as_pdf">Cetak Paket 5 Laporan (PDF)</AppButton>
                     </a>
                 </div>
             </div>
@@ -86,9 +85,7 @@ function applyFilter() {
                 <AppCard class="relative overflow-hidden">
                     <div class="flex items-center justify-between">
                         <span class="text-sm font-semibold text-on-surface-variant">Total Kas & Bank</span>
-                        <span class="grid size-9 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600">
-                            <AppIcon name="account_balance_wallet" />
-                        </span>
+                        <AppIcon name="account_balance_wallet" tone="success" :container-size="9" />
                     </div>
                     <p class="mt-3 text-2xl font-bold text-primary">{{ money(metrics.summary.total_cash) }}</p>
                     <p class="mt-1 text-xs text-on-surface-variant">Gabungan {{ metrics.summary.total_kecamatans }} Kecamatan</p>
@@ -97,9 +94,7 @@ function applyFilter() {
                 <AppCard class="relative overflow-hidden">
                     <div class="flex items-center justify-between">
                         <span class="text-sm font-semibold text-on-surface-variant">Pinjaman Aktif (Pokok)</span>
-                        <span class="grid size-9 place-items-center rounded-lg bg-blue-500/10 text-blue-600">
-                            <AppIcon name="credit_score" />
-                        </span>
+                        <AppIcon name="credit_score" tone="info" :container-size="9" />
                     </div>
                     <p class="mt-3 text-2xl font-bold text-primary">{{ money(metrics.summary.active_loan_principal) }}</p>
                     <p class="mt-1 text-xs text-on-surface-variant">{{ metrics.summary.active_loans_count }} Pinjaman Berjalan</p>
@@ -108,9 +103,7 @@ function applyFilter() {
                 <AppCard class="relative overflow-hidden">
                     <div class="flex items-center justify-between">
                         <span class="text-sm font-semibold text-on-surface-variant">Laba Bersih YTD</span>
-                        <span class="grid size-9 place-items-center rounded-lg bg-amber-500/10 text-amber-600">
-                            <AppIcon name="trending_up" />
-                        </span>
+                        <AppIcon name="trending_up" tone="warning" :container-size="9" />
                     </div>
                     <p class="mt-3 text-2xl font-bold text-primary">{{ money(metrics.summary.net_income_ytd) }}</p>
                     <p class="mt-1 text-xs text-on-surface-variant">Hasil Usaha Konsolidasi</p>
@@ -119,9 +112,7 @@ function applyFilter() {
                 <AppCard class="relative overflow-hidden">
                     <div class="flex items-center justify-between">
                         <span class="text-sm font-semibold text-on-surface-variant">Cakupan Wilayah</span>
-                        <span class="grid size-9 place-items-center rounded-lg bg-purple-500/10 text-purple-600">
-                            <AppIcon name="map" />
-                        </span>
+                        <AppIcon name="map" tone="primary" :container-size="9" />
                     </div>
                     <p class="mt-3 text-2xl font-bold text-primary">{{ metrics.summary.total_regencies }} Kabupaten</p>
                     <p class="mt-1 text-xs text-on-surface-variant">{{ metrics.summary.total_kecamatans }} Unit Pengelola</p>

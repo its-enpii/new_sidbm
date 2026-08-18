@@ -80,9 +80,7 @@ function applyFilter() {
                 <AppCard class="relative overflow-hidden">
                     <div class="flex items-center justify-between">
                         <span class="text-sm font-semibold text-on-surface-variant">Total Kas & Bank</span>
-                        <span class="grid size-9 place-items-center rounded-lg bg-primary/10 text-primary">
-                            <AppIcon name="account_balance_wallet" />
-                        </span>
+                        <AppIcon name="account_balance_wallet" tone="primary" :container-size="9" />
                     </div>
                     <p class="mt-3 text-2xl font-bold text-primary">{{ money(metrics.summary.total_cash) }}</p>
                     <p class="mt-1 text-xs text-on-surface-variant">Gabungan {{ metrics.summary.total_kecamatans }} Kecamatan</p>
@@ -91,9 +89,7 @@ function applyFilter() {
                 <AppCard class="relative overflow-hidden">
                     <div class="flex items-center justify-between">
                         <span class="text-sm font-semibold text-on-surface-variant">Pinjaman Aktif (Pokok)</span>
-                        <span class="grid size-9 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600">
-                            <AppIcon name="credit_score" />
-                        </span>
+                        <AppIcon name="credit_score" tone="success" :container-size="9" />
                     </div>
                     <p class="mt-3 text-2xl font-bold text-primary">{{ money(metrics.summary.active_loan_principal) }}</p>
                     <p class="mt-1 text-xs text-on-surface-variant">{{ metrics.summary.active_loans_count }} Pinjaman Berjalan</p>
@@ -102,9 +98,7 @@ function applyFilter() {
                 <AppCard class="relative overflow-hidden">
                     <div class="flex items-center justify-between">
                         <span class="text-sm font-semibold text-on-surface-variant">Pendapatan Ops (YTD)</span>
-                        <span class="grid size-9 place-items-center rounded-lg bg-blue-500/10 text-blue-600">
-                            <AppIcon name="savings" />
-                        </span>
+                        <AppIcon name="savings" tone="info" :container-size="9" />
                     </div>
                     <p class="mt-3 text-2xl font-bold text-primary">{{ money(metrics.summary.revenue_ops_ytd) }}</p>
                     <p class="mt-1 text-xs text-on-surface-variant">Beban Ops: {{ money(metrics.summary.expense_ops_ytd) }}</p>
@@ -113,11 +107,13 @@ function applyFilter() {
                 <AppCard class="relative overflow-hidden">
                     <div class="flex items-center justify-between">
                         <span class="text-sm font-semibold text-on-surface-variant">Laba Bersih YTD</span>
-                        <span class="grid size-9 place-items-center rounded-lg" :class="metrics.summary.net_income_ytd >= 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-600'">
-                            <AppIcon name="trending_up" />
-                        </span>
+                        <AppIcon
+                            name="trending_up"
+                            :tone="metrics.summary.net_income_ytd >= 0 ? 'success' : 'danger'"
+                            :container-size="9"
+                        />
                     </div>
-                    <p class="mt-3 text-2xl font-bold" :class="metrics.summary.net_income_ytd >= 0 ? 'text-emerald-700' : 'text-red-700'">
+                    <p class="mt-3 text-2xl font-bold" :class="metrics.summary.net_income_ytd >= 0 ? 'text-secondary' : 'text-error'">
                         {{ money(metrics.summary.net_income_ytd) }}
                     </p>
                     <p class="mt-1 text-xs text-on-surface-variant">Setelah Pajak & Non-Ops</p>

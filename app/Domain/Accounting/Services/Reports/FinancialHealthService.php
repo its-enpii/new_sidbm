@@ -141,16 +141,16 @@ final class FinancialHealthService
         // Total Skor & Predikat
         $totalSkor = round($skorNpl + $skorCkpn + $skorRoa + $skorBopo + $skorLikuiditas + $skorSolvabilitas, 2);
         $predikat = 'SEHAT';
-        $predikatClass = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+        $predikatClass = 'text-secondary bg-secondary-container border-secondary';
         if ($totalSkor < 51) {
             $predikat = 'TIDAK SEHAT';
-            $predikatClass = 'text-red-700 bg-red-50 border-red-200';
+            $predikatClass = 'text-on-error-container bg-error-container border-error';
         } elseif ($totalSkor < 66) {
             $predikat = 'KURANG SEHAT';
-            $predikatClass = 'text-orange-700 bg-orange-50 border-orange-200';
+            $predikatClass = 'text-tertiary bg-tertiary-fixed border-tertiary';
         } elseif ($totalSkor < 80) {
             $predikat = 'CUKUP SEHAT';
-            $predikatClass = 'text-amber-700 bg-amber-50 border-amber-200';
+            $predikatClass = 'text-tertiary bg-tertiary-fixed border-tertiary';
         }
 
         $monthNames = [

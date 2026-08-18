@@ -9,6 +9,7 @@ import AppCurrencyInput from '../../../Components/AppCurrencyInput.vue';
 import AppEmptyState from '../../../Components/AppEmptyState.vue';
 import AppDatePicker from '../../../Components/AppDatePicker.vue';
 import AppIcon from '../../../Components/AppIcon.vue';
+import AppIconButton from '../../../Components/AppIconButton.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import AppModal from '../../../Components/AppModal.vue';
 import AppTextarea from '../../../Components/AppTextarea.vue';
@@ -92,18 +93,18 @@ const statusMeta = computed(() => {
 
 const heroToneClass = computed(() => {
     if (isPendingCompletion.value) {
-        return 'bg-amber-600 text-white';
+        return 'bg-tertiary text-on-tertiary';
     }
     switch (status.value) {
         case 'draft': return 'bg-tertiary-fixed text-tertiary';
         case 'verified': return 'bg-primary-fixed text-primary';
         case 'waiting':
-        case 'approved': return 'bg-secondary-container text-secondary';
+        case 'approved': return 'bg-secondary-container text-on-secondary-container';
         case 'active':
         case 'disbursed':
         case 'completed': return 'bg-secondary text-on-secondary';
         case 'rescheduled': return 'bg-tertiary-fixed text-tertiary';
-        case 'written_off': return 'bg-error-container text-error';
+        case 'written_off': return 'bg-error-container text-on-error-container';
         default: return 'bg-surface-container-low text-on-surface-variant';
     }
 });
@@ -272,6 +273,13 @@ const isActiveLoan = computed(() => ['active', 'disbursed'].includes(props.loan.
 const canReschedule = computed(() => can('loans.manage') && isActiveLoan.value && Number(props.loan.principal_remaining) > 0);
 const canWriteOff = computed(() => can('loans.manage') && isActiveLoan.value && Number(props.loan.principal_remaining) > 0);
 const canWriteOffBeneficiary = computed(() => can('loans.manage') && isActiveLoan.value && Number(props.loan.principal_remaining) > 0);
+const canCancelReschedule = computed(() =>
+    can('loans.manage')
+    && props.loan.rescheduled_from_loan_row_id !== null
+    && props.loan.rescheduled_from_loan_row_id !== undefined
+    && isActiveLoan.value
+    && Number(props.loan.principal_paid) === 0
+);
 const canDisburseAction = computed(() => can('loans.disburse'));
 const canPrintDocument = computed(() => can('loans.view'));
 
@@ -478,6 +486,22 @@ function submitWriteOff() {
     });
 }
 
+const cancelRescheduleModalOpen = ref(false);
+const cancelRescheduleForm = useForm({ reason: '' });
+
+function openCancelRescheduleModal() {
+    cancelRescheduleForm.reason = '';
+    cancelRescheduleForm.clearErrors();
+    cancelRescheduleModalOpen.value = true;
+}
+
+function submitCancelReschedule() {
+    cancelRescheduleForm.post(`/lending/loans/${props.loan.row_id}/cancel-reschedule`, {
+        preserveScroll: true,
+        onSuccess: () => { cancelRescheduleModalOpen.value = false; },
+    });
+}
+
 const beneficiaryWriteOffModalOpen = ref(false);
 const beneficiaryWriteOffTarget = ref(null);
 const beneficiaryWriteOffForm = useForm({
@@ -574,6 +598,7 @@ function setAllocatedAmount(memberRowId, value) {
                     <AppButton v-if="canCompleteAction" variant="success" icon="task_alt" @click="openCompleteModal">Validasi Lunas</AppButton>
                     <AppButton v-if="canEdit" variant="secondary" icon="edit" @click="openEditModal">Edit Proposal</AppButton>
                     <AppButton v-if="canReschedule" variant="secondary" icon="event_repeat" @click="openRescheduleModal">Reschedule Pinjaman</AppButton>
+                    <AppButton v-if="canCancelReschedule" variant="danger" icon="undo" @click="openCancelRescheduleModal">Batalkan Reschedule</AppButton>
                     <AppButton v-if="canWriteOff" variant="danger" icon="delete_sweep" @click="openWriteOffModal">Penghapusan Piutang</AppButton>
                 </div>
             </header>
@@ -964,9 +989,7 @@ function setAllocatedAmount(memberRowId, value) {
                                     <span v-else class="font-semibold text-primary">{{ currency(b.allocated_amount ?? 0) }}</span>
                                 </td>
                                 <td v-if="canRemoveBeneficiary" class="py-3 px-4 text-right">
-                                    <button type="button" class="grid size-9 place-items-center rounded-full text-on-surface-variant hover:bg-error-container hover:text-error focus:outline-none focus:ring-2 focus:ring-error/30" :aria-label="`Hapus ${b.name}`" @click="confirmRemoveBeneficiary(b)">
-                                        <AppIcon name="delete_outline" class="text-lg" />
-                                    </button>
+                                    <AppIconButton size="sm" rounded="full" name="delete_outline" tone="danger" :tooltip="`Hapus ${b.name}`" @click="confirmRemoveBeneficiary(b)" />
                                 </td>
                                 <td v-if="canWriteOffBeneficiary" class="py-3 px-4 text-right">
                                     <div v-if="b.written_off_at" class="flex flex-col items-end gap-1">
@@ -974,9 +997,7 @@ function setAllocatedAmount(memberRowId, value) {
                                         <span class="text-xs text-on-surface-variant">{{ formatDate(b.written_off_at) }}</span>
                                         <span class="text-xs font-semibold text-primary">{{ currency(b.written_off_amount) }}</span>
                                     </div>
-                                    <button v-else type="button" class="grid size-9 place-items-center rounded-full text-on-surface-variant hover:bg-error-container hover:text-error focus:outline-none focus:ring-2 focus:ring-error/30" :aria-label="`Hapus bukukan ${b.name}`" @click="openBeneficiaryWriteOffModal(b)">
-                                        <AppIcon name="delete_sweep" class="text-lg" />
-                                    </button>
+                                    <AppIconButton v-else size="sm" rounded="full" name="delete_sweep" tone="danger" :tooltip="`Hapus bukukan ${b.name}`" @click="openBeneficiaryWriteOffModal(b)" />
                                 </td>
                             </tr>
                         </tbody>
@@ -1248,6 +1269,19 @@ function setAllocatedAmount(memberRowId, value) {
                 <template #footer>
                     <AppButton variant="secondary" @click="beneficiaryWriteOffModalOpen = false" :disabled="beneficiaryWriteOffForm.processing">Batal</AppButton>
                     <AppButton variant="danger" icon="delete_sweep" :loading="beneficiaryWriteOffForm.processing" @click="submitBeneficiaryWriteOff">Hapus Bukukan Pemanfaat</AppButton>
+                </template>
+            </AppModal>
+
+            <AppModal v-model="cancelRescheduleModalOpen" title="Batalkan Reschedule" size="md">
+                <p class="mb-4 text-sm text-on-surface-variant">
+                    Tindakan ini akan menghapus pinjaman baru hasil reschedule dan mengembalikan pinjaman asal ke status aktif sebelumnya. Hanya dapat dilakukan sebelum ada angsuran dibayar di pinjaman baru. Kedua jurnal reschedule akan ditandai dihapus (soft-delete) untuk audit trail.
+                </p>
+                <form class="space-y-5" @submit.prevent="submitCancelReschedule">
+                    <AppTextarea v-model="cancelRescheduleForm.reason" label="Alasan Pembatalan" :error="cancelRescheduleForm.errors.reason" required placeholder="Misal: Salah input suku bunga, akan dilakukan reschedule ulang dengan parameter benar." />
+                </form>
+                <template #footer>
+                    <AppButton variant="secondary" @click="cancelRescheduleModalOpen = false" :disabled="cancelRescheduleForm.processing">Batal</AppButton>
+                    <AppButton variant="danger" icon="undo" :loading="cancelRescheduleForm.processing" @click="submitCancelReschedule">Batalkan Reschedule</AppButton>
                 </template>
             </AppModal>
 

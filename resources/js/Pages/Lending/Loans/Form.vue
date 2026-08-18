@@ -3,6 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
+import AppCheckbox from '../../../Components/AppCheckbox.vue';
 import AppDatePicker from '../../../Components/AppDatePicker.vue';
 import AppCurrencyInput from '../../../Components/AppCurrencyInput.vue';
 import AppInput from '../../../Components/AppInput.vue';
@@ -313,11 +314,7 @@ function addBeneficiary() {
                                                     <AppCurrencyInput v-model="form.beneficiary_amounts[member.value]" label="" hide-label :min="0" :error="form.errors[`beneficiary_amounts.${member.value}`]" placeholder="0" />
                                                 </td>
                                                 <td class="py-2 px-4 text-center">
-                                                    <label class="relative inline-flex cursor-pointer">
-                                                        <input type="checkbox" :value="member.value" v-model="form.beneficiary_ids" class="peer sr-only" role="switch">
-                                                        <span class="h-6 w-10 rounded-full bg-outline-variant transition peer-checked:bg-primary"></span>
-                                                        <span class="absolute left-0.5 top-0.5 size-5 rounded-full bg-surface-container-lowest shadow transition peer-checked:translate-x-4"></span>
-                                                    </label>
+                                                    <AppCheckbox :value="member.value" v-model="form.beneficiary_ids" />
                                                 </td>
                                             </tr>
                                         </tbody>

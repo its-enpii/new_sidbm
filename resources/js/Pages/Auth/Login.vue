@@ -2,6 +2,7 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppButton from '../../Components/AppButton.vue';
+import AppCheckbox from '../../Components/AppCheckbox.vue';
 import AppIcon from '../../Components/AppIcon.vue';
 import AppInput from '../../Components/AppInput.vue';
 
@@ -130,14 +131,7 @@ function submit() {
                     </AppInput>
 
                     <div class="flex items-center justify-between text-sm">
-                        <label class="flex cursor-pointer items-center gap-2 font-medium text-primary select-none">
-                            <input
-                                v-model="form.remember"
-                                type="checkbox"
-                                class="size-4 rounded border-outline-variant text-primary focus:ring-primary"
-                            />
-                            Ingat sesi saya
-                        </label>
+                        <AppCheckbox v-model="form.remember" variant="inline" label="Ingat sesi saya" />
                     </div>
 
                     <AppButton
