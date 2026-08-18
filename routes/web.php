@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Access\TenantRoleManagementController;
+use App\Http\Controllers\Access\TenantUserManagementController;
 use App\Http\Controllers\Accounting\CashEvidenceController;
 use App\Http\Controllers\Accounting\ChartOfAccountsController;
 use App\Http\Controllers\Accounting\JournalBrowseController;
@@ -18,6 +20,7 @@ use App\Http\Controllers\Admin\PaymentGatewayController;
 use App\Http\Controllers\Admin\PlanController as AdminPlanController;
 use App\Http\Controllers\Admin\RevenueController as AdminRevenueController;
 use App\Http\Controllers\Admin\TenantController as AdminTenantController;
+use App\Http\Controllers\Admin\TenantDataPurifierController;
 use App\Http\Controllers\Admin\TenantUserController as AdminTenantUserController;
 use App\Http\Controllers\Assets\AssetController;
 use App\Http\Controllers\AuthController;
@@ -205,6 +208,13 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
             Route::post('/onboarding/aggregate-journal', [TenantOnboardingImportController::class, 'saveAggregateJournal'])->name('onboarding.aggregate-journal');
             Route::post('/onboarding/active-loans', [TenantOnboardingImportController::class, 'importActiveLoans'])->name('onboarding.active-loans');
             Route::get('/onboarding/templates/{type}', [TenantOnboardingImportController::class, 'downloadTemplate'])->name('onboarding.templates');
+
+            // Data Purifier & Training Reset — superadmin only, per-tenant.
+            Route::get('/data-purifier', [TenantDataPurifierController::class, 'index'])->name('data-purifier.index');
+            Route::post('/data-purifier/start-training', [TenantDataPurifierController::class, 'startTraining'])->name('data-purifier.start-training');
+            Route::post('/data-purifier/end-training', [TenantDataPurifierController::class, 'endTraining'])->name('data-purifier.end-training');
+            Route::post('/data-purifier/purge', [TenantDataPurifierController::class, 'purge'])->name('data-purifier.purge');
+            Route::post('/data-purifier/reset-training', [TenantDataPurifierController::class, 'resetTraining'])->name('data-purifier.reset-training');
         });
     });
 });
@@ -312,6 +322,8 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
         ->where('type', '[a-z_]+')
         ->name('lending.loans.documents.print');
     Route::put('/lending/loans/{loan}', [LoanController::class, 'update'])->name('lending.loans.update');
+    Route::delete('/lending/loans/{loan}', [LoanController::class, 'destroy'])->name('lending.loans.destroy');
+    Route::delete('/lending/proposals/{proposal}', [LoanController::class, 'destroy'])->name('lending.proposals.destroy');
     Route::delete('/lending/loans/{loan}/beneficiaries/{member}', [LoanController::class, 'removeBeneficiary'])->name('lending.loans.beneficiaries.destroy');
     Route::patch('/lending/loans/{loan}/verify', [LoanController::class, 'verify'])->name('lending.loans.verify');
     Route::patch('/lending/loans/{loan}/approve', [LoanController::class, 'approve'])->name('lending.loans.approve');
@@ -352,6 +364,7 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
 
     Route::prefix('accounting')->name('accounting.')->group(function (): void {
         Route::get('/journals', [JournalBrowseController::class, 'index'])->name('journals.index');
+        Route::post('/journals/bulk-reverse', [JournalBrowseController::class, 'bulkReverse'])->name('journals.bulk-reverse');
         Route::get('/journals/{entry}/edit', [JournalBrowseController::class, 'edit'])->name('journals.edit');
         Route::put('/journals/{entry}', [JournalBrowseController::class, 'update'])->name('journals.update');
         Route::post('/journals/{entry}/reverse', [JournalBrowseController::class, 'reverse'])->name('journals.reverse');
@@ -448,6 +461,26 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
         Route::post('/{year}/reopen', [BudgetController::class, 'reopen'])
             ->whereNumber('year')
             ->name('reopen');
+    });
+
+    // Access Management (RBAC: Users & Roles)
+    Route::prefix('access')->name('access.')->group(function (): void {
+        // Users
+        Route::get('/users', [TenantUserManagementController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [TenantUserManagementController::class, 'create'])->name('users.create');
+        Route::post('/users', [TenantUserManagementController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/edit', [TenantUserManagementController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [TenantUserManagementController::class, 'update'])->name('users.update');
+        Route::post('/users/{user}/reset-password', [TenantUserManagementController::class, 'resetPassword'])->name('users.reset-password');
+        Route::delete('/users/{user}', [TenantUserManagementController::class, 'destroy'])->name('users.destroy');
+
+        // Roles
+        Route::get('/roles', [TenantRoleManagementController::class, 'index'])->name('roles.index');
+        Route::get('/roles/create', [TenantRoleManagementController::class, 'create'])->name('roles.create');
+        Route::post('/roles', [TenantRoleManagementController::class, 'store'])->name('roles.store');
+        Route::get('/roles/{role}/edit', [TenantRoleManagementController::class, 'edit'])->name('roles.edit');
+        Route::put('/roles/{role}', [TenantRoleManagementController::class, 'update'])->name('roles.update');
+        Route::delete('/roles/{role}', [TenantRoleManagementController::class, 'destroy'])->name('roles.destroy');
     });
 
     // Settings

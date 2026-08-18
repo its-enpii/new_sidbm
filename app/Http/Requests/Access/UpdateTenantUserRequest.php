@@ -1,0 +1,48 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests\Access;
+
+use App\Http\Requests\Concerns\AuthorizesPermission;
+use App\Models\User;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
+
+final class UpdateTenantUserRequest extends FormRequest
+{
+    use AuthorizesPermission;
+
+    public function rules(): array
+    {
+        /** @var User|null $targetUser */
+        $targetUser = $this->route('user');
+        $targetId = $targetUser?->row_id;
+
+        return [
+            'name' => ['required', 'string', 'max:150'],
+            'username' => ['required', 'string', 'max:80', 'alpha_dash', Rule::unique(User::class, 'username')->ignore($targetId, 'row_id')],
+            'email' => ['nullable', 'email', 'max:150', Rule::unique(User::class, 'email')->ignore($targetId, 'row_id')],
+            'password' => ['nullable', 'string', 'confirmed', Password::defaults()],
+            'status' => ['required', Rule::in(['active', 'suspended', 'inactive'])],
+            'role' => ['nullable', 'string', 'max:80'],
+            'is_village_user' => ['nullable', 'boolean'],
+            'village_row_id' => ['nullable', 'integer'],
+        ];
+    }
+
+    public function attributes(): array
+    {
+        return [
+            'name' => 'nama lengkap',
+            'username' => 'username',
+            'email' => 'email',
+            'password' => 'password',
+            'status' => 'status',
+            'role' => 'role',
+            'is_village_user' => 'operator desa',
+            'village_row_id' => 'desa',
+        ];
+    }
+}

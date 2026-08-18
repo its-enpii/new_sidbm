@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\MasterData;
 
+use App\Domain\Access\Services\PermissionChecker;
 use App\Domain\Membership\Models\Member;
 use App\Domain\Membership\Models\Person;
 use App\Domain\Membership\Services\EntityLoanHistoryService;
@@ -14,6 +15,7 @@ use App\Models\Tenant\OrganizationUnit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -138,9 +140,73 @@ final class MemberController
         return to_route('master-data.members.index')->with('success', 'Anggota berhasil diperbarui.');
     }
 
-    public function destroy(Member $member): RedirectResponse
+    public function destroy(Request $request, Member $member, PermissionChecker $permissions): RedirectResponse
     {
-        $member->delete();
+        $permissions->denyUnless($request->user(), 'members.manage');
+
+        $tenantId = $member->tenant_id;
+        $memberId = (int) $member->row_id;
+
+        $hasGroup = DB::connection('tenant')->table('group_members')
+            ->where('tenant_id', $tenantId)
+            ->where('member_row_id', $memberId)
+            ->exists();
+
+        if ($hasGroup) {
+            return back()->with('error', 'Anggota tidak dapat dihapus karena masih terdaftar di dalam kelompok.');
+        }
+
+        $hasBeneficiary = DB::connection('tenant')->table('loan_beneficiaries')
+            ->where('tenant_id', $tenantId)
+            ->where('member_row_id', $memberId)
+            ->exists();
+
+        if ($hasBeneficiary) {
+            return back()->with('error', 'Anggota tidak dapat dihapus karena memiliki riwayat pemanfaat pinjaman.');
+        }
+
+        $hasBorrower = DB::connection('tenant')->table('loan_borrowers')
+            ->where('tenant_id', $tenantId)
+            ->where('member_row_id', $memberId)
+            ->exists();
+
+        if ($hasBorrower) {
+            return back()->with('error', 'Anggota tidak dapat dihapus karena memiliki riwayat pinjaman perorangan.');
+        }
+
+        $hasCommittee = DB::connection('tenant')->table('loan_committee')
+            ->where('tenant_id', $tenantId)
+            ->where('member_row_id', $memberId)
+            ->exists();
+
+        if ($hasCommittee) {
+            return back()->with('error', 'Anggota tidak dapat dihapus karena tercatat sebagai pengurus proposal pinjaman.');
+        }
+
+        $hasOfficer = DB::connection('tenant')->table('group_officers')
+            ->where('tenant_id', $tenantId)
+            ->where('member_row_id', $memberId)
+            ->exists();
+
+        if ($hasOfficer) {
+            return back()->with('error', 'Anggota tidak dapat dihapus karena tercatat sebagai pengurus kelompok.');
+        }
+
+        DB::connection('tenant')->transaction(function () use ($member, $tenantId): void {
+            $person = $member->person;
+            $member->delete();
+
+            if ($person !== null) {
+                $otherMemberCount = DB::connection('tenant')->table('members')
+                    ->where('tenant_id', $tenantId)
+                    ->where('person_row_id', $person->row_id)
+                    ->count();
+
+                if ($otherMemberCount === 0) {
+                    $person->delete();
+                }
+            }
+        });
 
         return to_route('master-data.members.index')->with('success', 'Anggota berhasil dihapus.');
     }

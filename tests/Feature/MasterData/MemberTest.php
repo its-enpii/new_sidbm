@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\MasterData;
 
+use App\Domain\Membership\Models\Group;
+use App\Domain\Membership\Models\GroupMember;
 use App\Domain\Membership\Models\Member;
 use App\Domain\Membership\Services\MemberService;
 use App\Models\Tenant\OrganizationUnit;
@@ -169,6 +171,31 @@ final class MemberTest extends TestCase
 
         self::assertNull(Member::query()->find($memberId));
         self::assertNotNull(Member::withTrashed()->find($memberId)->deleted_at);
+    }
+
+    public function test_destroy_rejects_member_registered_in_group(): void
+    {
+        $member = $this->createMember();
+
+        $group = Group::query()->create([
+            'code' => 'KLP-01',
+            'name' => 'Kelompok 1',
+            'organization_unit_row_id' => $this->village->row_id,
+            'status' => 'active',
+        ]);
+
+        GroupMember::query()->create([
+            'group_row_id' => $group->row_id,
+            'member_row_id' => $member->row_id,
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->delete('/master-data/members/'.$member->row_id);
+
+        $response->assertSessionHas('error');
+        self::assertNotNull(Member::query()->find($member->row_id));
     }
 
     public function test_destroy_requires_authentication(): void

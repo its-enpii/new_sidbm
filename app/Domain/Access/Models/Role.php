@@ -16,6 +16,7 @@ final class Role extends TenantModel
     {
         return [
             'is_system' => 'boolean',
+            'permissions' => 'array',
         ];
     }
 

@@ -68,6 +68,7 @@ function generateInvoice() {
                     <Link :href="`/admin/tenants/${tenant.row_id}/edit`"><AppButton variant="secondary" icon="edit">Edit</AppButton></Link>
                     <Link :href="`/admin/tenants/${tenant.row_id}/users`"><AppButton variant="secondary" icon="group">Users</AppButton></Link>
                     <Link :href="`/admin/tenants/${tenant.row_id}/onboarding/import`"><AppButton variant="secondary" icon="account_balance_wallet">Onboarding / Saldo Awal</AppButton></Link>
+                    <Link :href="`/admin/tenants/${tenant.row_id}/data-purifier`"><AppButton variant="secondary" icon="cleaning_services">Data Purifier</AppButton></Link>
                     <Link :href="`/admin/invoices/create?tenant_id=${tenant.row_id}`"><AppButton variant="secondary" icon="receipt_long">Buat Invoice</AppButton></Link>
                     <AppButton variant="secondary" icon="build" :loading="repairForm.processing" @click="repair">Lengkapi provision</AppButton>
                     <AppButton v-if="tenant.status !== 'suspended'" variant="danger" :loading="suspendForm.processing" @click="suspend">Suspend</AppButton>

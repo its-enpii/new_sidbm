@@ -232,6 +232,7 @@ const editForm = useForm({
 });
 
 const canEdit = computed(() => can('loans.manage') && ['draft', 'verified'].includes(props.loan.status));
+const canDeleteProposal = computed(() => (can('loans.manage') || can('loans.propose')) && props.loan.status === 'draft');
 const canRemoveBeneficiary = computed(() => can('loans.manage') && ['draft', 'verified'].includes(props.loan.status));
 const canVerifyBeneficiary = computed(() => can('loans.verify') && props.loan.status === 'draft');
 const canAllocatePerBeneficiary = computed(() => can('loans.approve') && props.loan.status === 'verified');
@@ -250,6 +251,17 @@ async function confirmRemoveBeneficiary(beneficiary) {
         preserveScroll: true,
         onError: (errors) => { removeError.value = errors?.error || 'Gagal menghapus pemanfaat.'; },
     });
+}
+
+async function confirmDeleteLoan() {
+    if (!await confirmAction({
+        title: 'Hapus Proposal Pinjaman',
+        message: `Apakah Anda yakin ingin menghapus proposal pinjaman ini? Seluruh data pengajuan, jadwal angsuran rancangan, dan data pemanfaat akan dihapus permanen.`,
+        confirmText: 'Ya, Hapus Proposal',
+        variant: 'danger',
+    })) return;
+
+    router.delete(`/lending/loans/${props.loan.row_id}`);
 }
 const editTotal = computed(() => Object.values(editForm.beneficiary_amounts).reduce((sum, value) => sum + Number(value || 0), 0));
 
@@ -633,6 +645,7 @@ function setAllocatedAmount(memberRowId, value) {
                     </a>
                     <AppButton v-if="canCompleteAction" variant="success" icon="task_alt" @click="openCompleteModal">Validasi Lunas</AppButton>
                     <AppButton v-if="canEdit" variant="secondary" icon="edit" @click="openEditModal">Edit Proposal</AppButton>
+                    <AppButton v-if="canDeleteProposal" variant="danger" icon="delete_outline" @click="confirmDeleteLoan">Hapus Proposal</AppButton>
                     <AppButton v-if="canReschedule" variant="secondary" icon="event_repeat" @click="openRescheduleModal">Reschedule Pinjaman</AppButton>
                     <AppButton v-if="canCancelReschedule" variant="danger" icon="undo" @click="openCancelRescheduleModal">Batalkan Reschedule</AppButton>
                     <AppButton v-if="canWriteOff" variant="danger" icon="delete_sweep" @click="openWriteOffModal">Penghapusan Piutang</AppButton>

@@ -127,6 +127,45 @@ final class JournalBrowseTest extends TestCase
         self::assertSame((int) $entry->row_id, (int) $rev->reversed_entry_row_id);
     }
 
+    public function test_bulk_reverse_reverses_multiple_entries_successfully(): void
+    {
+        $entry1 = $this->postedManual(10000, 'Transaksi 1');
+        $entry2 = $this->postedManual(20000, 'Transaksi 2');
+        $entry3 = $this->postedManual(30000, 'Transaksi 3');
+
+        $this->actingAs($this->user)
+            ->post('/accounting/journals/bulk-reverse', [
+                'entry_ids' => [$entry1->row_id, $entry2->row_id, $entry3->row_id],
+                'reversal_date' => '2026-07-20',
+                'reason' => 'Hapus transaksi massal',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        self::assertTrue(JournalEntry::query()->where('reversed_entry_row_id', $entry1->row_id)->exists());
+        self::assertTrue(JournalEntry::query()->where('reversed_entry_row_id', $entry2->row_id)->exists());
+        self::assertTrue(JournalEntry::query()->where('reversed_entry_row_id', $entry3->row_id)->exists());
+    }
+
+    public function test_bulk_reverse_handles_partial_failures_gracefully(): void
+    {
+        $entry1 = $this->postedManual(15000, 'Sudah dibatalkan');
+        app(JournalReversalService::class)->reverse($entry1, '2026-07-19', (int) $this->user->row_id);
+
+        $entry2 = $this->postedManual(25000, 'Belum dibatalkan');
+
+        $this->actingAs($this->user)
+            ->post('/accounting/journals/bulk-reverse', [
+                'entry_ids' => [$entry1->row_id, $entry2->row_id],
+                'reversal_date' => '2026-07-20',
+                'reason' => 'Pembatalan parsial',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('warning');
+
+        self::assertTrue(JournalEntry::query()->where('reversed_entry_row_id', $entry2->row_id)->exists());
+    }
+
     private function postedManual(float $amount, string $description): JournalEntry
     {
         $entry = JournalEntry::query()->create([

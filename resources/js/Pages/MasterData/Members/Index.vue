@@ -1,5 +1,6 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { useConfirm } from '../../../composables/useConfirm';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
@@ -9,6 +10,18 @@ import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
 import { useCan } from '../../../composables/useCan';
 
 const { can } = useCan();
+const { confirm: confirmAction } = useConfirm();
+
+async function confirmDelete(row) {
+    if (!await confirmAction({
+        title: 'Hapus Anggota',
+        message: `Apakah Anda yakin ingin menghapus anggota "${row.name}"? Penghapusan hanya berhasil jika anggota tidak terdaftar di kelompok dan tidak memiliki riwayat pinjaman.`,
+        confirmText: 'Ya, Hapus',
+        variant: 'danger',
+    })) return;
+
+    router.delete(`/master-data/members/${row.row_id}`, { preserveScroll: true });
+}
 
 defineProps({
     members: { type: Object, required: true },

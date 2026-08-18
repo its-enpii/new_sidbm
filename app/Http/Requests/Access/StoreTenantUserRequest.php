@@ -1,0 +1,44 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests\Access;
+
+use App\Http\Requests\Concerns\AuthorizesPermission;
+use App\Models\User;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
+
+final class StoreTenantUserRequest extends FormRequest
+{
+    use AuthorizesPermission;
+
+    public function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:150'],
+            'username' => ['required', 'string', 'max:80', 'alpha_dash', Rule::unique(User::class, 'username')],
+            'email' => ['nullable', 'email', 'max:150', Rule::unique(User::class, 'email')],
+            'password' => ['required', 'string', 'confirmed', Password::defaults()],
+            'status' => ['required', Rule::in(['active', 'suspended', 'inactive'])],
+            'role' => ['nullable', 'string', 'max:80'],
+            'is_village_user' => ['nullable', 'boolean'],
+            'village_row_id' => ['nullable', 'integer'],
+        ];
+    }
+
+    public function attributes(): array
+    {
+        return [
+            'name' => 'nama lengkap',
+            'username' => 'username',
+            'email' => 'email',
+            'password' => 'password',
+            'status' => 'status',
+            'role' => 'role',
+            'is_village_user' => 'operator desa',
+            'village_row_id' => 'desa',
+        ];
+    }
+}

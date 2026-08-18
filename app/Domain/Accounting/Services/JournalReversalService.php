@@ -75,4 +75,42 @@ final readonly class JournalReversalService
 
         return $this->postingService->post($reversal, $platformUserId);
     }
+
+    /**
+     * @param  array<int>  $entryRowIds
+     * @return array{reversed: list<JournalEntry>, errors: list<string>}
+     */
+    public function bulkReverse(
+        array $entryRowIds,
+        \DateTimeInterface|string $reversalDate,
+        int $platformUserId,
+        ?string $reason = null,
+    ): array {
+        $reversed = [];
+        $errors = [];
+
+        $entries = JournalEntry::query()
+            ->whereIn('row_id', $entryRowIds)
+            ->get();
+
+        foreach ($entries as $entry) {
+            try {
+                $reversed[] = $this->reverse(
+                    original: $entry,
+                    reversalDate: $reversalDate,
+                    platformUserId: $platformUserId,
+                    reason: $reason ?: "Reversal of journal {$entry->id}",
+                );
+            } catch (DomainException $e) {
+                $errors[] = "Jurnal #{$entry->id}: {$e->getMessage()}";
+            } catch (\Throwable $e) {
+                $errors[] = "Jurnal #{$entry->id}: gagal dibatalkan ({$e->getMessage()})";
+            }
+        }
+
+        return [
+            'reversed' => $reversed,
+            'errors' => $errors,
+        ];
+    }
 }

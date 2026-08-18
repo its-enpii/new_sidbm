@@ -138,10 +138,14 @@ final class GroupTest extends TestCase
         self::assertSame(0, Group::query()->count());
     }
 
-    public function test_destroy_soft_deletes_group_and_redirects(): void
+    public function test_destroy_soft_deletes_empty_group_and_redirects(): void
     {
-        $this->actingAs($this->user)->post('/master-data/groups', $this->groupData());
-        $group = Group::query()->firstOrFail();
+        $group = Group::query()->create([
+            'code' => 'KLP-EMPTY',
+            'name' => 'Kelompok Kosong',
+            'organization_unit_row_id' => $this->village->row_id,
+            'status' => 'active',
+        ]);
 
         $this->actingAs($this->user)
             ->delete('/master-data/groups/'.$group->row_id)
@@ -151,10 +155,26 @@ final class GroupTest extends TestCase
         self::assertNotNull(Group::withTrashed()->find($group->row_id)->deleted_at);
     }
 
-    public function test_destroy_requires_authentication(): void
+    public function test_destroy_rejects_group_with_active_members(): void
     {
         $this->actingAs($this->user)->post('/master-data/groups', $this->groupData());
         $group = Group::query()->firstOrFail();
+
+        $response = $this->actingAs($this->user)
+            ->delete('/master-data/groups/'.$group->row_id);
+
+        $response->assertSessionHas('error');
+        self::assertNotNull(Group::query()->find($group->row_id));
+    }
+
+    public function test_destroy_requires_authentication(): void
+    {
+        $group = Group::query()->create([
+            'code' => 'KLP-EMPTY',
+            'name' => 'Kelompok Kosong',
+            'organization_unit_row_id' => $this->village->row_id,
+            'status' => 'active',
+        ]);
         $groupId = $group->row_id;
 
         // Forget auth state explicitly so we can verify the unauthenticated path.
@@ -171,8 +191,12 @@ final class GroupTest extends TestCase
 
     public function test_destroy_rejects_already_soft_deleted_group(): void
     {
-        $this->actingAs($this->user)->post('/master-data/groups', $this->groupData());
-        $group = Group::query()->firstOrFail();
+        $group = Group::query()->create([
+            'code' => 'KLP-EMPTY',
+            'name' => 'Kelompok Kosong',
+            'organization_unit_row_id' => $this->village->row_id,
+            'status' => 'active',
+        ]);
         $group->delete();
 
         $this->actingAs($this->user)

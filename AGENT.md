@@ -1,4 +1,4 @@
-# AGENT.md — Pedoman Wajib untuk Coding UI
+﻿# AGENT.md — Pedoman Wajib untuk Coding UI
 
 Project ini adalah **Laravel + Inertia.js + Vue 3 (Composition API) + Tailwind** dengan token **Material Design 3** (`surface-container-lowest`, `on-surface-variant`, `primary`, `error-container`, dst). Sebelum menulis satu baris pun markup atau styling UI, **WAJIB** mengikuti protokol di bawah ini. Aturan ini meng-override default behavior — patuhi persis seperti tertulis.
 
@@ -102,7 +102,7 @@ Untuk setiap kebutuhan UI, bandingkan dengan inventory:
 Boleh membuat komponen baru hanya jika:
 
 1. Inventarisasi sudah selesai dan kecocokan jelas **tidak ada**.
-2. Komponen baru akan digunakan **≥ 2 kali** atau punya kompleksitas nyata (≥ ~50 baris).
+2. Komponen baru akan digunakan **â‰¥ 2 kali** atau punya kompleksitas nyata (â‰¥ ~50 baris).
 3. Nama mengikuti konvensi: PascalCase, bernoun (`AppSuffix` untuk atomik, domain-named untuk feature).
 4. Pakai `defineProps` + `defineModel` (Composition API `<script setup>`), `defineOptions({ inheritAttrs: false })` jika membungkus elemen root.
 5. Slot composition (`#header`, `#footer`, `#default`), bukan prop string HTML.
@@ -142,31 +142,31 @@ Ukuran tombol pakai `min-h-10` / `min-h-12` / `min-h-14` (lihat `AppButton.sizes
 
 ## Anti-Contoh (Jangan Lakukan)
 
-❌ Tulis `<button class="px-4 py-2 bg-blue-500 text-white rounded">Simpan</button>` di halaman baru — pakailah `<AppButton variant="primary">Simpan</AppButton>`.
+âŒ Tulis `<button class="px-4 py-2 bg-blue-500 text-white rounded">Simpan</button>` di halaman baru — pakailah `<AppButton variant="primary">Simpan</AppButton>`.
 
-❌ Tulis `<button class="grid size-9 place-items-center rounded-full ...">` untuk icon-only — pakailah `<AppIconButton name="x" tone="..." />`.
+âŒ Tulis `<button class="grid size-9 place-items-center rounded-full ...">` untuk icon-only — pakailah `<AppIconButton name="x" tone="..." />`.
 
-❌ Tulis `<input type="checkbox" class="size-4 rounded border-outline-variant text-primary ...">` raw — pakailah `<AppCheckbox v-model="..." />`.
+âŒ Tulis `<input type="checkbox" class="size-4 rounded border-outline-variant text-primary ...">` raw — pakailah `<AppCheckbox v-model="..." />`.
 
-❌ Tulis peer-switch UI manual `<label><input class="peer sr-only"> <span class="... peer-checked:bg-primary"></span> <span class="... peer-checked:translate-x-4"></span></label>` — pakailah `<AppSwitch v-model="..." />` (atau `<AppCheckbox>` untuk multi-select array).
+âŒ Tulis peer-switch UI manual `<label><input class="peer sr-only"> <span class="... peer-checked:bg-primary"></span> <span class="... peer-checked:translate-x-4"></span></label>` — pakailah `<AppSwitch v-model="..." />` (atau `<AppCheckbox>` untuk multi-select array).
 
-❌ Inline `<div class="bg-emerald-500/10 text-emerald-700"> ... </div>` untuk status pill — pakailah `<AppBadge tone="success"> ... </AppBadge>`. Untuk ikon + label, `<AppIcon tone="success" />`.
+âŒ Inline `<div class="bg-emerald-500/10 text-emerald-700"> ... </div>` untuk status pill — pakailah `<AppBadge tone="success"> ... </AppBadge>`. Untuk ikon + label, `<AppIcon tone="success" />`.
 
-❌ Hardcoded warna `bg-emerald-{500/50/100}`, `text-red-600`, `bg-amber-50`, `border-slate-300`, `bg-blue-500/10`, `text-gray-700`, dll. — selalu ganti dengan token MD3: `bg-secondary-container`, `text-secondary`, `bg-tertiary-fixed`, `border-outline-variant`, `bg-primary-container`, `text-on-surface-variant`, dsb. Tone mapping: emerald→secondary, amber→tertiary, red/rose→error, blue→primary/info, slate/gray→on-surface-variant.
+âŒ Hardcoded warna `bg-emerald-{500/50/100}`, `text-red-600`, `bg-amber-50`, `border-slate-300`, `bg-blue-500/10`, `text-gray-700`, dll. — selalu ganti dengan token MD3: `bg-secondary-container`, `text-secondary`, `bg-tertiary-fixed`, `border-outline-variant`, `bg-primary-container`, `text-on-surface-variant`, dsb. Tone mapping: emerald→secondary, amber→tertiary, red/rose→error, blue→primary/info, slate/gray→on-surface-variant.
 
-❌ `window.confirm("Yakin hapus?")` di halaman baru — pakailah `useConfirm()` + `AppConfirmDialog`.
+âŒ `window.confirm("Yakin hapus?")` di halaman baru — pakailah `useConfirm()` + `AppConfirmDialog`.
 
-❌ `alert("Data tersimpan")` — pakai flash message dari controller (`session()->flash('flash.banner', '...')`), atau `<AppBadge tone="success">` inline.
+âŒ `alert("Data tersimpan")` — pakai flash message dari controller (`session()->flash('flash.banner', '...')`), atau `<AppBadge tone="success">` inline.
 
-❌ Tabel `<table><thead>...` manual untuk data besar — pakailah `SmartDataTable`. (Untuk tabel ringkas/laporan, `<table>` manual masih boleh sepanjang pakai kelas token MD3.)
+âŒ Tabel `<table><thead>...` manual untuk data besar — pakailah `SmartDataTable`. (Untuk tabel ringkas/laporan, `<table>` manual masih boleh sepanjang pakai kelas token MD3.)
 
-❌ Format rupiah inline `Rp ${value.toLocaleString('id-ID')}` — pakailah `useMoney().format(value)`.
+âŒ Format rupiah inline `Rp ${value.toLocaleString('id-ID')}` — pakailah `useMoney().format(value)`.
 
-❌ `if ($page.props.auth.user.permissions.includes('x'))` di template — pakailah `can('x')` dari `useCan`.
+âŒ `if ($page.props.auth.user.permissions.includes('x'))` di template — pakailah `can('x')` dari `useCan`.
 
-❌ Bikin tombol confirm dengan `setTimeout` + custom state — pakailah `AppConfirmDialog`.
+âŒ Bikin tombol confirm dengan `setTimeout` + custom state — pakailah `AppConfirmDialog`.
 
-❌ Taruh komponen baru di `resources/js/Pages/.../components/` — taruh di `resources/js/Components/` sesuai konvensi.
+âŒ Taruh komponen baru di `resources/js/Pages/.../components/` — taruh di `resources/js/Components/` sesuai konvensi.
 
 ---
 
@@ -179,3 +179,26 @@ Sebelum nulis markup:
 3. **Bikin baru** hanya kalau memang tak ada — lalu update inventory.
 
 Kalau ragu di tengah jalan, hentikan dan kerjakan ulang Langkah 1 — kecepatan tanpa cek ulang hampir selalu menghasilkan markup yang bentrok dengan komponen yang sudah ada.
+
+---
+
+## Protokol Wajib: Update CHANGELOG.md Sebelum Git Push
+
+Sebelum melakukan git commit dan git push ke remote repository, **WAJIB** memperbarui berkas CHANGELOG.md di root proyek.
+
+### Aturan Penulisan CHANGELOG:
+1. **Berbasis Data Riil dan Menyeluruh (Bukan Parsial 1 Sesi):**
+   - Jalankan git status dan telaah seluruh file yang bertambah/berubah di seluruh workspace (backend PHP/Laravel, frontend Vue/Inertia, CSS, database migration, routing, hingga file konfigurasi/testing).
+   - Jangan hanya mencatat 1 perubahan kecil dari sesi prompt terakhir. Changelog harus mencerminkan **akumulasi seluruh perubahan riil** yang ada di changeset.
+2. **Format Standar [Keep a Changelog](https://keepachangelog.com/id/1.0.0/):**
+   - Gunakan kategori standar:
+     - Added untuk fitur, komponen, endpoint, atau migrasi baru.
+     - Changed untuk perubahan fungsionalitas, refactor komponen, atau perubahan token styling.
+     - Fixed untuk perbaikan bug, error query/database, atau perbaikan tampilan.
+     - Removed untuk file, komponen, atau kode yang dihapus.
+   - Sebutkan konteks teknis yang jelas (misal: nama file komponen App*, service domain, nama tabel/constraint migrasi, breakpoint CSS).
+3. **Alur Eksekusi:**
+   1. git status / git diff --stat untuk inventarisasi semua berkas yang termodifikasi.
+   2. Edit CHANGELOG.md pada bagian [Unreleased] atau header tanggal rilis terkait.
+   3. Stage berkas CHANGELOG.md bersama perubahan lainnya (git add CHANGELOG.md), jalankan linter jika relevan, lalu commit dan push.
+

@@ -26,6 +26,7 @@ const currentPath = computed(() => page.url.split('?')[0]);
 const mobileMenuOpen = ref(false);
 const expanded = ref({});
 const logoutForm = useForm({});
+const isTrainingMode = computed(() => page.props.tenant?.is_training_mode === true);
 
 function can(permission) {
     if (!permission) return true;
@@ -307,6 +308,20 @@ const sections = [
         ],
     },
     {
+        label: 'Pengguna',
+        items: [
+            {
+                key: 'users-access',
+                label: 'Pengguna',
+                icon: 'manage_accounts',
+                children: [
+                    { label: 'Manajemen User', href: '/access/users' },
+                    { label: 'Manajemen Role', href: '/access/roles' },
+                ],
+            },
+        ],
+    },
+    {
         label: 'Pengaturan',
         items: [
             { label: 'Pengaturan', icon: 'settings', href: '/settings' },
@@ -484,7 +499,21 @@ function logout() {
                 <Link href="/profile" class="grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary" aria-label="Profil"><AppIcon name="account_circle" class="text-2xl leading-none" /></Link>
             </div>
         </header>
-        <main class="p-4 sm:p-6 lg:ml-64 lg:p-8"><slot /></main>
+        <main class="p-4 sm:p-6 lg:ml-64 lg:p-8">
+            <div
+                v-if="isTrainingMode"
+                class="mb-6 flex items-center justify-between gap-3 rounded-xl border border-warning/40 bg-warning-container/30 px-4 py-3 text-sm text-primary shadow-sm"
+            >
+                <div class="flex items-center gap-2.5">
+                    <span class="inline-block size-2.5 rounded-full bg-warning animate-pulse" />
+                    <p class="font-medium">
+                        <span class="font-bold">Mode Pelatihan Aktif:</span>
+                        Transaksi yang di-input pada periode ini adalah data simulasi latihan dan dapat dibersihkan oleh Superadmin.
+                    </p>
+                </div>
+            </div>
+            <slot />
+        </main>
         <AssistantWidget v-if="assistantEnabled" />
         <AppConfirmDialog />
         <AppToast />

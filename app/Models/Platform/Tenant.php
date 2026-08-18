@@ -13,9 +13,22 @@ final class Tenant extends PlatformModel
     {
         return [
             'metadata' => 'array',
+            'is_training_mode' => 'boolean',
+            'training_started_at' => 'datetime',
+            'training_ended_at' => 'datetime',
             'provisioned_at' => 'datetime',
             'suspended_at' => 'datetime',
         ];
+    }
+
+    public function isTraining(): bool
+    {
+        return (bool) ($this->is_training_mode ?? false);
+    }
+
+    public function hasCompletedTraining(): bool
+    {
+        return $this->training_ended_at !== null && ! $this->isTraining();
     }
 
     public function placement(): HasOne

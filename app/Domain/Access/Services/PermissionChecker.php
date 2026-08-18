@@ -97,25 +97,32 @@ final class PermissionChecker
             return $this->cache[$userId] = null;
         }
 
-        $codes = UserRole::query()
+        $userRoles = UserRole::query()
             ->where('platform_user_id', $userId)
-            ->with('role:row_id,code,tenant_id')
-            ->get()
-            ->map(fn (UserRole $ur): ?string => $ur->role?->code)
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
+            ->with('role')
+            ->get();
 
-        if ($codes === []) {
+        if ($userRoles->isEmpty()) {
             return $this->cache[$userId] = null;
         }
 
         $packs = config('permissions.roles', []);
         $perms = [];
-        foreach ($codes as $code) {
-            $pack = $packs[$code]['permissions'] ?? [];
-            foreach ($pack as $p) {
+        foreach ($userRoles as $ur) {
+            $role = $ur->role;
+            if ($role === null) {
+                continue;
+            }
+            if ($role->code === 'admin') {
+                $perms['*'] = true;
+
+                continue;
+            }
+            $rolePerms = is_array($role->permissions)
+                ? $role->permissions
+                : ($packs[$role->code]['permissions'] ?? []);
+
+            foreach ($rolePerms as $p) {
                 $perms[$p] = true;
             }
         }

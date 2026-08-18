@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Lending;
 
+use App\Domain\Access\Services\PermissionChecker;
 use App\Domain\Accounting\Models\Account;
 use App\Domain\Lending\Models\Loan;
 use App\Domain\Lending\Models\LoanProduct;
@@ -313,6 +314,19 @@ final class LoanController
         $loans->updateProposal($loan, $request->validated(), (int) $request->user()->row_id);
 
         return to_route('lending.loans.show', ['loan' => $loan->row_id])->with('success', 'Proposal pinjaman berhasil diperbarui.');
+    }
+
+    public function destroy(Request $request, Loan $loan, LoanService $loans, PermissionChecker $permissions): RedirectResponse
+    {
+        $permissions->denyUnless($request->user(), 'loans.manage');
+
+        try {
+            $loans->deleteProposal($loan);
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return to_route('lending.loans.index')->with('success', 'Proposal pinjaman berhasil dihapus.');
     }
 
     public function removeBeneficiary(Request $request, Loan $loan, int $member, LoanService $loans): RedirectResponse

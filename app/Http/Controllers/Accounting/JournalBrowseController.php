@@ -91,6 +91,42 @@ final class JournalBrowseController
         );
     }
 
+    public function bulkReverse(Request $request): RedirectResponse
+    {
+        $this->permissions->denyUnless($request->user(), 'journals.create');
+
+        $data = $request->validate([
+            'entry_ids' => ['required', 'array', 'min:1'],
+            'entry_ids.*' => ['required', 'integer'],
+            'reversal_date' => ['required', 'date'],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $entryRowIds = array_map('intval', $data['entry_ids']);
+        $result = $this->reversals->bulkReverse(
+            entryRowIds: $entryRowIds,
+            reversalDate: $data['reversal_date'],
+            platformUserId: (int) $request->user()->row_id,
+            reason: $data['reason'] ?? null,
+        );
+
+        $reversedCount = count($result['reversed']);
+        $errors = $result['errors'];
+
+        if ($reversedCount === 0 && ! empty($errors)) {
+            return back()->with('error', 'Gagal membatalkan transaksi: '.implode(', ', $errors));
+        }
+
+        $message = $reversedCount.' transaksi berhasil dibatalkan (reverse).';
+        if (! empty($errors)) {
+            $message .= ' Namun '.count($errors).' transaksi gagal: '.implode(', ', $errors);
+
+            return back()->with('warning', $message);
+        }
+
+        return back()->with('success', $message);
+    }
+
     /**
      * Tampilkan form edit jurnal yang sudah di-post.
      * Hanya source_type=manual atau asset_purchase yang boleh di-edit.
@@ -125,38 +161,38 @@ final class JournalBrowseController
         $prefill = [
             'transaction_date' => $entry->transaction_date?->toDateString() ?? '',
             'transaction_type' => $entry->transaction_type,
-            'description' => $entry->description,
-            'reference' => $entry->legacy_relation,
+            'description' => $entry->description ?? '',
+            'reference' => $entry->legacy_relation ?? '',
             'amount' => (float) ($debitLine?->debit ?? 0),
-            'sumber_dana_row_id' => $creditLine?->account_row_id,
-            'disimpan_ke_row_id' => $debitLine?->account_row_id,
-            'asset_name' => '',
-            'asset_quantity' => '',
-            'asset_unit_cost' => '',
-            'asset_useful_life_months' => '',
+            'disimpan_ke_row_id' => $debitLine?->account_row_id ? (int) $debitLine->account_row_id : null,
+            'sumber_dana_row_id' => $creditLine?->account_row_id ? (int) $creditLine->account_row_id : null,
+            'asset_name' => null,
+            'asset_quantity' => null,
+            'asset_unit_cost' => null,
+            'asset_useful_life_months' => null,
         ];
 
-        // Kalau jurnal ini asset_purchase, isi asset fields dari Asset terkait.
-        if ($entry->source_type === 'asset_purchase' && $entry->source_row_id !== null) {
-            $asset = Asset::query()->withTrashed()->find($entry->source_row_id);
+        if ($entry->source_type === 'asset_purchase') {
+            $asset = Asset::query()
+                ->where('purchased_at', $entry->transaction_date)
+                ->where('cost', $prefill['amount'])
+                ->latest('row_id')
+                ->first();
+
             if ($asset !== null) {
-                $prefill['asset_name'] = (string) $asset->name;
+                $prefill['asset_name'] = $asset->name;
                 $prefill['asset_quantity'] = (int) $asset->quantity;
                 $prefill['asset_unit_cost'] = (float) $asset->unit_cost;
                 $prefill['asset_useful_life_months'] = (int) $asset->useful_life_months;
             }
         }
 
-        if (! in_array($prefill['transaction_type'], $allowed, true)) {
-            $prefill['transaction_type'] = '';
-        }
-
         return Inertia::render('Accounting/JournalEntries/Edit', [
-            'originalEntry' => [
+            'entry' => [
                 'row_id' => (int) $entry->row_id,
                 'id' => (int) $entry->id,
+                'journal_number' => $entry->journal_number ?: (string) $entry->id,
                 'transaction_date' => $entry->transaction_date?->toDateString(),
-                'transaction_type' => $entry->transaction_type,
                 'description' => $entry->description,
                 'amount' => $prefill['amount'],
                 'source_type' => $entry->source_type,
@@ -191,7 +227,6 @@ final class JournalBrowseController
             throw ValidationException::withMessages(['reason' => 'Alasan edit maksimal 500 karakter.']);
         }
 
-        // Mirror validasi di JournalEntryRequest::rules() + withValidator() tanpa dependency injection.
         $isInventory = JournalEntryOptionResolver::isAssetPurchase((string) $request->input('transaction_type', ''));
 
         $rules = [

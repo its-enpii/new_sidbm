@@ -219,6 +219,26 @@ final class LoanService
         });
     }
 
+    public function deleteProposal(Loan $loan): void
+    {
+        if ($loan->status !== 'draft') {
+            throw new RuntimeException('Hanya pinjaman dengan status draft / proposal yang dapat dihapus.');
+        }
+
+        if ($loan->journal_entry_row_id !== null || $loan->disbursement_journal_row_id !== null) {
+            throw new RuntimeException('Pinjaman yang sudah memiliki pencatatan jurnal tidak dapat dihapus.');
+        }
+
+        DB::connection('tenant')->transaction(function () use ($loan): void {
+            $loan->beneficiaries()->delete();
+            $loan->borrower()->delete();
+            $loan->committee()->delete();
+            $loan->installments()->delete();
+            $loan->statusHistories()->delete();
+            $loan->delete();
+        });
+    }
+
     public function removeBeneficiary(Loan $loan, int $memberRowId, int $userId): Loan
     {
         if (! in_array($loan->status, ['draft', 'verified'], true)) {

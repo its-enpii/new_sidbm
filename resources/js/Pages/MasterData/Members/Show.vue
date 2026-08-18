@@ -1,16 +1,32 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import LoanHistoryTable from '../../../Components/LoanHistoryTable.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+import { useConfirm } from '../../../composables/useConfirm';
 
-defineProps({
+const props = defineProps({
     member: { type: Object, required: true },
     loans: { type: Array, default: () => [] },
     summary: { type: Object, required: true },
 });
+
+const { can } = useCan();
+const { confirm: confirmAction } = useConfirm();
+
+async function confirmDelete() {
+    if (!await confirmAction({
+        title: 'Hapus Anggota',
+        message: `Apakah Anda yakin ingin menghapus anggota "${props.member.name}"? Penghapusan hanya berhasil jika anggota tidak terdaftar di kelompok dan tidak memiliki riwayat pinjaman.`,
+        confirmText: 'Ya, Hapus Anggota',
+        variant: 'danger',
+    })) return;
+
+    router.delete(`/master-data/members/${props.member.row_id}`);
+}
 
 const money = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
 function formatMoney(v) {
@@ -47,9 +63,20 @@ const genderLabels = { male: 'Laki-laki', female: 'Perempuan', L: 'Laki-laki', P
                         <span v-if="member.nik"> · NIK {{ member.nik }}</span>
                     </p>
                 </div>
-                <Link :href="`/master-data/members/${member.row_id}/edit`">
-                    <AppButton variant="secondary" icon="edit" size="compact">Edit</AppButton>
-                </Link>
+                <div class="flex items-center gap-2">
+                    <Link v-if="can('members.manage')" :href="`/master-data/members/${member.row_id}/edit`">
+                        <AppButton variant="secondary" icon="edit" size="compact">Edit</AppButton>
+                    </Link>
+                    <AppButton
+                        v-if="can('members.manage')"
+                        variant="danger"
+                        icon="delete_outline"
+                        size="compact"
+                        @click="confirmDelete"
+                    >
+                        Hapus Anggota
+                    </AppButton>
+                </div>
             </header>
 
             <div class="grid gap-3 sm:grid-cols-3">

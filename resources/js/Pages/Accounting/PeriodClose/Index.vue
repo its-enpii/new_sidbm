@@ -175,7 +175,7 @@ function fillRetained() {
 }
 
 function formatPeriodDate(v) {
-    if (!v) return 'â€”';
+    if (!v) return '—';
     const d = new Date(v);
     if (Number.isNaN(d.getTime())) return v;
     return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(d);
@@ -206,7 +206,7 @@ async function submitAllocation() {
                     <p class="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Keuangan</p>
                     <h1 class="mt-1 text-2xl font-bold text-primary">Tutup Buku</h1>
                     <p class="mt-1 text-sm text-on-surface-variant">
-                        Tutup periode, bawa saldo akun ke tahun depan, lalu alokasi laba â€” satu langkah per tab.
+                        Tutup periode, bawa saldo akun ke tahun depan, lalu alokasi laba — satu langkah per tab.
                     </p>
                 </div>
                 <div class="w-40">
@@ -277,7 +277,7 @@ async function submitAllocation() {
                             <tr v-for="m in months" :key="m.month" class="border-t border-outline-variant/40">
                                 <td class="px-3 py-2 font-medium">{{ m.label }}</td>
                                 <td class="px-3 py-2 whitespace-nowrap text-on-surface-variant">
-                                    {{ formatPeriodDate(m.starts_at) }} â€“ {{ formatPeriodDate(m.ends_at) }}
+                                    {{ formatPeriodDate(m.starts_at) }} – {{ formatPeriodDate(m.ends_at) }}
                                 </td>
                                 <td class="px-3 py-2">
                                     <AppBadge :tone="statusTone[m.status] || 'neutral'">
@@ -291,7 +291,7 @@ async function submitAllocation() {
                                     {{ m.draft_journals }}
                                 </td>
                                 <td class="px-3 py-2 whitespace-nowrap text-on-surface-variant">
-                                    {{ m.closed_at || 'â€”' }}
+                                    {{ m.closed_at || '—' }}
                                 </td>
                                 <td class="px-3 py-2 text-right">
                                     <div v-if="allowClose" class="flex justify-end gap-1">
@@ -312,7 +312,7 @@ async function submitAllocation() {
                                             Buka
                                         </AppButton>
                                     </div>
-                                    <span v-else class="text-xs text-on-surface-variant">â€”</span>
+                                    <span v-else class="text-xs text-on-surface-variant">—</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -326,7 +326,7 @@ async function submitAllocation() {
                     <div>
                         <h2 class="text-sm font-bold text-primary">Neraca Saldo per 31-12-{{ year }}</h2>
                         <p class="text-xs text-on-surface-variant">
-                            Saldo akun pada akhir tahun buku â€” debit/kredit seimbang sebagai syarat tutup tahun.
+                            Saldo akun pada akhir tahun buku — debit/kredit seimbang sebagai syarat tutup tahun.
                         </p>
                     </div>
                     <AppBadge :tone="trial_balance.balanced ? 'success' : 'error'">
@@ -365,7 +365,7 @@ async function submitAllocation() {
                             >
                                 <td class="px-3 py-2">
                                     <span class="font-medium">{{ row.code }}</span>
-                                    <span class="text-on-surface-variant"> Â· {{ row.name }}</span>
+                                    <span class="text-on-surface-variant"> · {{ row.name }}</span>
                                 </td>
                                 <td class="px-3 py-2 text-right tabular-nums">{{ formatMoneyDecimal(row.ns_debit) }}</td>
                                 <td class="px-3 py-2 text-right tabular-nums">{{ formatMoneyDecimal(row.ns_credit) }}</td>
@@ -429,7 +429,7 @@ async function submitAllocation() {
                 <div class="border-b border-outline-variant px-4 py-3">
                     <h2 class="text-sm font-bold text-primary">Alokasi laba tahun {{ year }}</h2>
                     <p class="text-xs text-on-surface-variant">
-                        Dr {{ allocation.accounts?.earnings?.code || '3.2.02.01' }} â†’ Cr utang laba / laba ditahan.
+                        Dr {{ allocation.accounts?.earnings?.code || '3.2.02.01' }} → Cr utang laba / laba ditahan.
                         Tanggal biasanya 1 Jan tahun berikutnya (periode harus terbuka).
                     </p>
                 </div>
@@ -462,7 +462,7 @@ async function submitAllocation() {
                                     #{{ e.id }}
                                 </Link>
                                 <span class="text-on-surface-variant">
-                                    Â· {{ e.transaction_date }} Â· {{ e.description }}
+                                    · {{ e.transaction_date }} · {{ e.description }}
                                 </span>
                             </li>
                         </ul>
@@ -478,7 +478,7 @@ async function submitAllocation() {
                             <AppInput
                                 v-model="allocForm.note"
                                 label="Keterangan (opsional)"
-                                placeholder="Alokasi laba â€¦"
+                                placeholder="Alokasi laba …"
                             />
                         </div>
 
@@ -633,7 +633,7 @@ async function submitAllocation() {
                         <span v-if="allocation.already_allocated > 0">
                             (sudah {{ formatMoney(allocation.already_allocated) }}).
                         </span>
-                        <span v-else-if="allocation.available <= 0">(laba/rugi â‰¤ 0).</span>
+                        <span v-else-if="allocation.available <= 0">(laba/rugi ≤ 0).</span>
                     </p>
                 </template>
 

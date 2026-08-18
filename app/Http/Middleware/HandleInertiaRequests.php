@@ -59,6 +59,7 @@ final class HandleInertiaRequests extends Middleware
             'flash' => $this->resolveFlash($request),
             'logoPath' => $this->resolveLogoPath(),
             'assistant' => $this->resolveAssistant($request),
+            'tenant' => $this->resolveTenantInfo(),
         ];
     }
 
@@ -144,6 +145,27 @@ final class HandleInertiaRequests extends Middleware
             }
 
             return asset('storage/'.ltrim($path, '/'));
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    private function resolveTenantInfo(): ?array
+    {
+        try {
+            $context = app(TenantContext::class);
+            if (! $context->isInitialized()) {
+                return null;
+            }
+            $tenant = $context->tenant();
+
+            return [
+                'row_id' => $tenant->row_id,
+                'name' => $tenant->name,
+                'code' => $tenant->code,
+                'is_training_mode' => (bool) ($tenant->is_training_mode ?? false),
+                'training_started_at' => $tenant->training_started_at?->toIso8601String(),
+            ];
         } catch (Throwable) {
             return null;
         }

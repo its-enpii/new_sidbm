@@ -1,4 +1,4 @@
-ï»¿<script setup>
+<script setup>
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppBadge from '../../../Components/AppBadge.vue';
@@ -12,8 +12,21 @@ import SmartSelect from '../../../Components/SmartSelect.vue';
 import SmartDataTable from '../../../Components/SmartDataTable.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
 import { useCan } from '../../../composables/useCan';
+import { useConfirm } from '../../../composables/useConfirm';
 
 const { can } = useCan();
+const { confirm: confirmAction } = useConfirm();
+
+async function confirmDelete(row) {
+    if (!await confirmAction({
+        title: 'Hapus Proposal Pinjaman',
+        message: `Apakah Anda yakin ingin menghapus proposal pinjaman ${row.loan_number || '#' + row.row_id}? Data akan dihapus permanen.`,
+        confirmText: 'Ya, Hapus',
+        variant: 'danger',
+    })) return;
+
+    router.delete(`/lending/loans/${row.row_id}`, { preserveScroll: true });
+}
 
 const props = defineProps({
     loans: { type: Object, required: true },
@@ -74,7 +87,7 @@ function switchTab(tabKey) {
 const moneyFormatter = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
 
 function formatNumber(value) {
-    if (value === null || value === undefined || value === '') return 'â€”';
+    if (value === null || value === undefined || value === '') return '—';
     return moneyFormatter.format(Number(value));
 }
 
@@ -87,9 +100,9 @@ function formatServiceRate(value) {
 }
 
 function formatDate(value) {
-    if (!value) return 'â€”';
+    if (!value) return '—';
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'â€”';
+    if (Number.isNaN(date.getTime())) return '—';
     return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
 }
 
@@ -215,9 +228,20 @@ const emptyMessages = {
                         </template>
 
                         <template #actions="{ row }">
-                            <Link :href="`/lending/loans/${row.row_id}`">
-                                <AppButton variant="ghost" size="compact" icon="visibility">Detail</AppButton>
-                            </Link>
+                            <div class="flex items-center justify-end gap-1">
+                                <Link :href="`/lending/loans/${row.row_id}`">
+                                    <AppButton variant="ghost" size="compact" icon="visibility">Detail</AppButton>
+                                </Link>
+                                <AppButton
+                                    v-if="row.status === 'draft' && (can('loans.manage') || can('loans.propose'))"
+                                    variant="danger"
+                                    size="compact"
+                                    icon="delete_outline"
+                                    @click="confirmDelete(row)"
+                                >
+                                    Hapus
+                                </AppButton>
+                            </div>
                         </template>
                     </SmartDataTable>
                 </div>

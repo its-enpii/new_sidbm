@@ -1,6 +1,9 @@
 <?php
 
 declare(strict_types=1);
+use App\Http\Requests\Access\StoreTenantUserRequest;
+use App\Http\Requests\Access\TenantRoleRequest;
+use App\Http\Requests\Access\UpdateTenantUserRequest;
 use App\Http\Requests\Accounting\AggregateJournalRequest;
 use App\Http\Requests\Accounting\JournalEntryRequest;
 use App\Http\Requests\Accounting\LoanInstallmentJournalRequest;
@@ -84,6 +87,11 @@ return [
         // Settings / assistant
         'settings.manage',
         'assistant.use',
+        // User & Role Access Management
+        'users.view',
+        'users.manage',
+        'roles.view',
+        'roles.manage',
     ],
 
     'roles' => [
@@ -205,6 +213,8 @@ return [
         '/budgeting' => 'budgeting.view',
         '/notifications/billing' => 'messages.send',
         '/billing/invoices' => 'billing.view',
+        '/access/users' => 'users.view',
+        '/access/roles' => 'roles.view',
         '/settings' => 'settings.manage',
         '/regency' => 'regency.view_reports',
         '/province' => 'province.view_reports',
@@ -241,6 +251,9 @@ return [
         AssetRequest::class => 'assets.manage',
         VillageRequest::class => 'villages.manage',
         OtherInstitutionRequest::class => 'institutions.manage',
+        StoreTenantUserRequest::class => 'users.manage',
+        UpdateTenantUserRequest::class => 'users.manage',
+        TenantRoleRequest::class => 'roles.manage',
     ],
 
     'tool_map' => [

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\MasterData;
 
+use App\Domain\Access\Services\PermissionChecker;
 use App\Domain\Membership\Models\Group;
 use App\Domain\Membership\Models\Member;
 use App\Domain\Membership\Services\EntityLoanHistoryService;
@@ -22,6 +23,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -187,9 +189,39 @@ final class GroupController
         return to_route('master-data.groups.index')->with('success', $message);
     }
 
-    public function destroy(Group $group): RedirectResponse
+    public function destroy(Request $request, Group $group, PermissionChecker $permissions): RedirectResponse
     {
-        $group->delete();
+        $permissions->denyUnless($request->user(), 'groups.manage');
+
+        $tenantId = $group->tenant_id;
+        $groupRowId = (int) $group->row_id;
+
+        $hasLoans = DB::connection('tenant')->table('loan_borrowers')
+            ->where('tenant_id', $tenantId)
+            ->where('group_row_id', $groupRowId)
+            ->exists();
+
+        if ($hasLoans) {
+            return back()->with('error', 'Kelompok tidak dapat dihapus karena memiliki riwayat pinjaman.');
+        }
+
+        $hasMembers = DB::connection('tenant')->table('group_members')
+            ->where('tenant_id', $tenantId)
+            ->where('group_row_id', $groupRowId)
+            ->exists();
+
+        if ($hasMembers) {
+            return back()->with('error', 'Kelompok tidak dapat dihapus karena masih memiliki anggota.');
+        }
+
+        DB::connection('tenant')->transaction(function () use ($group, $tenantId, $groupRowId): void {
+            DB::connection('tenant')->table('group_officers')
+                ->where('tenant_id', $tenantId)
+                ->where('group_row_id', $groupRowId)
+                ->delete();
+
+            $group->delete();
+        });
 
         return to_route('master-data.groups.index')->with('success', 'Kelompok berhasil dihapus.');
     }

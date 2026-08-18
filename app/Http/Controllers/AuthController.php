@@ -58,11 +58,21 @@ final class AuthController
             $user->forceFill(['tenant_id' => $membership?->tenant_id])->save();
         }
 
-        Auth::login($user, $remember);
-        $request->session()->regenerate();
         $user->forceFill(['last_login_at' => now()])->save();
+        Auth::login($user, $remember);
+        Auth::logoutOtherDevices($password);
+        $request->session()->regenerate();
 
-        // Superadmin always lands on platform admin â€” ignore intended(/admin)
+        $guard = Auth::guard();
+        $passwordHash = $user->fresh()?->getAuthPassword();
+        if ($passwordHash !== null) {
+            if (method_exists($guard, 'hashPasswordForCookie')) {
+                $passwordHash = $guard->hashPasswordForCookie($passwordHash);
+            }
+            $request->session()->put('password_hash_'.Auth::getDefaultDriver(), $passwordHash);
+        }
+
+        // Superadmin always lands on platform admin � ignore intended(/admin)
         // left by a prior guest hit (would 403 non-superadmin, confuse superadmin flows).
         if ($user->is_superadmin === true) {
             $request->session()->forget('url.intended');

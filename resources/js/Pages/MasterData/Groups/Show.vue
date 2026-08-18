@@ -1,16 +1,32 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import LoanHistoryTable from '../../../Components/LoanHistoryTable.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+import { useConfirm } from '../../../composables/useConfirm';
 
-defineProps({
+const props = defineProps({
     group: { type: Object, required: true },
     loans: { type: Array, default: () => [] },
     summary: { type: Object, required: true },
 });
+
+const { can } = useCan();
+const { confirm: confirmAction } = useConfirm();
+
+async function confirmDelete() {
+    if (!await confirmAction({
+        title: 'Hapus Kelompok',
+        message: `Apakah Anda yakin ingin menghapus kelompok "${props.group.name}"? Penghapusan hanya berhasil jika kelompok belum pernah memiliki riwayat pinjaman dan tidak memiliki anggota aktif.`,
+        confirmText: 'Ya, Hapus Kelompok',
+        variant: 'danger',
+    })) return;
+
+    router.delete(`/master-data/groups/${props.group.row_id}`);
+}
 
 const money = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
 function formatMoney(v) {
@@ -50,9 +66,20 @@ const positionLabels = {
                         <span v-if="group.village?.name"> · {{ group.village.name }}</span>
                     </p>
                 </div>
-                <Link :href="`/master-data/groups/${group.row_id}/edit`">
-                    <AppButton variant="secondary" icon="edit" size="compact">Edit</AppButton>
-                </Link>
+                <div class="flex items-center gap-2">
+                    <Link v-if="can('groups.manage')" :href="`/master-data/groups/${group.row_id}/edit`">
+                        <AppButton variant="secondary" icon="edit" size="compact">Edit</AppButton>
+                    </Link>
+                    <AppButton
+                        v-if="can('groups.manage')"
+                        variant="danger"
+                        icon="delete_outline"
+                        size="compact"
+                        @click="confirmDelete"
+                    >
+                        Hapus Kelompok
+                    </AppButton>
+                </div>
             </header>
 
             <div class="grid gap-3 sm:grid-cols-3">
