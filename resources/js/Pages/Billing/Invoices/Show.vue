@@ -154,7 +154,7 @@ function methodLabel(payment) {
                 <AppCard class="border-2 border-primary/20 bg-primary/5 p-6">
                     <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                         <div class="flex items-center gap-3">
-                            <span class="grid size-12 place-items-center rounded-xl bg-primary text-white shadow-md">
+                            <span class="grid size-12 place-items-center rounded-xl bg-primary text-on-primary shadow-md">
                                 <AppIcon :name="active_payment.method_code.includes('QRIS') ? 'qr_code_scanner' : 'account_balance'" size="28" />
                             </span>
                             <div>
@@ -218,7 +218,7 @@ function methodLabel(payment) {
                                         </span>
                                         <button
                                             type="button"
-                                            class="rounded-lg bg-surface-container px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-white transition"
+                                            class="rounded-lg bg-surface-container px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-on-primary transition"
                                             @click="copyToClipboard(active_payment.pay_code, 'va')"
                                         >
                                             {{ copiedField === 'va' ? 'Tersalin ✓' : 'Salin VA' }}
@@ -234,7 +234,7 @@ function methodLabel(payment) {
                                         </span>
                                         <button
                                             type="button"
-                                            class="rounded-lg bg-surface-container px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-white transition"
+                                            class="rounded-lg bg-surface-container px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-on-primary transition"
                                             @click="copyToClipboard(active_payment.total_amount, 'amount')"
                                         >
                                             {{ copiedField === 'amount' ? 'Tersalin ✓' : 'Salin Nominal' }}
