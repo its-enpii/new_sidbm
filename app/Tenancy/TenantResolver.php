@@ -27,13 +27,10 @@ final class TenantResolver
     {
         $normalizedHost = strtolower(trim(explode(':', $host)[0]));
 
-        // 1. Try exact-match via JSON query (no full-table scan).
-        $tenant = $this->resolveByExactDomain($normalizedHost);
-
-        // 2. Try wildcard subdomain match (e.g. *.sidbm.id).
-        if ($tenant === null) {
-            $tenant = $this->resolveByWildcardDomain($normalizedHost);
-        }
+        $tenant = Tenant::query()->with(['placement.shard'])
+            ->whereIn('status', ['active', 'read_only'])
+            ->get()
+            ->first(fn (Tenant $candidate): bool => $this->candidateMatchesHost($candidate, $normalizedHost));
 
         // host.docker.internal: tool callbacks from orchestrator container -> host SIDBM
         $localTenant = (string) config('tenancy.local_tenant', '');
@@ -101,53 +98,28 @@ final class TenantResolver
         return $tenant;
     }
 
-    /**
-     * Exact-match: query tenants whose metadata->domains JSON array contains
-     * the given host string. Uses MySQL JSON_CONTAINS for a single indexed
-     * query instead of loading every tenant into memory.
-     */
-    private function resolveByExactDomain(string $host): ?Tenant
+    private function candidateMatchesHost(Tenant $tenant, string $host): bool
     {
-        return Tenant::query()
-            ->with(['placement.shard'])
-            ->whereIn('status', ['active', 'read_only'])
-            ->where(function ($query) use ($host): void {
-                $jsonHost = json_encode($host, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-                $query->whereRaw('JSON_CONTAINS(metadata->>\'$.domains\', ?, \'$\')', [$jsonHost])
-                    ->orWhereRaw('JSON_UNQUOTE(JSON_EXTRACT(metadata, \'$.domain\')) = ?', [$host]);
-            })
-            ->first();
-    }
+        $metadata = is_array($tenant->metadata) ? $tenant->metadata : [];
+        $domains = $metadata['domains'] ?? ($metadata['domain'] ?? []);
+        $domains = is_array($domains) ? $domains : [$domains];
 
-    /**
-     * Wildcard-match: supports entries like "*.sidbm.id" in metadata.domains.
-     * Only tenants that have a wildcard entry are loaded (filtered by
-     * JSON_SEARCH for patterns containing '*'), so this remains efficient.
-     */
-    private function resolveByWildcardDomain(string $host): ?Tenant
-    {
-        $candidates = Tenant::query()
-            ->with(['placement.shard'])
-            ->whereIn('status', ['active', 'read_only'])
-            ->whereRaw('JSON_SEARCH(metadata->>\'$.domains\', \'one\', \'*.*\') IS NOT NULL')
-            ->get();
-
-        return $candidates->first(function (Tenant $tenant) use ($host): bool {
-            $metadata = is_array($tenant->metadata) ? $tenant->metadata : [];
-            $domains = $metadata['domains'] ?? ($metadata['domain'] ?? []);
-            $domains = is_array($domains) ? $domains : [$domains];
-
-            foreach ($domains as $pattern) {
-                $pattern = strtolower((string) $pattern);
-                if (str_starts_with($pattern, '*.')) {
-                    $suffix = substr($pattern, 1);
-                    if (str_ends_with($host, $suffix) && $host !== ltrim($suffix, '.')) {
-                        return true;
-                    }
+        foreach ($domains as $pattern) {
+            $pattern = strtolower(trim((string) $pattern));
+            if ($pattern === '') {
+                continue;
+            }
+            if ($pattern === $host) {
+                return true;
+            }
+            if (str_starts_with($pattern, '*.')) {
+                $suffix = substr($pattern, 1);
+                if (str_ends_with($host, $suffix) && $host !== ltrim($suffix, '.')) {
+                    return true;
                 }
             }
+        }
 
-            return false;
-        });
+        return false;
     }
 }
