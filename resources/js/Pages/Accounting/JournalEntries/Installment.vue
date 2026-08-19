@@ -403,7 +403,7 @@ function balanceAllocationRemainder(field) {
                         <SmartSelect v-model="form.cash_account_row_id" :options="props.cashAccounts" label="Tujuan (Akun Debit)" placeholder="Pilih akun kas" required :error="form.errors.cash_account_row_id" />
                     </div>
 
-                    <AppTextarea v-model="form.description" label="Keterangan (otomatis)" readonly :error="form.errors.description" hint="Terisi otomatis dari Pinjaman, Angsuran, dan Penyetor" />
+                    <input type="hidden" :value="form.description">
 
                     <div class="flex flex-wrap items-center justify-between gap-2 border-t border-outline-variant pt-4">
                         <div class="flex flex-wrap gap-2">

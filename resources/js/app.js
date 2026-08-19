@@ -1,9 +1,10 @@
 ﻿import './bootstrap';
 import '../css/app.css';
 
-import { createInertiaApp } from '@inertiajs/vue3';
+import { createInertiaApp, router } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h } from 'vue';
+import AppOfflineBanner from './Components/AppOfflineBanner.vue';
 
 window.route = window.route || function(name, params) {
     const routes = {
@@ -37,16 +38,23 @@ createInertiaApp({
         import.meta.glob('./Pages/**/*.vue'),
     ),
     setup({ el, App, props, plugin }) {
-        const app = createApp({ render: () => h(App, props) });
+        const app = createApp({
+            render: () => h('div', [h(AppOfflineBanner), h(App, props)]),
+        });
         app.config.globalProperties.route = window.route;
         app.use(plugin);
         app.mount(el);
 
-        window.addEventListener('online', () => {
-            console.log('Status: Online');
-        });
-        window.addEventListener('offline', () => {
-            console.warn('Status: Offline');
+        router.on('exception', (event) => {
+            const err = event.detail?.exception;
+            if (err && (err.message === 'Network Error' || !navigator.onLine)) {
+                event.preventDefault();
+                window.dispatchEvent(
+                    new CustomEvent('app:network-error', {
+                        detail: { message: 'Navigasi gagal: koneksi server terputus.' },
+                    }),
+                );
+            }
         });
     },
     progress: {

@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
@@ -8,6 +8,10 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ## [Unreleased]
 
 ### Added
+- **Penanganan Koneksi Terputus / Offline PWA:**
+  - Komponen AppOfflineBanner (`resources/js/Components/AppOfflineBanner.vue`) berbasis token MD3 dengan floating notification, tombol cek koneksi, dan status reconnect pulih.
+  - Handler event exception di Inertia router (`resources/js/app.js`) untuk pencegahan error page browser saat navigasi tanpa koneksi.
+  - Penyempurnaan Service Worker PWA (`public/sw.js`) dan template offline fallback (`public/offline.html`) dengan auto-reload polling.
 - **Manajemen Hak Akses & Peran Pengguna (Access Control / RBAC):**
   - Modul manajemen Role & Permission dinamis (`app/Domain/Access/Models/Role.php`, `RoleController`, `app/Http/Requests/Access/`).
   - Halaman antarmuka pengelolaan peran dan matriks izin (`resources/js/Pages/Access/Roles/`).
@@ -33,7 +37,7 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 
 ### Fixed
 - **Pembersihan Karakter Mojibake (Encoding Glitch):**
-  - Pembersihan total karakter rusak (`â€”`, `Â·`, `â†’`, `â Œ`, `â€¦`) pada `AGENT.md`, `Admin/AiAssistant/Index.vue`, dan `Accounting/PeriodClose/Index.vue` kembali ke karakter murni (`—`, `·`, `→`, `❌`, `…`, `✓`, `⚠️`).
+  - Pembersihan total karakter rusak (`—`, `·`, `→`, `� �`, `…`) pada `AGENT.md`, `Admin/AiAssistant/Index.vue`, dan `Accounting/PeriodClose/Index.vue` kembali ke karakter murni (`�`, `�`, `?`, `?`, `�`, `?`, `??`).
 - **Shard Database Migrations:**
   - Perbaikan query migrasi constraint `chk_loan_products_rounding` di MySQL/MariaDB dengan mekanisme `try-catch` aman tanpa `DROP CONSTRAINT IF EXISTS`.
 - **Master Data & Lending Validations:**
