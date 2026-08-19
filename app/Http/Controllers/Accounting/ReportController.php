@@ -20,6 +20,7 @@ use App\Domain\Accounting\Services\Reports\TrialBalanceService;
 use App\Domain\Assets\Services\AssetReportService;
 use App\Domain\Membership\Models\OrganizationProfile;
 use App\Models\User;
+use App\Support\Excel\ReportExcel;
 use App\Support\ReportPdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -45,6 +46,7 @@ final class ReportController
         private readonly AssetReportService $assetReportService,
         private readonly AnnualReportPackService $annualReportPack,
         private readonly ReportPdf $pdf,
+        private readonly ReportExcel $excel,
     ) {}
 
     public function index(Request $request): InertiaResponse

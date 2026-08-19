@@ -84,6 +84,10 @@ final class TenantController
             ->limit(8)
             ->get(['row_id', 'number', 'status', 'amount', 'amount_paid', 'due_at', 'currency']);
 
+        $metadata = is_array($tenant->metadata) ? $tenant->metadata : [];
+        $domains = $metadata['domains'] ?? ($metadata['domain'] ?? []);
+        $domains = is_array($domains) ? $domains : (trim((string) $domains) !== '' ? [$domains] : []);
+
         return Inertia::render('Admin/Tenants/Show', [
             'tenant' => [
                 'row_id' => $tenant->row_id,
@@ -93,6 +97,7 @@ final class TenantController
                 'district_code' => $tenant->district_code,
                 'status' => $tenant->status,
                 'timezone' => $tenant->timezone,
+                'custom_domains' => array_values(array_filter($domains)),
                 'provisioned_at' => $tenant->provisioned_at?->toDateTimeString(),
                 'suspended_at' => $tenant->suspended_at?->toDateTimeString(),
                 'placement' => $tenant->placement ? [
@@ -115,8 +120,15 @@ final class TenantController
 
     public function edit(Tenant $tenant): Response
     {
+        $metadata = is_array($tenant->metadata) ? $tenant->metadata : [];
+        $domains = $metadata['domains'] ?? ($metadata['domain'] ?? []);
+        $domains = is_array($domains) ? $domains : (trim((string) $domains) !== '' ? [$domains] : []);
+
         return Inertia::render('Admin/Tenants/Edit', [
-            'tenant' => $tenant->only(['row_id', 'code', 'name', 'district_code', 'status', 'timezone']),
+            'tenant' => [
+                ...$tenant->only(['row_id', 'code', 'name', 'district_code', 'status', 'timezone']),
+                'custom_domains' => array_values(array_filter($domains)),
+            ],
         ]);
     }
 
@@ -126,12 +138,32 @@ final class TenantController
         $oldDistrict = (string) $tenant->district_code;
         $newDistrict = isset($data['district_code']) && is_string($data['district_code']) ? $data['district_code'] : null;
 
+        $rawDomains = (array) ($data['custom_domains'] ?? []);
+        $cleanDomains = [];
+        foreach ($rawDomains as $d) {
+            if (! is_string($d)) {
+                continue;
+            }
+            $c = strtolower(trim($d));
+            $c = preg_replace('#^https?://#', '', $c);
+            $c = trim((string) explode('/', $c)[0]);
+            $c = trim((string) explode(':', $c)[0]);
+            if ($c !== '' && ! in_array($c, $cleanDomains, true)) {
+                $cleanDomains[] = $c;
+            }
+        }
+
+        $metadata = is_array($tenant->metadata) ? $tenant->metadata : [];
+        $metadata['domains'] = $cleanDomains;
+        unset($metadata['domain']);
+
         $tenant->forceFill([
             'name' => $data['name'],
             'district_code' => $newDistrict,
             'status' => $data['status'],
             'timezone' => $data['timezone'] ?? $tenant->timezone,
             'suspended_at' => $data['status'] === 'suspended' ? ($tenant->suspended_at ?? now()) : null,
+            'metadata' => $metadata,
         ])->save();
 
         if ($newDistrict !== null && $newDistrict !== $oldDistrict) {

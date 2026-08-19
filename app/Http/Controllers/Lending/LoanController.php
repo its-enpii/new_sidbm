@@ -291,7 +291,9 @@ final class LoanController
 
     public function create(TenantLoanProductProvisioner $provisioner): Response
     {
-        $provisioner->ensureDefaults();
+        if (LoanProduct::query()->active()->doesntExist()) {
+            $provisioner->ensureDefaults();
+        }
 
         return Inertia::render('Lending/Loans/Form', [
             ...$this->formOptions(),
@@ -521,17 +523,24 @@ final class LoanController
     {
         return [
             'products' => LoanProduct::query()->active()->orderBy('name')->get(['row_id', 'code', 'name', 'default_interest_rate', 'default_term_months', 'minimum_amount', 'maximum_amount', 'borrower_scope'])->toArray(),
-            'groups' => Group::query()->orderBy('name')->get()->map(fn (Group $group): array => [
-                'value' => $group->row_id,
-                'label' => $group->name,
-                'chair' => $this->officerOption($group, 'chair'),
-                'secretary' => $this->officerOption($group, 'secretary'),
-                'treasurer' => $this->officerOption($group, 'treasurer'),
-                'members' => $group->activeMemberships()->with('member.person')->get()->map(fn ($membership): array => [
-                    'value' => $membership->member?->row_id,
-                    'label' => ($membership->member?->person?->full_name ?? '—').' · '.$membership->member?->member_number,
+            'groups' => Group::query()
+                ->with([
+                    'activeOfficers.member.person',
+                    'activeMemberships.member.person',
+                ])
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Group $group): array => [
+                    'value' => $group->row_id,
+                    'label' => $group->name,
+                    'chair' => $this->officerOption($group, 'chair'),
+                    'secretary' => $this->officerOption($group, 'secretary'),
+                    'treasurer' => $this->officerOption($group, 'treasurer'),
+                    'members' => $group->activeMemberships->map(fn ($membership): array => [
+                        'value' => $membership->member?->row_id,
+                        'label' => ($membership->member?->person?->full_name ?? '—').' · '.$membership->member?->member_number,
+                    ])->values()->all(),
                 ])->values()->all(),
-            ])->values()->all(),
             'committee_members' => Member::query()
                 ->where('status', 'active')
                 ->with('person')

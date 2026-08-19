@@ -315,8 +315,8 @@ const sections = [
                 label: 'Pengguna',
                 icon: 'manage_accounts',
                 children: [
-                    { label: 'Manajemen User', href: '/access/users' },
                     { label: 'Manajemen Role', href: '/access/roles' },
+                    { label: 'Manajemen User', href: '/access/users' },
                 ],
             },
         ],

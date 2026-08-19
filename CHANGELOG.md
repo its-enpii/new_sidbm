@@ -7,7 +7,19 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 
 ## [Unreleased]
 
+### Fixed
+- **Refactor Komponen AppSwitch & Settings WhatsApp:**
+  - Menghilangkan nesting container ganda pada pengaturan toggle WhatsApp Gateway di `resources/js/Pages/Settings/Index.vue`.
+  - Menambahkan mode `bare` / standalone switch pada `resources/js/Components/AppSwitch.vue` agar toggle switch tidak merender border container ekstra ketika ditempatkan di dalam layout kustom atau tanpa label.
+
 ### Added
+- **Redesain Dashboard Admin & Monitor Pendapatan Tenant:**
+  - Pemindahan chart tren pendapatan/penagihan tahunan ke halaman utama **Dashboard Admin Platform** (`resources/js/Pages/Admin/Dashboard.vue` & `app/Http/Controllers/Admin/DashboardController.php`) dengan metrik KPI bisnis komprehensif (Pendapatan Bulan Ini, Pertumbuhan MoM, Pendapatan YTD, Total Piutang Belum Bayar, dan Tagihan Terbuka).
+  - Redesain halaman **Pendapatan** (`resources/js/Pages/Admin/Revenue/Index.vue` & `app/Http/Controllers/Admin/RevenueController.php`) menjadi **Tabel Monitoring Penagihan per Tenant**: menampilkan nama BUMDesma/Tenant, paket & tarif langganan, nominal tagihan terakhir, tanggal jatuh tempo beserta status sisa hari/keterlambatan, status pembayaran (Lunas / Menunggu Pembayaran / Overdue / Belum Ada Tagihan), total nominal terbayar kumulatif, serta tombol aksi cepat untuk menerbitkan invoice atau melihat detail.
+- **Konfigurasi Custom Domain Tenant (Superadmin):**
+  - Input dan manajemen **Custom Domain** pada form Edit & Detail Tenant di Panel Admin Platform (`resources/js/Pages/Admin/Tenants/Edit.vue` & `Show.vue`).
+  - Validasi ketat format domain/FQDN, normalisasi host, dan proteksi anti-duplikasi domain antar tenant pada `UpdateTenantRequest` (`app/Http/Requests/Admin/UpdateTenantRequest.php`).
+  - Integrasi penyimpanan domain ke `platform.tenants.metadata['domains']` di `TenantController` (`app/Http/Controllers/Admin/TenantController.php`) dan pengujian otomatis resolusi host tenant di `AdminAccessTest`.
 - **Penanganan Koneksi Terputus / Offline PWA:**
   - Komponen AppOfflineBanner (`resources/js/Components/AppOfflineBanner.vue`) berbasis token MD3 dengan floating notification, tombol cek koneksi, dan status reconnect pulih.
   - Handler event exception di Inertia router (`resources/js/app.js`) untuk pencegahan error page browser saat navigasi tanpa koneksi.

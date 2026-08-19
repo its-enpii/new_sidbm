@@ -59,6 +59,7 @@ function goPage(page) {
                     show-day
                     base-url="/accounting/reports/journals"
                     pdf-url="/accounting/reports/journals/pdf"
+                    excel-url="/accounting/reports/journals/excel"
                 />
             </AppCard>
 

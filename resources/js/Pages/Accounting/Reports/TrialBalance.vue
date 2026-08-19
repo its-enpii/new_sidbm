@@ -40,6 +40,7 @@ const money = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximum
                     :month="filters.month"
                     base-url="/accounting/reports/trial-balance"
                     pdf-url="/accounting/reports/trial-balance/pdf"
+                    excel-url="/accounting/reports/trial-balance/excel"
                 />
             </AppCard>
 

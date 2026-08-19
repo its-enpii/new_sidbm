@@ -52,6 +52,13 @@ final class Tenant extends PlatformModel
         return $this->hasMany(Invoice::class, 'tenant_id', 'row_id');
     }
 
+    public function latestInvoice(): HasOne
+    {
+        return $this->hasOne(Invoice::class, 'tenant_id', 'row_id')
+            ->where('status', '!=', 'void')
+            ->latestOfMany('row_id');
+    }
+
     public function activeSubscription(): HasOne
     {
         return $this->hasOne(Subscription::class, 'tenant_id', 'row_id')

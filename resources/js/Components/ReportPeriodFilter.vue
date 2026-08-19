@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppButton from './AppButton.vue';
+import AppIcon from './AppIcon.vue';
 import AppDatePicker from './AppDatePicker.vue';
 
 const props = defineProps({
@@ -14,6 +15,7 @@ const props = defineProps({
     baseUrl: { type: String, required: true },
     extra: { type: Object, default: () => ({}) },
     pdfUrl: { type: String, default: null },
+    excelUrl: { type: String, default: null },
 });
 
 const selectedYear = ref(toYearValue(props.year));
@@ -87,6 +89,14 @@ function apply() {
     router.get(props.baseUrl, queryBase.value, { preserveScroll: true, replace: true });
 }
 
+function excelHref() {
+    if (!props.excelUrl) return '#';
+    const params = new URLSearchParams(
+        Object.fromEntries(Object.entries(queryBase.value).map(([k, v]) => [k, String(v)])),
+    );
+    return `${props.excelUrl}?${params.toString()}`;
+}
+
 function pdfHref() {
     if (!props.pdfUrl) return '#';
     const params = new URLSearchParams(
@@ -142,6 +152,14 @@ function toMonthValue(year, month) {
                 class="inline-flex h-14 min-h-14 items-center rounded-xl border border-outline-variant px-4 text-sm font-semibold text-primary hover:bg-surface-container-low"
             >
                 PDF
+            </a>
+            <a
+                v-if="excelUrl"
+                :href="excelHref()"
+                class="inline-flex h-14 min-h-14 items-center gap-1.5 rounded-xl border border-outline-variant px-4 text-sm font-semibold text-primary hover:bg-surface-container-low"
+            >
+                <AppIcon name="table_view" class="text-base" />
+                Excel
             </a>
         </div>
     </div>

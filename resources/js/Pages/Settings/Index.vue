@@ -80,6 +80,11 @@ const roundingOptions = [
     { value: 'rupiah_bersih', label: 'Rupiah Bersih' },
     { value: 'ceil_100', label: 'Ke Atas (Rp 100)' },
     { value: 'floor_100', label: 'Ke Bawah (Rp 100)' },
+    { value: '500', label: 'Rp 500' },
+    { value: '1000', label: 'Rp 1.000' },
+    { value: '5000', label: 'Rp 5.000' },
+    { value: '10000', label: 'Rp 10.000' },
+    { value: '50000', label: 'Rp 50.000' },
 ];
 function submitLending() {
     lendingForm.put('/settings/lending-system', { preserveScroll: true });

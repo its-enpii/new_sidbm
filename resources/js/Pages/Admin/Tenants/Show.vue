@@ -1,8 +1,9 @@
-<script setup>
+﻿<script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
+import AppIcon from '../../../Components/AppIcon.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 
@@ -85,6 +86,32 @@ function generateInvoice() {
                         <div><dt class="text-sm text-on-surface-variant">Provisioned</dt><dd class="font-semibold text-primary">{{ tenant.provisioned_at || '—' }}</dd></div>
                         <div><dt class="text-sm text-on-surface-variant">Suspended</dt><dd class="font-semibold text-primary">{{ tenant.suspended_at || '—' }}</dd></div>
                     </dl>
+
+                    <div class="mt-6 border-t border-outline-variant pt-4">
+                        <div class="flex items-center justify-between">
+                            <dt class="text-sm font-semibold text-primary">Custom Domain Terdaftar</dt>
+                            <Link :href="`/admin/tenants/${tenant.row_id}/edit`" class="text-xs font-semibold text-primary hover:underline">
+                                Kelola Domain →
+                            </Link>
+                        </div>
+                        <div v-if="tenant.custom_domains && tenant.custom_domains.length > 0" class="mt-2.5 flex flex-wrap gap-2">
+                            <a
+                                v-for="dom in tenant.custom_domains"
+                                :key="dom"
+                                :href="`https://${dom}`"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-primary hover:bg-surface-container hover:underline"
+                            >
+                                <AppIcon name="language" class="text-sm text-outline" />
+                                <span>{{ dom }}</span>
+                                <AppIcon name="open_in_new" class="text-xs text-outline" />
+                            </a>
+                        </div>
+                        <p v-else class="mt-1 text-xs text-on-surface-variant">
+                            Belum ada custom domain. Tenant diakses via subdomain default atau route identifier.
+                        </p>
+                    </div>
                 </AppCard>
 
                 <AppCard>

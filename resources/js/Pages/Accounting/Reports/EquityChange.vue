@@ -38,6 +38,7 @@ function formatMoney(v) {
                     :month="filters.month"
                     base-url="/accounting/reports/equity-change"
                     pdf-url="/accounting/reports/equity-change/pdf"
+                    excel-url="/accounting/reports/equity-change/excel"
                 />
             </AppCard>
 

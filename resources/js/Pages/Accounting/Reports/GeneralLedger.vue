@@ -79,6 +79,7 @@ function onAccountChange() {
                     :extra="extraFilters"
                     base-url="/accounting/reports/general-ledger"
                     :pdf-url="account ? '/accounting/reports/general-ledger/pdf' : null"
+                    :excel-url="account ? '/accounting/reports/general-ledger/excel' : null"
                 >
                     <template #extra>
                         <div class="w-full min-w-0 flex-1 lg:max-w-sm">

@@ -51,6 +51,7 @@ function sectionTotalLabel(l1) {
                     :month="filters.month"
                     base-url="/accounting/reports/balance-sheet"
                     pdf-url="/accounting/reports/balance-sheet/pdf"
+                    excel-url="/accounting/reports/balance-sheet/excel"
                 />
             </AppCard>
 

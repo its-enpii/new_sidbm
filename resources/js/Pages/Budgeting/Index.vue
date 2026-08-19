@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
 import AppBadge from '../../Components/AppBadge.vue';
@@ -84,7 +84,7 @@ function go(year, month) {
         '/budgeting',
         { year, month },
         {
-            // Must replace props.year/month/sheet — preserveState keeps stale month.
+            // Must replace props.year/month/sheet â€” preserveState keeps stale month.
             preserveState: false,
             preserveScroll: true,
             replace: true,
@@ -166,7 +166,7 @@ function monthMeta(month) {
                 >
                     <span class="text-xs font-bold uppercase tracking-wide opacity-80">{{ monthLabels[m]?.slice(0, 3) }}</span>
                     <span class="mt-1 text-sm font-semibold">
-                        {{ monthMeta(m).line_count > 0 ? formatMoney(monthMeta(m).surplus) : '—' }}
+                        {{ monthMeta(m).line_count > 0 ? formatMoney(monthMeta(m).surplus) : 'â€”' }}
                     </span>
                 </AppButton>
             </div>
@@ -211,7 +211,7 @@ function monthMeta(month) {
                         class="grid gap-3 px-6 py-4 md:grid-cols-[1fr_220px] md:items-center"
                     >
                         <div>
-                            <p class="font-semibold text-primary">{{ account.code }} · {{ account.name }}</p>
+                            <p class="font-semibold text-primary">{{ account.code }} Â· {{ account.name }}</p>
                             <p class="text-xs text-on-surface-variant">Akun {{ group.label.toLowerCase() }}</p>
                         </div>
                         <AppCurrencyInput
@@ -228,12 +228,12 @@ function monthMeta(month) {
 
         <div
             v-if="editable"
-            class="fixed inset-x-0 bottom-0 z-30 border-t border-outline-variant bg-surface-container-lowest/95 backdrop-blur"
+            class="fixed bottom-0 left-0 right-0 z-30 border-t border-outline-variant bg-surface-container-lowest/95 backdrop-blur lg:left-64"
         >
-            <div class="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between lg:pl-72">
+            <div class="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 sm:flex-row sm:items-center sm:justify-between lg:px-8">
                 <div class="min-w-0 text-sm text-on-surface-variant">
                     <span class="font-semibold text-primary">{{ monthLabels[month] }} {{ year }}</span>
-                    <span class="mx-2 text-outline">·</span>
+                    <span class="mx-2 text-outline">Â·</span>
                     Surplus {{ formatMoney(liveTotals.surplus) }}
                 </div>
                 <div v-if="can('budgeting.manage')" class="flex flex-wrap items-center gap-2">
