@@ -107,6 +107,14 @@ jobs:
               docker compose up -d
             fi
             
+            echo "Installing Composer dependencies on server..."
+            PAT_TOKEN="${{ secrets.ENPII_ASSISTANT_PAT || secrets.GH_PAT }}"
+            if [ -n "$PAT_TOKEN" ]; then
+              docker compose exec -T -e COMPOSER_AUTH="{\"github-oauth\":{\"github.com\":\"$PAT_TOKEN\"}}" app composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+            else
+              docker compose exec -T app composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+            fi
+
             echo "Building Vite frontend assets on server..."
             if command -v npm >/dev/null 2>&1; then
               npm ci --prefer-offline --no-audit
