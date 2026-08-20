@@ -537,7 +537,7 @@ function logout() {
                 </div>
             </div>
             <Transition name="page" mode="out-in" appear>
-                <div :key="$page.url" class="min-w-0 flex-1">
+                <div :key="currentPath" class="min-w-0 flex-1">
                     <slot />
                 </div>
             </Transition>

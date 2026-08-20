@@ -7,6 +7,11 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 
 ## [2026-08-20]
 
+### Fixed
+- **Optimasi Key Transisi Halaman (Mencegah Kedipan / Blink pada Modal & Filter Query):**
+  - Mengubah binding `:key` pada wrapper `<Transition name="page">` di seluruh layout dari `$page.url` menjadi `currentPath` (path tanpa query string).
+  - Mencegah unmount/re-render seluruh halaman saat membuka/menutup modal pipeline dashboard (`?pipeline=...`) atau saat memfilter data dengan parameter URL sehingga modal terbuka/tertutup instan dan mulus tanpa kedipan layar putih.
+
 ### Added
 - **Animasi Transisi Halaman Mulus (Smooth Page Transitions):**
   - Implementasi komponen `<Transition name="page" mode="out-in" appear>` pada 4 layout utama (`AuthenticatedLayout.vue`, `AdminLayout.vue`, `ProvinceLayout.vue`, `RegencyLayout.vue`) berbasis `:key="$page.url"`.
