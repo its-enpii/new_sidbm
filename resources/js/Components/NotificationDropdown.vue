@@ -8,14 +8,7 @@ const activeTab = ref('all');
 const loading = ref(false);
 const items = ref([]);
 const unreadCount = ref(0);
-let dropdownRef = ref(null);
-
-const variants = {
-    warning: 'bg-tertiary-fixed/30 text-tertiary border-tertiary/40',
-    danger: 'bg-error-container/40 text-error border-error/40',
-    info: 'bg-primary-container/30 text-primary border-primary/30',
-    success: 'bg-secondary-container/40 text-secondary border-secondary/40',
-};
+const dropdownRef = ref(null);
 
 const iconTones = {
     warning: 'warning',
@@ -51,8 +44,20 @@ const filteredItems = computed(() => {
 });
 
 async function markAsRead(id = null) {
+    if (id) {
+        const target = items.value.find((i) => i.id === id);
+        if (target) {
+            target.read = true;
+        }
+    } else {
+        items.value.forEach((i) => {
+            i.read = true;
+        });
+    }
+    unreadCount.value = items.value.filter((i) => !i.read).length;
+
     try {
-        const res = await fetch('/api/notifications/mark-read', {
+        await fetch('/api/notifications/mark-read', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -60,27 +65,19 @@ async function markAsRead(id = null) {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
             },
             credentials: 'same-origin',
+            keepalive: true,
             body: JSON.stringify({ id }),
         });
-        if (res.ok) {
-            if (id) {
-                const target = items.value.find((i) => i.id === id);
-                if (target) target.read = true;
-            } else {
-                items.value.forEach((i) => (i.read = true));
-            }
-            unreadCount.value = items.value.filter((i) => !i.read).length;
-        }
     } catch (e) {
         console.error('Failed to mark read:', e);
     }
 }
 
-function handleItemClick(item) {
-    if (!item.read) {
-        markAsRead(item.id);
-    }
+async function handleItemClick(item) {
     open.value = false;
+    if (!item.read) {
+        await markAsRead(item.id);
+    }
     if (item.target_url) {
         router.visit(item.target_url);
     }
@@ -180,7 +177,7 @@ onBeforeUnmount(() => {
                 <!-- List Content -->
                 <div class="max-h-80 overflow-y-auto divide-y divide-outline-variant/40">
                     <div v-if="loading && items.length === 0" class="py-8 text-center text-xs text-on-surface-variant">
-                        Memuat notifikasi…
+                        Memuat notifikasi...
                     </div>
                     <div v-else-if="filteredItems.length === 0" class="py-8 text-center text-xs text-on-surface-variant">
                         Tidak ada notifikasi {{ activeTab === 'unread' ? 'belum dibaca' : '' }}.

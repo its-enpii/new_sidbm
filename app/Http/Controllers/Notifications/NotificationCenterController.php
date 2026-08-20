@@ -20,7 +20,10 @@ final class NotificationCenterController
             return response()->json(['unread_count' => 0, 'items' => []]);
         }
 
-        $readIds = (array) ($request->session()->get('notifications_read', []));
+        $readIds = is_array($user->notifications_read)
+            ? $user->notifications_read
+            : (array) ($request->session()->get('notifications_read', []));
+
         $items = [];
         $today = CarbonImmutable::today();
 
@@ -115,7 +118,7 @@ final class NotificationCenterController
             ];
         }
 
-        $unreadCount = count(array_filter($items, fn ($item) => ! $item['read']));
+        $unreadCount = count(array_filter($items, fn (array $item): bool => ! $item['read']));
 
         return response()->json([
             'unread_count' => $unreadCount,
@@ -125,17 +128,38 @@ final class NotificationCenterController
 
     public function markRead(Request $request): JsonResponse
     {
+        $user = $request->user();
         $id = $request->input('id');
-        $readIds = (array) ($request->session()->get('notifications_read', []));
+        $ids = $request->input('ids');
 
-        if (is_string($id) && $id !== '') {
+        $readIds = [];
+        if ($user !== null && is_array($user->notifications_read)) {
+            $readIds = $user->notifications_read;
+        } else {
+            $readIds = (array) ($request->session()->get('notifications_read', []));
+        }
+
+        if (is_array($ids)) {
+            foreach ($ids as $singleId) {
+                if (is_string($singleId) && $singleId !== '' && ! in_array($singleId, $readIds, true)) {
+                    $readIds[] = $singleId;
+                }
+            }
+        } elseif (is_string($id) && $id !== '') {
             if (! in_array($id, $readIds, true)) {
                 $readIds[] = $id;
             }
         } else {
-            // Mark all as read
+            // Mark all standard notification types as read
             $allIds = ['loan_proposed_count', 'loan_overdue_count', 'loan_due_soon_count', 'system_status_ok', 'system_info'];
             $readIds = array_unique(array_merge($readIds, $allIds));
+        }
+
+        $readIds = array_values(array_unique($readIds));
+
+        if ($user !== null) {
+            $user->notifications_read = $readIds;
+            $user->save();
         }
 
         $request->session()->put('notifications_read', $readIds);

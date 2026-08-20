@@ -8,6 +8,12 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ## [2026-08-20]
 
 ### Fixed
+- **Persistensi Status Notifikasi Terbaca & Handler Klik Notifikasi (Notification Center):**
+  - Menambahkan kolom `notifications_read` (JSON) pada tabel `users` di database platform (`2026_08_20_130000_add_notifications_read_to_users_table.php`) dan casting `array` pada model `User.php`.
+  - Memperbarui `NotificationCenterController.php` agar status dibaca (`readIds`) dibaca dan disimpan langsung ke database akun pengguna (`$user->notifications_read`) serta disinkronkan ke sesi aktif, sehingga status terbaca tetap bertahan permanen meskipun pengguna telah logout dan login kembali.
+  - Memperbaiki `NotificationDropdown.vue` dengan membuat `handleItemClick` bersifat asynchronous (`await markAsRead(item.id)`) sebelum memicu `router.visit(item.target_url)`, menambahkan opsi `keepalive: true` pada API fetch mark-read, serta pembaruan status visual secara instan (*optimistic UI update*).
+  - Memperbaiki teks rendering status memuat notifikasi.
+  - Menambahkan test suite `NotificationCenterTest.php` untuk memvalidasi alur pembacaan, persistensi database lintas sesi/login, dan fitur tandai semua notifikasi terbaca.
 - **Optimasi Key Transisi Halaman (Mencegah Kedipan / Blink pada Modal & Filter Query):**
   - Mengubah binding `:key` pada wrapper `<Transition name="page">` di seluruh layout dari `$page.url` menjadi `currentPath` (path tanpa query string).
   - Mencegah unmount/re-render seluruh halaman saat membuka/menutup modal pipeline dashboard (`?pipeline=...`) atau saat memfilter data dengan parameter URL sehingga modal terbuka/tertutup instan dan mulus tanpa kedipan layar putih.
