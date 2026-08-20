@@ -8,6 +8,14 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ## [2026-08-20]
 
 ### Added
+- **Animasi Transisi Halaman Mulus (Smooth Page Transitions):**
+  - Implementasi komponen `<Transition name="page" mode="out-in" appear>` pada 4 layout utama (`AuthenticatedLayout.vue`, `AdminLayout.vue`, `ProvinceLayout.vue`, `RegencyLayout.vue`) berbasis `:key="$page.url"`.
+  - Styling transisi kurva cubic-bezier (`resources/css/app.css`) dengan efek *fade*, *subtle lift* (8px), dan *scale easing* (0.22s) yang cepat dan responsif tanpa lag.
+  - Efek visual *glowing accent line* dengan *drop-shadow* lembut pada bilah progres Inertia (NProgress) saat navigasi data berlangsung.
+  - Kepatuhan aksesibilitas penuh terhadap pengaturan sistem operasi (`@media (prefers-reduced-motion: reduce)`).
+- **Penyempurnaan Animasi Interaktif Beranda & Portal Login (`Home.vue` & `Login.vue`):**
+  - **Beranda (`Home.vue`)**: Interaksi 3D tilt parallax pada kartu mockup hero dengan respon pergerakan kursor mouse, floating pills multi-layer, animasi ambient glowing orbs berkala, dan micro-interaction spring pada kartu fitur.
+  - **Portal Login (`Login.vue`)**: Interaksi 3D parallax pada panel informasi kiri, animasi live breathing bar chart keuangan, micro-interaction scale bounce pada toggle sandi, dan spring shake form saat validasi gagal.
 - **Dokumentasi Lengkap Panduan Pengguna (User Manual) (docs/USER_GUIDE.md):**
   - Penyusunan dokumen panduan operasional komprehensif (35,7 KB, 452 baris) dalam Bahasa Indonesia mencakup seluruh 86 halaman dan alur kerja aplikasi SIDBM Next.
   - Dokumentasi lengkap untuk 24 bab: Mulai dari Autentikasi, Dashboard Drilldown, Master Data, Siklus Perguliran Pinjaman (6 tahapan), Akuntansi Double-Entry & Immutable Ledger, Inventaris Aset, E-Budgeting, 16 Laporan Keuangan & Piutang, Billing SaaS Multi-Gateway, Notifikasi WhatsApp, RBAC 37 permissions, Wizard Onboarding, Portal Supervisi Kabupaten/Provinsi, Superadmin SaaS, AI Assistant (Ariel), hingga Katalog 36 Dokumen Cetak PDF.

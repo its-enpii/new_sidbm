@@ -87,7 +87,11 @@ function logout() {
         </header>
 
         <main class="p-4 sm:p-6 lg:ml-64 lg:p-8">
-            <slot />
+            <Transition name="page" mode="out-in" appear>
+                <div :key="$page.url" class="min-w-0 flex-1">
+                    <slot />
+                </div>
+            </Transition>
         </main>
 
         <AppConfirmDialog />
