@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Settings\OrchestratorRequest;
 use App\Tenancy\TenantContext;
 use Enpii\Assistant\AssistantServiceProvider;
 use Enpii\Assistant\Models\AuditLog;
@@ -155,31 +154,33 @@ final class AiAssistantController extends Controller
         return response()->json(['ok' => true, 'tools' => $tools]);
     }
 
-    public function storePersona(OrchestratorRequest $request): JsonResponse
+    public function storePersona(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'slug' => ['nullable', 'string', 'max:120'],
+            'name' => ['required', 'string', 'max:100'],
+            'slug' => ['nullable', 'string', 'max:50'],
             'system_prompt' => ['required', 'string'],
             'is_default' => ['boolean'],
             'is_active' => ['boolean'],
-            'tool_ids' => ['array'],
-            'tool_ids.*' => ['uuid'],
+            'tool_ids' => ['nullable', 'array'],
+            'tool_ids.*' => ['string'],
         ]);
 
-        $slug = ! empty($data['slug']) ? Str::slug($data['slug']) : Str::slug($data['name']);
-
-        if (! empty($data['is_default'])) {
-            Persona::query()->update(['is_default' => false]);
+        $slug = $data['slug'] ?? Str::slug($data['name']);
+        if (Persona::query()->where('slug', $slug)->exists()) {
+            return response()->json(['ok' => false, 'message' => "Persona slug '{$slug}' already exists"], 422);
         }
 
-        /** @var Persona $persona */
+        if (! empty($data['is_default'])) {
+            Persona::query()->where('is_default', true)->update(['is_default' => false]);
+        }
+
         $persona = Persona::query()->create([
-            'slug' => $slug,
             'name' => $data['name'],
+            'slug' => $slug,
             'system_prompt' => $data['system_prompt'],
-            'is_default' => $data['is_default'] ?? false,
-            'is_active' => $data['is_active'] ?? true,
+            'is_default' => (bool) ($data['is_default'] ?? false),
+            'is_active' => (bool) ($data['is_active'] ?? true),
         ]);
 
         if (! empty($data['tool_ids'])) {
@@ -188,36 +189,49 @@ final class AiAssistantController extends Controller
 
         return response()->json([
             'ok' => true,
-            'message' => 'Persona berhasil dibuat.',
-            'persona' => $persona->fresh('tools'),
+            'message' => "Persona '{$persona->name}' berhasil dibuat",
+            'persona' => [
+                'id' => $persona->id,
+                'slug' => $persona->slug,
+                'name' => $persona->name,
+                'system_prompt' => $persona->system_prompt,
+                'is_default' => (bool) $persona->is_default,
+                'is_active' => (bool) $persona->is_active,
+            ],
         ]);
     }
 
-    public function updatePersona(OrchestratorRequest $request, string $id): JsonResponse
+    public function updatePersona(Request $request, string $id): JsonResponse
     {
         $persona = Persona::query()->findOrFail($id);
 
         $data = $request->validate([
-            'name' => ['sometimes', 'required', 'string', 'max:120'],
-            'slug' => ['sometimes', 'required', 'string', 'max:120'],
+            'name' => ['sometimes', 'required', 'string', 'max:100'],
+            'slug' => ['sometimes', 'required', 'string', 'max:50'],
             'system_prompt' => ['sometimes', 'required', 'string'],
             'is_default' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],
             'tool_ids' => ['nullable', 'array'],
-            'tool_ids.*' => ['uuid'],
+            'tool_ids.*' => ['string'],
         ]);
 
+        if (isset($data['slug']) && $data['slug'] !== $persona->slug) {
+            if (Persona::query()->where('slug', $data['slug'])->where('id', '!=', $id)->exists()) {
+                return response()->json(['ok' => false, 'message' => "Persona slug '{$data['slug']}' already exists"], 422);
+            }
+        }
+
         if (! empty($data['is_default'])) {
-            Persona::query()->where('id', '!=', $id)->update(['is_default' => false]);
+            Persona::query()->where('id', '!=', $id)->where('is_default', true)->update(['is_default' => false]);
         }
 
         $persona->update(array_filter([
             'name' => $data['name'] ?? null,
-            'slug' => isset($data['slug']) ? Str::slug($data['slug']) : null,
+            'slug' => $data['slug'] ?? null,
             'system_prompt' => $data['system_prompt'] ?? null,
-            'is_default' => $data['is_default'] ?? null,
-            'is_active' => $data['is_active'] ?? null,
-        ], static fn ($v) => $v !== null));
+            'is_default' => isset($data['is_default']) ? (bool) $data['is_default'] : null,
+            'is_active' => isset($data['is_active']) ? (bool) $data['is_active'] : null,
+        ], fn ($v) => $v !== null));
 
         if (array_key_exists('tool_ids', $data)) {
             $persona->tools()->sync($data['tool_ids'] ?? []);
@@ -225,103 +239,163 @@ final class AiAssistantController extends Controller
 
         return response()->json([
             'ok' => true,
-            'message' => 'Persona berhasil diperbarui.',
-            'persona' => $persona->fresh('tools'),
+            'message' => "Persona '{$persona->name}' berhasil diperbarui",
+            'persona' => [
+                'id' => $persona->id,
+                'slug' => $persona->slug,
+                'name' => $persona->name,
+                'system_prompt' => $persona->system_prompt,
+                'is_default' => (bool) $persona->is_default,
+                'is_active' => (bool) $persona->is_active,
+            ],
         ]);
     }
 
     public function deletePersona(string $id): JsonResponse
     {
         $persona = Persona::query()->findOrFail($id);
+        $name = $persona->name;
         $persona->delete();
-
-        return response()->json(['ok' => true, 'message' => 'Persona berhasil dihapus.']);
-    }
-
-    public function togglePersona(Request $request, string $id): JsonResponse
-    {
-        $persona = Persona::query()->findOrFail($id);
-        $field = (string) $request->input('field', 'is_active');
-        if (! in_array($field, ['is_active', 'is_default'], true)) {
-            return response()->json(['ok' => false, 'message' => 'Field tidak valid.'], 422);
-        }
-
-        if ($field === 'is_default' && ! $persona->is_default) {
-            Persona::query()->where('id', '!=', $id)->update(['is_default' => false]);
-        }
-
-        $persona->update([$field => ! $persona->{$field}]);
 
         return response()->json([
             'ok' => true,
-            'message' => 'Status persona diperbarui.',
-            'persona' => $persona->fresh(),
+            'message' => "Persona '{$name}' berhasil dihapus",
+        ]);
+    }
+
+    public function togglePersona(string $id): JsonResponse
+    {
+        $persona = Persona::query()->findOrFail($id);
+        $persona->is_active = ! $persona->is_active;
+        $persona->save();
+
+        return response()->json([
+            'ok' => true,
+            'is_active' => (bool) $persona->is_active,
+            'message' => "Persona '{$persona->name}' ".($persona->is_active ? 'diaktifkan' : 'dinonaktifkan'),
         ]);
     }
 
     public function syncTools(ToolRegistry $registry): JsonResponse
     {
-        $handlers = $registry->all();
+        $registered = $registry->all();
         $synced = 0;
+        $created = 0;
 
-        foreach ($handlers as $h) {
-            Tool::query()->updateOrCreate(
-                ['name' => $h->name()],
-                [
-                    'description' => $h->description(),
-                    'json_schema' => $h->jsonSchema(),
-                    'requires_confirmation' => $h->requiresConfirmation(),
+        foreach ($registered as $handler) {
+            $tool = Tool::query()->where('name', $handler->name())->first();
+            if ($tool) {
+                $tool->update([
+                    'description' => $handler->description(),
+                    'json_schema' => $handler->schema(),
+                    'requires_confirmation' => $handler->requiresConfirmation(),
+                ]);
+                $synced++;
+            } else {
+                Tool::query()->create([
+                    'name' => $handler->name(),
+                    'description' => $handler->description(),
+                    'json_schema' => $handler->schema(),
+                    'requires_confirmation' => $handler->requiresConfirmation(),
                     'is_active' => true,
-                ]
-            );
-            $synced++;
+                ]);
+                $created++;
+            }
         }
 
         return response()->json([
             'ok' => true,
-            'message' => "Sinkronisasi selesai. {$synced} tools ter-register.",
+            'message' => "Sync selesai: {$created} tool baru ditambahkan, {$synced} tool diperbarui.",
+            'created' => $created,
+            'synced' => $synced,
+            'total_registered' => count($registered),
         ]);
     }
 
     public function updateTool(Request $request, string $id): JsonResponse
     {
         $tool = Tool::query()->findOrFail($id);
+
         $data = $request->validate([
-            'is_active' => ['sometimes', 'boolean'],
+            'description' => ['sometimes', 'required', 'string'],
             'requires_confirmation' => ['sometimes', 'boolean'],
+            'is_active' => ['sometimes', 'boolean'],
         ]);
 
-        $tool->update($data);
+        $tool->update(array_filter([
+            'description' => $data['description'] ?? null,
+            'requires_confirmation' => isset($data['requires_confirmation']) ? (bool) $data['requires_confirmation'] : null,
+            'is_active' => isset($data['is_active']) ? (bool) $data['is_active'] : null,
+        ], fn ($v) => $v !== null));
 
-        return response()->json(['ok' => true, 'message' => 'Tool diperbarui.', 'tool' => $tool]);
+        return response()->json([
+            'ok' => true,
+            'message' => "Tool '{$tool->name}' berhasil diperbarui",
+            'tool' => [
+                'id' => $tool->id,
+                'name' => $tool->name,
+                'description' => $tool->description,
+                'requires_confirmation' => (bool) $tool->requires_confirmation,
+                'is_active' => (bool) $tool->is_active,
+            ],
+        ]);
     }
 
-    public function uploadDocument(Request $request, DocumentIngestService $ingestService): JsonResponse
+    public function documents(Request $request): JsonResponse
+    {
+        $tenantId = $this->resolveTenantId($request);
+
+        $documents = Document::query()
+            ->with(['source:id,tenant_id,type,uri,title,mime_type', 'persona:id,name'])
+            ->where('tenant_id', $tenantId)
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn (Document $d) => [
+                'id' => $d->id,
+                'title' => $d->title,
+                'persona_name' => optional($d->persona)->name ?? 'Global / Semua Persona',
+                'source_type' => optional($d->source)->type ?? 'file',
+                'source_uri' => optional($d->source)->uri ?? '-',
+                'token_count' => $d->token_count,
+                'chunks_count' => $d->chunks()->count(),
+                'created_at' => optional($d->created_at)->toIso8601String(),
+            ]);
+
+        return response()->json(['ok' => true, 'documents' => $documents]);
+    }
+
+    public function uploadDocument(Request $request, DocumentIngestService $ingest): JsonResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:pdf,txt,md,doc,docx,csv,json', 'max:20480'],
-            'title' => ['nullable', 'string', 'max:255'],
+            'file' => ['required', 'file', 'mimes:pdf,txt,csv,md,json', 'max:20480'],
+            'persona_id' => ['nullable', 'uuid'],
+            'title' => ['nullable', 'string', 'max:200'],
         ]);
 
-        $uploaded = $request->file('file');
-        if (! $uploaded) {
-            return response()->json(['ok' => false, 'message' => 'File tidak ditemukan.'], 422);
-        }
-
+        $file = $request->file('file');
         $tenantId = $this->resolveTenantId($request);
-        $title = $request->input('title') ?: $uploaded->getClientOriginalName();
+        $title = $request->input('title') ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $personaId = $request->input('persona_id') ?: null;
+
+        $tempPath = $file->getRealPath();
 
         try {
-            $doc = $ingestService->ingestUploadedFile($uploaded, $tenantId, $title);
+            $doc = $ingest->ingestFile(
+                tenantId: $tenantId,
+                path: $tempPath,
+                originalName: $file->getClientOriginalName(),
+                mime: $file->getMimeType() ?: 'application/octet-stream',
+                personaId: $personaId,
+                title: $title
+            );
 
             return response()->json([
                 'ok' => true,
-                'message' => "Dokumen '{$title}' berhasil diproses dan disimpan ke Knowledge Base.",
+                'message' => "Dokumen '{$title}' berhasil diindeks ke Knowledge Base RAG.",
                 'document' => [
                     'id' => $doc->id,
                     'title' => $doc->title,
-                    'chunks_count' => $doc->chunks()->count(),
-                    'created_at' => optional($doc->created_at)->toIso8601String(),
+                    'token_count' => $doc->token_count,
                 ],
             ]);
         } catch (\Throwable $e) {
@@ -332,43 +406,26 @@ final class AiAssistantController extends Controller
         }
     }
 
-    public function documents(Request $request): JsonResponse
-    {
-        $docs = Document::query()
-            ->withCount('chunks')
-            ->orderByDesc('created_at')
-            ->limit(50)
-            ->get()
-            ->map(fn (Document $d) => [
-                'id' => $d->id,
-                'title' => $d->title,
-                'status' => $d->status,
-                'chunks_count' => $d->chunks_count,
-                'created_at' => optional($d->created_at)->toIso8601String(),
-            ]);
-
-        return response()->json(['ok' => true, 'documents' => $docs]);
-    }
-
     public function documentDetail(string $id): JsonResponse
     {
-        $doc = Document::query()->with(['source', 'chunks'])->findOrFail($id);
+        $doc = Document::query()
+            ->with(['source', 'persona:id,name', 'chunks' => fn ($q) => $q->orderBy('chunk_index')->limit(50)])
+            ->findOrFail($id);
 
         return response()->json([
             'ok' => true,
             'document' => [
                 'id' => $doc->id,
                 'title' => $doc->title,
-                'status' => $doc->status,
-                'metadata' => $doc->metadata,
-                'chunks_count' => $doc->chunks->count(),
-                'chunks' => $doc->chunks->map(fn ($chunk) => [
-                    'id' => $chunk->id,
-                    'chunk_index' => $chunk->chunk_index,
-                    'token_count' => $chunk->token_count,
-                    'content_preview' => Str::limit($chunk->content, 200),
-                ]),
+                'persona_name' => optional($doc->persona)->name ?? 'Global',
+                'source' => $doc->source,
+                'token_count' => $doc->token_count,
                 'created_at' => optional($doc->created_at)->toIso8601String(),
+                'chunks' => $doc->chunks->map(fn ($c) => [
+                    'index' => $c->chunk_index,
+                    'text' => Str::limit($c->text, 300),
+                    'token_count' => $c->token_count,
+                ]),
             ],
         ]);
     }
@@ -443,6 +500,7 @@ final class AiAssistantController extends Controller
             'message' => ['required', 'string'],
             'persona_slug' => ['nullable', 'string'],
             'conversation_id' => ['nullable', 'uuid'],
+            'attachments' => ['nullable', 'array'],
         ]);
 
         $tenantId = $this->resolveTenantId($request);
@@ -467,7 +525,7 @@ final class AiAssistantController extends Controller
         if (! $conversation) {
             $conversation = Conversation::query()->create([
                 'tenant_id' => $tenantId,
-                'user_id' => $actorId,
+                'external_user_id' => $actorId,
                 'persona_id' => optional($persona)->id,
                 'channel' => 'web_test',
                 'status' => 'active',
@@ -476,33 +534,39 @@ final class AiAssistantController extends Controller
             ]);
         }
 
-        return SseEmitter::stream(function (SseEmitter $emitter) use ($loop, $conversation, $persona, $data, $actorId): void {
-            $emitter->emit('start', [
+        return response()->stream(function () use ($loop, $tenantId, $actorId, $persona, $conversation, $data): void {
+            @ini_set('zlib.output_compression', '0');
+            @ini_set('output_buffering', 'off');
+            while (ob_get_level() > 0) {
+                ob_end_flush();
+            }
+
+            $sse = new SseEmitter;
+            $sse->emit('start', [
                 'conversation_id' => $conversation->id,
                 'persona' => optional($persona)->name,
             ]);
 
             try {
                 $loop->run(
+                    tenantId: $tenantId,
+                    externalUserId: $actorId,
+                    personaId: optional($persona)->id,
                     conversation: $conversation,
-                    persona: $persona,
-                    userMessageText: $data['message'],
-                    actorId: $actorId,
-                    onToken: function (string $token) use ($emitter): void {
-                        $emitter->emit('text', ['delta' => $token]);
-                    },
-                    onToolStart: function (string $name, array $input) use ($emitter): void {
-                        $emitter->emit('tool_start', ['name' => $name, 'input' => $input]);
-                    },
-                    onToolEnd: function (string $name, mixed $result) use ($emitter): void {
-                        $emitter->emit('tool_end', ['name' => $name, 'result' => $result]);
-                    }
+                    userMessage: $data['message'],
+                    sse: $sse,
+                    attachments: (array) ($data['attachments'] ?? []),
                 );
 
-                $emitter->emit('done', ['status' => 'completed']);
+                $sse->emit('done', ['status' => 'completed']);
             } catch (\Throwable $e) {
-                $emitter->emit('error', ['message' => $e->getMessage()]);
+                $sse->emit('error', ['message' => $e->getMessage()]);
             }
-        });
+        }, 200, [
+            'Content-Type' => 'text/event-stream; charset=utf-8',
+            'Cache-Control' => 'no-cache, no-transform',
+            'Connection' => 'keep-alive',
+            'X-Accel-Buffering' => 'no',
+        ]);
     }
 }

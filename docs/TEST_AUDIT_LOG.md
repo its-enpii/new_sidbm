@@ -1,4 +1,4 @@
-﻿# DOKUMENTASI LENGKAP AUDIT KESELURUHAN CODEBASE SIDBM NEXT (100% CAKUPAN 45 CONTROLLER, 312 ROUTES, 78 HALAMAN VUE, 27 KOMPONEN UI, & 40+ TEMPLATE CETAK)
+# DOKUMENTASI LENGKAP AUDIT KESELURUHAN CODEBASE SIDBM NEXT (100% CAKUPAN 45 CONTROLLER, 312 ROUTES, 78 HALAMAN VUE, 27 KOMPONEN UI, & 40+ TEMPLATE CETAK)
 
 **Tanggal Audit:** 14 Agustus 2026  
 **Lingkungan Audit:** Docker Desktop (Laravel 13, PHP 8.4, MySQL 8.4, PostgreSQL/pgvector, Redis, Nginx, Playwright E2E Engine)  
@@ -61,7 +61,7 @@ Seluruh 45 Controller backend Laravel beserta jalurnya telah di-inventarisasi da
 - `Admin\PaymentGatewayController.php`: Pengaturan Gateway (`/admin/payment-gateways`, `/active`, `/tripay`, `/tripay/test`, `/xendit`, `/xendit/test`, `/duitku`, `/duitku/test`).
 - `Admin\AiAssistantController.php`: AI Orchestrator Hub (`/admin/ai-assistant`, personas, tools, sync, upload, documents, chat, conversations, audit-logs).
 
-### 9. Assistant AI Package (`app/Http/Controllers/Assistant/`, `packages/assistant/`)
+### 9. Assistant AI Package (`app/Http/Controllers/Assistant/`, `vendor/enpii/assistant/`)
 - `AssistantToolController.php`, `PersonaInfoController.php`, `ChatController.php`, `ConfirmationController.php`: Assistant API Widget (`/assistant/persona`, `/assistant/chat`, `/assistant/confirmations/{id}`).
 
 ### 10. Regional Dashboards (`app/Http/Controllers/Regency/`, `Province/`)

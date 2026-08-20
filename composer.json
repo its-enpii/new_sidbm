@@ -8,7 +8,7 @@
         "php": "^8.3",
         "ext-pdo": "*",
         "barryvdh/laravel-dompdf": "^3.1",
-        "enpii/assistant": "@dev",
+        "enpii/assistant": "dev-main",
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
@@ -17,11 +17,8 @@
     },
     "repositories": [
         {
-            "type": "path",
-            "url": "./packages/assistant",
-            "options": {
-                "symlink": true
-            }
+            "type": "vcs",
+            "url": "https://github.com/its-enpii/enpii-assistant"
         }
     ],
     "require-dev": {

@@ -129,10 +129,10 @@ final readonly class TenantRegistrationService
             $this->permissions->ensureSystemRoles();
 
             try {
-                if (file_exists(base_path('packages/assistant/database/migrations'))) {
+                if (file_exists(base_path('vendor/enpii/assistant/database/migrations'))) {
                     Artisan::call('migrate', [
                         '--database' => 'rag',
-                        '--path' => 'packages/assistant/database/migrations',
+                        '--path' => 'vendor/enpii/assistant/database/migrations',
                         '--force' => true,
                     ]);
                 }

@@ -7,57 +7,38 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 
 ## [Unreleased]
 
-### Fixed
-- **Refactor Komponen AppSwitch & Settings WhatsApp:**
-  - Menghilangkan nesting container ganda pada pengaturan toggle WhatsApp Gateway di `resources/js/Pages/Settings/Index.vue`.
-  - Menambahkan mode `bare` / standalone switch pada `resources/js/Components/AppSwitch.vue` agar toggle switch tidak merender border container ekstra ketika ditempatkan di dalam layout kustom atau tanpa label.
-
 ### Added
-- **Redesain Dashboard Admin & Monitor Pendapatan Tenant:**
-  - Pemindahan chart tren pendapatan/penagihan tahunan ke halaman utama **Dashboard Admin Platform** (`resources/js/Pages/Admin/Dashboard.vue` & `app/Http/Controllers/Admin/DashboardController.php`) dengan metrik KPI bisnis komprehensif (Pendapatan Bulan Ini, Pertumbuhan MoM, Pendapatan YTD, Total Piutang Belum Bayar, dan Tagihan Terbuka).
-  - Redesain halaman **Pendapatan** (`resources/js/Pages/Admin/Revenue/Index.vue` & `app/Http/Controllers/Admin/RevenueController.php`) menjadi **Tabel Monitoring Penagihan per Tenant**: menampilkan nama BUMDesma/Tenant, paket & tarif langganan, nominal tagihan terakhir, tanggal jatuh tempo beserta status sisa hari/keterlambatan, status pembayaran (Lunas / Menunggu Pembayaran / Overdue / Belum Ada Tagihan), total nominal terbayar kumulatif, serta tombol aksi cepat untuk menerbitkan invoice atau melihat detail.
-- **Konfigurasi Custom Domain Tenant (Superadmin):**
-  - Input dan manajemen **Custom Domain** pada form Edit & Detail Tenant di Panel Admin Platform (`resources/js/Pages/Admin/Tenants/Edit.vue` & `Show.vue`).
-  - Validasi ketat format domain/FQDN, normalisasi host, dan proteksi anti-duplikasi domain antar tenant pada `UpdateTenantRequest` (`app/Http/Requests/Admin/UpdateTenantRequest.php`).
-  - Integrasi penyimpanan domain ke `platform.tenants.metadata['domains']` di `TenantController` (`app/Http/Controllers/Admin/TenantController.php`) dan pengujian otomatis resolusi host tenant di `AdminAccessTest`.
-- **Penanganan Koneksi Terputus / Offline PWA:**
-  - Komponen AppOfflineBanner (`resources/js/Components/AppOfflineBanner.vue`) berbasis token MD3 dengan floating notification, tombol cek koneksi, dan status reconnect pulih.
-  - Handler event exception di Inertia router (`resources/js/app.js`) untuk pencegahan error page browser saat navigasi tanpa koneksi.
-  - Penyempurnaan Service Worker PWA (`public/sw.js`) dan template offline fallback (`public/offline.html`) dengan auto-reload polling.
-- **Manajemen Hak Akses & Peran Pengguna (Access Control / RBAC):**
-  - Modul manajemen Role & Permission dinamis (`app/Domain/Access/Models/Role.php`, `RoleController`, `app/Http/Requests/Access/`).
-  - Halaman antarmuka pengelolaan peran dan matriks izin (`resources/js/Pages/Access/Roles/`).
-  - Migrasi shard `2026_08_18_000004_add_permissions_to_roles.php` untuk menyimpan permission granular per role.
-  - Integrasi pengecekan izin terpusat via `PermissionChecker` dan composable `useCan`.
-- **Fitur Tenant Data Purifier & Training Mode:**
-  - Platform service `TenantDataPurifierService` & controller `TenantDataPurifierController` untuk pembersihan data uji/dummy pada database shard tenant.
-  - Antarmuka visual purifier data di `resources/js/Pages/Admin/Tenants/DataPurifier/Index.vue`.
-  - Migrasi platform `2026_08_18_100000_add_training_mode_to_tenants.php` untuk mendukung mode pelatihan (*training mode*) per tenant.
-- **Standarisasi Encoding & UTF-8 Otomatis:**
-  - Penambahan berkas konfigurasi `.editorconfig` di root project untuk penegakan otomatis encoding UTF-8 dan format line-ending `LF` di seluruh IDE/editor.
-  - Pembuatan skrip profil PowerShell `$PROFILE` untuk default parameter encoding UTF-8 secara sistemik.
-  - Pembaruan protokol kerja di `AGENT.md` yang mewajibkan audit komprehensif dan update `CHANGELOG.md` sebelum push.
-- **UI Audit & Atomic Component Standardization:**
-  - Konversi seluruh tombol hardcoded di halaman dan layout ke `AppButton` & `AppIconButton`.
-  - Integrasi `AppDatePicker` dan `AppInput` pada form *Import Wizard* (`Onboarding/ImportWizard.vue`).
-  - Integrasi `AppTextarea` pada form koreksi jurnal (`Accounting/JournalEntries/Edit.vue`).
-- **Responsive Layout & Breakpoint Scaling:**
-  - Breakpoint baru `--breakpoint-3xl: 120rem` (1920px) di Tailwind `@theme` untuk monitor widescreen desktop 24"+.
-  - Adaptive root typography scaling pada `resources/css/app.css` (14px pada layar laptop < 1600px, 16px pada monitor 24"+).
-- **SmartSelect Text Truncation:**
-  - Penambahan class `block min-w-0 flex-1 truncate whitespace-nowrap` pada trigger button `SmartSelect.vue` agar opsi teks panjang terpotong rapi dengan elipsis (`...`).
+- **Export Laporan Keuangan Format Excel Native:**
+  - Implementasi engine writer OpenXML/ZIP standalone tanpa dependensi luar (`App\Support\Excel\XlsxWriter` & `App\Support\Excel\ReportExcel`) untuk export 8 laporan akuntansi (Neraca, Laba Rugi, Arus Kas, Perubahan Ekuitas, CALK, Buku Besar, Neraca Saldo, dan Jurnal).
+  - Format angka nominal langsung diformat mata uang Rupiah (`#,##0`).
+  - Penambahan endpoint download Excel pada `ReportController.php` dan tombol aksi download pada `ReportPeriodFilter.vue`.
+  - Penambahan unit/feature test di `tests/Feature/Accounting/Reports/ExcelExportTest.php`.
+- **Opsi Pembulatan Angsuran Tambahan:**
+  - Penambahan opsi pembulatan angsuran pinjaman ke Rp 500, Rp 1.000, Rp 5.000, Rp 10.000, dan Rp 50.000 pada pengaturan sistem (`resources/js/Pages/Settings/Index.vue`) dan kalkulasi jadwal angsuran pinjaman.
+- **Pengujian E2E Live Chat Assistant:**
+  - Penambahan skenario Playwright test `tests/e2e/live_chat_test.spec.ts` untuk memverifikasi streaming respon Server-Sent Events (SSE) AI assistant secara end-to-end.
+
+### Changed
+- **Pembaruan Package `enpii/assistant`:**
+  - Pembaruan dependensi `enpii/assistant` ke commit terbaru (`2c676f0`) pada `composer.json` & `composer.lock`.
+  - Integrasi controller `App\Http\Controllers\Admin\AiAssistantController::chatStream` dan rute `/assistant/*` agar sesuai dengan signature `AgentLoop::run(...)` dan `SseEmitter` terbaru dari package.
+  - Penyesuaian urutan navigasi sidebar RBAC pada `resources/js/Layouts/AuthenticatedLayout.vue` ("Manajemen Role" sebelum "Manajemen User").
+  - Form entri jurnal umum (`resources/js/Pages/Accounting/JournalEntries/Create.vue`) disesuaikan menjadi lebar penuh (*full-width*) dan perataan tombol "Cek riwayat/saldo".
 
 ### Fixed
-- **Pembersihan Karakter Mojibake (Encoding Glitch):**
-  - Pembersihan total karakter rusak (`—`, `·`, `→`, `� �`, `…`) pada `AGENT.md`, `Admin/AiAssistant/Index.vue`, dan `Accounting/PeriodClose/Index.vue` kembali ke karakter murni (`�`, `�`, `?`, `?`, `�`, `?`, `??`).
-- **Shard Database Migrations:**
-  - Perbaikan query migrasi constraint `chk_loan_products_rounding` di MySQL/MariaDB dengan mekanisme `try-catch` aman tanpa `DROP CONSTRAINT IF EXISTS`.
-- **Master Data & Lending Validations:**
-  - Penyesuaian validasi penghapusan data master anggota dan kelompok yang memiliki relasi pinjaman aktif.
-  - Dukungan pengujian single device session dan konsistensi token login.
+- **Penyelarasan Kolom Percakapan AI (`ai_conversations`):**
+  - Perbaikan query create conversation pada `AiAssistantController` dari `user_id` menjadi `external_user_id` untuk mengatasi error SQLSTATE[23502] Not Null Violation pada database Postgres/RAG.
+- **Migrasi Database RAG & Default:**
+  - Eksekusi migrasi `2026_08_20_000001_add_message_attachments` untuk menambahkan kolom `attachments_json` pada tabel `ai_messages` di koneksi default dan `rag` (PostgreSQL).
+- **Resolusi Domain Tenant:**
+  - Optimalisasi pencocokan domain tenant pada `app/Tenancy/TenantResolver.php` dengan query yang database-agnostic.
+
+### Removed
+- **Pembersihan Folder Legacy `packages/assistant`:**
+  - Menghapus folder lama `packages/assistant/` dan direktori `packages/` karena package kini telah dikelola secara mandiri via Composer (`vendor/enpii/assistant`).
+  - Memperbarui seluruh referensi path migrasi dan rute di `app/Services/TenantRegistrationService.php`, `routes/web.php`, dan `.github/workflows/deploy.yml` ke `vendor/enpii/assistant/`.
 
 ---
-
 ## [2026-08-18]
 
 ### Added

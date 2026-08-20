@@ -120,7 +120,7 @@ jobs:
             docker compose exec -T app php artisan tenancy:migrate-shards --force
             
             echo "Running assistant RAG database migrations..."
-            docker compose exec -T app php artisan migrate --database=rag --path=packages/assistant/database/migrations --force || true
+            docker compose exec -T app php artisan migrate --database=rag --path=vendor/enpii/assistant/database/migrations --force || true
             
             echo "Refreshing & optimizing Laravel caches..."
             docker compose exec -T app php artisan config:clear
