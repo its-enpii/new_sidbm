@@ -1,5 +1,6 @@
 ﻿<script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
@@ -26,6 +27,10 @@ const activateForm = useForm({});
 const repairForm = useForm({});
 const invoiceForm = useForm({});
 
+const impersonating = ref(false);
+const impersonatingDomain = ref(null);
+const impersonatingUserId = ref(null);
+
 function money(value, currency = 'IDR') {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency, maximumFractionDigits: 0 }).format(Number(value || 0));
 }
@@ -50,6 +55,47 @@ function generateInvoice() {
     if (!props.tenant.active_subscription?.row_id) return;
     invoiceForm.post(`/admin/subscriptions/${props.tenant.active_subscription.row_id}/invoices`, { preserveScroll: true });
 }
+
+async function autoLogin(domain = null, userId = null) {
+    if (domain) {
+        impersonatingDomain.value = domain;
+    } else if (userId) {
+        impersonatingUserId.value = userId;
+    } else {
+        impersonating.value = true;
+    }
+
+    try {
+        const response = await fetch(`/admin/tenants/${props.tenant.row_id}/impersonate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            },
+            body: JSON.stringify({
+                domain: domain || undefined,
+                user_id: userId || undefined,
+            }),
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.redirect_url) {
+            alert(data.message || 'Gagal membuat sesi auto-login.');
+            return;
+        }
+
+        window.open(data.redirect_url, '_blank');
+    } catch (err) {
+        console.error(err);
+        alert('Terjadi kesalahan saat memulai auto-login.');
+    } finally {
+        impersonating.value = false;
+        impersonatingDomain.value = null;
+        impersonatingUserId.value = null;
+    }
+}
 </script>
 
 <template>
@@ -66,6 +112,15 @@ function generateInvoice() {
                     <p class="mt-1 text-on-surface-variant">{{ tenant.code }} · kecamatan {{ tenant.district_code || '—' }}</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
+                    <AppButton
+                        v-if="tenant.status === 'active'"
+                        variant="primary"
+                        icon="login"
+                        :loading="impersonating"
+                        @click="autoLogin()"
+                    >
+                        Auto Login Tenant
+                    </AppButton>
                     <Link :href="`/admin/tenants/${tenant.row_id}/edit`"><AppButton variant="secondary" icon="edit">Edit</AppButton></Link>
                     <Link :href="`/admin/tenants/${tenant.row_id}/users`"><AppButton variant="secondary" icon="group">Users</AppButton></Link>
                     <Link :href="`/admin/tenants/${tenant.row_id}/onboarding/import`"><AppButton variant="secondary" icon="account_balance_wallet">Onboarding / Saldo Awal</AppButton></Link>
@@ -95,18 +150,28 @@ function generateInvoice() {
                             </Link>
                         </div>
                         <div v-if="tenant.custom_domains && tenant.custom_domains.length > 0" class="mt-2.5 flex flex-wrap gap-2">
-                            <a
+                            <div
                                 v-for="dom in tenant.custom_domains"
                                 :key="dom"
-                                :href="`https://${dom}`"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-primary hover:bg-surface-container hover:underline"
+                                class="inline-flex items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-primary"
                             >
                                 <AppIcon name="language" class="text-sm text-outline" />
-                                <span>{{ dom }}</span>
-                                <AppIcon name="open_in_new" class="text-xs text-outline" />
-                            </a>
+                                <a :href="`https://${dom}`" target="_blank" rel="noopener noreferrer" class="hover:underline flex items-center gap-1">
+                                    <span>{{ dom }}</span>
+                                    <AppIcon name="open_in_new" class="text-xs text-outline" />
+                                </a>
+                                <AppButton
+                                    v-if="tenant.status === 'active'"
+                                    variant="ghost"
+                                    size="compact"
+                                    icon="login"
+                                    :loading="impersonatingDomain === dom"
+                                    aria-label="Auto login via domain ini"
+                                    @click="autoLogin(dom)"
+                                >
+                                    Login
+                                </AppButton>
+                            </div>
                         </div>
                         <p v-else class="mt-1 text-xs text-on-surface-variant">
                             Belum ada custom domain. Tenant diakses via subdomain default atau route identifier.
@@ -149,7 +214,20 @@ function generateInvoice() {
                                 <p class="font-semibold text-primary">{{ user.name }}</p>
                                 <p class="text-sm text-on-surface-variant">{{ user.username }} · {{ user.email || '—' }}</p>
                             </div>
-                            <AppBadge :tone="user.status === 'active' ? 'success' : 'neutral'">{{ user.status }}</AppBadge>
+                            <div class="flex items-center gap-2">
+                                <AppButton
+                                    v-if="user.status === 'active' && tenant.status === 'active'"
+                                    variant="ghost"
+                                    size="compact"
+                                    icon="login"
+                                    :loading="impersonatingUserId === user.row_id"
+                                    aria-label="Login sebagai pengguna ini"
+                                    @click="autoLogin(null, user.row_id)"
+                                >
+                                    Login User
+                                </AppButton>
+                                <AppBadge :tone="user.status === 'active' ? 'success' : 'neutral'">{{ user.status }}</AppBadge>
+                            </div>
                         </li>
                         <li v-if="!users.length" class="px-6 py-8 text-center text-on-surface-variant">Belum ada user.</li>
                     </ul>

@@ -21,12 +21,14 @@ use App\Http\Controllers\Admin\PlanController as AdminPlanController;
 use App\Http\Controllers\Admin\RevenueController as AdminRevenueController;
 use App\Http\Controllers\Admin\TenantController as AdminTenantController;
 use App\Http\Controllers\Admin\TenantDataPurifierController;
+use App\Http\Controllers\Admin\TenantImpersonationController as AdminTenantImpersonationController;
 use App\Http\Controllers\Admin\TenantUserController as AdminTenantUserController;
 use App\Http\Controllers\Assets\AssetController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Billing\InvoiceController as TenantInvoiceController;
 use App\Http\Controllers\Budgeting\BudgetController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\Lending\LoanController;
 use App\Http\Controllers\Lending\LoanDocumentController;
 use App\Http\Controllers\Lending\LoanReportController;
@@ -67,6 +69,9 @@ Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
 
+Route::get('/auth/impersonate/{token}', [ImpersonationController::class, 'consume'])->name('auth.impersonate');
+Route::post('/auth/impersonate/leave', [ImpersonationController::class, 'leave'])->name('auth.impersonate.leave');
+
 Route::post('/tripay/callback', TripayWebhookController::class)->name('tripay.callback');
 Route::post('/duitku/callback', DuitkuWebhookController::class)->name('duitku.callback');
 Route::post('/xendit/callback', XenditWebhookController::class)->name('xendit.callback');
@@ -103,6 +108,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::put('/tenants/{tenant}', [AdminTenantController::class, 'update'])->name('tenants.update');
     Route::post('/tenants/{tenant}/suspend', [AdminTenantController::class, 'suspend'])->name('tenants.suspend');
     Route::post('/tenants/{tenant}/activate', [AdminTenantController::class, 'activate'])->name('tenants.activate');
+    Route::post('/tenants/{tenant}/impersonate', [AdminTenantImpersonationController::class, 'impersonate'])->name('tenants.impersonate');
     Route::post('/tenants/{tenant}/repair', [AdminTenantController::class, 'repair'])->name('tenants.repair');
     Route::post('/tenants/{tenant}/subscription', [AdminTenantController::class, 'assignSubscription'])->name('tenants.subscription');
 
@@ -196,7 +202,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::post('/integrations/xendit', [PaymentGatewayController::class, 'updateXendit'])->name('integrations.xendit');
     Route::post('/integrations/xendit/test', [PaymentGatewayController::class, 'testXendit'])->name('integrations.xendit.test');
 
-    // Onboarding & Saldo Awal â€” superadmin only, per-tenant.
+    // Onboarding & Saldo Awal Ã¢â‚¬â€ superadmin only, per-tenant.
     // {tenant} numeric row_id (resolved via TenantResolver::resolveById).
     // Middleware 'tenant' agar TenantContext terinisialisasi (Account/JournalEntry
     // model pakai TenantScope). validateTenantAccess() membypass superadmin.
@@ -209,7 +215,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
             Route::post('/onboarding/active-loans', [TenantOnboardingImportController::class, 'importActiveLoans'])->name('onboarding.active-loans');
             Route::get('/onboarding/templates/{type}', [TenantOnboardingImportController::class, 'downloadTemplate'])->name('onboarding.templates');
 
-            // Data Purifier & Training Reset â€” superadmin only, per-tenant.
+            // Data Purifier & Training Reset Ã¢â‚¬â€ superadmin only, per-tenant.
             Route::get('/data-purifier', [TenantDataPurifierController::class, 'index'])->name('data-purifier.index');
             Route::post('/data-purifier/start-training', [TenantDataPurifierController::class, 'startTraining'])->name('data-purifier.start-training');
             Route::post('/data-purifier/end-training', [TenantDataPurifierController::class, 'endTraining'])->name('data-purifier.end-training');

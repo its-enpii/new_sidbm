@@ -1,5 +1,6 @@
-<script setup>
+﻿<script setup>
 import { Head, Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
@@ -13,6 +14,35 @@ defineProps({
     sort: { type: String, default: 'row_id' },
     direction: { type: String, default: 'desc' },
 });
+
+const impersonatingId = ref(null);
+
+async function autoLogin(tenant) {
+    if (impersonatingId.value) return;
+    impersonatingId.value = tenant.row_id;
+    try {
+        const response = await fetch(`/admin/tenants/${tenant.row_id}/impersonate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            },
+        });
+        const data = await response.json();
+        if (!response.ok || !data.redirect_url) {
+            alert(data.message || 'Gagal membuat sesi auto-login.');
+            return;
+        }
+        window.open(data.redirect_url, '_blank');
+    } catch (err) {
+        console.error(err);
+        alert('Terjadi kesalahan saat memulai auto-login.');
+    } finally {
+        impersonatingId.value = null;
+    }
+}
 
 const columns = [
     { key: 'name', label: 'Tenant', sortable: true },
@@ -62,9 +92,22 @@ const columns = [
                         <template #cell-plan="{ row }">{{ row.plan?.name || '—' }}</template>
                         <template #cell-shard="{ row }">{{ row.shard?.code || '—' }}</template>
                         <template #actions="{ row }">
-                            <Link :href="`/admin/tenants/${row.row_id}`">
-                                <AppButton variant="ghost" size="compact" icon="visibility" aria-label="Detail tenant">Detail</AppButton>
-                            </Link>
+                            <div class="flex items-center gap-1.5">
+                                <AppButton
+                                    v-if="row.status === 'active'"
+                                    variant="secondary"
+                                    size="compact"
+                                    icon="login"
+                                    :loading="impersonatingId === row.row_id"
+                                    aria-label="Auto login ke tenant"
+                                    @click="autoLogin(row)"
+                                >
+                                    Auto Login
+                                </AppButton>
+                                <Link :href="`/admin/tenants/${row.row_id}`">
+                                    <AppButton variant="ghost" size="compact" icon="visibility" aria-label="Detail tenant">Detail</AppButton>
+                                </Link>
+                            </div>
                         </template>
                     </SmartDataTable>
                 </div>

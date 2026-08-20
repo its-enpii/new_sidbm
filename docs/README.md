@@ -1,17 +1,47 @@
-ï»¿# Dokumentasi Proyek SIDBM Next
+# Dokumentasi Proyek SIDBM Next
 
-Indeks dokumentasi lengkap untuk arsitektur, basis data, billing, modul supervisi kabupaten & provinsi, pembatasan operator desa, asisten AI, laporan legacy, dan migrasi data SIDBM Next:
+Indeks dokumentasi lengkap untuk arsitektur, panduan pengguna, basis data, billing, modul supervisi, RBAC, asisten AI, dan pengujian SIDBM Next:
 
-1. [PERBANDINGAN_SIDBM_LEGACY_VS_NEXT.md](PERBANDINGAN_SIDBM_LEGACY_VS_NEXT.md) â€” Dokumen analisis komparatif menyeluruh antara SIDBM Legacy (`/sidbm`) vs SIDBM Next (`/new_sidbm`), mencakup alasan upgrade, perbedaan arsitektur, basis data, modul pengawasan kabupaten & provinsi, SaaS billing, AI RAG, pengujian E2E interaktif, hingga infrastruktur.
-2. [LEGACY_REPORTS_MIGRATION_ROADMAP.md](LEGACY_REPORTS_MIGRATION_ROADMAP.md) â€” Matriks spesifikasi dan status 100% implementasi seluruh laporan akuntansi, laporan piutang, analisis kesehatan usaha, paket LPJ tahunan, 37 dokumen perguliran pinjaman, serta laporan konsolidasi provinsi.
-3. [FEATURE_ROADMAP.md](FEATURE_ROADMAP.md) â€” Status implementasi fitur harian, laporan akuntansi, inventaris, billing, modul supervisi kabupaten & provinsi, pembatasan scope desa, redesain landing page, suite pengujian Playwright E2E & PHPUnit, serta rincian changelog rilis.
-4. [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) â€” Gambaran umum proyek, prinsip arsitektur multi-tenant sharding, sasaran, risiko, dan kriteria penyelesaian (*definition of done*).
-5. [DATABASE_STRUCTURE.md](DATABASE_STRUCTURE.md) â€” Struktur detail skema database platform dan shard multi-tenant, pemetaan tabel legacy, pembentukan identitas ganda (`row_id` vs legacy `id`), hirarki supervisi provinsi/kabupaten, pembatasan desa (`village_row_id`), serta portabilitas SQLite/MySQL.
-6. [BILLING_PAYMENT_AUTOMATION.md](BILLING_PAYMENT_AUTOMATION.md) â€” Spesifikasi integrasi Multi-Payment Gateway (Duitku & Tripay) (QRIS & Virtual Accounts), automatisasi tagihan perpanjangan, dan middleware pembatasan tenant overdue.
-7. [ASSISTANT_INTEGRATION.md](ASSISTANT_INTEGRATION.md) â€” Spesifikasi integrasi Asisten AI (`enpii/assistant`), pgvector store RAG, Ollama embedding server, dan komponen chat interaktif.
-8. [RBAC_MATRIX.md](RBAC_MATRIX.md) â€” Matriks hak akses (*Role-Based Access Control*) dan permission granular modul tenant, supervisor provinsi, supervisor kabupaten, operator desa, & platform superadmin.
-9. [CUTOVER_RUNBOOK.md](CUTOVER_RUNBOOK.md) â€” Panduan teknis migrasi dan cutover data per tenant dari database legacy ke SIDBM Next.
-10. [VALIDATION.md](VALIDATION.md) â€” Panduan verifikasi statis, pengujian PHPUnit backend (258 tests), dan pengujian E2E Playwright browser (47 page tests + 25 interactive CRUD tests + tests supervisi provinsi).
+---
+
+## 1. Panduan Pengguna & Operasional
+
+Dokumentasi penggunaan aplikasi untuk pengguna akhir, pengelola BUMDesma/LKD, operator desa, supervisor wilayah, dan administrator:
+
+- [USER_GUIDE.md](USER_GUIDE.md) — **Panduan Pengguna Lengkap (User Manual)**: Mencakup seluruh 86 halaman dan fitur aplikasi (Dashboard, Master Data, Lending Lifecycle, Akuntansi & Jurnal, Inventaris, E-Budgeting, Pelaporan Keuangan & Piutang, Prosedur Periodik, Billing SaaS, WhatsApp Gateway, RBAC, Onboarding, Portal Pengawasan, Superadmin, AI Assistant, dan 36 Dokumen Cetak PDF).
+- [CUTOVER_RUNBOOK.md](CUTOVER_RUNBOOK.md) — Panduan teknis migrasi dan *cutover* data per tenant dari database legacy ke SIDBM Next.
+- [VALIDATION.md](VALIDATION.md) — Panduan verifikasi statis, pengujian backend PHPUnit, dan pengujian frontend Playwright browser (E2E).
+
+---
+
+## 2. Arsitektur & Spesifikasi Sistem
+
+Dokumentasi teknis arsitektur, skema basis data, keamanan hak akses, billing, integrasi holding, dan integrasi AI:
+
+- [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) — Gambaran umum proyek, arsitektur multi-tenant sharding, sasaran, risiko, dan kriteria penyelesaian (*definition of done*).
+- [HOLDING_API_INTEGRATION_GUIDE.md](HOLDING_API_INTEGRATION_GUIDE.md) — **Panduan Integrasi API Holding & Konsolidasi**: Spesifikasi endpoint RESTful API laporan keuangan (Neraca, Laba Rugi, Arus Kas, CALK, Perubahan Ekuitas, Paket 5-in-1, dan Konsolidasi Multi-Tenant) untuk integrasi dengan aplikasi holding / enterprise luar.
+- [DATABASE_STRUCTURE.md](DATABASE_STRUCTURE.md) — Struktur detail skema platform dan database shard multi-tenant, pemetaan tabel legacy, pembentukan identitas ganda (`row_id` vs `id`), hierarki supervisi, dan portabilitas MySQL/SQLite.
+- [RBAC_MATRIX.md](RBAC_MATRIX.md) — Matriks hak akses (*Role-Based Access Control*) dan 37 permission granular modul tenant, supervisor provinsi/kabupaten, operator desa, dan platform superadmin.
+- [BILLING_PAYMENT_AUTOMATION.md](BILLING_PAYMENT_AUTOMATION.md) — Spesifikasi integrasi Multi-Payment Gateway (Tripay, Duitku, Xendit) (QRIS & Virtual Accounts), automatisasi invoice perpanjangan, dan middleware pembatasan tenant overdue.
+- [ASSISTANT_INTEGRATION.md](ASSISTANT_INTEGRATION.md) — Spesifikasi integrasi Asisten AI (`enpii/assistant`), pgvector store RAG, Ollama embedding server, dan komponen chat interaktif.
+- [ai-assistant-project-guide.md](ai-assistant-project-guide.md) — Panduan teknis proyek implementasi modul AI Assistant dan ekosistem pendukungnya.
+
+---
+
+## 3. Analisis Komparatif & Migrasi Legacy
+
+Dokumentasi perbandingan mendalam antara sistem versi legacy (PHP Native) dengan arsitektur modern SIDBM Next:
+
+- [PERBANDINGAN_SIDBM_LEGACY_VS_NEXT.md](PERBANDINGAN_SIDBM_LEGACY_VS_NEXT.md) — Analisis komparatif menyeluruh SIDBM Legacy (`/sidbm`) vs SIDBM Next (`/new_sidbm`), alasan upgrade, arsitektur, SaaS billing, supervisi wilayah, dan infrastruktur.
+- [PERBANDINGAN_DATABASE_LEGACY_VS_NEXT.md](PERBANDINGAN_DATABASE_LEGACY_VS_NEXT.md) — Perbandingan skema tabel database legacy vs normalisasi tabel modern multi-tenant.
+- [LEGACY_REPORTS_MIGRATION_ROADMAP.md](LEGACY_REPORTS_MIGRATION_ROADMAP.md) — Matriks spesifikasi dan status 100% implementasi laporan akuntansi, laporan piutang, paket LPJ tahunan MAD, dan dokumen perguliran pinjaman.
+
+---
+
+## 4. Roadmap & Riwayat Pengujian
+
+- [FEATURE_ROADMAP.md](FEATURE_ROADMAP.md) — Status implementasi fitur harian, modul supervisi, pembatasan operator desa, suite pengujian, dan changelog rilis.
+- [TEST_AUDIT_LOG.md](TEST_AUDIT_LOG.md) — Log audit hasil pengujian backend PHPUnit (258 tests) dan Playwright E2E browser tests.
 
 ---
 
@@ -19,10 +49,8 @@ Indeks dokumentasi lengkap untuk arsitektur, basis data, billing, modul supervis
 
 - **Topologi**: Platform Database + Multi-Tenant Shard Database (`tenant_id` column-based isolation) dengan opsi MySQL 8.4 dan SQLite support.
 - **Identitas**: `row_id` sebagai PK internal teknis, `id` lama dipertahankan utuh untuk laporan & audit.
-- **Akuntansi**: Double-entry journal (`journal_entries` & `journal_lines`) yang seimbang dan bersifat *immutable* â€” koreksi jurnal posted melalui reverse + recreate atomik (`JournalEditService`).
+- **Akuntansi**: Double-entry journal (`journal_entries` & `journal_lines`) yang seimbang dan bersifat *immutable* — koreksi jurnal posted melalui reverse + recreate atomik (`JournalEditService`).
 - **Supervisi Berjenjang (Kabupaten & Provinsi)**: Dashboard & laporan keuangan konsolidasi real-time lintas kecamatan & kabupaten (Neraca, LR, BB, Arus Kas, CALK, PDF Pack).
 - **Pembatasan Operator Desa (Village Scope)**: Pengguna level desa (`is_village_user`) hanya dapat melihat dan mengelola data anggota/kelompok/proposal pinjaman milik desa bersangkutan via global scope `VillageScope`.
-- **SaaS Billing**: Integrasi Tripay (Scan QRIS & 8 Virtual Account Bank) dengan scheduler auto-invoice & penangguhan otomatis tenant overdue.
-- **Redesain Landing Page & Auth**: Tampilan bisnis profesional, bersih, modern, animasi smooth scroll, FAQ accordion interaktif, tanpa bocor stack teknis.
+- **SaaS Billing**: Integrasi Multi-Payment Gateway (Tripay, Duitku, Xendit) dengan auto-invoice scheduler & penangguhan otomatis tenant overdue.
 - **Automated Testing**: 100% Passed across layers (PHPUnit 258 tests/1779 assertions + Playwright 47 E2E page tests + Playwright 25 Interactive CRUD tests).
-- **Infrastruktur**: Stack Dockerized lengkap (PHP-FPM 8.4, Nginx 1.29, MySQL 8.4, Redis Cache/Session/Queue Worker, PostgreSQL pgvector 16, Ollama LLM).

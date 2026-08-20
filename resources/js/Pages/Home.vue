@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
+import gsap from 'gsap';
 import { Head, Link } from '@inertiajs/vue3';
 import AppButton from '../Components/AppButton.vue';
 import AppIcon from '../Components/AppIcon.vue';
@@ -53,11 +54,126 @@ const features = [
 ];
 
 const stats = [
-    { label: 'Kecamatan / BUMDesma Siap Terlayani', value: '500+', icon: 'location_city' },
-    { label: 'Kelompok Pemanfaat Dikelola', value: '12.500+', icon: 'groups' },
-    { label: 'Otomatisasi Jurnal & Buku Besar', value: '100%', icon: 'receipt_long' },
-    { label: 'Tingkat Akurasi Laporan Keuangan', value: '99,9%', icon: 'verified' },
+    { label: 'Kecamatan / BUMDesma Siap Terlayani', target: 500, suffix: '+', current: ref(0), icon: 'location_city' },
+    { label: 'Kelompok Pemanfaat Dikelola', target: 12500, suffix: '+', current: ref(0), icon: 'groups', formatNumber: true },
+    { label: 'Otomatisasi Jurnal & Buku Besar', target: 100, suffix: '%', current: ref(0), icon: 'receipt_long' },
+    { label: 'Tingkat Akurasi Laporan Keuangan', target: 99.9, suffix: '%', current: ref(0), icon: 'verified', isDecimal: true },
 ];
+
+function formatDisplayValue(stat) {
+    if (stat.isDecimal) {
+        return stat.current.value.toFixed(1).replace('.', ',') + stat.suffix;
+    }
+    if (stat.formatNumber) {
+        return Math.floor(stat.current.value).toLocaleString('id-ID') + stat.suffix;
+    }
+    return Math.floor(stat.current.value) + stat.suffix;
+}
+
+onMounted(() => {
+    nextTick(() => {
+        const heroTl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+        heroTl.fromTo(
+            '.nav-container',
+            { y: -30, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.7 }
+        )
+        .fromTo(
+            '.hero-anim-item',
+            { opacity: 0, y: 35 },
+            { opacity: 1, y: 0, duration: 0.8, stagger: 0.12 },
+            '-=0.3'
+        )
+        .fromTo(
+            '.hero-preview-card',
+            { opacity: 0, scale: 0.93, y: 30 },
+            { opacity: 1, scale: 1, y: 0, duration: 0.9, ease: 'back.out(1.2)' },
+            '-=0.5'
+        );
+
+        gsap.to('.floating-card', {
+            y: -12,
+            duration: 3.8,
+            repeat: -1,
+            yoyo: true,
+            ease: 'sine.inOut',
+        });
+        gsap.to('.float-pill-1', {
+            y: -10,
+            x: 5,
+            duration: 4.2,
+            repeat: -1,
+            yoyo: true,
+            ease: 'sine.inOut',
+            delay: 0.4,
+        });
+        gsap.to('.float-pill-2', {
+            y: 12,
+            x: -6,
+            duration: 4.6,
+            repeat: -1,
+            yoyo: true,
+            ease: 'sine.inOut',
+            delay: 0.8,
+        });
+        gsap.to('.ambient-blob-1', {
+            scale: 1.15,
+            rotate: 20,
+            duration: 9,
+            repeat: -1,
+            yoyo: true,
+            ease: 'sine.inOut',
+        });
+
+        let statsCounted = false;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        const target = entry.target;
+
+                        if (target.classList.contains('stats-section') && !statsCounted) {
+                            statsCounted = true;
+                            stats.forEach((stat) => {
+                                const counterObj = { val: 0 };
+                                gsap.to(counterObj, {
+                                    val: stat.target,
+                                    duration: 2.2,
+                                    ease: 'power2.out',
+                                    onUpdate: () => {
+                                        stat.current.value = counterObj.val;
+                                    },
+                                });
+                            });
+                        }
+
+                        if (target.classList.contains('reveal-group')) {
+                            const items = target.querySelectorAll('.reveal-item');
+                            gsap.fromTo(
+                                items,
+                                { opacity: 0, y: 30 },
+                                {
+                                    opacity: 1,
+                                    y: 0,
+                                    duration: 0.7,
+                                    stagger: 0.1,
+                                    ease: 'power2.out',
+                                }
+                            );
+                            observer.unobserve(target);
+                        }
+                    }
+                });
+            },
+            { threshold: 0.15 }
+        );
+
+        document.querySelectorAll('.stats-section, .reveal-group').forEach((el) => {
+            observer.observe(el);
+        });
+    });
+});
 
 const steps = [
     {
@@ -222,7 +338,7 @@ function smoothScrollTo(id) {
                             </p>
 
                             <!-- CTAs -->
-                            <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
+                            <div class="hero-anim-item flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
                                 <Link href="/login">
                                     <AppButton variant="primary" size="large" icon="login">
                                         Masuk ke Portal Aplikasi

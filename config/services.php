@@ -13,4 +13,8 @@ return [
         'timeout' => (int) env('WA_GATEWAY_TIMEOUT', 15),
         'instance_prefix' => (string) env('WA_GATEWAY_INSTANCE_PREFIX', 'app-sidbm'),
     ],
+    'holding' => [
+        'api_key' => env('HOLDING_API_KEY', env('HOLDING_API_TOKEN', env('HOLDING_SECRET', ''))),
+        'enabled' => (bool) env('HOLDING_API_ENABLED', true),
+    ],
 ];

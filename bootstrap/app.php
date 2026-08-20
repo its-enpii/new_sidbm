@@ -8,6 +8,7 @@ use App\Http\Middleware\EnsureSubscriptionActive;
 use App\Http\Middleware\EnsureSuperadmin;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ResolveAssistantActor;
+use App\Http\Middleware\VerifyHoldingApiToken;
 use App\Http\Middleware\VerifyOrchestratorSignature;
 use App\Tenancy\Middleware\ResolveTenant;
 use Illuminate\Foundation\Application;
@@ -40,7 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/billing/tripay/callback',
         ]);
 
-        // Logged-in users hitting /login: superadmin → /admin, province → /province/dashboard, regency → /regency/dashboard, tenant → /dashboard
+        // Logged-in users hitting /login: superadmin -> /admin, province -> /province/dashboard, regency -> /regency/dashboard, tenant -> /dashboard
         $middleware->redirectUsersTo(function (Request $request): string {
             $user = $request->user();
 
@@ -70,6 +71,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'orchestrator.signature' => VerifyOrchestratorSignature::class,
             'assistant.signature' => VerifyOrchestratorSignature::class,
             'assistant.actor' => ResolveAssistantActor::class,
+            'holding.auth' => VerifyHoldingApiToken::class,
         ]);
 
         $middleware->prependToPriorityList(SubstituteBindings::class, ResolveTenant::class);

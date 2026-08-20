@@ -27,6 +27,13 @@ const mobileMenuOpen = ref(false);
 const expanded = ref({});
 const logoutForm = useForm({});
 const isTrainingMode = computed(() => page.props.tenant?.is_training_mode === true);
+const impersonatedBy = computed(() => page.props.auth?.impersonated_by);
+const impersonatorName = computed(() => page.props.auth?.impersonator_name);
+const leaveForm = useForm({});
+
+function leaveImpersonation() {
+    leaveForm.post('/auth/impersonate/leave');
+}
 
 function can(permission) {
     if (!permission) return true;
@@ -500,6 +507,23 @@ function logout() {
             </div>
         </header>
         <main class="p-4 sm:p-6 lg:ml-64 lg:p-8">
+            <div
+                v-if="impersonatedBy"
+                class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/40 bg-primary-container/30 px-4 py-3 text-sm text-primary shadow-sm"
+            >
+                <div class="flex items-center gap-2.5">
+                    <AppIcon name="admin_panel_settings" tone="primary" />
+                    <p class="font-medium">
+                        <span class="font-bold">Mode Impersonasi Superadmin:</span>
+                        Anda sedang mengakses tenant sebagai <span class="font-bold">{{ user?.name }}</span> (diinisiasi oleh Superadmin <span class="font-bold">{{ impersonatorName || 'Superadmin' }}</span>).
+                    </p>
+                </div>
+                <form @submit.prevent="leaveImpersonation">
+                    <AppButton size="compact" variant="secondary" icon="logout" :loading="leaveForm.processing">
+                        Kembali ke Superadmin
+                    </AppButton>
+                </form>
+            </div>
             <div
                 v-if="isTrainingMode"
                 class="mb-6 flex items-center justify-between gap-3 rounded-xl border border-warning/40 bg-warning-container/30 px-4 py-3 text-sm text-primary shadow-sm"

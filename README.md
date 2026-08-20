@@ -89,6 +89,7 @@ Perintah `sidbm:bootstrap-local` bersifat *idempotent*: mendaftarkan shard/tenan
 
 ## Indeks Dokumentasi Terkait (`/docs`)
 
+- **Panduan Pengguna Lengkap (User Manual)**: [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
 - **Perbandingan Legacy vs Next**: [docs/PERBANDINGAN_SIDBM_LEGACY_VS_NEXT.md](docs/PERBANDINGAN_SIDBM_LEGACY_VS_NEXT.md)
 - **Roadmap Migrasi Laporan Legacy**: [docs/LEGACY_REPORTS_MIGRATION_ROADMAP.md](docs/LEGACY_REPORTS_MIGRATION_ROADMAP.md)
 - **Status Fitur & Roadmap**: [docs/FEATURE_ROADMAP.md](docs/FEATURE_ROADMAP.md)

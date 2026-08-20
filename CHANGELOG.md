@@ -8,6 +8,40 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ## [2026-08-20]
 
 ### Added
+- **Dokumentasi Lengkap Panduan Pengguna (User Manual) (docs/USER_GUIDE.md):**
+  - Penyusunan dokumen panduan operasional komprehensif (35,7 KB, 452 baris) dalam Bahasa Indonesia mencakup seluruh 86 halaman dan alur kerja aplikasi SIDBM Next.
+  - Dokumentasi lengkap untuk 24 bab: Mulai dari Autentikasi, Dashboard Drilldown, Master Data, Siklus Perguliran Pinjaman (6 tahapan), Akuntansi Double-Entry & Immutable Ledger, Inventaris Aset, E-Budgeting, 16 Laporan Keuangan & Piutang, Billing SaaS Multi-Gateway, Notifikasi WhatsApp, RBAC 37 permissions, Wizard Onboarding, Portal Supervisi Kabupaten/Provinsi, Superadmin SaaS, AI Assistant (Ariel), hingga Katalog 36 Dokumen Cetak PDF.
+- **Restrukturisasi Indeks Dokumentasi (docs/README.md & README.md):**
+  - Pengelompokan seluruh 15 dokumen teknis ke dalam 4 kategori terstruktur: Panduan Pengguna & Operasional, Arsitektur & Spesifikasi Sistem, Analisis Komparatif & Migrasi Legacy, serta Roadmap & Riwayat Pengujian.
+- **Fitur Impersonasi Tenant Superadmin & Holding Sync API:**
+  - Implementasi login impersonasi satu klik dari panel Superadmin ke akun tenant/pengguna dengan token temporer berbatas waktu (TenantImpersonationService).
+  - Penambahan banner peringatan impersonasi aktif di \AuthenticatedLayout.vue\ dengan tombol kembali ke akun superadmin.
+  - Pembuatan endpoint API sinkronisasi tenant holding (HoldingTenantSyncController) dan panduan integrasi docs/HOLDING_API_INTEGRATION_GUIDE.md.
+  - Penambahan tabel migrasi \	enant_impersonation_tokens dan test suite TenantImpersonationTest.php.
+- **API Laporan Keuangan untuk Integrasi Aplikasi Holding (`routes/api.php`):**
+  - Implementasi rute RESTful API lengkap untuk integrasi aplikasi Holding / BUMDesma Induk yang mencakup 5 laporan keuangan utama:
+    - **Neraca / Balance Sheet** (`/api/v1/holding/reports/balance-sheet` & `/api/v1/holding/tenants/{tenant}/reports/balance-sheet`).
+    - **Laba Rugi / Income Statement** (`/api/v1/holding/reports/income-statement` & `/api/v1/holding/tenants/{tenant}/reports/income-statement`).
+    - **Arus Kas / Cash Flow** (`/api/v1/holding/reports/cash-flow` & `/api/v1/holding/tenants/{tenant}/reports/cash-flow`).
+    - **Catatan Atas Laporan Keuangan / CALK** (`/api/v1/holding/reports/calk` & `/api/v1/holding/tenants/{tenant}/reports/calk`).
+    - **Perubahan Ekuitas / Modal** (`/api/v1/holding/reports/equity-changes` & `/api/v1/holding/tenants/{tenant}/reports/equity-changes`).
+    - **Paket Lengkap / Financial Report Pack** (`/api/v1/holding/reports/pack` & `/api/v1/holding/tenants/{tenant}/reports/pack`) � mengembalikan 5 laporan keuangan sekaligus dalam 1 request roundtrip.
+    - **Laporan Keuangan Konsolidasi** (`/api/v1/holding/reports/consolidated/*`) � laporan konsolidasi seluruh anak perusahaan / unit usaha holding.
+    - **Direktori Anak Usaha / Tenants Discovery** (`/api/v1/holding/tenants` & `/api/v1/holding/tenants/{tenant}`).
+  - Controller `App\Http\Controllers\Api\Holding\HoldingReportController` dan `App\Http\Controllers\Api\Holding\HoldingTenantController`.
+  - Middleware otentikasi API Key `App\Http\Middleware\VerifyHoldingApiToken` (`holding.auth`) dengan dukungan Bearer token, header `X-Holding-Key`, `X-API-Key`, query parameter `api_key`, dan platform supervisor bypass.
+  - Automated feature test suite `tests/Feature/Api/HoldingReportApiTest.php` dengan 12 test cases yang lolos 100%.
+- **Animasi Interaktif GSAP pada Landing Page & Login Portal:**
+  - Integrasi library `gsap` pada `package.json` untuk micro-interaction dan transisi visual modern berstandar Material Design 3.
+  - **Landing Page (`resources/js/Pages/Home.vue`)**:
+    - Staggered timeline entrance untuk navbar, hero badge, headline gradient, deskripsi, tombol CTA, dan trust badges.
+    - Continuous floating levitation & ambient glow blob pada kartu mockup portofolio dan floating feature badges.
+    - Animated number counter yang menghitung naik secara dinamis saat section statistik masuk ke viewport (`IntersectionObserver`).
+    - Staggered scroll-reveal animation untuk grid kartu fitur utama, alur kerja tahapan sistem, dan FAQ accordion.
+  - **Login Portal (`resources/js/Pages/Auth/Login.vue`)**:
+    - Ambient glowing floating circles dan animasi pertumbuhan grafik batang (*bar chart growth with back easing*) pada panel branding kiri.
+    - Staggered entrance untuk header, input fields, checkbox, tombol submit, dan info bantuan pada panel form login.
+    - Animasi horizontal shake interaktif pada container form ketika validasi submit gagal.
 - **Export Laporan Keuangan Format Excel Native:**
   - Implementasi engine writer OpenXML/ZIP standalone tanpa dependensi luar (`App\Support\Excel\XlsxWriter` & `App\Support\Excel\ReportExcel`) untuk export 8 laporan akuntansi (Neraca, Laba Rugi, Arus Kas, Perubahan Ekuitas, CALK, Buku Besar, Neraca Saldo, dan Jurnal).
   - Format angka nominal otomatis dengan format mata uang Rupiah (`#,##0`).
@@ -47,49 +81,11 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ### Added
 - **Redesain Dashboard Admin & Monitor Pendapatan Tenant:**
   - Pemindahan chart tren pendapatan/penagihan tahunan ke halaman utama **Dashboard Admin Platform** (`resources/js/Pages/Admin/Dashboard.vue` & `app/Http/Controllers/Admin/DashboardController.php`) dengan metrik KPI bisnis komprehensif (Pendapatan Bulan Ini, Pertumbuhan MoM, Pendapatan YTD, Total Piutang Belum Bayar, dan Tagihan Terbuka).
-  - Redesain halaman **Pendapatan** (`resources/js/Pages/Admin/Revenue/Index.vue` & `app/Http/Controllers/Admin/RevenueController.php`) menjadi **Tabel Monitoring Penagihan per Tenant**: menampilkan nama BUMDesma/Tenant, paket & tarif langganan, nominal tagihan terakhir, tanggal jatuh tempo beserta status sisa hari/keterlambatan, status pembayaran (Lunas / Menunggu Pembayaran / Overdue / Belum Ada Tagihan), total nominal terbayar kumulatif, serta tombol aksi cepat untuk menerbitkan invoice atau melihat detail.
-- **Konfigurasi Custom Domain Tenant (Superadmin):**
-  - Input dan manajemen **Custom Domain** pada form Edit & Detail Tenant di Panel Admin Platform (`resources/js/Pages/Admin/Tenants/Edit.vue` & `Show.vue`).
-  - Validasi format domain/FQDN, normalisasi host, dan proteksi anti-duplikasi domain antar tenant pada `UpdateTenantRequest` (`app/Http/Requests/Admin/UpdateTenantRequest.php`).
-  - Integrasi penyimpanan domain ke `platform.tenants.metadata['domains']` di `TenantController` (`app/Http/Controllers/Admin/TenantController.php`) dan pengujian otomatis resolusi host tenant di `AdminAccessTest`.
-- **Penanganan Koneksi Terputus / Offline PWA:**
-  - Komponen AppOfflineBanner (`resources/js/Components/AppOfflineBanner.vue`) berbasis token MD3 dengan floating notification, tombol cek koneksi, dan status reconnect pulih.
-  - Handler event exception di Inertia router (`resources/js/app.js`) untuk pencegahan error page browser saat navigasi tanpa koneksi.
-  - Penyempurnaan Service Worker PWA (`public/sw.js`) dan template offline fallback (`public/offline.html`) dengan auto-reload polling.
-- **Manajemen Hak Akses & Peran Pengguna (Access Control / RBAC):**
-  - Modul manajemen Role & Permission dinamis (`app/Domain/Access/Models/Role.php`, `RoleController`, `app/Http/Requests/Access/`).
-  - Halaman antarmuka pengelolaan peran dan matriks izin (`resources/js/Pages/Access/Roles/`).
-  - Migrasi shard `2026_08_18_000004_add_permissions_to_roles.php` untuk menyimpan permission granular per role.
-  - Integrasi pengecekan izin terpusat via `PermissionChecker` dan composable `useCan`.
-- **Fitur Tenant Data Purifier & Training Mode:**
-  - Platform service `TenantDataPurifierService` & controller `TenantDataPurifierController` untuk pembersihan data uji/dummy pada database shard tenant.
-  - Antarmuka visual purifier data di `resources/js/Pages/Admin/Tenants/DataPurifier/Index.vue`.
-  - Migrasi platform `2026_08_18_100000_add_training_mode_to_tenants.php` untuk mendukung mode pelatihan (*training mode*) per tenant.
-- **Standarisasi Encoding & UTF-8 Otomatis:**
-  - Penambahan berkas konfigurasi `.editorconfig` di root project untuk penegakan otomatis encoding UTF-8 dan format line-ending `LF` di seluruh IDE/editor.
-  - Pembuatan skrip profil PowerShell `$PROFILE` untuk default parameter encoding UTF-8 secara sistemik.
-  - Pembaruan protokol kerja di `AGENT.md` yang mewajibkan audit komprehensif dan update `CHANGELOG.md` sebelum push.
-- **UI Audit & Atomic Component Standardization:**
-  - Konversi seluruh tombol hardcoded di halaman dan layout ke `AppButton` & `AppIconButton`.
-  - Integrasi `AppDatePicker` dan `AppInput` pada form *Import Wizard* (`Onboarding/ImportWizard.vue`).
-  - Integrasi `AppTextarea` pada form koreksi jurnal (`Accounting/JournalEntries/Edit.vue`).
-- **Responsive Layout & Breakpoint Scaling:**
-  - Breakpoint baru `--breakpoint-3xl: 120rem` (1920px) di Tailwind `@theme` untuk monitor widescreen desktop 24"+.
-  - Adaptive root typography scaling pada `resources/css/app.css` (14px pada layar laptop < 1600px, 16px pada monitor 24"+).
-- **SmartSelect Text Truncation:**
-  - Penambahan class `block min-w-0 flex-1 truncate whitespace-nowrap` pada trigger button `SmartSelect.vue` agar opsi teks panjang terpotong rapi dengan elipsis (`...`).
-
-### Fixed
-- **Refactor Komponen AppSwitch & Settings WhatsApp:**
-  - Menghilangkan nesting container ganda pada pengaturan toggle WhatsApp Gateway di `resources/js/Pages/Settings/Index.vue`.
-  - Menambahkan mode `bare` / standalone switch pada `resources/js/Components/AppSwitch.vue` agar toggle switch tidak merender border container ekstra ketika ditempatkan di dalam layout kustom atau tanpa label.
-- **Pembersihan Karakter Mojibake (Encoding Glitch):**
-  - Pembersihan total karakter rusak (`—`, `·`, `→`, `…`) pada `AGENT.md`, `Admin/AiAssistant/Index.vue`, dan `Accounting/PeriodClose/Index.vue`.
-- **Shard Database Migrations:**
-  - Perbaikan query migrasi constraint `chk_loan_products_rounding` di MySQL/MariaDB dengan mekanisme `try-catch` aman tanpa `DROP CONSTRAINT IF EXISTS`.
-- **Master Data & Lending Validations:**
-  - Penyesuaian validasi penghapusan data master anggota dan kelompok yang memiliki relasi pinjaman aktif.
-  - Dukungan pengujian single device session dan konsistensi token login.
+  - Redesain halaman **Pendapatan** (`resources/js/Pages/Admin/Revenue/Index.vue` & `app/Http/Controllers/Admin/RevenueController.php`) menjadi **Billing Overview** dengan analitik invoice, perbandingan kuartal, dan tabel rincian transaksi berpaginasi.
+- **Global Search Keyboard Shortcut Modal:**
+  - Komponen `GlobalSearchModal.vue` dengan pintasan keyboard `Ctrl+K` / `Cmd+K` untuk navigasi cepat antar menu, aksi, data anggota, kelompok, dan invoice.
+- **Tool AI Assistant WhatsApp Gateway:**
+  - Tool baru `send_whatsapp_message` dan `check_whatsapp_status` pada AI Assistant untuk kirim pesan/notifikasi langsung via obrolan AI.
 
 ---
 

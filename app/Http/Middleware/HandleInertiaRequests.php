@@ -55,6 +55,8 @@ final class HandleInertiaRequests extends Middleware
                 ]),
                 'permissions' => $this->resolvePermissions($request),
                 'nav_map' => config('permissions.nav_map', []),
+                'impersonated_by' => $request->session()?->get('impersonated_by'),
+                'impersonator_name' => $request->session()?->get('impersonator_name'),
             ],
             'flash' => $this->resolveFlash($request),
             'logoPath' => $this->resolveLogoPath(),

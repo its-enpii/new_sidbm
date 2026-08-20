@@ -48,6 +48,7 @@ final class TenantController
                 'memberships_count' => $tenant->memberships_count,
                 'shard' => $tenant->placement?->shard?->only(['code', 'name']),
                 'plan' => $tenant->activeSubscription?->plan?->only(['code', 'name']),
+                'custom_domains' => array_values(array_filter(is_array($tenant->metadata) ? ($tenant->metadata['domains'] ?? ($tenant->metadata['domain'] ?? [])) : [])),
             ]);
 
         return Inertia::render('Admin/Tenants/Index', compact('tenants', 'search', 'perPage', 'sort', 'direction'));
