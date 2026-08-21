@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { onMounted, onUnmounted, ref } from 'vue';
 import AppButton from './AppButton.vue';
 import AppIcon from './AppIcon.vue';
@@ -35,11 +35,11 @@ function onNetworkError(event) {
 async function reconnect() {
     isChecking.value = true;
     try {
-        const res = await fetch(`/favicon.ico?_t=${Date.now()}`, {
-            method: 'HEAD',
+        const res = await fetch(`/desktop/sync/status?_t=${Date.now()}`, {
+            method: 'GET',
             cache: 'no-store',
         });
-        if (res.ok || res.type === 'opaque' || res.status === 200 || res.status === 304) {
+        if (res.ok) {
             onOnline();
         } else {
             isOffline.value = true;
@@ -77,16 +77,16 @@ onUnmounted(() => {
         >
             <div
                 v-if="isOffline"
-                class="pointer-events-auto flex max-w-2xl items-center justify-between gap-4 rounded-2xl border border-error/30 bg-error-container/95 p-3.5 shadow-xl backdrop-blur-md text-on-error-container sm:px-5"
+                class="pointer-events-auto flex max-w-2xl items-center justify-between gap-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 shadow-xl backdrop-blur-md text-amber-900 dark:text-amber-200 sm:px-5"
                 role="alert"
                 aria-live="assertive"
             >
                 <div class="flex items-center gap-3">
-                    <AppIcon name="wifi_off" tone="error" container-size="9" container-shape="pill" class="shrink-0" />
+                    <AppIcon name="wifi_off" tone="warning" container-size="9" container-shape="pill" class="shrink-0" />
                     <div class="min-w-0">
-                        <p class="text-xs font-bold sm:text-sm">Koneksi Internet Terputus</p>
+                        <p class="text-xs font-bold sm:text-sm">Mode Offline (Hanya Baca)</p>
                         <p class="truncate text-[11px] opacity-90 sm:text-xs">
-                            {{ customMessage || 'Aplikasi dalam mode offline. Fitur sinkronisasi ditunda.' }}
+                            {{ customMessage || 'Data tetap dapat dibaca & dicetak dari database lokal. Fitur penambahan/perubahan data dinonaktifkan.' }}
                         </p>
                     </div>
                 </div>
@@ -96,10 +96,10 @@ onUnmounted(() => {
                         size="compact"
                         icon="refresh"
                         :loading="isChecking"
-                        aria-label="Cek koneksi internet"
+                        aria-label="Cek koneksi server"
                         @click="reconnect"
                     >
-                        Cek Koneksi
+                        Cek Server
                     </AppButton>
                 </div>
             </div>
@@ -113,7 +113,7 @@ onUnmounted(() => {
                 <AppIcon name="wifi" tone="success" container-size="9" container-shape="pill" filled class="shrink-0" />
                 <div class="min-w-0">
                     <p class="text-xs font-bold sm:text-sm">Koneksi Pulih</p>
-                    <p class="truncate text-[11px] opacity-90 sm:text-xs">Anda telah terhubung kembali ke server.</p>
+                    <p class="truncate text-[11px] opacity-90 sm:text-xs">Anda telah terhubung kembali ke server utama.</p>
                 </div>
             </div>
         </Transition>

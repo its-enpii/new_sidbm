@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Notifications;
 
+use App\Domain\Accounting\Models\JournalEntry;
 use App\Models\Platform\DatabaseShard;
 use App\Models\Platform\Tenant;
 use App\Models\Platform\TenantMembership;
 use App\Models\Platform\TenantPlacement;
 use App\Models\User;
+use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
@@ -43,9 +45,33 @@ final class NotificationCenterTest extends TestCase
             ->assertJsonStructure([
                 'unread_count',
                 'items' => [
-                    '*' => ['id', 'type', 'title', 'message', 'time', 'target_url', 'icon', 'variant', 'read'],
+                    '*' => ['id', 'type', 'title', 'message', 'time', 'target_url', 'icon', 'variant', 'read', 'actor'],
                 ],
             ]);
+    }
+
+    public function test_notifications_include_actor_attribution_for_journal_and_loans(): void
+    {
+        $user = $this->createTenantMember();
+
+        // 1. Create a journal entry by user
+        JournalEntry::query()->create([
+            'journal_number' => 'JU-TEST-001',
+            'transaction_date' => now()->toDateString(),
+            'description' => 'Pencatatan kas operasional',
+            'status' => 'draft',
+            'created_by_user_id' => $user->row_id,
+        ]);
+
+        $response = $this->actingAs($user)->getJson('/api/notifications');
+        $response->assertOk();
+
+        $items = $response->json('items');
+        $journalNotif = collect($items)->firstWhere('type', 'journal_activity');
+
+        $this->assertNotNull($journalNotif);
+        $this->assertSame($user->name, $journalNotif['actor']);
+        $this->assertStringContainsString('oleh '.$user->name, $journalNotif['message']);
     }
 
     public function test_user_can_mark_notification_as_read_and_persists_to_database(): void
@@ -79,6 +105,21 @@ final class NotificationCenterTest extends TestCase
         $targetItem = collect($updatedItems)->firstWhere('id', $firstItemId);
         $this->assertNotNull($targetItem);
         $this->assertTrue($targetItem['read']);
+    }
+
+    public function test_user_can_mark_multiple_ids_as_read(): void
+    {
+        $user = $this->createTenantMember();
+
+        $markResponse = $this->actingAs($user)->postJson('/api/notifications/mark-read', [
+            'ids' => ['custom_notif_1', 'custom_notif_2'],
+        ]);
+        $markResponse->assertOk()->assertJson(['success' => true]);
+
+        $freshUser = User::query()->find($user->row_id);
+        $this->assertNotNull($freshUser);
+        $this->assertContains('custom_notif_1', $freshUser->notifications_read);
+        $this->assertContains('custom_notif_2', $freshUser->notifications_read);
     }
 
     public function test_user_can_mark_all_notifications_as_read(): void
@@ -126,7 +167,7 @@ final class NotificationCenterTest extends TestCase
             'metadata' => ['domains' => ['localhost']],
         ]);
 
-        TenantPlacement::query()->create([
+        $placement = TenantPlacement::query()->create([
             'tenant_id' => $tenant->row_id,
             'shard_id' => $shard->row_id,
             'status' => 'active',
@@ -158,6 +199,8 @@ final class NotificationCenterTest extends TestCase
         Artisan::call('tenancy:sync-registry', ['--shard' => 'local']);
 
         config(['tenancy.local_tenant' => 'local']);
+
+        app(TenantContext::class)->initialize($tenant, $placement, $shard);
 
         return $user;
     }

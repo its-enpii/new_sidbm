@@ -1,0 +1,34 @@
+{
+  "appId": "com.enpiistudio.sidbm.desktop",
+  "productName": "SIDBM Next Desktop",
+  "directories": {
+    "output": "dist-electron"
+  },
+  "files": [
+    "electron/**/*",
+    "public/**/*",
+    "bootstrap/**/*",
+    "config/**/*",
+    "app/**/*",
+    "routes/**/*",
+    "resources/views/**/*",
+    "vendor/**/*",
+    "package.json"
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "public/favicon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "SIDBM Next Desktop"
+  }
+}

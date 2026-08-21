@@ -28,6 +28,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Billing\InvoiceController as TenantInvoiceController;
 use App\Http\Controllers\Budgeting\BudgetController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DesktopClientController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\Lending\LoanController;
 use App\Http\Controllers\Lending\LoanDocumentController;
@@ -52,13 +53,20 @@ use App\Http\Controllers\Webhooks\TripayWebhookController;
 use App\Http\Controllers\Webhooks\XenditWebhookController;
 use App\Http\Controllers\WhatsappController;
 use App\Tenancy\TenantContext;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', fn () => Inertia::render('Home', [
-    'name' => config('app.name'),
-    'status' => 'ok',
-]));
+Route::get('/', function (Request $request) {
+    if (config('desktop.enabled') || $request->header('X-Desktop-Client') === '1') {
+        return redirect()->route('login');
+    }
+
+    return Inertia::render('Home', [
+        'name' => config('app.name'),
+        'status' => 'ok',
+    ]);
+});
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -202,7 +210,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::post('/integrations/xendit', [PaymentGatewayController::class, 'updateXendit'])->name('integrations.xendit');
     Route::post('/integrations/xendit/test', [PaymentGatewayController::class, 'testXendit'])->name('integrations.xendit.test');
 
-    // Onboarding & Saldo Awal Ã¢â‚¬â€ superadmin only, per-tenant.
+    // Onboarding & Saldo Awal ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â superadmin only, per-tenant.
     // {tenant} numeric row_id (resolved via TenantResolver::resolveById).
     // Middleware 'tenant' agar TenantContext terinisialisasi (Account/JournalEntry
     // model pakai TenantScope). validateTenantAccess() membypass superadmin.
@@ -215,7 +223,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
             Route::post('/onboarding/active-loans', [TenantOnboardingImportController::class, 'importActiveLoans'])->name('onboarding.active-loans');
             Route::get('/onboarding/templates/{type}', [TenantOnboardingImportController::class, 'downloadTemplate'])->name('onboarding.templates');
 
-            // Data Purifier & Training Reset Ã¢â‚¬â€ superadmin only, per-tenant.
+            // Data Purifier & Training Reset ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â superadmin only, per-tenant.
             Route::get('/data-purifier', [TenantDataPurifierController::class, 'index'])->name('data-purifier.index');
             Route::post('/data-purifier/start-training', [TenantDataPurifierController::class, 'startTraining'])->name('data-purifier.start-training');
             Route::post('/data-purifier/end-training', [TenantDataPurifierController::class, 'endTraining'])->name('data-purifier.end-training');
@@ -503,6 +511,7 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
         Route::get('/', [SettingsController::class, 'index'])->name('index');
         Route::put('/identity', [SettingsController::class, 'updateIdentity'])->name('identity.update');
         Route::put('/lending-system', [SettingsController::class, 'updateLendingSystem'])->name('lending-system.update');
+        Route::post('/lending-system/sync-rounding', [SettingsController::class, 'syncRounding'])->name('lending-system.sync-rounding');
         Route::post('/logo', [SettingsController::class, 'updateLogo'])->name('logo.update');
         Route::delete('/logo', [SettingsController::class, 'destroyLogo'])->name('logo.destroy');
         Route::put('/whatsapp', [SettingsController::class, 'updateWhatsapp'])->name('whatsapp.update');
@@ -535,6 +544,12 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
         Route::get('/instance_state', [WhatsappController::class, 'instanceState'])->name('instance_state');
         Route::post('/delete_session', [WhatsappController::class, 'deleteInstance'])->name('delete_session');
     });
+});
+
+// Desktop Client Sync API routes
+Route::prefix('desktop')->name('desktop.')->group(function (): void {
+    Route::get('/sync/status', [DesktopClientController::class, 'status'])->name('sync.status');
+    Route::post('/sync/trigger', [DesktopClientController::class, 'triggerSync'])->name('sync.trigger');
 });
 
 Route::middleware(['auth', 'tenant'])

@@ -5,6 +5,7 @@ import { createInertiaApp, router } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h } from 'vue';
 import AppOfflineBanner from './Components/AppOfflineBanner.vue';
+import DesktopTitleBar from './Components/DesktopTitleBar.vue';
 
 window.route = window.route || function(name, params) {
     const routes = {
@@ -31,6 +32,14 @@ window.route = window.route || function(name, params) {
     return `/${name.replace(/\./g, '/')}`;
 };
 
+if (typeof window !== 'undefined' && window.desktopAPI?.onNavigate) {
+    window.desktopAPI.onNavigate((url) => {
+        if (url && typeof url === 'string') {
+            router.visit(url);
+        }
+    });
+}
+
 createInertiaApp({
     title: (title) => title ? `${title} - SIDBM Next` : 'SIDBM Next',
     resolve: (name) => resolvePageComponent(
@@ -39,7 +48,7 @@ createInertiaApp({
     ),
     setup({ el, App, props, plugin }) {
         const app = createApp({
-            render: () => h('div', [h(AppOfflineBanner), h(App, props)]),
+            render: () => h('div', [h(DesktopTitleBar), h(AppOfflineBanner), h(App, props)]),
         });
         app.config.globalProperties.route = window.route;
         app.use(plugin);

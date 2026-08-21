@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Notifications;
 
+use App\Domain\Accounting\Models\JournalEntry;
 use App\Domain\Lending\Models\Loan;
 use App\Domain\Lending\Models\LoanInstallment;
+use App\Domain\Lending\Models\LoanPayment;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,63 +34,192 @@ final class NotificationCenterController
             // 1. Proposed loans needing verification / approval
             $proposedLoans = Loan::query()->where('status', 'proposed')->count();
             if ($proposedLoans > 0) {
+                $latestLoan = Loan::query()
+                    ->with(['borrower.group', 'borrower.member.person'])
+                    ->where('status', 'proposed')
+                    ->latest('row_id')
+                    ->first();
+
+                $borrowerName = $latestLoan?->borrower?->group?->name
+                    ?? $latestLoan?->borrower?->member?->person?->full_name
+                    ?? 'Kelompok';
+
+                $creatorName = null;
+                if ($latestLoan?->created_by_user_id) {
+                    $creator = User::query()->find($latestLoan->created_by_user_id);
+                    $creatorName = $creator?->name;
+                }
+
+                $actor = $creatorName ? sprintf('%s (%s)', $creatorName, $borrowerName) : $borrowerName;
                 $id = 'loan_proposed_count';
+
                 $items[] = [
                     'id' => $id,
                     'type' => 'loan_proposed',
                     'title' => 'Pengajuan Pinjaman Baru',
-                    'message' => sprintf('Terdapat %d pengajuan pinjaman menunggu verifikasi & persetujuan.', $proposedLoans),
+                    'message' => sprintf(
+                        'Terdapat %d pengajuan pinjaman menunggu verifikasi (terbaru oleh %s).',
+                        $proposedLoans,
+                        $actor
+                    ),
                     'time' => 'Membutuhkan Tindakan',
                     'target_url' => '/lending/loans',
                     'icon' => 'assignment_late',
                     'variant' => 'warning',
                     'read' => in_array($id, $readIds, true),
+                    'actor' => $actor,
                 ];
             }
 
-            // 2. Overdue loan installments
+            // 2. Recent loan payments recorded by users
+            $recentPayments = LoanPayment::query()
+                ->with(['loan.borrower.group', 'loan.borrower.member.person'])
+                ->latest('row_id')
+                ->take(3)
+                ->get();
+
+            if ($recentPayments->isNotEmpty()) {
+                $userIds = $recentPayments->pluck('created_by_user_id')->filter()->unique()->values()->all();
+                $userMap = ! empty($userIds) ? User::query()->whereIn('row_id', $userIds)->pluck('name', 'row_id')->all() : [];
+
+                foreach ($recentPayments as $payment) {
+                    $borrowerName = $payment->loan?->borrower?->group?->name
+                        ?? $payment->loan?->borrower?->member?->person?->full_name
+                        ?? 'Peminjam';
+                    $recorderName = ($payment->created_by_user_id && isset($userMap[$payment->created_by_user_id]))
+                        ? $userMap[$payment->created_by_user_id]
+                        : 'Kasir';
+
+                    $id = 'payment_recent_'.$payment->row_id;
+                    $items[] = [
+                        'id' => $id,
+                        'type' => 'payment_activity',
+                        'title' => 'Penerimaan Angsuran',
+                        'message' => sprintf(
+                            'Pembayaran angsuran Rp %s (%s) dicatat oleh %s.',
+                            number_format((float) $payment->amount, 0, ',', '.'),
+                            $borrowerName,
+                            $recorderName
+                        ),
+                        'time' => $payment->created_at?->diffForHumans() ?? 'Baru saja',
+                        'target_url' => '/lending/loans',
+                        'icon' => 'payments',
+                        'variant' => 'success',
+                        'read' => in_array($id, $readIds, true),
+                        'actor' => $recorderName,
+                    ];
+                }
+            }
+
+            // 3. Recent journal entries created by users
+            $recentJournals = JournalEntry::query()
+                ->latest('row_id')
+                ->take(3)
+                ->get();
+
+            if ($recentJournals->isNotEmpty()) {
+                $userIds = $recentJournals->pluck('created_by_user_id')->filter()->unique()->values()->all();
+                $userMap = ! empty($userIds) ? User::query()->whereIn('row_id', $userIds)->pluck('name', 'row_id')->all() : [];
+
+                foreach ($recentJournals as $journal) {
+                    $creatorName = ($journal->created_by_user_id && isset($userMap[$journal->created_by_user_id]))
+                        ? $userMap[$journal->created_by_user_id]
+                        : 'Petugas Akuntansi';
+
+                    $id = 'journal_recent_'.$journal->row_id;
+                    $items[] = [
+                        'id' => $id,
+                        'type' => 'journal_activity',
+                        'title' => 'Pencatatan Jurnal Baru',
+                        'message' => sprintf(
+                            'Jurnal %s (%s) dicatat oleh %s.',
+                            $journal->journal_number ?: 'Umum',
+                            $journal->description ?: 'Transaksi Operasional',
+                            $creatorName
+                        ),
+                        'time' => $journal->created_at?->diffForHumans() ?? 'Baru saja',
+                        'target_url' => '/accounting/journals',
+                        'icon' => 'receipt_long',
+                        'variant' => 'info',
+                        'read' => in_array($id, $readIds, true),
+                        'actor' => $creatorName,
+                    ];
+                }
+            }
+
+            // 4. Overdue loan installments
             $overdueCount = LoanInstallment::query()
                 ->where('status', 'pending')
                 ->where('due_date', '<', $today->toDateString())
                 ->count();
 
             if ($overdueCount > 0) {
+                $latestOverdue = LoanInstallment::query()
+                    ->with(['loan.borrower.group', 'loan.borrower.member.person'])
+                    ->where('status', 'pending')
+                    ->where('due_date', '<', $today->toDateString())
+                    ->latest('due_date')
+                    ->first();
+
+                $overdueBorrower = $latestOverdue?->loan?->borrower?->group?->name
+                    ?? $latestOverdue?->loan?->borrower?->member?->person?->full_name;
+
                 $id = 'loan_overdue_count';
+                $message = $overdueBorrower
+                    ? sprintf('Terdapat %d angsuran telah melewati jatuh tempo (termasuk oleh %s).', $overdueCount, $overdueBorrower)
+                    : sprintf('Terdapat %d angsuran yang telah melewati jatuh tempo.', $overdueCount);
+
                 $items[] = [
                     'id' => $id,
                     'type' => 'loan_overdue',
                     'title' => 'Tunggakan Angsuran',
-                    'message' => sprintf('Terdapat %d angsuran yang telah melewati jatuh tempo.', $overdueCount),
+                    'message' => $message,
                     'time' => 'Perlu Perhatian',
                     'target_url' => '/lending/loans',
                     'icon' => 'warning',
                     'variant' => 'danger',
                     'read' => in_array($id, $readIds, true),
+                    'actor' => $overdueBorrower ?? 'Peminjam',
                 ];
             }
 
-            // 3. Installments due in next 7 days
+            // 5. Installments due in next 7 days
             $dueSoonCount = LoanInstallment::query()
                 ->where('status', 'pending')
                 ->whereBetween('due_date', [$today->toDateString(), $today->addDays(7)->toDateString()])
                 ->count();
 
             if ($dueSoonCount > 0) {
+                $earliestDue = LoanInstallment::query()
+                    ->with(['loan.borrower.group', 'loan.borrower.member.person'])
+                    ->where('status', 'pending')
+                    ->whereBetween('due_date', [$today->toDateString(), $today->addDays(7)->toDateString()])
+                    ->oldest('due_date')
+                    ->first();
+
+                $dueBorrower = $earliestDue?->loan?->borrower?->group?->name
+                    ?? $earliestDue?->loan?->borrower?->member?->person?->full_name;
+
                 $id = 'loan_due_soon_count';
+                $message = $dueBorrower
+                    ? sprintf('Terdapat %d angsuran jatuh tempo dalam 7 hari ke depan (termasuk oleh %s).', $dueSoonCount, $dueBorrower)
+                    : sprintf('Terdapat %d angsuran jatuh tempo dalam 7 hari ke depan.', $dueSoonCount);
+
                 $items[] = [
                     'id' => $id,
                     'type' => 'installment_due',
                     'title' => 'Jatuh Tempo Mendatang',
-                    'message' => sprintf('Terdapat %d angsuran jatuh tempo dalam 7 hari ke depan.', $dueSoonCount),
+                    'message' => $message,
                     'time' => '7 Hari Ke Depan',
                     'target_url' => '/notifications/billing',
                     'icon' => 'schedule',
                     'variant' => 'info',
                     'read' => in_array($id, $readIds, true),
+                    'actor' => $dueBorrower ?? 'Peminjam',
                 ];
             }
 
-            // 4. Default welcome/info notification if operational list is empty
+            // 6. Default welcome/info notification if operational list is empty
             if (empty($items)) {
                 $id = 'system_status_ok';
                 $items[] = [
@@ -100,6 +232,7 @@ final class NotificationCenterController
                     'icon' => 'check_circle',
                     'variant' => 'success',
                     'read' => in_array($id, $readIds, true),
+                    'actor' => 'Sistem',
                 ];
             }
         } catch (Throwable) {
@@ -115,6 +248,7 @@ final class NotificationCenterController
                 'icon' => 'info',
                 'variant' => 'info',
                 'read' => in_array($id, $readIds, true),
+                'actor' => 'Sistem',
             ];
         }
 

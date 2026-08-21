@@ -40,6 +40,7 @@ Dokumentasi perbandingan mendalam antara sistem versi legacy (PHP Native) dengan
 
 ## 4. Roadmap & Riwayat Pengujian
 
+- [DESKTOP_ROADMAP.md](DESKTOP_ROADMAP.md) — **Roadmap Desktop App (NativePHP + SQLite Read-Only Offline)**: Panduan arsitektur, strategi pull-sync satu arah, matriks online vs offline, dan checklist implementasi desktop installer.
 - [FEATURE_ROADMAP.md](FEATURE_ROADMAP.md) — Status implementasi fitur harian, modul supervisi, pembatasan operator desa, suite pengujian, dan changelog rilis.
 - [TEST_AUDIT_LOG.md](TEST_AUDIT_LOG.md) — Log audit hasil pengujian backend PHPUnit (258 tests) dan Playwright E2E browser tests.
 

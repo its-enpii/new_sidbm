@@ -116,7 +116,37 @@ function submitLogo() {
         onSuccess: () => logoForm.reset(),
     });
 }
-const { confirm: confirmAction } = useConfirm();
+const { confirm: confirmAction, showAlert } = useConfirm();
+
+const syncLoading = ref(false);
+async function syncRounding() {
+    if (!await confirmAction({
+        title: 'Sinkronkan Pembulatan',
+        message: 'Pembulatan dari setiap produk akan diterapkan ke semua pinjaman berstatus draft/verified dan jadwal angsurannya akan digenerate ulang. Lanjutkan?',
+        confirmLabel: 'Sinkronkan',
+        variant: 'primary',
+        icon: 'sync',
+    })) return;
+    syncLoading.value = true;
+    try {
+        const res = await fetch('/settings/lending-system/sync-rounding', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken(),
+            },
+            credentials: 'same-origin',
+        });
+        const data = await res.json();
+        await showAlert({ title: 'Berhasil', message: data.message });
+    } catch {
+        await showAlert({ title: 'Gagal', message: 'Terjadi kesalahan saat sinkronisasi pembulatan.' });
+    } finally {
+        syncLoading.value = false;
+    }
+}
 
 async function destroyLogo() {
     if (!await confirmAction({ title: 'Hapus Logo', message: 'Hapus logo organisasi?' })) return;
@@ -305,7 +335,7 @@ function applySignatureStarter() {
 
             <AppCard v-if="flash">
                 <div class="flex items-center gap-3">
-                    <div class="grid size-10 shrink-0 place-items-center rounded-full bg-secondary-container text-secondary">✓</div>
+                    <div class="grid size-10 shrink-0 place-items-center rounded-full bg-secondary-container text-secondary">âœ“</div>
                     <p class="font-bold text-primary">{{ flash.message }}</p>
                 </div>
             </AppCard>
@@ -361,6 +391,7 @@ function applySignatureStarter() {
                             </div>
                         </div>
                         <div class="mt-5 flex justify-end gap-2 border-t border-outline-variant pt-4">
+                            <AppButton type="button" variant="outline" :loading="syncLoading" :disabled="syncLoading || !lendingForm.products.length" icon="sync" @click="syncRounding">Sinkronkan ke Pinjaman</AppButton>
                             <AppButton type="button" :loading="lendingForm.processing" :disabled="lendingForm.processing || !lendingForm.products.length" icon="save" @click="submitLending">Simpan Sistem Pinjaman</AppButton>
                         </div>
                     </AppCard>
@@ -384,7 +415,7 @@ function applySignatureStarter() {
                                     <input type="file" accept="image/png,image/jpeg,image/webp" class="sr-only" @change="onLogoChange" />
                                     <AppIcon name="upload" class="text-2xl text-on-surface-variant" />
                                     <p class="mt-2 text-sm font-bold text-primary">Tarik gambar ke sini atau klik untuk pilih</p>
-                                    <p class="mt-1 text-xs text-on-surface-variant">PNG / JPG / WebP · Maks 2 MB</p>
+                                    <p class="mt-1 text-xs text-on-surface-variant">PNG / JPG / WebP Â· Maks 2 MB</p>
                                 </label>
                                 <p v-if="logoForm.errors.logo" class="text-sm text-error">{{ logoForm.errors.logo }}</p>
                                 <div class="flex justify-end gap-2 border-t border-outline-variant pt-4">
@@ -400,7 +431,7 @@ function applySignatureStarter() {
                             <div>
                                 <h2 class="text-lg font-bold text-primary">WhatsApp Gateway</h2>
                                 <p class="mt-1 text-sm text-on-surface-variant">
-                                    Pair nomor HP lewat Evolution API. Server: env global · instance
+                                    Pair nomor HP lewat Evolution API. Server: env global Â· instance
                                     <span class="font-semibold text-primary">{{ props.whatsapp.instance }}</span>
                                 </p>
                             </div>
@@ -497,7 +528,7 @@ function applySignatureStarter() {
                             :class="testResult.success ? 'border-secondary/30 bg-secondary-container/40' : 'border-error/30 bg-error-container/40'"
                         >
                             <div :class="['grid size-10 shrink-0 place-items-center rounded-full', testResult.success ? 'bg-secondary text-on-secondary' : 'bg-error text-on-error']">
-                                {{ testResult.success ? '✓' : '!' }}
+                                {{ testResult.success ? 'âœ“' : '!' }}
                             </div>
                             <div>
                                 <p class="font-bold" :class="testResult.success ? 'text-secondary' : 'text-error'">
@@ -505,7 +536,7 @@ function applySignatureStarter() {
                                 </p>
                                 <p class="mt-1 text-sm text-on-surface-variant">{{ testResult.message }}</p>
                                 <p v-if="testResult.state || testResult.instance" class="mt-1 text-xs text-on-surface-variant">
-                                    Instance: {{ testResult.instance || props.whatsapp.instance }} · State: {{ testResult.state || testResult.status }}
+                                    Instance: {{ testResult.instance || props.whatsapp.instance }} Â· State: {{ testResult.state || testResult.status }}
                                 </p>
                             </div>
                         </div>
@@ -542,13 +573,13 @@ function applySignatureStarter() {
                                     icon="table"
                                     @click="applySignatureStarter"
                                 >
-                                    Isi Template 1×3
+                                    Isi Template 1Ã—3
                                 </AppButton>
                             </div>
                             <AppRichEditor
                                 :key="signatureReportKey"
                                 v-model="currentSignatureHtml"
-                                placeholder="Sisipkan tabel penandatangan (ikon tabel di toolbar)…"
+                                placeholder="Sisipkan tabel penandatangan (ikon tabel di toolbar)â€¦"
                             />
                             <p v-if="signatureForm.errors.templates" class="text-sm text-error">
                                 {{ signatureForm.errors.templates }}

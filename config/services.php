@@ -17,4 +17,8 @@ return [
         'api_key' => env('HOLDING_API_KEY', env('HOLDING_API_TOKEN', env('HOLDING_SECRET', ''))),
         'enabled' => (bool) env('HOLDING_API_ENABLED', true),
     ],
+    'desktop' => [
+        'api_key' => env('DESKTOP_SYNC_API_KEY', env('DESKTOP_API_KEY', '')),
+        'enabled' => (bool) env('DESKTOP_SYNC_ENABLED', true),
+    ],
 ];

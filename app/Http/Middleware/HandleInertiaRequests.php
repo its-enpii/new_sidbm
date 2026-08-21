@@ -62,6 +62,12 @@ final class HandleInertiaRequests extends Middleware
             'logoPath' => $this->resolveLogoPath(),
             'assistant' => $this->resolveAssistant($request),
             'tenant' => $this->resolveTenantInfo(),
+            'desktop' => [
+                'is_desktop' => (bool) config('desktop.enabled', false),
+                'app_version' => '1.0.0',
+                'server_url' => config('desktop.server.url'),
+                'is_offline' => (bool) config('desktop.offline', false),
+            ],
         ];
     }
 

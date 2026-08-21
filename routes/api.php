@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\Desktop\DesktopSyncController;
 use App\Http\Controllers\Api\Holding\HoldingReportController;
 use App\Http\Controllers\Api\Holding\HoldingTenantController;
 use App\Http\Controllers\Assistant\AssistantToolController;
@@ -73,3 +74,29 @@ $registerHoldingRoutes = function (string $prefix): void {
 
 $registerHoldingRoutes('v1/holding');
 $registerHoldingRoutes('holding');
+
+/*
+|--------------------------------------------------------------------------
+| Desktop Client Synchronization API
+|--------------------------------------------------------------------------
+|
+| Dedicated endpoints for the NativePHP desktop application to pull full/delta
+| snapshots of a tenant database into local SQLite storage.
+|
+*/
+$registerDesktopSyncRoutes = function (string $prefix): void {
+    Route::middleware(['desktop.auth'])
+        ->prefix($prefix)
+        ->group(function () use ($prefix): void {
+            Route::get('/status', [DesktopSyncController::class, 'status'])->name("api.{$prefix}.status");
+            Route::get('/snapshot', [DesktopSyncController::class, 'snapshot'])->name("api.{$prefix}.snapshot");
+            Route::get('/delta', [DesktopSyncController::class, 'delta'])->name("api.{$prefix}.delta");
+
+            Route::get('/tenants/{tenant}/status', [DesktopSyncController::class, 'status'])->name("api.{$prefix}.tenant.status");
+            Route::get('/tenants/{tenant}/snapshot', [DesktopSyncController::class, 'snapshot'])->name("api.{$prefix}.tenant.snapshot");
+            Route::get('/tenants/{tenant}/delta', [DesktopSyncController::class, 'delta'])->name("api.{$prefix}.tenant.delta");
+        });
+};
+
+$registerDesktopSyncRoutes('v1/desktop/sync');
+$registerDesktopSyncRoutes('desktop/sync');

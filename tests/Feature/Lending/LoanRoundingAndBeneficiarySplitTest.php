@@ -254,4 +254,59 @@ final class LoanRoundingAndBeneficiarySplitTest extends TestCase
         $this->assertEquals(15000000.0, $membersByRowId->get((int) $this->members[2]->row_id)['allocated_amount']);
         $this->assertEquals(10000000.0, $membersByRowId->get((int) $this->members[3]->row_id)['allocated_amount']);
     }
+
+    public function test_sync_rounding_from_products_updates_draft_loans(): void
+    {
+        $service = app(LoanService::class);
+
+        $loan = $service->createProposal([
+            'group_id' => $this->group->row_id,
+            'loan_product_id' => $this->sppProductId,
+            'proposed_at' => '2026-08-01',
+            'principal_amount' => 10000000.0,
+            'term_months' => 3,
+            'service_rate_total' => 12.0,
+            'installment_method' => 'flat',
+            'principal_frequency' => 'monthly',
+            'interest_frequency' => 'monthly',
+            'rounding_step' => 500,
+            'chair_id' => $this->members[1]->row_id,
+            'secretary_id' => $this->members[2]->row_id,
+            'treasurer_id' => $this->members[3]->row_id,
+            'beneficiary_ids' => [
+                $this->members[1]->row_id,
+            ],
+            'beneficiary_amounts' => [
+                $this->members[1]->row_id => 10000000.0,
+            ],
+        ], (int) $this->user->row_id);
+
+        $this->assertSame(500, (int) $loan->rounding_step);
+
+        // Change product rounding to 5000
+        DB::connection('tenant')->table('loan_products')
+            ->where('row_id', $this->sppProductId)
+            ->update(['rounding_method' => '5000']);
+
+        // Sync
+        $count = $service->syncRoundingFromProducts();
+        $this->assertSame(1, $count);
+
+        $loan->refresh();
+        $this->assertSame(5000, (int) $loan->rounding_step);
+
+        // Verify schedule was regenerated with new rounding
+        $installments = LoanInstallment::query()
+            ->where('loan_row_id', $loan->row_id)
+            ->where('component', 'principal')
+            ->orderBy('installment_number')
+            ->get();
+
+        $this->assertCount(3, $installments);
+        // 10jt / 3 = 3.333.333,33 -> round to 5000 = 3.335.000
+        $this->assertEquals(3335000.0, (float) $installments[0]->principal_due);
+        $this->assertEquals(3335000.0, (float) $installments[1]->principal_due);
+        $this->assertEquals(3330000.0, (float) $installments[2]->principal_due);
+        $this->assertEquals(10000000.0, (float) $installments->sum('principal_due'));
+    }
 }

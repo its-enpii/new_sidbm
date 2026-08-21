@@ -1495,4 +1495,36 @@ final class LoanService
             $this->generateInterestSchedule($loan, $principal, $interestPeriods, $interestRatePerPeriod, $method, $interestFreq, $startDate);
         }
     }
+
+    /**
+     * Sync rounding from product defaults to all draft/verified loans and regenerate their schedules.
+     *
+     * @return int Number of loans updated.
+     */
+    public function syncRoundingFromProducts(): int
+    {
+        return DB::connection('tenant')->transaction(function (): int {
+            $loans = Loan::query()
+                ->with('product')
+                ->whereIn('status', ['draft', 'verified'])
+                ->get();
+
+            $count = 0;
+
+            foreach ($loans as $loan) {
+                $productRounding = (string) ($loan->product?->rounding_method ?? '0');
+                $step = is_numeric($productRounding) ? (int) $productRounding : match ($productRounding) {
+                    'ceil_100', 'floor_100' => 100,
+                    'rupiah_bersih' => 1,
+                    default => 0,
+                };
+
+                $loan->update(['rounding_step' => $step > 0 ? $step : null]);
+                $this->regenerateInstallmentSchedule($loan, (float) $loan->principal_amount);
+                $count++;
+            }
+
+            return $count;
+        });
+    }
 }

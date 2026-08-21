@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Settings;
 
 use App\Domain\Documents\Services\SignatureTemplateService;
+use App\Domain\Lending\Services\LoanService;
 use App\Domain\Membership\Models\OrganizationProfile;
 use App\Http\Requests\Settings\IdentityRequest;
 use App\Http\Requests\Settings\LendingSystemRequest;
@@ -139,6 +140,16 @@ final class SettingsController
         }
 
         return $this->flashRedirect('Pengaturan sistem pinjaman berhasil diperbarui.', 'lending-system');
+    }
+
+    public function syncRounding(LoanService $loanService): JsonResponse
+    {
+        $count = $loanService->syncRoundingFromProducts();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Pembulatan berhasil disinkronkan ke {$count} pinjaman.",
+        ]);
     }
 
     public function updateLogo(LogoUploadRequest $request, TenantContext $context): RedirectResponse

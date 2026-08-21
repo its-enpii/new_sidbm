@@ -5,6 +5,30 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 
 ---
 
+## [2026-08-21]
+
+### Added
+- **Arsitektur Aplikasi Desktop & Infrastruktur Sinkronisasi Offline (Hybrid Cloud-Desktop / Electron):**
+  - Framework Desktop Hybrid SIDBM Next berbasis Electron + SQLite lokal + Cloud Sync Engine (`docs/DESKTOP_ROADMAP.md`).
+  - Service Provider `DesktopAppServiceProvider.php` dan konfigurasi `config/desktop.php` dengan deteksi otomatis runtime desktop/offline.
+  - Snapshot & Ingestion Engine: `TenantSnapshotService.php`, `DesktopSnapshotIngestionService.php`, dan `DesktopSyncClientService.php` untuk ekspor/impor snapshot database tenant (full & delta) yang aman dengan verifikasi checksum SHA-256.
+  - Endpoint RESTful API Sync Desktop (`/api/v1/desktop/sync/*` dan `/desktop/sync/*`) dengan proteksi middleware `VerifyDesktopApiToken.php`.
+  - Guard Keamanan Offline: Middleware `BlockOfflineMutations.php` untuk melindungi integritas data lokal saat beroperasi dalam mode offline (read-only) dengan whitelist autentikasi lokal.
+  - Perintah CLI Manajemen Desktop: `php artisan desktop:init`, `php artisan desktop:status`, dan `php artisan desktop:sync`.
+  - Shell Electron: Konfigurasi build `electron/electron-builder.json`, proses utama `electron/main.cjs`, dan bridge IPC `electron/preload.cjs` (`window.desktopAPI`).
+  - Antarmuka Desktop: Komponen `DesktopTitleBar.vue`, composable `useAppMode.js`, push notification native OS, dan banner status konektivitas offline (`AppOfflineBanner.vue`).
+  - Test Suite Komprehensif: `DesktopFoundationTest.php`, `DesktopReadOnlyGuardTest.php`, `DesktopSyncEngineTest.php`, dan `DesktopSyncApiTest.php`.
+- **Atribusi Aktor & Notifikasi Live Multi-Pengguna (Notification Center):**
+  - Pelacakan aktivitas pengguna real-time dengan atribusi nama (*actor*): pencatatan jurnal umum, penerimaan pembayaran angsuran oleh kasir, pengajuan pinjaman baru, dan pengingat jatuh tempo/tunggakan peminjam.
+  - Integrasi push notification native OS pada aplikasi desktop saat terdeteksi notifikasi operasional baru.
+  - Mekanisme background polling adaptif (interval 45 detik saat tab/jendela aktif) pada `NotificationDropdown.vue`.
+  - Dukungan batch `markAsRead` untuk penandaan banyak ID notifikasi sekaligus.
+- **Sinkronisasi Otomatis Aturan Pembulatan Pinjaman (Lending System Settings):**
+  - Penambahan method `syncRoundingFromProducts()` pada `LoanService.php` untuk menyinkronkan metode pembulatan dari master produk ke seluruh proposal pinjaman draft/verified.
+  - Aksi interaktif satu klik pada halaman pengaturan sistem pinjaman (`resources/js/Pages/Settings/Index.vue`) beserta endpoint API `POST /settings/lending-system/sync-rounding`.
+  - Pengujian otomatis pada `LoanRoundingAndBeneficiarySplitTest.php`.
+
+---
 ## [2026-08-20]
 
 ### Fixed

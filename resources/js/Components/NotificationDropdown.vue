@@ -9,6 +9,8 @@ const loading = ref(false);
 const items = ref([]);
 const unreadCount = ref(0);
 const dropdownRef = ref(null);
+const notifiedIds = ref(new Set());
+let pollTimer = null;
 
 const iconTones = {
     warning: 'warning',
@@ -17,8 +19,10 @@ const iconTones = {
     success: 'success',
 };
 
-async function fetchNotifications() {
-    loading.value = true;
+async function fetchNotifications(isPolling = false) {
+    if (!isPolling) {
+        loading.value = true;
+    }
     try {
         const res = await fetch('/api/notifications', {
             headers: { Accept: 'application/json' },
@@ -26,13 +30,32 @@ async function fetchNotifications() {
         });
         if (res.ok) {
             const data = await res.json();
-            items.value = data.items || [];
+            const newItems = data.items || [];
+            items.value = newItems;
             unreadCount.value = data.unread_count || 0;
+
+            // Trigger Desktop Push Notification for new unread notifications from other users / actions
+            if (typeof window !== 'undefined' && window.desktopAPI?.sendNotification) {
+                newItems.forEach((item) => {
+                    if (!item.read && !notifiedIds.value.has(item.id)) {
+                        notifiedIds.value.add(item.id);
+                        if (isPolling) {
+                            window.desktopAPI.sendNotification({
+                                title: item.title,
+                                body: item.message,
+                                url: item.target_url || '/dashboard',
+                            });
+                        }
+                    }
+                });
+            }
         }
     } catch (e) {
         console.error('Failed to fetch notifications:', e);
     } finally {
-        loading.value = false;
+        if (!isPolling) {
+            loading.value = false;
+        }
     }
 }
 
@@ -44,6 +67,7 @@ const filteredItems = computed(() => {
 });
 
 async function markAsRead(id = null) {
+    const allItemIds = items.value.map((i) => i.id);
     if (id) {
         const target = items.value.find((i) => i.id === id);
         if (target) {
@@ -66,7 +90,7 @@ async function markAsRead(id = null) {
             },
             credentials: 'same-origin',
             keepalive: true,
-            body: JSON.stringify({ id }),
+            body: JSON.stringify({ id, ids: id ? null : allItemIds }),
         });
     } catch (e) {
         console.error('Failed to mark read:', e);
@@ -99,10 +123,20 @@ function handleClickOutside(e) {
 onMounted(() => {
     fetchNotifications();
     document.addEventListener('click', handleClickOutside);
+
+    // Poll every 45s for desktop / web live notification sync
+    pollTimer = setInterval(() => {
+        if (typeof document !== 'undefined' && !document.hidden) {
+            fetchNotifications(true);
+        }
+    }, 45000);
 });
 
 onBeforeUnmount(() => {
     document.removeEventListener('click', handleClickOutside);
+    if (pollTimer) {
+        clearInterval(pollTimer);
+    }
 });
 </script>
 
@@ -201,6 +235,14 @@ onBeforeUnmount(() => {
                                 <span class="text-[10px] text-on-surface-variant shrink-0">{{ item.time }}</span>
                             </div>
                             <p class="mt-0.5 text-xs text-on-surface-variant line-clamp-2 leading-relaxed">{{ item.message }}</p>
+
+                            <!-- Actor Attribution Chip ("oleh {siapa}") -->
+                            <div v-if="item.actor" class="mt-1.5 flex items-center gap-1">
+                                <span class="inline-flex items-center gap-1 rounded bg-surface-container-high/80 px-1.5 py-0.5 text-[10px] font-medium text-on-surface-variant">
+                                    <AppIcon name="person" class="text-[11px] text-primary" />
+                                    <span>oleh <strong class="font-semibold text-primary">{{ item.actor }}</strong></span>
+                                </span>
+                            </div>
                         </div>
                         <span v-if="!item.read" class="mt-1 size-2 shrink-0 rounded-full bg-primary" />
                     </div>

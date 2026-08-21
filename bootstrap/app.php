@@ -2,12 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\BlockOfflineMutations;
 use App\Http\Middleware\EnsureProvinceSupervisor;
 use App\Http\Middleware\EnsureRegencySupervisor;
 use App\Http\Middleware\EnsureSubscriptionActive;
 use App\Http\Middleware\EnsureSuperadmin;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ResolveAssistantActor;
+use App\Http\Middleware\VerifyDesktopApiToken;
 use App\Http\Middleware\VerifyHoldingApiToken;
 use App\Http\Middleware\VerifyOrchestratorSignature;
 use App\Tenancy\Middleware\ResolveTenant;
@@ -34,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             AuthenticateSession::class,
             HandleInertiaRequests::class,
+            BlockOfflineMutations::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [
@@ -72,6 +75,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'assistant.signature' => VerifyOrchestratorSignature::class,
             'assistant.actor' => ResolveAssistantActor::class,
             'holding.auth' => VerifyHoldingApiToken::class,
+            'desktop.auth' => VerifyDesktopApiToken::class,
+            'offline.guard' => BlockOfflineMutations::class,
         ]);
 
         $middleware->prependToPriorityList(SubstituteBindings::class, ResolveTenant::class);
