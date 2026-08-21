@@ -250,82 +250,92 @@ watch(() => props.modelValue, (value) => {
                 :aria-invalid="Boolean(error)"
                 :aria-required="required"
                 :disabled="disabled"
-                class="flex h-14 w-full items-center justify-between rounded-xl border bg-surface-container-lowest px-4 pr-16 text-left text-primary transition focus:border-primary-container focus:ring-2 focus:ring-primary-container/10 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                class="flex h-14 w-full items-center justify-between rounded-xl border bg-surface-container-lowest px-4 pr-16 text-left text-primary transition-all duration-150 active:scale-[0.99] focus:border-primary-container focus:ring-2 focus:ring-primary-container/10 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
                 :class="error ? 'border-error' : 'border-outline-variant'"
                 v-bind="$attrs"
                 @click="open ? closeMenu() : openMenu()"
                 @keydown="onKeydown"
             >
                 <span class="block min-w-0 flex-1 truncate whitespace-nowrap" :class="selectedLabel ? 'text-primary' : 'text-outline'">{{ selectedLabel || (placeholder ?? `Pilih ${label.toLowerCase()}`) }}</span>
-                <AppIcon :name="open ? 'expand_less' : 'expand_more'" class="absolute right-3 text-xl text-outline" />
+                <AppIcon name="expand_more" class="absolute right-3 text-xl text-outline transition-transform duration-200" :class="{ 'rotate-180': open }" />
             </button>
             <button
                 v-if="clearable && selectedLabel"
                 type="button"
-                class="absolute right-9 top-1/2 z-10 -translate-y-1/2 rounded-full p-1 text-outline hover:bg-surface-container-low hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary-container/20"
+                class="absolute right-9 top-1/2 z-10 -translate-y-1/2 rounded-full p-1 text-outline transition-all duration-150 hover:bg-surface-container-low hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary-container/20 active:scale-90"
                 aria-label="Hapus pilihan"
                 @click="clear"
             >
                 <AppIcon name="close" class="text-lg" />
             </button>
             <Teleport to="body">
-                <div
-                    v-if="open"
-                    :id="`${selectId}-listbox`"
-                    ref="listbox"
-                    role="listbox"
-                    class="flex flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest p-2 shadow-lg"
-                    :style="menuStyle"
-                    :data-smart-select="selectId"
+                <Transition
+                    enter-active-class="transition duration-150 ease-out"
+                    enter-from-class="opacity-0 scale-95 -translate-y-1"
+                    enter-to-class="opacity-100 scale-100 translate-y-0"
+                    leave-active-class="transition duration-100 ease-in"
+                    leave-from-class="opacity-100 scale-100 translate-y-0"
+                    leave-to-class="opacity-0 scale-95 -translate-y-1"
                 >
-                    <div v-if="searchable" class="relative mb-2 shrink-0 bg-surface-container-lowest pb-1">
-                        <AppIcon name="search" class="pointer-events-none absolute left-3 top-2.5 text-base text-on-surface-variant" />
-                        <input ref="searchInput" v-model="search" type="search" class="h-9 w-full rounded-lg border border-outline-variant pl-9 pr-8 text-sm text-primary placeholder:text-on-surface-variant focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Cari..." @input="onSearch" @keydown="onKeydown">
-                        <button v-if="search" type="button" class="absolute right-2 top-1.5 rounded-full p-1 text-on-surface-variant hover:text-primary" @click="search = ''; onSearch()"><AppIcon name="close" class="text-sm" /></button>
-                    </div>
-                    <div class="min-h-0 flex-1 overflow-y-auto">
-                        <div v-if="loading" class="px-3 py-4 text-center text-sm text-on-surface-variant">Memuat...</div>
-                        <template v-else>
-                            <template v-for="(row, rowIndex) in visibleRows" :key="row.kind === 'header' ? `h-${row.label}-${rowIndex}` : String(row.option[valueKey])">
-                                <div
-                                    v-if="row.kind === 'header'"
-                                    class="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant first:pt-1"
-                                    role="presentation"
-                                >
-                                    {{ row.label }}
-                                </div>
-                                <button
-                                    v-else
-                                    :id="`${selectId}-option-${row.index}`"
-                                    type="button"
-                                    role="option"
-                                    :aria-selected="String(row.option[valueKey]) === String(modelValue)"
-                                    class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition hover:bg-surface-container-low"
-                                    :class="row.index === highlighted ? 'bg-surface-container-low text-primary font-medium' : 'text-on-surface'"
-                                    @mouseenter="highlighted = row.index"
-                                    @click="choose(row.option)"
-                                >
-                                    <div class="min-w-0 flex-1">
-                                        <div class="flex items-center gap-2">
-                                            <span class="font-semibold" :class="String(row.option[valueKey]) === String(modelValue) ? 'text-primary' : 'text-on-surface'">
-                                                {{ row.option[labelKey] }}
-                                            </span>
-                                            <span v-if="row.option.badge" class="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                                                {{ row.option.badge }}
-                                            </span>
-                                        </div>
-                                        <p v-if="row.option.subtitle || row.option.description" class="mt-0.5 truncate text-xs text-on-surface-variant">
-                                            {{ row.option.subtitle || row.option.description }}
-                                        </p>
+                    <div
+                        v-if="open"
+                        :id="`${selectId}-listbox`"
+                        ref="listbox"
+                        role="listbox"
+                        class="flex flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest p-2 shadow-xl"
+                        :class="placeAbove ? 'origin-bottom' : 'origin-top'"
+                        :style="menuStyle"
+                        :data-smart-select="selectId"
+                    >
+                        <div v-if="searchable" class="relative mb-2 shrink-0 bg-surface-container-lowest pb-1">
+                            <AppIcon name="search" class="pointer-events-none absolute left-3 top-2.5 text-base text-on-surface-variant" />
+                            <input ref="searchInput" v-model="search" type="search" class="h-9 w-full rounded-lg border border-outline-variant pl-9 pr-8 text-sm text-primary placeholder:text-on-surface-variant focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Cari..." @input="onSearch" @keydown="onKeydown">
+                            <button v-if="search" type="button" class="absolute right-2 top-1.5 rounded-full p-1 text-on-surface-variant transition-all duration-150 hover:text-primary active:scale-90" @click="search = ''; onSearch()"><AppIcon name="close" class="text-sm" /></button>
+                        </div>
+                        <div class="min-h-0 flex-1 overflow-y-auto">
+                            <div v-if="loading" class="px-3 py-4 text-center text-sm text-on-surface-variant">Memuat...</div>
+                            <template v-else>
+                                <template v-for="(row, rowIndex) in visibleRows" :key="row.kind === 'header' ? `h-${row.label}-${rowIndex}` : String(row.option[valueKey])">
+                                    <div
+                                        v-if="row.kind === 'header'"
+                                        class="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant first:pt-1"
+                                        role="presentation"
+                                    >
+                                        {{ row.label }}
                                     </div>
-                                    <AppIcon v-if="String(row.option[valueKey]) === String(modelValue)" name="check" class="shrink-0 text-base text-primary" />
-                                </button>
+                                    <button
+                                        v-else
+                                        :id="`${selectId}-option-${row.index}`"
+                                        type="button"
+                                        role="option"
+                                        :aria-selected="String(row.option[valueKey]) === String(modelValue)"
+                                        class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors duration-150 hover:bg-surface-container-low"
+                                        :class="row.index === highlighted ? 'bg-surface-container-low text-primary font-medium' : 'text-on-surface'"
+                                        @mouseenter="highlighted = row.index"
+                                        @click="choose(row.option)"
+                                    >
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-semibold" :class="String(row.option[valueKey]) === String(modelValue) ? 'text-primary' : 'text-on-surface'">
+                                                    {{ row.option[labelKey] }}
+                                                </span>
+                                                <span v-if="row.option.badge" class="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                                                    {{ row.option.badge }}
+                                                </span>
+                                            </div>
+                                            <p v-if="row.option.subtitle || row.option.description" class="mt-0.5 truncate text-xs text-on-surface-variant">
+                                                {{ row.option.subtitle || row.option.description }}
+                                            </p>
+                                        </div>
+                                        <AppIcon v-if="String(row.option[valueKey]) === String(modelValue)" name="check" class="shrink-0 text-base text-primary" />
+                                    </button>
+                                </template>
+                                <button v-if="!visibleOptions.length && emptyActionLabel && search.trim()" type="button" class="flex w-full items-center gap-2 rounded-lg px-3 py-3 text-left text-sm font-semibold text-primary transition-colors hover:bg-surface-container-low focus:bg-surface-container-low focus:outline-none" @click="runEmptyAction"><AppIcon name="person_add" class="text-xl" />{{ emptyActionLabel }}</button>
+                                <div v-else-if="!visibleOptions.length" class="px-3 py-4 text-center text-sm text-on-surface-variant">Tidak ada opsi.</div>
                             </template>
-                            <button v-if="!visibleOptions.length && emptyActionLabel && search.trim()" type="button" class="flex w-full items-center gap-2 rounded-lg px-3 py-3 text-left text-sm font-semibold text-primary hover:bg-surface-container-low focus:bg-surface-container-low focus:outline-none" @click="runEmptyAction"><AppIcon name="person_add" class="text-xl" />{{ emptyActionLabel }}</button>
-                            <div v-else-if="!visibleOptions.length" class="px-3 py-4 text-center text-sm text-on-surface-variant">Tidak ada opsi.</div>
-                        </template>
+                        </div>
                     </div>
-                </div>
+                </Transition>
             </Teleport>
         </div>
         <p v-if="error" :id="`${selectId}-error`" class="ml-1 text-sm text-error">{{ error }}</p>

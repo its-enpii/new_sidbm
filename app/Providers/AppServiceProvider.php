@@ -66,7 +66,12 @@ final class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        if (str_starts_with((string) config('app.url'), 'https://') || request()->header('X-Forwarded-Proto') === 'https') {
+        if (
+            str_starts_with((string) config('app.url'), 'https://') ||
+            request()->isSecure() ||
+            request()->header('X-Forwarded-Proto') === 'https' ||
+            app()->environment('production')
+        ) {
             URL::forceScheme('https');
         }
     }

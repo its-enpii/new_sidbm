@@ -26,6 +26,7 @@ const form = useForm({
     description: '',
     notes: '',
     status: 'issued',
+    blocks_access: false,
 });
 
 const purposeOptions = [
@@ -88,7 +89,7 @@ function submit() {
             </header>
 
             <AppCard>
-                <form class="space-y-4" @submit.prevent="submit">
+                <form class="space-y-5" @submit.prevent="submit">
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <SmartSelect
                             v-model="form.tenant_id"
@@ -150,6 +151,26 @@ function submit() {
                             :options="statusOptions"
                             :error="form.errors.status"
                         />
+                    </div>
+
+                    <!-- Blocking Switch Option -->
+                    <div class="rounded-xl border border-outline-variant bg-surface-container-low/50 p-4 transition-colors hover:bg-surface-container-low">
+                        <label class="flex items-start gap-3 cursor-pointer select-none">
+                            <input
+                                v-model="form.blocks_access"
+                                type="checkbox"
+                                class="mt-0.5 size-4 rounded border-outline-variant text-primary focus:ring-primary"
+                            />
+                            <div class="space-y-0.5">
+                                <span class="text-sm font-bold text-primary flex items-center gap-1.5">
+                                    <span>Blokir Akses Operasional Tenant Jika Belum Lunas</span>
+                                    <span v-if="form.blocks_access" class="rounded bg-error/10 px-1.5 py-0.2 text-[10px] font-bold text-error">Blokir Aktif</span>
+                                </span>
+                                <p class="text-xs text-on-surface-variant leading-relaxed">
+                                    Jika diaktifkan, pengguna tenant tidak dapat mengakses fitur operasional (hanya dapat membuka halaman pembayaran invoice) sampai tagihan ini diselesaikan.
+                                </p>
+                            </div>
+                        </label>
                     </div>
 
                     <AppInput

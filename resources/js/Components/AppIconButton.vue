@@ -65,11 +65,11 @@ const toneClassesFilled = {
 };
 
 const buttonClass = computed(() => [
-    'inline-flex shrink-0 items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-container focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest',
+    'inline-flex shrink-0 items-center justify-center transition-all duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-container focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest',
     sizeClasses[props.size],
     roundedMap[props.rounded],
     (props.filled ? toneClassesFilled[props.tone] : toneClasses[props.tone]) || toneClasses.neutral,
-    (props.disabled || props.loading) && 'cursor-not-allowed opacity-60',
+    (props.disabled || props.loading) && 'cursor-not-allowed opacity-60 active:scale-100',
 ]);
 
 const iconSize = computed(() => {

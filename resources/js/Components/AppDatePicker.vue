@@ -337,7 +337,7 @@ const triggerIcon = computed(() => props.mode === 'year' ? 'event' : 'calendar_m
                 :id="inputId"
                 ref="trigger"
                 type="button"
-                class="flex h-14 w-full items-center rounded-xl border bg-surface-container-lowest px-4 text-left text-primary transition focus:border-primary-container focus:ring-2 focus:ring-primary-container/10 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                class="flex h-14 w-full items-center rounded-xl border bg-surface-container-lowest px-4 text-left text-primary transition-all duration-150 active:scale-[0.99] focus:border-primary-container focus:ring-2 focus:ring-primary-container/10 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
                 :class="[icon && 'pl-12', error ? 'border-error' : 'border-outline-variant']"
                 :disabled="disabled"
                 :aria-expanded="open"
@@ -349,11 +349,18 @@ const triggerIcon = computed(() => props.mode === 'year' ? 'event' : 'calendar_m
             >
                 <AppIcon v-if="icon" :name="icon" class="pointer-events-none absolute left-4 text-xl text-outline" />
                 <span :class="displayValue ? 'text-primary' : 'text-outline'">{{ displayValue || (placeholder ?? `Pilih ${label.toLowerCase()}`) }}</span>
-                <AppIcon :name="triggerIcon" class="pointer-events-none absolute right-4 text-xl text-outline" />
+                <AppIcon :name="triggerIcon" class="pointer-events-none absolute right-4 text-xl text-outline transition-transform duration-200" :class="{ 'scale-110 text-primary': open }" />
             </button>
 
             <Teleport to="body">
-                <Transition name="calendar-popup" :enter-from-class="placeAbove ? 'opacity-0 -translate-y-1 scale-[0.98]' : 'opacity-0 translate-y-1 scale-[0.98]'" :leave-to-class="placeAbove ? 'opacity-0 -translate-y-1 scale-[0.98]' : 'opacity-0 translate-y-1 scale-[0.98]'">
+                <Transition
+                    enter-active-class="transition duration-150 ease-out"
+                    enter-from-class="opacity-0 scale-95 -translate-y-1"
+                    enter-to-class="opacity-100 scale-100 translate-y-0"
+                    leave-active-class="transition duration-100 ease-in"
+                    leave-from-class="opacity-100 scale-100 translate-y-0"
+                    leave-to-class="opacity-0 scale-95 -translate-y-1"
+                >
                     <div
                         v-if="open"
                         :id="`${inputId}-calendar`"
@@ -361,42 +368,49 @@ const triggerIcon = computed(() => props.mode === 'year' ? 'event' : 'calendar_m
                         role="dialog"
                         aria-modal="false"
                         :aria-label="`Pilih ${label.toLowerCase()}`"
-                        class="min-w-72 rounded-xl border border-outline-variant bg-surface-container-lowest p-3 shadow-lg"
+                        class="min-w-72 rounded-2xl border border-outline-variant bg-surface-container-lowest p-3.5 shadow-xl select-none"
+                        :class="placeAbove ? 'origin-bottom' : 'origin-top'"
                         :style="popupStyle"
                         @keydown="onCalendarKeydown"
                     >
                         <div class="mb-3 flex items-center justify-between gap-1">
-                            <div class="flex">
-                                <button type="button" class="rounded-lg p-1.5 text-outline hover:bg-surface-container-low hover:text-primary" aria-label="Tahun sebelumnya" @click="moveView(0, -1)"><AppIcon name="keyboard_double_arrow_left" class="text-xl" /></button>
-                                <button v-if="mode === 'date'" type="button" class="rounded-lg p-1.5 text-outline hover:bg-surface-container-low hover:text-primary" aria-label="Bulan sebelumnya" @click="moveView(-1)"><AppIcon name="chevron_left" class="text-xl" /></button>
+                            <div class="flex items-center gap-0.5">
+                                <button type="button" class="rounded-lg p-1.5 text-outline transition-all duration-150 hover:bg-surface-container-low hover:text-primary active:scale-90" aria-label="Tahun sebelumnya" @click="moveView(0, -1)"><AppIcon name="keyboard_double_arrow_left" class="text-xl" /></button>
+                                <button v-if="mode === 'date'" type="button" class="rounded-lg p-1.5 text-outline transition-all duration-150 hover:bg-surface-container-low hover:text-primary active:scale-90" aria-label="Bulan sebelumnya" @click="moveView(-1)"><AppIcon name="chevron_left" class="text-xl" /></button>
                             </div>
                             <p class="text-sm font-bold capitalize text-primary" aria-live="polite">{{ mode === 'year' ? yearRangeLabel : monthLabel }}</p>
-                            <div class="flex">
-                                <button v-if="mode === 'date'" type="button" class="rounded-lg p-1.5 text-outline hover:bg-surface-container-low hover:text-primary" aria-label="Bulan berikutnya" @click="moveView(1)"><AppIcon name="chevron_right" class="text-xl" /></button>
-                                <button type="button" class="rounded-lg p-1.5 text-outline hover:bg-surface-container-low hover:text-primary" aria-label="Tahun berikutnya" @click="moveView(0, 1)"><AppIcon name="keyboard_double_arrow_right" class="text-xl" /></button>
+                            <div class="flex items-center gap-0.5">
+                                <button v-if="mode === 'date'" type="button" class="rounded-lg p-1.5 text-outline transition-all duration-150 hover:bg-surface-container-low hover:text-primary active:scale-90" aria-label="Bulan berikutnya" @click="moveView(1)"><AppIcon name="chevron_right" class="text-xl" /></button>
+                                <button type="button" class="rounded-lg p-1.5 text-outline transition-all duration-150 hover:bg-surface-container-low hover:text-primary active:scale-90" aria-label="Tahun berikutnya" @click="moveView(0, 1)"><AppIcon name="keyboard_double_arrow_right" class="text-xl" /></button>
                             </div>
                         </div>
 
-                        <div v-if="mode === 'date'" role="grid" :aria-label="monthLabel">
-                            <div role="row" class="grid grid-cols-7"><span v-for="weekday in weekdays" :key="weekday" role="columnheader" class="py-1 text-center text-xs font-bold text-on-surface-variant">{{ weekday }}</span></div>
-                            <div class="grid grid-cols-7">
-                                <button v-for="day in days" :key="day.iso" type="button" role="gridcell" :data-date="day.iso" :tabindex="day.iso === toIso(focusedDate) ? 0 : -1" :aria-selected="day.iso === model" :aria-current="day.iso === today ? 'date' : undefined" :disabled="day.disabled" class="mx-auto grid size-9 place-items-center rounded-full text-sm transition focus:outline-none focus:ring-2 focus:ring-primary-container/30 disabled:cursor-not-allowed disabled:opacity-40" :class="day.iso === model ? 'bg-primary font-bold text-on-primary hover:bg-primary' : day.iso === today ? 'font-bold bg-secondary-container text-secondary hover:bg-secondary-container' : day.currentMonth ? 'text-on-surface hover:bg-surface-container-low' : 'text-outline hover:bg-surface-container-low'" @click="choose(day)">{{ day.day }}</button>
+                        <Transition name="calendar-view" mode="out-in">
+                            <div v-if="mode === 'date'" key="view-date" role="grid" :aria-label="monthLabel">
+                                <div role="row" class="grid grid-cols-7"><span v-for="weekday in weekdays" :key="weekday" role="columnheader" class="py-1 text-center text-xs font-bold text-on-surface-variant">{{ weekday }}</span></div>
+                                <div class="grid grid-cols-7 gap-y-0.5">
+                                    <button v-for="day in days" :key="day.iso" type="button" role="gridcell" :data-date="day.iso" :tabindex="day.iso === toIso(focusedDate) ? 0 : -1" :aria-selected="day.iso === model" :aria-current="day.iso === today ? 'date' : undefined" :disabled="day.disabled" class="mx-auto grid size-9 place-items-center rounded-full text-sm transition-all duration-150 active:scale-90 focus:outline-none focus:ring-2 focus:ring-primary-container/30 disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100" :class="day.iso === model ? 'bg-primary font-bold text-on-primary hover:bg-primary shadow-xs' : day.iso === today ? 'font-bold bg-secondary-container text-secondary hover:bg-secondary-container' : day.currentMonth ? 'text-on-surface hover:bg-surface-container-low' : 'text-outline hover:bg-surface-container-low'" @click="choose(day)">{{ day.day }}</button>
+                                </div>
                             </div>
-                        </div>
 
-                        <div v-else-if="mode === 'month'" role="grid" :aria-label="monthLabel">
-                            <div class="grid grid-cols-3 gap-2">
-                                <button v-for="item in months" :key="item.value" type="button" role="gridcell" :aria-selected="item.isSelected" class="rounded-lg px-3 py-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary-container/30" :class="item.isSelected ? 'bg-primary text-on-primary' : item.isCurrent ? 'bg-secondary-container text-secondary hover:bg-secondary-container/80' : 'text-on-surface hover:bg-surface-container-low'" @click="chooseMonth(item)">{{ item.label }}</button>
+                            <div v-else-if="mode === 'month'" key="view-month" role="grid" :aria-label="monthLabel">
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button v-for="item in months" :key="item.value" type="button" role="gridcell" :aria-selected="item.isSelected" class="rounded-lg px-3 py-3 text-sm font-semibold transition-all duration-150 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary-container/30" :class="item.isSelected ? 'bg-primary text-on-primary shadow-xs' : item.isCurrent ? 'bg-secondary-container text-secondary hover:bg-secondary-container/80' : 'text-on-surface hover:bg-surface-container-low'" @click="chooseMonth(item)">{{ item.label }}</button>
+                                </div>
                             </div>
-                        </div>
 
-                        <div v-else role="grid" :aria-label="yearLabel">
-                            <div class="grid grid-cols-3 gap-2">
-                                <button v-for="year in yearColumn" :key="year.value" type="button" role="gridcell" :aria-selected="year.isSelected" class="rounded-lg px-3 py-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary-container/30" :class="year.isSelected ? 'bg-primary text-on-primary' : year.isCurrent ? 'bg-secondary-container text-secondary hover:bg-secondary-container/80' : 'text-on-surface hover:bg-surface-container-low'" @click="chooseYear(year)">{{ year.label }}</button>
+                            <div v-else key="view-year" role="grid" :aria-label="yearLabel">
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button v-for="year in yearColumn" :key="year.value" type="button" role="gridcell" :aria-selected="year.isSelected" class="rounded-lg px-3 py-3 text-sm font-semibold transition-all duration-150 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary-container/30" :class="year.isSelected ? 'bg-primary text-on-primary shadow-xs' : year.isCurrent ? 'bg-secondary-container text-secondary hover:bg-secondary-container/80' : 'text-on-surface hover:bg-surface-container-low'" @click="chooseYear(year)">{{ year.label }}</button>
+                                </div>
                             </div>
-                        </div>
+                        </Transition>
 
-                        <div class="mt-3 flex items-center justify-between border-t border-outline-variant pt-3 text-sm font-semibold"><button v-if="clearable && model" type="button" class="rounded-lg px-3 py-2 text-error hover:bg-error-container" @click="clear">Hapus</button><span v-else></span><button type="button" class="rounded-lg px-3 py-2 text-primary hover:bg-surface-container-low" @click="selectToday">{{ todayActionLabel }}</button></div>
+                        <div class="mt-3 flex items-center justify-between border-t border-outline-variant pt-3 text-sm font-semibold">
+                            <button v-if="clearable && model" type="button" class="rounded-lg px-3 py-2 text-error transition-all duration-150 hover:bg-error-container active:scale-95" @click="clear">Hapus</button>
+                            <span v-else></span>
+                            <button type="button" class="rounded-lg px-3 py-2 text-primary transition-all duration-150 hover:bg-surface-container-low active:scale-95" @click="selectToday">{{ todayActionLabel }}</button>
+                        </div>
                     </div>
                 </Transition>
             </Teleport>
@@ -407,10 +421,23 @@ const triggerIcon = computed(() => props.mode === 'year' ? 'event' : 'calendar_m
 </template>
 
 <style scoped>
-.calendar-popup-enter-active,
-.calendar-popup-leave-active { transition: opacity 150ms ease, transform 150ms ease; }
+.calendar-view-enter-active,
+.calendar-view-leave-active {
+    transition: opacity 120ms ease, transform 120ms ease;
+}
+.calendar-view-enter-from {
+    opacity: 0;
+    transform: scale(0.97);
+}
+.calendar-view-leave-to {
+    opacity: 0;
+    transform: scale(1.03);
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .calendar-popup-enter-active,
-    .calendar-popup-leave-active { transition: none; }
+    .calendar-view-enter-active,
+    .calendar-view-leave-active {
+        transition: none;
+    }
 }
 </style>

@@ -7,6 +7,7 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -16,6 +17,9 @@ final class AuthenticationTest extends TestCase
     {
         parent::setUp();
         $this->withoutMiddleware(PreventRequestForgery::class);
+
+        DB::connection('platform')->disconnect();
+        DB::connection('tenant')->disconnect();
 
         Artisan::call('migrate:fresh', [
             '--database' => 'platform',
@@ -117,6 +121,20 @@ final class AuthenticationTest extends TestCase
         ])->assertSessionHasErrors('identifier');
 
         $this->assertGuest();
+    }
+
+    public function test_login_redirect_normalizes_http_intended_to_https_when_request_is_secure(): void
+    {
+        $user = $this->createUser(['password' => 'secret-password']);
+
+        // Stale HTTP intended URL in session
+        $this->withSession(['url.intended' => 'http://next.sidbm.net/dashboard'])
+            ->withHeaders(['X-Forwarded-Proto' => 'https'])
+            ->post('/login', [
+                'identifier' => $user->username,
+                'password' => 'secret-password',
+            ])
+            ->assertRedirect('https://next.sidbm.net/dashboard');
     }
 
     public function test_logout_invalidates_session(): void

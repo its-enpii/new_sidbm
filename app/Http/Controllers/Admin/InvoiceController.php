@@ -45,6 +45,7 @@ final class InvoiceController
                 'number' => $invoice->number,
                 'purpose' => $invoice->purpose,
                 'status' => $invoice->status,
+                'blocks_access' => (bool) $invoice->blocks_access,
                 'amount' => $invoice->amount,
                 'amount_paid' => $invoice->amount_paid,
                 'currency' => $invoice->currency,
@@ -99,6 +100,7 @@ final class InvoiceController
                 'number' => $invoice->number,
                 'purpose' => $invoice->purpose,
                 'status' => $invoice->status,
+                'blocks_access' => (bool) $invoice->blocks_access,
                 'amount' => $invoice->amount,
                 'amount_paid' => $invoice->amount_paid,
                 'remaining' => $invoice->remainingAmount(),
@@ -138,10 +140,13 @@ final class InvoiceController
         return back()->with('success', 'Invoice dibatalkan.');
     }
 
-    public function generateFromSubscription(Request $request, Subscription $subscription, InvoiceService $invoices): RedirectResponse
+    public function toggleBlocking(Invoice $invoice): RedirectResponse
     {
-        $invoice = $invoices->generateFromSubscription($subscription, $request->user());
+        $invoice->blocks_access = ! $invoice->blocks_access;
+        $invoice->save();
 
-        return to_route('admin.invoices.show', $invoice)->with('success', 'Invoice dari langganan dibuat.');
+        $statusText = $invoice->blocks_access ? 'diaktifkan (akses tenant diblokir sampai lunas)' : 'dinonaktifkan';
+
+        return back()->with('success', "Opsi blokir akses invoice {$invoice->number} {$statusText}.");
     }
 }

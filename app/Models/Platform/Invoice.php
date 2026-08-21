@@ -19,6 +19,7 @@ final class Invoice extends PlatformModel
             'due_at' => 'date',
             'paid_at' => 'datetime',
             'metadata' => 'array',
+            'blocks_access' => 'boolean',
         ];
     }
 
@@ -49,6 +50,11 @@ final class Invoice extends PlatformModel
 
     public function isOpen(): bool
     {
-        return in_array($this->status, ['draft', 'issued', 'partially_paid', 'overdue'], true);
+        return in_array($this->status, ['draft', 'issued', 'partially_paid', 'overdue', 'pending_payment'], true);
+    }
+
+    public function isBlockingAccess(): bool
+    {
+        return (bool) $this->blocks_access && $this->isOpen() && $this->status !== 'draft';
     }
 }

@@ -8,6 +8,7 @@ use App\Domain\Accounting\Models\JournalEntry;
 use App\Domain\Lending\Models\Loan;
 use App\Domain\Lending\Models\LoanInstallment;
 use App\Domain\Lending\Models\LoanPayment;
+use App\Models\Platform\Invoice;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -31,7 +32,58 @@ final class NotificationCenterController
         $today = CarbonImmutable::today();
 
         try {
-            // 1. Proposed loans needing verification / approval
+            // 1. Tenant Platform Invoices (Subscription & Service Fees)
+            $tenant = $user->tenant;
+            if ($tenant !== null) {
+                $unpaidInvoices = Invoice::query()
+                    ->where('tenant_id', $tenant->row_id)
+                    ->whereIn('status', ['issued', 'pending_payment', 'overdue'])
+                    ->orderByRaw("CASE WHEN status = 'overdue' THEN 0 ELSE 1 END")
+                    ->oldest('due_at')
+                    ->get();
+
+                if ($unpaidInvoices->isNotEmpty()) {
+                    $latestInvoice = $unpaidInvoices->first();
+                    $isOverdue = $latestInvoice->status === 'overdue' || ($latestInvoice->due_at && $latestInvoice->due_at->isPast());
+                    $isBlocking = (bool) $latestInvoice->blocks_access;
+                    $targetUrl = $unpaidInvoices->count() === 1
+                        ? "/billing/invoices/{$latestInvoice->row_id}"
+                        : '/billing/invoices';
+
+                    $id = 'tenant_invoice_'.$latestInvoice->row_id;
+                    $title = $isBlocking
+                        ? 'Tagihan Memblokir Akses Operasional'
+                        : ($isOverdue ? 'Tagihan Langganan Overdue' : 'Tagihan Menunggu Pembayaran');
+
+                    $time = $isBlocking
+                        ? 'Akses Terblokir'
+                        : ($isOverdue ? 'Segera Bayar' : ($latestInvoice->due_at?->diffForHumans() ?? 'Perlu Tindakan'));
+
+                    $variant = ($isBlocking || $isOverdue) ? 'danger' : 'warning';
+
+                    $items[] = [
+                        'id' => $id,
+                        'type' => 'tenant_invoice',
+                        'title' => $title,
+                        'message' => sprintf(
+                            'Invoice %s sebesar Rp %s (%s)%s.%s',
+                            $latestInvoice->number,
+                            number_format((float) $latestInvoice->remainingAmount(), 0, ',', '.'),
+                            $latestInvoice->purpose === 'subscription' ? 'Langganan Paket' : 'Tagihan',
+                            $latestInvoice->due_at ? ' jatuh tempo '.$latestInvoice->due_at->format('d/m/Y') : '',
+                            $isBlocking ? ' Tagihan ini memblokir akses fitur operasional hingga diselesaikan.' : ''
+                        ),
+                        'time' => $time,
+                        'target_url' => $targetUrl,
+                        'icon' => $isBlocking ? 'lock' : 'receipt_long',
+                        'variant' => $variant,
+                        'read' => in_array($id, $readIds, true),
+                        'actor' => 'Admin Platform',
+                    ];
+                }
+            }
+
+            // 2. Proposed loans needing verification / approval
             $proposedLoans = Loan::query()->where('status', 'proposed')->count();
             if ($proposedLoans > 0) {
                 $latestLoan = Loan::query()
@@ -63,7 +115,7 @@ final class NotificationCenterController
                         $actor
                     ),
                     'time' => 'Membutuhkan Tindakan',
-                    'target_url' => '/lending/loans',
+                    'target_url' => '/lending/loans?tab=proposal',
                     'icon' => 'assignment_late',
                     'variant' => 'warning',
                     'read' => in_array($id, $readIds, true),
@@ -71,7 +123,7 @@ final class NotificationCenterController
                 ];
             }
 
-            // 2. Recent loan payments recorded by users
+            // 3. Recent loan payments recorded by users
             $recentPayments = LoanPayment::query()
                 ->with(['loan.borrower.group', 'loan.borrower.member.person'])
                 ->latest('row_id')
@@ -111,7 +163,7 @@ final class NotificationCenterController
                 }
             }
 
-            // 3. Recent journal entries created by users
+            // 4. Recent journal entries created by users
             $recentJournals = JournalEntry::query()
                 ->latest('row_id')
                 ->take(3)
@@ -147,7 +199,7 @@ final class NotificationCenterController
                 }
             }
 
-            // 4. Overdue loan installments
+            // 5. Overdue loan installments
             $overdueCount = LoanInstallment::query()
                 ->where('status', 'pending')
                 ->where('due_date', '<', $today->toDateString())
@@ -183,7 +235,7 @@ final class NotificationCenterController
                 ];
             }
 
-            // 5. Installments due in next 7 days
+            // 6. Installments due in next 7 days
             $dueSoonCount = LoanInstallment::query()
                 ->where('status', 'pending')
                 ->whereBetween('due_date', [$today->toDateString(), $today->addDays(7)->toDateString()])
@@ -219,7 +271,7 @@ final class NotificationCenterController
                 ];
             }
 
-            // 6. Default welcome/info notification if operational list is empty
+            // 7. Default welcome/info notification if operational list is empty
             if (empty($items)) {
                 $id = 'system_status_ok';
                 $items[] = [

@@ -10,6 +10,8 @@ import AppToast from '../Components/AppToast.vue';
 import AssistantWidget from '../Components/AssistantWidget.vue';
 import ThemeMenu from '../Components/ThemeMenu.vue';
 import NotificationDropdown from '../Components/NotificationDropdown.vue';
+import KeyboardShortcutsModal from '../Components/KeyboardShortcutsModal.vue';
+import { useKeyboardShortcuts } from '../composables/useKeyboardShortcuts';
 
 const props = defineProps({ unitName: { type: String, default: null } });
 
@@ -382,8 +384,17 @@ function logout() {
 
 <template>
     <div class="min-h-screen bg-surface">
-        <button v-if="mobileMenuOpen" type="button" class="fixed inset-0 z-40 bg-primary/40 lg:hidden" aria-label="Tutup navigasi" @click="mobileMenuOpen = false" />
-        <aside class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-primary py-6 shadow-xl transition-transform lg:translate-x-0" :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'">
+        <Transition
+            enter-active-class="transition-opacity duration-300 ease-out"
+            enter-from-class="opacity-0"
+            enter-to-class="opacity-100"
+            leave-active-class="transition-opacity duration-200 ease-in"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+        >
+            <button v-if="mobileMenuOpen" type="button" class="fixed inset-0 z-40 bg-primary/45 backdrop-blur-xs lg:hidden" aria-label="Tutup navigasi" @click="mobileMenuOpen = false" />
+        </Transition>
+        <aside class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-primary py-6 shadow-xl transition-transform duration-300 ease-in-out lg:translate-x-0" :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'">
             <div class="mb-6 flex items-center gap-3 px-6">
                 <div class="grid size-10 place-items-center overflow-hidden rounded-lg bg-surface-container-lowest text-primary">
                     <img v-if="logoPath" :src="logoPath" alt="Logo lembaga" class="size-full object-contain" />

@@ -38,9 +38,9 @@ defineEmits(['update:modelValue']);
 const wrapperBase = 'flex flex-wrap gap-2';
 
 const base = {
-    outline: 'rounded-xl border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest',
-    solid: 'rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest',
-    segment: 'rounded-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest',
+    outline: 'rounded-xl border transition-all duration-150 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest',
+    solid: 'rounded-full transition-all duration-150 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest',
+    segment: 'rounded-lg transition-all duration-150 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest',
 };
 
 const sizeCls = {
@@ -66,7 +66,7 @@ function pillClass(item) {
         base[props.variant],
         sizeCls[props.size],
         isActive ? activeCls[props.variant] : inactiveCls[props.variant],
-        item.disabled && 'cursor-not-allowed opacity-50',
+        item.disabled && 'cursor-not-allowed opacity-50 active:scale-100',
     ];
 }
 </script>

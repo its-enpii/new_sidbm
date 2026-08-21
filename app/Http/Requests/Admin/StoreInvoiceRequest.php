@@ -38,6 +38,7 @@ final class StoreInvoiceRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'status' => ['nullable', Rule::in(['draft', 'issued'])],
+            'blocks_access' => ['nullable', 'boolean'],
         ];
     }
 
@@ -50,6 +51,7 @@ final class StoreInvoiceRequest extends FormRequest
             'amount' => 'nominal',
             'due_at' => 'jatuh tempo',
             'description' => 'deskripsi',
+            'blocks_access' => 'opsi blokir akses',
         ];
     }
 }

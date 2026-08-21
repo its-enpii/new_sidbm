@@ -87,11 +87,15 @@ final class AuthController
         }
 
         $intended = $request->session()->pull('url.intended');
-        if (is_string($intended) && (
-            str_contains(parse_url($intended, PHP_URL_PATH) ?? '', '/admin') ||
-            str_contains(parse_url($intended, PHP_URL_PATH) ?? '', '/regency')
-        )) {
-            $intended = null;
+        if (is_string($intended)) {
+            if (
+                str_contains(parse_url($intended, PHP_URL_PATH) ?? '', '/admin') ||
+                str_contains(parse_url($intended, PHP_URL_PATH) ?? '', '/regency')
+            ) {
+                $intended = null;
+            } elseif ($request->isSecure() || $request->header('X-Forwarded-Proto') === 'https' || str_starts_with((string) config('app.url'), 'https://')) {
+                $intended = preg_replace('/^http:/i', 'https:', $intended);
+            }
         }
 
         return redirect()->to($intended ?: route('dashboard'));

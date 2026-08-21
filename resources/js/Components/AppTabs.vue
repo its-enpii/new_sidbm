@@ -40,9 +40,9 @@ const wrapperClass = {
 };
 
 const tabBase = {
-    underline: 'flex items-center gap-2 border-b-2 px-1 pb-3 pt-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest',
-    pill: 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-low',
-    'pills-bar': 'inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest',
+    underline: 'flex items-center gap-2 border-b-2 px-1 pb-3 pt-2 text-sm font-medium transition-all duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest',
+    pill: 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-low',
+    'pills-bar': 'inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-150 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest',
 };
 
 const tabActive = {
@@ -78,7 +78,7 @@ function tabClass(item) {
             :disabled="item.disabled"
             :class="[
                 ...tabClass(item),
-                item.disabled && 'cursor-not-allowed opacity-50 hover:bg-transparent',
+                item.disabled && 'cursor-not-allowed opacity-50 hover:bg-transparent active:scale-100',
             ]"
             @click="!item.disabled && $emit('update:modelValue', item.key)"
         >

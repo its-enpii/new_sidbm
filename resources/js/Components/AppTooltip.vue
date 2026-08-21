@@ -29,7 +29,7 @@ const positionClasses = {
             <button
                 type="button"
                 tabindex="-1"
-                class="flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-surface-container text-[10px] font-bold text-outline transition hover:bg-surface-container-high hover:text-primary focus:outline-none"
+                class="flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-surface-container text-[10px] font-bold text-outline transition-all duration-150 hover:bg-surface-container-high hover:text-primary active:scale-90 focus:outline-none"
                 aria-haspopup="true"
                 :aria-label="text"
             >
@@ -41,9 +41,9 @@ const positionClasses = {
             :id="id"
             role="tooltip"
             :class="[
-                'absolute z-30 w-56 rounded-lg bg-on-surface px-2.5 py-1.5 text-xs font-normal leading-relaxed text-on-primary shadow-lg pointer-events-none transition-all duration-150',
+                'absolute z-30 w-56 rounded-lg bg-on-surface px-2.5 py-1.5 text-xs font-normal leading-relaxed text-on-primary shadow-lg pointer-events-none transition-all duration-150 ease-out',
                 positionClasses[position] || positionClasses.top,
-                isVisible ? 'visible opacity-100 translate-y-0' : 'invisible opacity-0 translate-y-1'
+                isVisible ? 'visible opacity-100 scale-100 translate-y-0' : 'invisible opacity-0 scale-95 translate-y-1'
             ]"
         >
             <slot name="content">

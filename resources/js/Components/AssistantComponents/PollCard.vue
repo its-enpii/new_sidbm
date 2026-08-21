@@ -69,7 +69,7 @@ function onSubmitOther() {
             <li
                 v-for="(opt, i) in block.options"
                 :key="opt.value"
-                class="flex items-center gap-3 px-4 py-3 transition-colors"
+                class="flex items-center gap-3 px-4 py-3 transition-all duration-150 active:scale-[0.99]"
                 :class="{
                     'cursor-pointer hover:bg-primary-soft/40 active:bg-primary-soft/60': !isSubmitted,
                     'cursor-default': isSubmitted,
@@ -83,7 +83,7 @@ function onSubmitOther() {
                 @keydown.space.prevent="onPick(opt.label)"
             >
                 <span
-                    class="grid size-7 shrink-0 place-items-center rounded-md text-xs font-semibold"
+                    class="grid size-7 shrink-0 place-items-center rounded-md text-xs font-semibold transition-colors"
                     :class="submittedLabel === opt.label ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant'"
                 >
                     <template v-if="submittedLabel === opt.label">
@@ -100,7 +100,7 @@ function onSubmitOther() {
             <button
                 v-if="block.allowOther && !isSubmitted && !showOther"
                 type="button"
-                class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary-soft focus:outline-none focus:ring-2 focus:ring-primary/30"
+                class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary-soft focus:outline-none focus:ring-2 focus:ring-primary/30"
                 @click="onOpenOther"
             >
                 <AppIcon name="edit" class="text-base" />
@@ -111,7 +111,7 @@ function onSubmitOther() {
             <button
                 v-if="!isSubmitted"
                 type="button"
-                class="text-xs font-semibold text-on-surface-variant hover:text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
+                class="text-xs font-semibold text-on-surface-variant transition-colors hover:text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
                 @click="onSkip"
             >
                 Lewati

@@ -60,14 +60,14 @@ function onChange(event) {
         </label>
         <label
             :for="id"
-            class="flex h-14 w-full cursor-pointer items-center gap-3 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 transition focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container/10"
-            :class="disabled && 'cursor-not-allowed opacity-60'"
+            class="flex h-14 w-full cursor-pointer items-center gap-3 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 transition-all duration-150 active:scale-[0.99] focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container/10"
+            :class="disabled && 'cursor-not-allowed opacity-60 active:scale-100'"
         >
             <input
                 :id="id"
                 type="checkbox"
                 role="checkbox"
-                class="size-5 shrink-0 rounded border-outline-variant accent-primary focus:ring-primary"
+                class="size-5 shrink-0 rounded border-outline-variant accent-primary transition-transform duration-150 active:scale-90 focus:ring-primary"
                 :checked="isChecked"
                 :indeterminate.prop="indeterminate"
                 :disabled="disabled"
@@ -83,14 +83,14 @@ function onChange(event) {
     <label
         v-else-if="variant === 'inline'"
         :for="id"
-        class="inline-flex cursor-pointer items-center gap-2 font-medium text-primary select-none"
-        :class="disabled && 'cursor-not-allowed opacity-60'"
+        class="inline-flex cursor-pointer items-center gap-2 font-medium text-primary select-none transition-transform duration-150 active:scale-95"
+        :class="disabled && 'cursor-not-allowed opacity-60 active:scale-100'"
     >
         <input
             :id="id"
             type="checkbox"
             role="checkbox"
-            class="size-4 rounded border-outline-variant accent-primary focus:ring-primary"
+            class="size-4 rounded border-outline-variant accent-primary transition-transform duration-150 active:scale-90 focus:ring-primary"
             :checked="isChecked"
             :indeterminate.prop="indeterminate"
             :disabled="disabled"
@@ -105,7 +105,7 @@ function onChange(event) {
         :id="id"
         type="checkbox"
         role="checkbox"
-        class="size-4 shrink-0 rounded border-outline-variant accent-primary focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+        class="size-4 shrink-0 rounded border-outline-variant accent-primary transition-transform duration-150 active:scale-90 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
         :checked="isChecked"
         :indeterminate.prop="indeterminate"
         :disabled="disabled"

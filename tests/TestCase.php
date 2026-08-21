@@ -5,8 +5,18 @@ declare(strict_types=1);
 namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\DB;
 
 abstract class TestCase extends BaseTestCase
 {
-    // Laravel 11+ discovers bootstrap/app.php automatically.
+    protected function tearDown(): void
+    {
+        try {
+            DB::connection('platform')->disconnect();
+            DB::connection('tenant')->disconnect();
+        } catch (\Throwable) {
+        }
+
+        parent::tearDown();
+    }
 }

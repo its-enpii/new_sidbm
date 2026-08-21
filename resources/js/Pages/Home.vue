@@ -688,21 +688,26 @@ onUnmounted(() => {
                         >
                             <button
                                 type="button"
-                                class="flex w-full items-center justify-between p-5 text-left text-sm font-bold text-primary hover:bg-surface-container-low/50 transition-colors"
+                                class="flex w-full items-center justify-between p-5 text-left text-sm font-bold text-primary hover:bg-surface-container-low/50 transition-all duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+                                :aria-expanded="activeFaq === idx"
                                 @click="toggleFaq(idx)"
                             >
                                 <span class="pr-4">{{ faq.q }}</span>
                                 <AppIcon
                                     name="expand_more"
-                                    class="text-xl text-outline transition-transform duration-300 shrink-0"
+                                    class="text-xl text-outline transition-transform duration-200 shrink-0"
                                     :class="{ 'rotate-180 text-primary': activeFaq === idx }"
                                 />
                             </button>
                             <div
-                                v-show="activeFaq === idx"
-                                class="px-5 pb-5 text-xs sm:text-sm text-on-surface-variant leading-relaxed border-t border-outline-variant/40 pt-3 bg-surface-container-low/30"
+                                class="grid transition-[grid-template-rows] duration-200 ease-out"
+                                :class="activeFaq === idx ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'"
                             >
-                                {{ faq.a }}
+                                <div class="overflow-hidden">
+                                    <div class="px-5 pb-5 text-xs sm:text-sm text-on-surface-variant leading-relaxed border-t border-outline-variant/40 pt-3 bg-surface-container-low/30">
+                                        {{ faq.a }}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

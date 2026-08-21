@@ -37,16 +37,25 @@ function logout() {
 
 <template>
     <div class="min-h-screen bg-surface">
-        <button
-            v-if="mobileMenuOpen"
-            type="button"
-            class="fixed inset-0 z-40 bg-primary/40 lg:hidden"
-            aria-label="Tutup navigasi"
-            @click="mobileMenuOpen = false"
-        />
+        <Transition
+            enter-active-class="transition-opacity duration-300 ease-out"
+            enter-from-class="opacity-0"
+            enter-to-class="opacity-100"
+            leave-active-class="transition-opacity duration-200 ease-in"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+        >
+            <button
+                v-if="mobileMenuOpen"
+                type="button"
+                class="fixed inset-0 z-40 bg-primary/45 backdrop-blur-xs lg:hidden"
+                aria-label="Tutup navigasi"
+                @click="mobileMenuOpen = false"
+            />
+        </Transition>
 
         <aside
-            class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-primary py-6 shadow-xl transition-transform lg:translate-x-0"
+            class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-primary py-6 shadow-xl transition-transform duration-300 ease-in-out lg:translate-x-0"
             :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'"
         >
             <div class="mb-8 px-6">

@@ -27,6 +27,7 @@ final readonly class InvoiceService
                 'subscription_id' => $data['subscription_id'] ?? null,
                 'purpose' => $data['purpose'] ?? (($data['subscription_id'] ?? null) ? 'subscription' : 'other'),
                 'status' => $status,
+                'blocks_access' => (bool) ($data['blocks_access'] ?? false),
                 'amount' => $data['amount'],
                 'amount_paid' => 0,
                 'currency' => $data['currency'] ?? 'IDR',
@@ -57,6 +58,7 @@ final readonly class InvoiceService
             'due_at' => now()->addDays(14)->toDateString(),
             'description' => "Langganan {$plan->name} ({$periodLabel})",
             'status' => 'issued',
+            'blocks_access' => false,
         ], $actor);
     }
 

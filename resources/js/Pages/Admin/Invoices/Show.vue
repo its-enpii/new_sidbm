@@ -6,6 +6,7 @@ import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import AppCurrencyInput from '../../../Components/AppCurrencyInput.vue';
 import AppDatePicker from '../../../Components/AppDatePicker.vue';
+import AppIcon from '../../../Components/AppIcon.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import AppTextarea from '../../../Components/AppTextarea.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
@@ -33,6 +34,7 @@ const manualForm = useForm({
 
 const voidForm = useForm({});
 const tripayForm = useForm({});
+const toggleBlockingForm = useForm({});
 
 function money(value, currency = 'IDR') {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency, maximumFractionDigits: 0 }).format(Number(value || 0));
@@ -56,6 +58,10 @@ function initiateTripay() {
     tripayForm.post(`/admin/invoices/${props.invoice.row_id}/payments/tripay`, { preserveScroll: true });
 }
 
+function toggleBlocking() {
+    toggleBlockingForm.post(`/admin/invoices/${props.invoice.row_id}/toggle-blocking`, { preserveScroll: true });
+}
+
 const { confirm: confirmAction } = useConfirm();
 
 async function voidInvoice() {
@@ -74,6 +80,9 @@ async function voidInvoice() {
                     <div class="mt-3 flex flex-wrap items-center gap-3">
                         <h1 class="text-2xl font-bold text-primary">{{ invoice.number }}</h1>
                         <AppBadge :tone="tone(invoice.status)">{{ invoice.status }}</AppBadge>
+                        <span v-if="invoice.blocks_access" class="rounded bg-error/15 px-2 py-0.5 text-xs font-bold text-error">
+                            ⛔ Memblokir Akses Tenant
+                        </span>
                     </div>
                     <p class="mt-1 text-on-surface-variant">
                         <Link v-if="invoice.tenant" :href="`/admin/tenants/${invoice.tenant.row_id}`" class="font-semibold text-primary">{{ invoice.tenant.name }}</Link>
@@ -89,6 +98,29 @@ async function voidInvoice() {
                 >Void</AppButton>
             </header>
 
+            <!-- Access Blocking Control Card -->
+            <div
+                class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl p-4 border"
+                :class="invoice.blocks_access ? 'border-error/30 bg-error/10' : 'border-outline-variant bg-surface-container-low'"
+            >
+                <div class="flex items-center gap-3">
+                    <AppIcon :name="invoice.blocks_access ? 'block' : 'check_circle'" :class="invoice.blocks_access ? 'text-error' : 'text-on-surface-variant'" class="text-2xl" />
+                    <div>
+                        <h4 class="text-sm font-bold" :class="invoice.blocks_access ? 'text-error' : 'text-primary'">
+                            {{ invoice.blocks_access ? 'Opsi Blokir Akses: AKTIF' : 'Opsi Blokir Akses: Nonaktif' }}
+                        </h4>
+                        <p class="text-xs text-on-surface-variant">
+                            {{ invoice.blocks_access ? 'Akses pengguna tenant diblokir sampai invoice ini dilunasi.' : 'Tenant tetap dapat menggunakan aplikasi walau invoice ini belum dibayar.' }}
+                        </p>
+                    </div>
+                </div>
+                <form v-if="invoice.is_open" @submit.prevent="toggleBlocking">
+                    <AppButton size="compact" :variant="invoice.blocks_access ? 'secondary' : 'danger'" :loading="toggleBlockingForm.processing">
+                        {{ invoice.blocks_access ? 'Nonaktifkan Blokir' : 'Aktifkan Blokir Akses' }}
+                    </AppButton>
+                </form>
+            </div>
+
             <div class="grid gap-6 lg:grid-cols-3">
                 <AppCard class="lg:col-span-2">
                     <h2 class="font-bold text-primary">Ringkasan</h2>
@@ -98,59 +130,63 @@ async function voidInvoice() {
                         <div><dt class="text-sm text-on-surface-variant">Sisa</dt><dd class="text-xl font-bold text-primary">{{ money(invoice.remaining, invoice.currency) }}</dd></div>
                         <div><dt class="text-sm text-on-surface-variant">Keperluan</dt><dd class="font-semibold text-primary">{{ purposeLabels[invoice.purpose] || invoice.purpose || '—' }}</dd></div>
                         <div><dt class="text-sm text-on-surface-variant">Diterbitkan</dt><dd class="font-semibold text-primary">{{ invoice.issued_at || '—' }}</dd></div>
-                        <div class="sm:col-span-2"><dt class="text-sm text-on-surface-variant">Deskripsi</dt><dd class="font-semibold text-primary">{{ invoice.description || '—' }}</dd></div>
-                        <div v-if="invoice.subscription" class="sm:col-span-2"><dt class="text-sm text-on-surface-variant">Langganan terkait</dt><dd class="font-semibold text-primary">{{ invoice.subscription.plan?.name || invoice.subscription.row_id }} ({{ invoice.subscription.status }})</dd></div>
+                        <div><dt class="text-sm text-on-surface-variant">Dibuat oleh</dt><dd class="font-semibold text-primary">{{ invoice.creator?.name || 'Sistem' }}</dd></div>
+                        <div v-if="invoice.description" class="sm:col-span-2"><dt class="text-sm text-on-surface-variant">Deskripsi</dt><dd class="text-primary">{{ invoice.description }}</dd></div>
+                        <div v-if="invoice.notes" class="sm:col-span-2"><dt class="text-sm text-on-surface-variant">Catatan internal</dt><dd class="whitespace-pre-line text-sm text-primary">{{ invoice.notes }}</dd></div>
                     </dl>
                 </AppCard>
 
-                <div class="space-y-6">
-                    <AppCard v-if="invoice.is_open">
-                        <h2 class="font-bold text-primary">Bayar manual</h2>
-                        <form class="mt-4 space-y-3" @submit.prevent="recordManual">
-                            <AppCurrencyInput v-model="manualForm.amount" label="Nominal" :min="0.01" :step="0.01" required :error="manualForm.errors.amount" />
-                            <AppDatePicker v-model="manualForm.paid_at" label="Tanggal bayar" :error="manualForm.errors.paid_at" clearable />
-                            <AppInput v-model="manualForm.reference" label="Referensi" :error="manualForm.errors.reference" />
-                            <AppTextarea v-model="manualForm.notes" label="Catatan" :error="manualForm.errors.notes" />
-                            <AppButton type="submit" class="w-full" :loading="manualForm.processing" icon="payments">Catat pembayaran</AppButton>
-                        </form>
-                    </AppCard>
+                <AppCard v-if="invoice.is_open" class="space-y-4">
+                    <h2 class="font-bold text-primary">Catat Pembayaran Manual</h2>
+                    <form class="space-y-3" @submit.prevent="recordManual">
+                        <AppCurrencyInput
+                            v-model="manualForm.amount"
+                            label="Nominal"
+                            :min="0.01"
+                            :step="0.01"
+                            required
+                            :error="manualForm.errors.amount"
+                        />
+                        <AppDatePicker
+                            v-model="manualForm.paid_at"
+                            label="Tanggal bayar"
+                            required
+                            :error="manualForm.errors.paid_at"
+                        />
+                        <AppInput v-model="manualForm.reference" label="Nomor referensi / bukti" :error="manualForm.errors.reference" />
+                        <AppTextarea v-model="manualForm.notes" label="Catatan" :error="manualForm.errors.notes" />
+                        <AppButton type="submit" class="w-full" :loading="manualForm.processing" icon="check">Catat Lunas / Cicil</AppButton>
+                    </form>
 
-                    <AppCard v-if="invoice.is_open">
-                        <h2 class="font-bold text-primary">Tripay</h2>
-                        <p class="mt-2 text-sm text-on-surface-variant">Buat closed payment untuk sisa tagihan. Bagikan link checkout ke tenant.</p>
-                        <AppButton class="mt-4 w-full" variant="secondary" :loading="tripayForm.processing" icon="link" @click="initiateTripay">Buat link Tripay</AppButton>
-                    </AppCard>
-                </div>
+                    <div class="pt-4 border-t border-outline-variant">
+                        <AppButton variant="secondary" class="w-full" :loading="tripayForm.processing" @click="initiateTripay">
+                            Generate Link Pembayaran Online
+                        </AppButton>
+                    </div>
+                </AppCard>
             </div>
 
-            <AppCard :padded="false">
-                <div class="border-b border-outline-variant px-6 py-4">
-                    <h2 class="font-bold text-primary">Riwayat pembayaran</h2>
-                </div>
+            <!-- Payments List -->
+            <AppCard v-if="payments.length" class="space-y-4">
+                <h2 class="font-bold text-primary">Riwayat Pembayaran</h2>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead class="bg-surface-container-low text-sm">
+                    <table class="w-full text-left text-sm">
+                        <thead class="border-b border-outline-variant text-xs uppercase text-on-surface-variant">
                             <tr>
-                                <th class="px-6 py-3">Metode</th>
-                                <th class="px-6 py-3">Status</th>
-                                <th class="px-6 py-3">Nominal</th>
-                                <th class="px-6 py-3">Referensi</th>
-                                <th class="px-6 py-3">Waktu</th>
+                                <th class="py-2.5">Tanggal</th>
+                                <th class="py-2.5">Metode</th>
+                                <th class="py-2.5">Nominal</th>
+                                <th class="py-2.5">Status</th>
+                                <th class="py-2.5">Referensi</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr v-for="payment in payments" :key="payment.row_id" class="border-t border-outline-variant">
-                                <td class="px-6 py-3 font-semibold text-primary">{{ payment.method }}</td>
-                                <td class="px-6 py-3"><AppBadge :tone="tone(payment.status)">{{ payment.status }}</AppBadge></td>
-                                <td class="px-6 py-3">{{ money(payment.amount, invoice.currency) }}</td>
-                                <td class="px-6 py-3">
-                                    <p>{{ payment.reference || payment.tripay_reference || '—' }}</p>
-                                    <a v-if="payment.tripay_checkout_url" :href="payment.tripay_checkout_url" target="_blank" rel="noopener" class="text-sm font-semibold text-primary">Buka checkout</a>
-                                </td>
-                                <td class="px-6 py-3 text-on-surface-variant">{{ payment.paid_at || '—' }}</td>
-                            </tr>
-                            <tr v-if="!payments.length">
-                                <td colspan="5" class="px-6 py-8 text-center text-on-surface-variant">Belum ada pembayaran.</td>
+                        <tbody class="divide-y divide-outline-variant/60">
+                            <tr v-for="p in payments" :key="p.row_id">
+                                <td class="py-2.5">{{ p.paid_at || '—' }}</td>
+                                <td class="py-2.5 font-semibold text-primary">{{ p.method }}</td>
+                                <td class="py-2.5 font-bold">{{ money(p.amount) }}</td>
+                                <td class="py-2.5"><AppBadge :tone="tone(p.status)">{{ p.status }}</AppBadge></td>
+                                <td class="py-2.5 text-xs text-on-surface-variant">{{ p.reference || p.tripay_reference || '—' }}</td>
                             </tr>
                         </tbody>
                     </table>

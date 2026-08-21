@@ -146,7 +146,7 @@ onBeforeUnmount(() => {
     <div ref="dropdownRef" class="relative">
         <button
             type="button"
-            class="relative grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary focus:outline-none"
+            class="relative grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant transition-all duration-150 hover:bg-surface-container hover:text-primary active:scale-90 focus:outline-none"
             aria-label="Notifikasi"
             :aria-expanded="open"
             @click="toggleDropdown"
@@ -170,7 +170,7 @@ onBeforeUnmount(() => {
         >
             <div
                 v-if="open"
-                class="absolute right-0 top-12 z-50 w-80 sm:w-96 rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-xl overflow-hidden"
+                class="absolute right-0 top-12 z-50 w-80 sm:w-96 origin-top-right rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-2xl overflow-hidden"
             >
                 <!-- Header -->
                 <div class="flex items-center justify-between border-b border-outline-variant px-4 py-3 bg-surface-container-low/50">

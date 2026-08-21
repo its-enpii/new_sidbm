@@ -7,22 +7,14 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 
 ## [2026-08-21]
 
-### Fixed
-- **Audit & Normalisasi Encoding & Mojibake Menyeluruh (*Repository-Wide Character Cleanup*):**
-  - Mengaudit seluruh 949 berkas repositori dan membersihkan artefak karakter encoding/mojibake (em-dash `?`, middle dot `?`, centang `?`/`?`, silang `?`, relasi `?`, dan simbol matematika `?`/`?`) pada komponen antarmuka, routing, dan dokumentasi (`AGENT.md`, `Create.vue`, `AiAssistant/Index.vue`, `Budgeting/Index.vue`, `Settings/Index.vue`, `routes/web.php`, `DESKTOP_ROADMAP.md`).
-  - Menormalisasi berkas `JournalEntryRequest.php` dari UTF-16LE ke UTF-8 murni tanpa BOM serta memulihkan sintaks validasi form request pembuatan jurnal SOP.
-  - Memperbaiki byte CP1252 tidak valid menjadi simbol UTF-8 semantik pada `AuthController.php`, `HOLDING_API_INTEGRATION_GUIDE.md`, `README.md`, dan `Lending/Loans/Index.vue`.
-  - Menghapus Byte Order Mark (UTF-8 BOM) pada 41+ berkas Vue, Blade, TypeScript, dan Markdown untuk menjamin konsistensi encoding UTF-8 tanpa BOM di seluruh repositori.
-- **Perbaikan Unggah & Penayangan Foto Profil serta Storage Serving (`config/filesystems.php`, `ProfileController.php`, `StorageServeController.php`):**
-  - Mengoreksi konfigurasi disk `local` (`'serve' => false`) dan disk `public` (`'serve' => true`, `'visibility' => 'public'`) pada `config/filesystems.php` yang sebelumnya menyebabkan disk privat membajak rute `/storage/...` dan menolak seluruh akses berkas publik dengan status HTTP 403 Forbidden.
-  - Menambahkan controller fallback `StorageServeController.php` dan rute `/storage/{path}` untuk melayani berkas publik (foto profil, logo tenant, dll.) secara langsung dan aman jika symlink webserver belum tersedia atau dibatasi oleh lingkungan hosting.
-  - Menambahkan *cache-busting query parameter* (`?v={timestamp}`) pada `photoUrl` di `ProfileController.php` dan `HandleInertiaRequests.php` agar pembaruan foto profil langsung muncul seketika tanpa tertahan cache browser.
-  - Memperbarui komponen `Profile/Edit.vue` dengan deteksi reaktif `watch` pada perubahan `photoUrl` dan *graceful error fallback* (`@error`) pada gambar avatar.
-  - Mengintegrasikan penayangan foto profil pengguna pada kartu profil sidebar seluruh layout aplikasi (`AuthenticatedLayout.vue`, `AdminLayout.vue`, `ProvinceLayout.vue`, `RegencyLayout.vue`).
-  - Menambahkan langkah otomatis `docker compose exec -T app php artisan storage:link || true` pada pipeline CI/CD GitHub Actions (`.github/workflows/deploy.yml`).
-  - Menambahkan automated feature test `ProfilePhotoTest.php` untuk memvalidasi alur unggah, simpan, serving via `/storage/{path}`, proteksi direktori traversal, dan hapus foto profil.
-
 ### Added
+- **Sistem Pemblokiran Akses Tenant Berbasis Invoice Tertunggak (*Invoice Access Blocking*):**
+  - Penambahan kolom `blocks_access` (boolean) pada tabel `invoices` platform dan dukungan opsi toggle pemblokiran akses operasional tenant saat pembuatan maupun pengelolaan invoice oleh Superadmin (`Admin/Invoices/Create.vue`, `Admin/Invoices/Show.vue`).
+  - Middleware `EnsureSubscriptionActive.php` memblokir akses ke rute operasional jika tenant memiliki invoice terbuka dengan status `blocks_access = true` dan mengarahkan otomatis ke halaman penagihan (`/billing/invoices/{id}`), sementara tetap mengizinkan akses ke rute pembayaran dan autentikasi logout.
+  - Penambahan automated feature test `InvoiceBlockingTest.php` untuk memvalidasi alur pembuatan, pengalihan rute operasional, proteksi API (HTTP 402 Payment Required), dan pemulihan akses instan setelah pelunasan invoice.
+- **Komponen Accordion Reusable & Animasi Ketinggian Grid Dinamis (`AppAccordion.vue`):**
+  - Pembuatan komponen `AppAccordion.vue` yang mendukung mode kartu collapsible tunggal maupun daftar multi-item dengan animasi ekspansi ketinggian halus berbasis CSS Grid (`grid-template-rows: 0fr -> 1fr`), rotasi ikon chevron 180°, dan aksesibilitas keyboard WAI-ARIA.
+  - Integrasi animasi accordion pada bagian Tanya Jawab (FAQ) di landing page (`Home.vue`).
 - **Pintasan Keyboard Global & Modal Panduan Shortcut (`useKeyboardShortcuts.js` & `KeyboardShortcutsModal.vue`):**
   - Pembuatan composable `useKeyboardShortcuts.js` dan modal dialog interaktif `KeyboardShortcutsModal.vue` dengan pemetaan pintasan keyboard produktivitas: `Ctrl+/` (atau `Cmd+/`) untuk panduan pintasan, `Ctrl+K` untuk Global Search / Command Palette, `Ctrl+Shift+A` untuk memicu widget Asisten AI, `Ctrl+Shift+N` untuk membuka pusat notifikasi, dan `Ctrl+Shift+S` untuk sinkronisasi data Desktop ke Cloud.
   - Integrasi event listener global pada layout utama (`AuthenticatedLayout.vue`), pusat notifikasi (`NotificationDropdown.vue`), titlebar desktop (`DesktopTitleBar.vue`), dan widget chatbot (`AssistantWidget.vue`).
@@ -53,6 +45,32 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
   - Penambahan method `syncRoundingFromProducts()` pada `LoanService.php` untuk menyinkronkan metode pembulatan dari master produk ke seluruh proposal pinjaman draft/verified.
   - Aksi interaktif satu klik pada halaman pengaturan sistem pinjaman (`resources/js/Pages/Settings/Index.vue`) beserta endpoint API `POST /settings/lending-system/sync-rounding`.
   - Pengujian otomatis pada `LoanRoundingAndBeneficiarySplitTest.php`.
+
+### Changed
+- **Audit & Pemolesan Animasi Mulus Seluruh Komponen Interaktif (*Component Animation & Transition Audit*):**
+  - **SmartSelect (`SmartSelect.vue`):** Penambahan transisi `<Transition>` enter/leave dengan dynamic origin (`origin-top` / `origin-bottom`), animasi rotasi chevron dropdown 180°, transisi pencarian, dan *tactile active scale* (`active:scale-[0.99]`).
+  - **AppDatePicker (`AppDatePicker.vue`):** Peningkatan transisi popover kalender dengan origin dinamis, animasi transisi antar-mode tampilan tanggal/bulan/tahun (`<Transition name="calendar-view" mode="out-in">`), serta feedback sentuhan mikro pada tombol navigasi dan pemilihan tanggal/bulan (`active:scale-90`).
+  - **Tombol & Tombol Ikon (`AppButton.vue` & `AppIconButton.vue`):** Penambahan feedback tekan mikro (`active:scale-[0.98]` dan `active:scale-90`) dengan transisi `duration-150`, varian `outline`/`tertiary`, dan efek focus ring yang konsisten.
+  - **Switch & Checkbox (`AppSwitch.vue` & `AppCheckbox.vue`):** Penambahan animasi thumb geser elastis bergaya Material Design 3 (`cubic-bezier(0.4, 0, 0.2, 1)`), transisi warna track switch, dan scaling klik checkbox.
+  - **Modal & Dialog Konfirmasi (`AppModal.vue` & `AppConfirmDialog.vue`):** Penyesuaian kurva easing spring MD3 (`cubic-bezier(0.16, 1, 0.3, 1)`) pada backdrop blur dan dialog pop-in.
+  - **Dropdown Notifikasi & Menu Tema (`NotificationDropdown.vue` & `ThemeMenu.vue`):** Penambahan transisi origin popover `origin-top-right`, efek transisi tab notifikasi, dan animasi pemilihan swatch tema tampilan.
+  - **Tab, Filter Pill, & Tooltip (`AppTabs.vue`, `AppFilterPill.vue`, `AppTooltip.vue`):** Penambahan animasi interaktif pada segment control, filter status, perpindahan tab, dan tooltip scale-in.
+  - **Drawer Navigasi Seluler & Submenu Sidebar (`AuthenticatedLayout.vue`, `AdminLayout.vue`, `ProvinceLayout.vue`, `RegencyLayout.vue`):** Penambahan efek fade backdrop dengan `backdrop-blur` dan transisi slide drawer `duration-300` yang mulus.
+
+### Fixed
+- **Audit & Normalisasi Encoding & Mojibake Menyeluruh (*Repository-Wide Character Cleanup*):**
+  - Mengaudit seluruh 949 berkas repositori dan membersihkan artefak karakter encoding/mojibake (em-dash `—`, middle dot `·`, centang `✓`, silang `✗`, relasi `→`, dan simbol matematika `≤`/`≥`) pada komponen antarmuka, routing, dan dokumentasi (`AGENT.md`, `Create.vue`, `AiAssistant/Index.vue`, `Budgeting/Index.vue`, `Settings/Index.vue`, `routes/web.php`, `DESKTOP_ROADMAP.md`).
+  - Menormalisasi berkas `JournalEntryRequest.php` dari UTF-16LE ke UTF-8 murni tanpa BOM serta memulihkan sintaks validasi form request pembuatan jurnal SOP.
+  - Memperbaiki byte CP1252 tidak valid menjadi simbol UTF-8 semantik pada `AuthController.php`, `HOLDING_API_INTEGRATION_GUIDE.md`, `README.md`, dan `Lending/Loans/Index.vue`.
+  - Menghapus Byte Order Mark (UTF-8 BOM) pada 41+ berkas Vue, Blade, TypeScript, dan Markdown untuk menjamin konsistensi encoding UTF-8 tanpa BOM di seluruh repositori.
+- **Perbaikan Unggah & Penayangan Foto Profil serta Storage Serving (`config/filesystems.php`, `ProfileController.php`, `StorageServeController.php`):**
+  - Mengoreksi konfigurasi disk `local` (`'serve' => false`) dan disk `public` (`'serve' => true`, `'visibility' => 'public'`) pada `config/filesystems.php` yang sebelumnya menyebabkan disk privat membajak rute `/storage/...` dan menolak seluruh akses berkas publik dengan status HTTP 403 Forbidden.
+  - Menambahkan controller fallback `StorageServeController.php` dan rute `/storage/{path}` untuk melayani berkas publik (foto profil, logo tenant, dll.) secara langsung dan aman jika symlink webserver belum tersedia atau dibatasi oleh lingkungan hosting.
+  - Menambahkan *cache-busting query parameter* (`?v={timestamp}`) pada `photoUrl` di `ProfileController.php` dan `HandleInertiaRequests.php` agar pembaruan foto profil langsung muncul seketika tanpa tertahan cache browser.
+  - Memperbarui komponen `Profile/Edit.vue` dengan deteksi reaktif `watch` pada perubahan `photoUrl` dan *graceful error fallback* (`@error`) pada gambar avatar.
+  - Mengintegrasikan penayangan foto profil pengguna pada kartu profil sidebar seluruh layout aplikasi (`AuthenticatedLayout.vue`, `AdminLayout.vue`, `ProvinceLayout.vue`, `RegencyLayout.vue`).
+  - Menambahkan langkah otomatis `docker compose exec -T app php artisan storage:link || true` pada pipeline CI/CD GitHub Actions (`.github/workflows/deploy.yml`).
+  - Menambahkan automated feature test `ProfilePhotoTest.php` untuk memvalidasi alur unggah, simpan, serving via `/storage/{path}`, proteksi direktori traversal, dan hapus foto profil.
 
 ---
 ## [2026-08-20]
