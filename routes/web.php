@@ -217,7 +217,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::post('/integrations/xendit', [PaymentGatewayController::class, 'updateXendit'])->name('integrations.xendit');
     Route::post('/integrations/xendit/test', [PaymentGatewayController::class, 'testXendit'])->name('integrations.xendit.test');
 
-    // Onboarding & Saldo Awal â€” superadmin only, per-tenant.
+    // Onboarding & Saldo Awal — superadmin only, per-tenant.
     // {tenant} numeric row_id (resolved via TenantResolver::resolveById).
     // Middleware 'tenant' agar TenantContext terinisialisasi (Account/JournalEntry
     // model pakai TenantScope). validateTenantAccess() membypass superadmin.
@@ -230,7 +230,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
             Route::post('/onboarding/active-loans', [TenantOnboardingImportController::class, 'importActiveLoans'])->name('onboarding.active-loans');
             Route::get('/onboarding/templates/{type}', [TenantOnboardingImportController::class, 'downloadTemplate'])->name('onboarding.templates');
 
-            // Data Purifier & Training Reset â€” superadmin only, per-tenant.
+            // Data Purifier & Training Reset — superadmin only, per-tenant.
             Route::get('/data-purifier', [TenantDataPurifierController::class, 'index'])->name('data-purifier.index');
             Route::post('/data-purifier/start-training', [TenantDataPurifierController::class, 'startTraining'])->name('data-purifier.start-training');
             Route::post('/data-purifier/end-training', [TenantDataPurifierController::class, 'endTraining'])->name('data-purifier.end-training');

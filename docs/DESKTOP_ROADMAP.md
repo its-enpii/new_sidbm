@@ -117,7 +117,7 @@ Dokumen ini memetakan rancangan arsitektur, strategi sinkronisasi data, pembagia
   - Komponen `resources/js/Components/AppOfflineBanner.vue` memberikan notifikasi visual *"Mode Offline (Hanya Baca)"* yang elegan.
 - [x] **4.4. Custom Frameless Titlebar & Auto-Logout saat Close**
   - Komponen `resources/js/Components/DesktopTitleBar.vue` menggantikan menu bar bawaan Electron.
-  - Sisi kiri: status koneksi ðŸŸ¢ Online / ðŸŸ  Offline dan tombol Sinkron Cepat.
+  - Sisi kiri: status koneksi 🟢 Online / 🟡 Offline dan tombol Sinkron Cepat.
   - Sisi tengah: judul tenant yang dapat di-drag.
   - Sisi kanan: tombol minimize, maximize/restore, dan close yang secara otomatis melakukan logout pengguna sebelum jendela aplikasi ditutup.
 - [x] **4.5. Native OS Push Notifications & Atribusi Pelaku ("oleh {siapa}")**
