@@ -32,7 +32,7 @@ final class NotificationCenterController
         $today = CarbonImmutable::today();
 
         try {
-            // 1. Tenant Invoices (Subscription & Service Fees)
+            // 1. Platform Invoices (Subscription & Service Fees)
             $tenant = $user->tenant;
             if ($tenant !== null) {
                 $unpaidInvoices = Invoice::query()
@@ -50,21 +50,18 @@ final class NotificationCenterController
 
                     $id = 'tenant_invoice_'.$latestInvoice->row_id;
                     $title = $isBlocking
-                        ? "Tagihan #{$latestInvoice->number} (Akses Terblokir)"
+                        ? "Tagihan #{$latestInvoice->number} (Akses Terkunci)"
                         : ($isOverdue ? "Tagihan Overdue #{$latestInvoice->number}" : 'Tagihan Menunggu Pembayaran');
 
                     $items[] = [
                         'id' => $id,
-                        'category' => 'action',
                         'type' => 'invoice',
                         'title' => $title,
-                        'badge' => 'Rp '.number_format((float) $latestInvoice->remainingAmount(), 0, ',', '.'),
                         'message' => $isBlocking
-                            ? 'Akses operasional ditangguhkan sementara hingga tagihan dilunasi.'
-                            : ($latestInvoice->due_at ? 'Jatuh tempo '.$latestInvoice->due_at->format('d M Y').'.' : 'Menunggu penyelesaian pembayaran.'),
+                            ? 'Akses operasional ditangguhkan hingga tagihan sebesar Rp '.number_format((float) $latestInvoice->remainingAmount(), 0, ',', '.').' dilunasi.'
+                            : 'Tagihan Rp '.number_format((float) $latestInvoice->remainingAmount(), 0, ',', '.').($latestInvoice->due_at ? ' jatuh tempo '.$latestInvoice->due_at->format('d M Y') : '').'.',
                         'time' => $isBlocking ? 'Wajib Lunas' : ($isOverdue ? 'Overdue' : ($latestInvoice->due_at?->diffForHumans() ?? 'Perlu Tindakan')),
                         'target_url' => $targetUrl,
-                        'action_label' => 'Bayar Sekarang',
                         'icon' => $isBlocking ? 'lock' : 'receipt_long',
                         'variant' => ($isBlocking || $isOverdue) ? 'danger' : 'warning',
                         'read' => in_array($id, $readIds, true),
@@ -88,7 +85,7 @@ final class NotificationCenterController
                 foreach ($proposedLoans as $proposal) {
                     $borrowerName = $proposal->borrower?->group?->name
                         ?? $proposal->borrower?->member?->person?->full_name
-                        ?? 'Peminjam';
+                        ?? 'Kelompok';
 
                     $creatorName = ($proposal->created_by_user_id && isset($userMap[$proposal->created_by_user_id]))
                         ? $userMap[$proposal->created_by_user_id]
@@ -97,14 +94,11 @@ final class NotificationCenterController
                     $id = 'loan_proposed_'.$proposal->row_id;
                     $items[] = [
                         'id' => $id,
-                        'category' => 'action',
                         'type' => 'loan_proposed',
                         'title' => 'Proposal: '.$borrowerName,
-                        'badge' => 'Rp '.number_format((float) ($proposal->proposed_amount ?? $proposal->principal_amount), 0, ',', '.'),
-                        'message' => 'Pengajuan pinjaman baru menunggu verifikasi & persetujuan.',
+                        'message' => 'Pengajuan pinjaman Rp '.number_format((float) ($proposal->proposed_amount ?? $proposal->principal_amount), 0, ',', '.').' menunggu verifikasi & persetujuan.',
                         'time' => $proposal->proposed_at?->diffForHumans() ?? 'Perlu Tindakan',
                         'target_url' => "/lending/loans/{$proposal->row_id}",
-                        'action_label' => 'Verifikasi',
                         'icon' => 'assignment_late',
                         'variant' => 'warning',
                         'read' => in_array($id, $readIds, true),
@@ -128,26 +122,26 @@ final class NotificationCenterController
                         ?? $inst->loan?->borrower?->member?->person?->full_name
                         ?? 'Peminjam';
 
+                    $instAmount = (float) $inst->principal_due + (float) $inst->interest_due;
+                    $loanRowId = $inst->loan_row_id ?? $inst->loan?->row_id;
+
                     $id = 'installment_overdue_'.$inst->row_id;
                     $items[] = [
                         'id' => $id,
-                        'category' => 'action',
                         'type' => 'loan_overdue',
                         'title' => 'Tunggakan: '.$borrowerName,
-                        'badge' => 'Rp '.number_format((float) $inst->total_amount, 0, ',', '.'),
-                        'message' => 'Angsuran ke-'.$inst->installment_number.' telah melewati jatuh tempo.',
+                        'message' => 'Angsuran ke-'.$inst->installment_number.' sebesar Rp '.number_format($instAmount, 0, ',', '.').' melewati jatuh tempo.',
                         'time' => $inst->due_date?->diffForHumans() ?? 'Terlambat',
-                        'target_url' => $inst->loan_id ? "/lending/loans/{$inst->loan_id}" : '/notifications/billing',
-                        'action_label' => 'Lihat Kartu Pinjaman',
+                        'target_url' => $loanRowId ? "/lending/loans/{$loanRowId}" : '/lending/loans',
                         'icon' => 'warning',
                         'variant' => 'danger',
                         'read' => in_array($id, $readIds, true),
-                        'actor' => $borrowerName,
+                        'actor' => null, // Delinquency is system alert, not an actor action
                     ];
                 }
             }
 
-            // 4. Recent loan payments recorded by users (smart deep link directly to loan)
+            // 4. Recent loan payments recorded by users
             $recentPayments = LoanPayment::query()
                 ->with(['loan.borrower.group', 'loan.borrower.member.person'])
                 ->latest('row_id')
@@ -166,19 +160,16 @@ final class NotificationCenterController
                         ? $userMap[$payment->created_by_user_id]
                         : 'Kasir';
 
+                    $loanRowId = $payment->loan_row_id ?? $payment->loan?->row_id;
                     $id = 'payment_recent_'.$payment->row_id;
-                    $targetUrl = $payment->loan_id ? "/lending/loans/{$payment->loan_id}" : '/lending/loans';
 
                     $items[] = [
                         'id' => $id,
-                        'category' => 'activity',
                         'type' => 'payment_activity',
-                        'title' => 'Setoran: '.$borrowerName,
-                        'badge' => '+ Rp '.number_format((float) $payment->amount, 0, ',', '.'),
-                        'message' => sprintf('Pembayaran angsuran Rp %s (%s) dicatat oleh %s.', number_format((float) $payment->amount, 0, ',', '.'), $borrowerName, $recorderName),
+                        'title' => 'Penerimaan Angsuran: '.$borrowerName,
+                        'message' => 'Pembayaran angsuran Rp '.number_format((float) $payment->amount, 0, ',', '.').' dicatat oleh '.$recorderName.'.',
                         'time' => $payment->created_at?->diffForHumans() ?? 'Baru saja',
-                        'target_url' => $targetUrl,
-                        'action_label' => 'Buka Pinjaman',
+                        'target_url' => $loanRowId ? "/lending/loans/{$loanRowId}" : '/lending/loans',
                         'icon' => 'payments',
                         'variant' => 'success',
                         'read' => in_array($id, $readIds, true),
@@ -204,18 +195,15 @@ final class NotificationCenterController
 
                     $id = 'journal_recent_'.$journal->row_id;
                     $journalNumber = $journal->journal_number ?: 'Umum';
-                    $targetUrl = $journal->row_id ? '/accounting/journals?search='.urlencode($journalNumber) : '/accounting/journals';
+                    $targetUrl = '/accounting/journals?q='.urlencode((string) $journalNumber);
 
                     $items[] = [
                         'id' => $id,
-                        'category' => 'activity',
                         'type' => 'journal_activity',
                         'title' => 'Jurnal: '.$journalNumber,
-                        'badge' => $journal->status ?: 'Tercatat',
                         'message' => sprintf('Jurnal %s (%s) dicatat oleh %s.', $journalNumber, $journal->description ?: 'Transaksi Operasional', $creatorName),
                         'time' => $journal->created_at?->diffForHumans() ?? 'Baru saja',
                         'target_url' => $targetUrl,
-                        'action_label' => 'Buka Jurnal',
                         'icon' => 'receipt_long',
                         'variant' => 'info',
                         'read' => in_array($id, $readIds, true),
@@ -229,36 +217,30 @@ final class NotificationCenterController
                 $id = 'system_status_ok';
                 $items[] = [
                     'id' => $id,
-                    'category' => 'system',
                     'type' => 'system',
-                    'title' => 'Operasional Lancar',
-                    'badge' => 'Normal',
-                    'message' => 'Tidak ada tagihan atau pengajuan tertunda yang memerlukan tindakan.',
+                    'title' => 'Operasional Normal',
+                    'message' => 'Tidak ada tunggakan atau pengajuan tertunda yang membutuhkan tindakan saat ini.',
                     'time' => 'Hari ini',
                     'target_url' => '/dashboard',
-                    'action_label' => 'Ke Dashboard',
                     'icon' => 'check_circle',
                     'variant' => 'success',
                     'read' => in_array($id, $readIds, true),
-                    'actor' => 'Sistem',
+                    'actor' => null,
                 ];
             }
         } catch (Throwable) {
             $id = 'system_info';
             $items[] = [
                 'id' => $id,
-                'category' => 'system',
                 'type' => 'system',
                 'title' => 'Sistem Informasi SIDBM',
-                'badge' => 'Info',
                 'message' => 'Selamat datang di Sistem Informasi Dana Bergulir Masyarakat.',
                 'time' => 'Informasi',
                 'target_url' => '/dashboard',
-                'action_label' => 'Ke Dashboard',
                 'icon' => 'info',
                 'variant' => 'info',
                 'read' => in_array($id, $readIds, true),
-                'actor' => 'Sistem',
+                'actor' => null,
             ];
         }
 

@@ -4,7 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import AppIcon from './AppIcon.vue';
 
 const open = ref(false);
-const activeTab = ref('all'); // 'all' | 'action' | 'unread'
+const activeTab = ref('all'); // 'all' | 'unread'
 const loading = ref(false);
 const items = ref([]);
 const unreadCount = ref(0);
@@ -58,14 +58,9 @@ async function fetchNotifications(isPolling = false) {
     }
 }
 
-const actionCount = computed(() => items.value.filter((i) => i.category === 'action').length);
-
 const filteredItems = computed(() => {
     if (activeTab.value === 'unread') {
         return items.value.filter((item) => !item.read);
-    }
-    if (activeTab.value === 'action') {
-        return items.value.filter((item) => i.category === 'action' || item.variant === 'danger' || item.variant === 'warning');
     }
     return items.value;
 });
@@ -107,7 +102,10 @@ async function handleItemClick(item) {
     }
 }
 
-function toggleDropdown() {
+function toggleDropdown(e) {
+    if (e) {
+        e.stopPropagation();
+    }
     open.value = !open.value;
     if (open.value) {
         fetchNotifications();
@@ -115,9 +113,12 @@ function toggleDropdown() {
 }
 
 function handleClickOutside(e) {
-    if (dropdownRef.value && !dropdownRef.value.contains(e.target)) {
-        open.value = false;
+    if (!open.value) return;
+    const path = e.composedPath ? e.composedPath() : [];
+    if (dropdownRef.value && (dropdownRef.value.contains(e.target) || path.includes(dropdownRef.value))) {
+        return;
     }
+    open.value = false;
 }
 
 onMounted(() => {
@@ -142,10 +143,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div ref="dropdownRef" class="relative">
+    <div ref="dropdownRef" class="relative" @click.stop>
         <button
             type="button"
-            class="relative grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant transition-all duration-150 hover:bg-surface-container hover:text-primary active:scale-90 focus:outline-none"
+            class="relative grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant transition-all duration-150 hover:bg-surface-container hover:text-primary active:scale-90 focus:outline-none cursor-pointer"
             aria-label="Notifikasi"
             :aria-expanded="open"
             @click="toggleDropdown"
@@ -153,7 +154,7 @@ onBeforeUnmount(() => {
             <AppIcon name="notifications" class="text-2xl leading-none" />
             <span
                 v-if="unreadCount > 0"
-                class="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-error text-[10px] font-bold text-white shadow-sm ring-2 ring-surface animate-pulse"
+                class="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-error text-[10px] font-bold text-white shadow-sm ring-2 ring-surface"
             >
                 {{ unreadCount > 9 ? '9+' : unreadCount }}
             </span>
@@ -161,31 +162,32 @@ onBeforeUnmount(() => {
 
         <!-- Dropdown Menu -->
         <Transition
-            enter-active-class="transition duration-200 ease-out"
-            enter-from-class="transform scale-95 opacity-0 -translate-y-2"
+            enter-active-class="transition duration-150 ease-out"
+            enter-from-class="transform scale-95 opacity-0 -translate-y-1"
             enter-to-class="transform scale-100 opacity-100 translate-y-0"
-            leave-active-class="transition duration-150 ease-in"
+            leave-active-class="transition duration-100 ease-in"
             leave-from-class="transform scale-100 opacity-100 translate-y-0"
-            leave-to-class="transform scale-95 opacity-0 -translate-y-2"
+            leave-to-class="transform scale-95 opacity-0 -translate-y-1"
         >
             <div
                 v-if="open"
-                class="absolute right-0 top-12 z-50 w-84 sm:w-96 rounded-2xl border border-outline-variant bg-surface shadow-2xl overflow-hidden backdrop-blur-xl"
+                class="absolute right-0 top-12 z-50 w-88 sm:w-96 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-outline-variant bg-surface shadow-2xl overflow-hidden backdrop-blur-xl"
+                @click.stop
             >
                 <!-- Header -->
-                <div class="flex items-center justify-between border-b border-outline-variant bg-surface-container-low/70 px-4 py-3">
+                <div class="flex items-center justify-between border-b border-outline-variant bg-surface-container-low/80 px-4 py-3">
                     <div class="flex items-center gap-2">
                         <AppIcon name="notifications" class="text-lg text-primary" />
                         <h3 class="text-sm font-bold text-primary">Notifikasi</h3>
-                        <span v-if="unreadCount > 0" class="rounded-full bg-error/15 px-2 py-0.5 text-[11px] font-bold text-error">
+                        <span v-if="unreadCount > 0" class="rounded-full bg-error/15 px-2 py-0.5 text-[10px] font-bold text-error">
                             {{ unreadCount }} baru
                         </span>
                     </div>
                     <button
                         v-if="unreadCount > 0"
                         type="button"
-                        class="text-xs font-semibold text-primary hover:underline focus:outline-none"
-                        @click="markAsRead(null)"
+                        class="text-xs font-semibold text-primary hover:underline focus:outline-none cursor-pointer"
+                        @click.stop="markAsRead(null)"
                     >
                         Tandai semua dibaca
                     </button>
@@ -195,26 +197,17 @@ onBeforeUnmount(() => {
                 <div class="flex border-b border-outline-variant bg-surface-container-lowest text-xs font-semibold px-2">
                     <button
                         type="button"
-                        class="flex-1 py-2 text-center transition-colors border-b-2"
+                        class="flex-1 py-2.5 text-center transition-colors border-b-2 cursor-pointer"
                         :class="activeTab === 'all' ? 'border-primary text-primary font-bold' : 'border-transparent text-on-surface-variant hover:text-primary'"
-                        @click="activeTab = 'all'"
+                        @click.stop="activeTab = 'all'"
                     >
                         Semua ({{ items.length }})
                     </button>
                     <button
-                        v-if="actionCount > 0"
                         type="button"
-                        class="flex-1 py-2 text-center transition-colors border-b-2"
-                        :class="activeTab === 'action' ? 'border-primary text-primary font-bold' : 'border-transparent text-on-surface-variant hover:text-primary'"
-                        @click="activeTab = 'action'"
-                    >
-                        Tindakan ({{ actionCount }})
-                    </button>
-                    <button
-                        type="button"
-                        class="flex-1 py-2 text-center transition-colors border-b-2"
+                        class="flex-1 py-2.5 text-center transition-colors border-b-2 cursor-pointer"
                         :class="activeTab === 'unread' ? 'border-primary text-primary font-bold' : 'border-transparent text-on-surface-variant hover:text-primary'"
-                        @click="activeTab = 'unread'"
+                        @click.stop="activeTab = 'unread'"
                     >
                         Belum Dibaca ({{ unreadCount }})
                     </button>
@@ -231,55 +224,46 @@ onBeforeUnmount(() => {
                     <div
                         v-for="item in filteredItems"
                         :key="item.id"
-                        class="group relative flex cursor-pointer items-start gap-3 p-3.5 transition-all duration-150 hover:bg-surface-container-low"
+                        class="group relative flex cursor-pointer items-start gap-3 px-4 py-3 transition-all duration-150 hover:bg-surface-container-low"
                         :class="!item.read ? 'bg-primary/5' : ''"
                         @click="handleItemClick(item)"
                     >
+                        <!-- Icon Circle -->
                         <AppIcon
                             :name="item.icon || 'info'"
                             :tone="iconTones[item.variant] || 'info'"
                             container-size="9"
                             container-shape="pill"
-                            class="shrink-0 transition-transform duration-200 group-hover:scale-105"
+                            class="shrink-0 mt-0.5"
                         />
-                        <div class="min-w-0 flex-1">
+
+                        <!-- Main Content -->
+                        <div class="min-w-0 flex-1 space-y-1">
                             <div class="flex items-center justify-between gap-2">
-                                <div class="flex items-center gap-1.5 min-w-0">
-                                    <p class="text-xs font-bold text-primary truncate group-hover:text-primary-container transition-colors">{{ item.title }}</p>
-                                    <span v-if="item.badge" class="rounded px-1.5 py-0.2 text-[10px] font-bold font-mono shrink-0" :class="item.variant === 'danger' ? 'bg-error/15 text-error' : (item.variant === 'success' ? 'bg-success/15 text-success' : 'bg-surface-container-high text-primary')">
-                                        {{ item.badge }}
-                                    </span>
-                                </div>
-                                <span class="text-[10px] text-on-surface-variant shrink-0">{{ item.time }}</span>
+                                <p class="text-xs font-bold text-primary truncate group-hover:text-primary-container transition-colors">{{ item.title }}</p>
+                                <span class="text-[10px] text-on-surface-variant shrink-0 whitespace-nowrap">{{ item.time }}</span>
                             </div>
-                            <p class="mt-0.5 text-xs text-on-surface-variant line-clamp-2 leading-relaxed">{{ item.message }}</p>
+                            <p class="text-xs text-on-surface-variant line-clamp-2 leading-relaxed">{{ item.message }}</p>
 
-                            <div class="mt-2 flex items-center justify-between gap-2">
-                                <!-- Actor Chip -->
-                                <div v-if="item.actor" class="flex items-center gap-1">
-                                    <span class="inline-flex items-center gap-1 rounded bg-surface-container-high/80 px-1.5 py-0.5 text-[10px] font-medium text-on-surface-variant">
-                                        <AppIcon name="person" class="text-[11px] text-primary" />
-                                        <span>oleh <strong class="font-semibold text-primary">{{ item.actor }}</strong></span>
-                                    </span>
-                                </div>
-                                <div v-else />
-
-                                <!-- Smart Deep Link Affordance -->
-                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-primary opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
-                                    <span>{{ item.action_label || 'Buka' }}</span>
-                                    <AppIcon name="arrow_forward" class="text-xs" />
-                                </span>
+                            <!-- Subtle metadata (actor if recorded by someone) -->
+                            <div v-if="item.actor" class="pt-0.5 text-[10px] text-outline">
+                                Oleh <span class="font-semibold text-on-surface-variant">{{ item.actor }}</span>
                             </div>
                         </div>
-                        <span v-if="!item.read" class="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />
+
+                        <!-- Right Chevron / Unread Indicator -->
+                        <div class="flex items-center self-center shrink-0 pl-1">
+                            <span v-if="!item.read" class="size-2 rounded-full bg-primary" />
+                            <AppIcon v-else name="chevron_right" class="text-base text-outline opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
                     </div>
                 </div>
 
                 <!-- Footer -->
-                <div class="border-t border-outline-variant bg-surface-container-low/50 px-4 py-2.5 flex items-center justify-between">
+                <div class="border-t border-outline-variant bg-surface-container-low/50 px-4 py-2.5 flex items-center justify-between text-xs font-semibold">
                     <Link
                         href="/notifications/billing"
-                        class="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+                        class="text-primary hover:underline flex items-center gap-1.5"
                         @click="open = false"
                     >
                         <AppIcon name="chat" class="text-base" />
@@ -287,7 +271,7 @@ onBeforeUnmount(() => {
                     </Link>
                     <Link
                         href="/billing/invoices"
-                        class="text-xs font-semibold text-on-surface-variant hover:text-primary hover:underline flex items-center gap-1"
+                        class="text-on-surface-variant hover:text-primary hover:underline flex items-center gap-1.5"
                         @click="open = false"
                     >
                         <AppIcon name="receipt" class="text-base" />
