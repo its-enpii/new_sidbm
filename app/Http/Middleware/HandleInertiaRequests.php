@@ -32,27 +32,36 @@ final class HandleInertiaRequests extends Middleware
 
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'appName' => config('app.name'),
             'auth' => [
-                'user' => $request->user()?->only([
-                    'row_id',
-                    'public_id',
-                    'name',
-                    'username',
-                    'email',
-                    'status',
-                    'is_superadmin',
-                    'is_regency_user',
-                    'regency_code',
-                    'regency_name',
-                    'is_province_user',
-                    'province_code',
-                    'province_name',
-                    'is_village_user',
-                    'village_row_id',
-                ]),
+                'user' => $user ? array_merge(
+                    $user->only([
+                        'row_id',
+                        'public_id',
+                        'name',
+                        'username',
+                        'email',
+                        'status',
+                        'is_superadmin',
+                        'is_regency_user',
+                        'regency_code',
+                        'regency_name',
+                        'is_province_user',
+                        'province_code',
+                        'province_name',
+                        'is_village_user',
+                        'village_row_id',
+                    ]),
+                    [
+                        'photo_url' => $user->photo_path
+                            ? asset('storage/'.ltrim((string) $user->photo_path, '/')).'?v='.($user->updated_at?->timestamp ?? time())
+                            : null,
+                    ]
+                ) : null,
                 'permissions' => $this->resolvePermissions($request),
                 'nav_map' => config('permissions.nav_map', []),
                 'impersonated_by' => $request->session()?->get('impersonated_by'),

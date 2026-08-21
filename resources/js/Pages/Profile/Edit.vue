@@ -87,6 +87,12 @@ function submitAccount() {
 const photoForm = useForm({ photo: null });
 const photoPreview = ref(props.photoUrl);
 const photoDragOver = ref(false);
+const imageError = ref(false);
+
+watch(() => props.photoUrl, (newUrl) => {
+    photoPreview.value = newUrl;
+    imageError.value = false;
+});
 
 function onPhotoChange(event) {
     const file = event.target.files?.[0] ?? null;
@@ -104,13 +110,17 @@ function setPhotoFile(file) {
     if (!file || !file.type.startsWith('image/')) return;
     photoForm.photo = file;
     photoPreview.value = URL.createObjectURL(file);
+    imageError.value = false;
 }
 
 function submitPhoto() {
     photoForm.post('/profile/photo', {
         forceFormData: true,
         preserveScroll: true,
-        onSuccess: () => photoForm.reset(),
+        onSuccess: () => {
+            photoForm.reset();
+            imageError.value = false;
+        },
     });
 }
 
@@ -118,7 +128,13 @@ const { confirm: confirmAction } = useConfirm();
 
 async function destroyPhoto() {
     if (!await confirmAction({ title: 'Hapus Foto', message: 'Hapus foto profil?' })) return;
-    router.delete('/profile/photo', { preserveScroll: true });
+    router.delete('/profile/photo', {
+        preserveScroll: true,
+        onSuccess: () => {
+            photoPreview.value = null;
+            imageError.value = false;
+        },
+    });
 }
 </script>
 
@@ -143,24 +159,25 @@ async function destroyPhoto() {
                     <AppTabs
                         v-model="activeTab"
                         :items="tabs"
-                        variant="pill"
-                        aria-label="Tab profil"
-                        @update:model-value="go($event)"
+                        vertical
+                        variant="pills"
+                        class="w-full"
+                        @update:model-value="go"
                     />
                 </div>
 
                 <div class="space-y-6">
                     <AppCard v-show="activeTab === 'personal'" bordered>
                         <h2 class="mb-1 text-lg font-bold text-primary">Data Pribadi</h2>
-                        <p class="mb-5 text-sm text-on-surface-variant">Identitas pejabat/pengguna yang login ke aplikasi.</p>
-                        <form class="space-y-5" @submit.prevent="submitPersonal">
+                        <p class="mb-5 text-sm text-on-surface-variant">Informasi identitas Anda.</p>
+                        <form class="space-y-4" @submit.prevent="submitPersonal">
                             <div class="grid gap-4 sm:grid-cols-2">
                                 <AppInput
                                     v-model="personalForm.nik"
                                     label="NIK"
                                     icon="badge"
-                                    inputmode="numeric"
                                     maxlength="16"
+                                    hint="16 digit sesuai KTP"
                                     :error="personalForm.errors.nik"
                                 />
                                 <AppInput
@@ -170,19 +187,25 @@ async function destroyPhoto() {
                                     required
                                     :error="personalForm.errors.name"
                                 />
+                            </div>
+                            <div class="grid gap-4 sm:grid-cols-2">
                                 <AppInput
                                     v-model="personalForm.initials"
                                     label="Inisial"
-                                    icon="text_fields"
+                                    icon="short_text"
                                     maxlength="10"
+                                    hint="Contoh: AB, JDO"
                                     :error="personalForm.errors.initials"
                                 />
                                 <AppInput
                                     v-model="personalForm.phone"
-                                    label="Telepon"
-                                    icon="call"
+                                    label="Nomor Telepon/WA"
+                                    icon="phone"
+                                    type="tel"
                                     :error="personalForm.errors.phone"
                                 />
+                            </div>
+                            <div class="grid gap-4 sm:grid-cols-2">
                                 <AppInput
                                     v-model="personalForm.birth_place"
                                     label="Tempat Lahir"
@@ -192,33 +215,32 @@ async function destroyPhoto() {
                                 <AppDatePicker
                                     v-model="personalForm.birth_date"
                                     label="Tanggal Lahir"
-                                    icon="calendar_month"
                                     :max="today"
-                                    clearable
                                     :error="personalForm.errors.birth_date"
                                 />
+                            </div>
+                            <AppTextarea
+                                v-model="personalForm.address"
+                                label="Alamat Tinggal"
+                                icon="home"
+                                rows="3"
+                                :error="personalForm.errors.address"
+                            />
+                            <div class="grid gap-4 sm:grid-cols-2">
                                 <SmartSelect
                                     v-model="personalForm.education"
-                                    label="Pendidikan"
+                                    label="Pendidikan Terakhir"
                                     :options="educationOptions"
-                                    placeholder="Pilih pendidikan"
+                                    icon="school"
+                                    clearable
                                     :error="personalForm.errors.education"
                                 />
                                 <AppDatePicker
                                     v-model="personalForm.appointed_at"
-                                    label="Tanggal Menjabat"
-                                    icon="event"
-                                    clearable
+                                    label="Tanggal Mulai Bekerja"
+                                    :max="today"
                                     :error="personalForm.errors.appointed_at"
                                 />
-                                <div class="sm:col-span-2">
-                                    <AppTextarea
-                                        v-model="personalForm.address"
-                                        label="Alamat"
-                                        :rows="3"
-                                        :error="personalForm.errors.address"
-                                    />
-                                </div>
                             </div>
                             <div class="flex justify-end border-t border-outline-variant pt-4">
                                 <AppButton
@@ -234,16 +256,15 @@ async function destroyPhoto() {
                     </AppCard>
 
                     <AppCard v-show="activeTab === 'account'" bordered>
-                        <h2 class="mb-1 text-lg font-bold text-primary">Akun</h2>
-                        <p class="mb-5 text-sm text-on-surface-variant">
-                            Username untuk login. Kosongkan password jika tidak ingin diganti.
-                        </p>
-                        <form class="space-y-5" @submit.prevent="submitAccount">
+                        <h2 class="mb-1 text-lg font-bold text-primary">Pengaturan Akun</h2>
+                        <p class="mb-5 text-sm text-on-surface-variant">Ubah username atau password login Anda.</p>
+                        <form class="space-y-4" @submit.prevent="submitAccount">
                             <AppInput
                                 v-model="accountForm.username"
                                 label="Username"
-                                icon="account_circle"
+                                icon="alternate_email"
                                 required
+                                hint="Digunakan saat login ke sistem."
                                 :error="accountForm.errors.username"
                             />
                             <div class="grid gap-4 sm:grid-cols-2">
@@ -282,8 +303,14 @@ async function destroyPhoto() {
                         <h2 class="mb-1 text-lg font-bold text-primary">Foto Profil</h2>
                         <p class="mb-5 text-sm text-on-surface-variant">PNG, JPG, atau WebP. Maks 2 MB.</p>
                         <div class="flex flex-col items-center gap-5">
-                            <div class="grid size-40 place-items-center overflow-hidden rounded-full border border-outline-variant bg-surface-container-lowest">
-                                <img v-if="photoPreview" :src="photoPreview" alt="Foto profil" class="size-full object-cover" />
+                            <div class="grid size-40 place-items-center overflow-hidden rounded-full border border-outline-variant bg-surface-container-lowest shadow-inner">
+                                <img
+                                    v-if="photoPreview && !imageError"
+                                    :src="photoPreview"
+                                    alt="Foto profil"
+                                    class="size-full object-cover"
+                                    @error="imageError = true"
+                                />
                                 <AppIcon v-else name="account_circle" class="text-6xl text-on-surface-variant" />
                             </div>
                             <form class="w-full space-y-3" @submit.prevent="submitPhoto">

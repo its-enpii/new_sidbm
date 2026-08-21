@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref } from 'vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
@@ -18,9 +18,9 @@ const props = defineProps({
 });
 
 const page = usePage();
-const flash = ref(page.props.flash || null);
+
 const activeTab = ref('overview');
-const toast = ref(null);
+const toast = useToast();
 
 const setGatewayForm = useForm({ gateway: props.active_gateway || 'duitku' });
 const setGateway = (gw) => {
@@ -32,8 +32,7 @@ const setGateway = (gw) => {
 };
 
 function showToast(msg, type = 'success') {
-    toast.value = { msg, type };
-    setTimeout(() => { toast.value = null; }, 4000);
+    toast.show(type, msg);
 }
 
 const apiCall = async (url, opts = {}) => {
@@ -202,10 +201,6 @@ const gatewayTabs = [
                 </div>
             </header>
 
-            <!-- Toast alert -->
-            <AppCard v-if="toast" :class="toast.type === 'success' ? 'border-secondary-container bg-secondary-container/30 text-secondary' : 'border-error-container bg-error-container/30 text-on-error-container'">
-                <p class="font-bold text-sm">{{ toast.msg }}</p>
-            </AppCard>
 
             <!-- Navigation Tabs -->
             <AppTabs
@@ -405,4 +400,3 @@ const gatewayTabs = [
         </div>
     </AdminLayout>
 </template>
-

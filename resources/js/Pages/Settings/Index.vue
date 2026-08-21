@@ -1,5 +1,6 @@
 <script setup>
 import { useConfirm } from '../../composables/useConfirm';
+import { useToast } from '../../composables/useToast';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import AppBadge from '../../Components/AppBadge.vue';
@@ -116,7 +117,8 @@ function submitLogo() {
         onSuccess: () => logoForm.reset(),
     });
 }
-const { confirm: confirmAction, showAlert } = useConfirm();
+const { confirm: confirmAction } = useConfirm();
+const toast = useToast();
 
 const syncLoading = ref(false);
 async function syncRounding() {
@@ -140,9 +142,9 @@ async function syncRounding() {
             credentials: 'same-origin',
         });
         const data = await res.json();
-        await showAlert({ title: 'Berhasil', message: data.message });
+        toast.success(data.message);
     } catch {
-        await showAlert({ title: 'Gagal', message: 'Terjadi kesalahan saat sinkronisasi pembulatan.' });
+        toast.error('Terjadi kesalahan saat sinkronisasi pembulatan.');
     } finally {
         syncLoading.value = false;
     }
@@ -333,12 +335,6 @@ function applySignatureStarter() {
                 <p class="mt-1 text-on-surface-variant">Konfigurasi lembaga, pinjaman, logo, WhatsApp, dan tanda tangan.</p>
             </header>
 
-            <AppCard v-if="flash">
-                <div class="flex items-center gap-3">
-                    <div class="grid size-10 shrink-0 place-items-center rounded-full bg-secondary-container text-secondary">âœ“</div>
-                    <p class="font-bold text-primary">{{ flash.message }}</p>
-                </div>
-            </AppCard>
 
             <div class="grid gap-6 lg:grid-cols-[14rem_1fr]">
                 <div class="rounded-xl bg-surface-container-low p-2 lg:sticky lg:top-20 lg:self-start">

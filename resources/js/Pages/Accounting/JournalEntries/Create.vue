@@ -86,7 +86,7 @@ watch(currentType, (type, prev) => {
         if (life !== undefined) form.asset_useful_life_months = life;
         if (!form.asset_quantity) form.asset_quantity = 1;
     }
-    // Single-option COA (1 debit account per purchase type) → auto-select.
+    // Single-option COA (1 debit account per purchase type) â†’ auto-select.
     autoPickSingle(sumberDanaOptions.value, 'sumber_dana_row_id');
     autoPickSingle(disimpanKeOptions.value, 'disimpan_ke_row_id');
 }, { immediate: true });
@@ -170,7 +170,7 @@ const periodDetail = computed(() => {
     return historyForm.value.year;
 });
 function transactionTypeLabel(value) {
-    return props.transactionTypes.find((type) => type.value === value)?.label ?? value ?? '—';
+    return props.transactionTypes.find((type) => type.value === value)?.label ?? value ?? 'â€”';
 }
 function entryHref(entryPublicId) {
     return entryPublicId ? `/accounting/journal-entries/${entryPublicId}` : '#';
@@ -243,8 +243,8 @@ function openHistoryModal() {
                         <p class="text-base font-bold text-primary">{{ flashEntry.message }}</p>
                         <p class="mt-1 text-sm text-on-surface-variant">
                             <span class="font-semibold">{{ flashEntry.entry.transaction_date }}</span>
-                            <span v-if="flashEntry.entry.journal_number"> · No. {{ flashEntry.entry.journal_number }}</span>
-                            · {{ transactionTypeLabel(flashEntry.entry.transaction_type) }}
+                            <span v-if="flashEntry.entry.journal_number"> Â· No. {{ flashEntry.entry.journal_number }}</span>
+                            Â· {{ transactionTypeLabel(flashEntry.entry.transaction_type) }}
                         </p>
                         <p v-if="flashEntry.entry.description" class="mt-1 text-sm text-on-surface-variant">{{ flashEntry.entry.description }}</p>
                     </div>
@@ -257,7 +257,7 @@ function openHistoryModal() {
                         </div>
                         <ul class="space-y-2">
                             <li v-for="line in debitedLines" :key="`d-${line.account_code}`" class="rounded-lg bg-surface-container-lowest p-3">
-                                <p class="text-sm font-bold text-primary">{{ line.account_code }} · {{ line.account_name }}</p>
+                                <p class="text-sm font-bold text-primary">{{ line.account_code }} Â· {{ line.account_name }}</p>
                                 <p class="mt-1 text-base font-bold text-secondary">{{ currency(line.debit) }}</p>
                             </li>
                             <li v-if="!debitedLines.length" class="text-sm text-on-surface-variant">Tidak ada akun debit.</li>
@@ -270,16 +270,13 @@ function openHistoryModal() {
                         </div>
                         <ul class="space-y-2">
                             <li v-for="line in creditedLines" :key="`c-${line.account_code}`" class="rounded-lg bg-surface-container-lowest p-3">
-                                <p class="text-sm font-bold text-primary">{{ line.account_code }} · {{ line.account_name }}</p>
+                                <p class="text-sm font-bold text-primary">{{ line.account_code }} Â· {{ line.account_name }}</p>
                                 <p class="mt-1 text-base font-bold text-error">{{ currency(line.credit) }}</p>
                             </li>
                             <li v-if="!creditedLines.length" class="text-sm text-on-surface-variant">Tidak ada akun kredit.</li>
                         </ul>
                     </div>
                 </div>
-            </AppCard>
-            <AppCard v-else-if="page.props.flash?.success">
-                <p class="text-sm text-primary">{{ page.props.flash.success }}</p>
             </AppCard>
             <div>
                 <AppCard>
@@ -338,7 +335,7 @@ function openHistoryModal() {
                                 :placeholder="currentType === 'pembelian_aset_tanah' ? '0' : '48'"
                                 :hint="currentType === 'pembelian_aset_tanah' ? 'Tanah: 0 = tidak disusutkan' : null"
                             />
-                            <AppCurrencyInput v-model="form.amount" label="Harga Perolehan" icon="payments" :min="1" required readonly :error="form.errors.amount" placeholder="0" hint="Otomatis: unit × harga satuan" />
+                            <AppCurrencyInput v-model="form.amount" label="Harga Perolehan" icon="payments" :min="1" required readonly :error="form.errors.amount" placeholder="0" hint="Otomatis: unit Ã— harga satuan" />
                         </div>
                     </template>
                     <template v-else>
@@ -355,8 +352,8 @@ function openHistoryModal() {
         </div>
         <AppModal v-model="historyModalOpen" :title="`Riwayat ? ${props.history?.account?.code ?? ''}`" size="full" @update:model-value="closeHistoryModal">
             <div v-if="props.history?.account" class="space-y-4">
-                <p class="text-sm text-on-surface-variant">{{ props.history.account.name }} · {{ props.history.account.account_type }} · Saldo Normal {{ props.history.account.normal_balance === 'D' ? 'Debit' : 'Kredit' }}</p>
-                <p class="text-xs text-on-surface-variant">{{ periodDetail }}<span v-if="historyRange"> · {{ historyRange.start }} → {{ historyRange.end }}</span></p>
+                <p class="text-sm text-on-surface-variant">{{ props.history.account.name }} Â· {{ props.history.account.account_type }} Â· Saldo Normal {{ props.history.account.normal_balance === 'D' ? 'Debit' : 'Kredit' }}</p>
+                <p class="text-xs text-on-surface-variant">{{ periodDetail }}<span v-if="historyRange"> Â· {{ historyRange.start }} â†’ {{ historyRange.end }}</span></p>
                 <div v-if="historySummary" class="grid gap-3 sm:grid-cols-4">
                     <div class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
                         <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Transaksi</p>
@@ -392,10 +389,10 @@ function openHistoryModal() {
                             <tr v-for="(row, index) in historyRows" :key="`${row.entry_public_id}-${index}`" class="border-t border-outline-variant">
                                 <td class="px-4 py-3 font-bold text-primary">{{ row.row_sequence }}</td>
                                 <td class="px-4 py-3 text-on-surface-variant">{{ row.transaction_date }}</td>
-                                <td class="px-4 py-3"><a v-if="row.entry_public_id" :href="entryHref(row.entry_public_id)" class="font-semibold text-primary hover:underline">{{ row.entry_id }}</a><span v-else class="text-on-surface-variant">—</span></td>
-                                <td class="px-4 py-3">{{ row.description || '—' }}</td>
-                                <td class="px-4 py-3 text-right font-semibold text-secondary">{{ row.debit > 0 ? currency(row.debit) : '—' }}</td>
-                                <td class="px-4 py-3 text-right font-semibold text-error">{{ row.credit > 0 ? currency(row.credit) : '—' }}</td>
+                                <td class="px-4 py-3"><a v-if="row.entry_public_id" :href="entryHref(row.entry_public_id)" class="font-semibold text-primary hover:underline">{{ row.entry_id }}</a><span v-else class="text-on-surface-variant">â€”</span></td>
+                                <td class="px-4 py-3">{{ row.description || 'â€”' }}</td>
+                                <td class="px-4 py-3 text-right font-semibold text-secondary">{{ row.debit > 0 ? currency(row.debit) : 'â€”' }}</td>
+                                <td class="px-4 py-3 text-right font-semibold text-error">{{ row.credit > 0 ? currency(row.credit) : 'â€”' }}</td>
                                 <td class="px-4 py-3 text-right font-bold text-primary">{{ currency(row.running_balance) }}</td>
                             </tr>
                         </tbody>

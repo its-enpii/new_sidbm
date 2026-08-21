@@ -7,22 +7,22 @@ Dokumen ini memetakan rancangan arsitektur, strategi sinkronisasi data, pembagia
 ## 1. Arsitektur Inti: *Cloud Source of Truth + Desktop Read-Only SQLite*
 
 ```
-   ┌─────────────────────────────────────────────────────────┐
-   │             CLOUD SERVER (SOURCE OF TRUTH)              │
-   │  - Multi-Tenant Sharding (MySQL / MariaDB)              │
-   │  - Master Business Logic, Ledger, All Mutations         │
-   │  - Snapshot & Delta Exporter Engine                     │
-   └────────────────────────────┬────────────────────────────┘
-                                │
-                                │ HTTPS Pull Sync (Token Auth)
-                                │ JSON Snapshot with SHA256
-                                ▼
-   ┌─────────────────────────────────────────────────────────┐
-   │                SIDBM DESKTOP CLIENT APP                 │
-   │  - Framework : Electron + Embedded PHP/Laravel          │
-   │  - Database  : Local SQLite (Single Tenant Lock)        │
-   │  - Mode      : Hybrid (Online Read/Write + Offline Read)│
-   └─────────────────────────────────────────────────────────┘
+   +---------------------------------------------------------+
+   |             CLOUD SERVER (SOURCE OF TRUTH)              |
+   |  - Multi-Tenant Sharding (MySQL / MariaDB)              |
+   |  - Master Business Logic, Ledger, All Mutations         |
+   |  - Snapshot & Delta Exporter Engine                     |
+   +----------------------------+----------------------------+
+                                |
+                                | HTTPS Pull Sync (Token Auth)
+                                | JSON Snapshot with SHA256
+                                v
+   +---------------------------------------------------------+
+   |                SIDBM DESKTOP CLIENT APP                 |
+   |  - Framework : Electron + Embedded PHP/Laravel          |
+   |  - Database  : Local SQLite (Single Tenant Lock)        |
+   |  - Mode      : Hybrid (Online Read/Write + Offline Read)|
+   +---------------------------------------------------------+
 ```
 
 ### Prinsip Utama Sistem:
@@ -38,16 +38,16 @@ Dokumen ini memetakan rancangan arsitektur, strategi sinkronisasi data, pembagia
 
 | Fitur | Online (Server Cloud) | Offline (Local SQLite) |
 |---|:---:|:---:|
-| Login & Autentikasi Pengguna | ✅ Server Auth | ✅ Sesi Tersimpan / Offline Cache |
-| Lihat Dashboard & Statistik | ✅ Realtime Cloud | ✅ Dari SQLite Lokal |
-| Lihat Daftar Pinjaman & Angsuran | ✅ Realtime Cloud | ✅ Dari SQLite Lokal |
-| Cetak Laporan Keuangan (PDF / Excel) | ✅ Realtime Cloud | ✅ Dari SQLite Lokal |
-| Cari Nasabah & Kelompok | ✅ Realtime Cloud | ✅ Dari SQLite Lokal |
-| Ajukan Pinjaman / Catat Angsuran | ✅ Diizinkan | 🔒 Dikunci (Hanya Baca) |
-| Input Jurnal Umum / Mutasi Kas | ✅ Diizinkan | 🔒 Dikunci (Hanya Baca) |
-| Tutup Buku Bulanan / Tahunan | ✅ Diizinkan | 🔒 Dikunci (Hanya Baca) |
-| Native OS Notifications | ✅ Action Center | ✅ Sesuai Data Terakhir |
-| Atribusi Pelaku ("oleh {siapa}") | ✅ Tercatat User Realtime | ✅ Terarsip dalam Notifikasi |
+| Login & Autentikasi Pengguna | âœ… Server Auth | âœ… Sesi Tersimpan / Offline Cache |
+| Lihat Dashboard & Statistik | âœ… Realtime Cloud | âœ… Dari SQLite Lokal |
+| Lihat Daftar Pinjaman & Angsuran | âœ… Realtime Cloud | âœ… Dari SQLite Lokal |
+| Cetak Laporan Keuangan (PDF / Excel) | âœ… Realtime Cloud | âœ… Dari SQLite Lokal |
+| Cari Nasabah & Kelompok | âœ… Realtime Cloud | âœ… Dari SQLite Lokal |
+| Ajukan Pinjaman / Catat Angsuran | âœ… Diizinkan | ðŸ”’ Dikunci (Hanya Baca) |
+| Input Jurnal Umum / Mutasi Kas | âœ… Diizinkan | ðŸ”’ Dikunci (Hanya Baca) |
+| Tutup Buku Bulanan / Tahunan | âœ… Diizinkan | ðŸ”’ Dikunci (Hanya Baca) |
+| Native OS Notifications | âœ… Action Center | âœ… Sesuai Data Terakhir |
+| Atribusi Pelaku ("oleh {siapa}") | âœ… Tercatat User Realtime | âœ… Terarsip dalam Notifikasi |
 
 ---
 
@@ -117,7 +117,7 @@ Dokumen ini memetakan rancangan arsitektur, strategi sinkronisasi data, pembagia
   - Komponen `resources/js/Components/AppOfflineBanner.vue` memberikan notifikasi visual *"Mode Offline (Hanya Baca)"* yang elegan.
 - [x] **4.4. Custom Frameless Titlebar & Auto-Logout saat Close**
   - Komponen `resources/js/Components/DesktopTitleBar.vue` menggantikan menu bar bawaan Electron.
-  - Sisi kiri: status koneksi 🟢 Online / 🟠 Offline dan tombol Sinkron Cepat.
+  - Sisi kiri: status koneksi ðŸŸ¢ Online / ðŸŸ  Offline dan tombol Sinkron Cepat.
   - Sisi tengah: judul tenant yang dapat di-drag.
   - Sisi kanan: tombol minimize, maximize/restore, dan close yang secara otomatis melakukan logout pengguna sebelum jendela aplikasi ditutup.
 - [x] **4.5. Native OS Push Notifications & Atribusi Pelaku ("oleh {siapa}")**
@@ -154,3 +154,4 @@ Dokumen ini memetakan rancangan arsitektur, strategi sinkronisasi data, pembagia
 | 2026-08-21 | Fase 4 | Read-Only Guard & Offline UI/UX Experience | Selesai | BlockOfflineMutations, HandleInertiaRequests desktop props, useAppMode.js, AppOfflineBanner, dan 5 tests PHPUnit |
 | 2026-08-21 | UI/UX | Custom Frameless Titlebar & Auto-Logout on Close | Selesai | DesktopTitleBar.vue, frameless window Electron, online/offline badge, kontrol window, auto-logout saat close |
 | 2026-08-21 | Notifikasi | Native OS Push Notifications & Atribusi "oleh {siapa}" | Selesai | NotificationCenterController actor attribution, NotificationDropdown chip & auto-push, DesktopTitleBar sync actor, 6 tests PHPUnit |
+| 2026-08-21 | UI/UX | Splash Screen & Exit Goodbye Screen Animation | Selesai | DesktopSplashScreen.vue animasi pembuka "Selamat Datang" & penutup "Sampai Jumpa" saat auto-logout |

@@ -30,6 +30,11 @@ const isTrainingMode = computed(() => page.props.tenant?.is_training_mode === tr
 const impersonatedBy = computed(() => page.props.auth?.impersonated_by);
 const impersonatorName = computed(() => page.props.auth?.impersonator_name);
 const leaveForm = useForm({});
+const avatarError = ref(false);
+
+watch(() => user.value?.photo_url, () => {
+    avatarError.value = false;
+});
 
 function leaveImpersonation() {
     leaveForm.post('/auth/impersonate/leave');
@@ -469,8 +474,8 @@ function logout() {
 
             <div class="mt-4 border-t border-primary-container px-4 pt-4">
                 <div class="flex items-center gap-3 rounded-xl bg-primary-container/50 p-3">
-                    <div class="grid size-10 shrink-0 place-items-center rounded-full bg-primary-fixed text-sm font-bold text-primary">{{ user?.name?.charAt(0).toUpperCase() || 'U' }}</div>
-                    <div class="min-w-0 flex-1"><p class="truncate font-bold text-on-primary">{{ user?.name || 'Pengguna' }}</p><p class="truncate text-xs text-primary-fixed-dim">{{ props.unitName || 'Unit belum dipilih' }}</p></div>
+                    <Link href="/profile" class="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-primary-fixed text-sm font-bold text-primary transition hover:opacity-85" aria-label="Buka Profil"><img v-if="user?.photo_url && !avatarError" :src="user.photo_url" :alt="user?.name || 'User'" class="size-full object-cover" @error="avatarError = true" /><span v-else>{{ user?.name?.charAt(0).toUpperCase() || 'U' }}</span></Link>
+                    <Link href="/profile" class="min-w-0 flex-1 group" aria-label="Buka Profil"><p class="truncate font-bold text-on-primary group-hover:underline">{{ user?.name || 'Pengguna' }}</p><p class="truncate text-xs text-primary-fixed-dim">{{ props.unitName || 'Unit belum dipilih' }}</p></Link>
                     <AppIconButton name="logout" tone="neutral" size="sm" rounded="lg" aria-label="Keluar" class="text-primary-fixed-dim hover:bg-on-primary/10 hover:text-on-primary" @click="askLogout" />
                 </div>
             </div>

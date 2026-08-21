@@ -12,6 +12,7 @@ const appName = computed(() => page.props.appName || 'SIDBM Next');
 const currentPath = computed(() => page.url.split('?')[0]);
 const mobileMenuOpen = ref(false);
 const logoutForm = useForm({});
+const avatarError = ref(false);
 
 const navigation = [
     { label: 'Dashboard', icon: 'dashboard', href: '/admin', exact: true },
@@ -69,9 +70,7 @@ function logout() {
 
             <div class="mt-4 border-t border-primary-container px-4 pt-4">
                 <div class="flex items-center gap-3 rounded-xl bg-primary-container/50 p-3">
-                    <div class="grid size-10 shrink-0 place-items-center rounded-full bg-primary-fixed text-sm font-bold text-primary">
-                        {{ user?.name?.charAt(0).toUpperCase() || 'A' }}
-                    </div>
+                    <div class="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-primary-fixed text-sm font-bold text-primary"><img v-if="user?.photo_url && !avatarError" :src="user.photo_url" :alt="user?.name || 'Admin'" class="size-full object-cover" @error="avatarError = true" /><span v-else>{{ user?.name?.charAt(0).toUpperCase() || 'A' }}</span></div>
                     <div class="min-w-0 flex-1">
                         <p class="truncate font-bold text-on-primary">{{ user?.name || 'Admin' }}</p>
                         <p class="truncate text-xs text-primary-fixed-dim">Superadmin</p>

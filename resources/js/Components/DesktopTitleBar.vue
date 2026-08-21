@@ -66,6 +66,11 @@ async function handleClose() {
     if (isClosing.value) return;
     isClosing.value = true;
 
+    // Trigger visual Goodbye / Exit Screen
+    window.dispatchEvent(new CustomEvent('desktop:closing', {
+        detail: { message: 'Menyimpan sesi & mengamankan data...' }
+    }));
+
     const user = page.props.auth?.user;
     if (user) {
         // Logged in user: perform clean logout before closing desktop window

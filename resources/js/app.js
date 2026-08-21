@@ -1,10 +1,11 @@
-﻿import './bootstrap';
+import './bootstrap';
 import '../css/app.css';
 
 import { createInertiaApp, router } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h } from 'vue';
 import AppOfflineBanner from './Components/AppOfflineBanner.vue';
+import DesktopSplashScreen from './Components/DesktopSplashScreen.vue';
 import DesktopTitleBar from './Components/DesktopTitleBar.vue';
 
 window.route = window.route || function(name, params) {
@@ -48,7 +49,7 @@ createInertiaApp({
     ),
     setup({ el, App, props, plugin }) {
         const app = createApp({
-            render: () => h('div', [h(DesktopTitleBar), h(AppOfflineBanner), h(App, props)]),
+            render: () => h('div', [h(DesktopTitleBar), h(DesktopSplashScreen), h(AppOfflineBanner), h(App, props)]),
         });
         app.config.globalProperties.route = window.route;
         app.use(plugin);

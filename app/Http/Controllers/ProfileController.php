@@ -48,7 +48,7 @@ final class ProfileController
                 'username' => (string) $user->username,
             ],
             'photoUrl' => $user->photo_path
-                ? asset('storage/'.ltrim((string) $user->photo_path, '/'))
+                ? asset('storage/'.ltrim((string) $user->photo_path, '/')).'?v='.($user->updated_at?->timestamp ?? time())
                 : null,
             'educationOptions' => collect(self::educationOptions())
                 ->map(fn (string $label, string $value) => ['value' => $value, 'label' => $label])
@@ -113,6 +113,7 @@ final class ProfileController
         );
 
         $user->photo_path = $path;
+        $user->touch();
         $user->save();
 
         return redirect()
@@ -127,6 +128,7 @@ final class ProfileController
         if ($user->photo_path) {
             Storage::disk('public')->delete($user->photo_path);
             $user->photo_path = null;
+            $user->touch();
             $user->save();
         }
 

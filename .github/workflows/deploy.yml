@@ -131,6 +131,9 @@ jobs:
             
             echo "Running assistant RAG database migrations..."
             docker compose exec -T app php artisan migrate --database=rag --path=vendor/enpii/assistant/database/migrations --force || true
+
+            echo "Ensuring public storage symlink is connected..."
+            docker compose exec -T app php artisan storage:link || true
             
             echo "Refreshing & optimizing Laravel caches..."
             docker compose exec -T app php artisan config:clear
