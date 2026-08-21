@@ -48,17 +48,6 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ---
 ## [2026-08-20]
 
-### Fixed
-- **Persistensi Status Notifikasi Terbaca & Handler Klik Notifikasi (Notification Center):**
-  - Menambahkan kolom `notifications_read` (JSON) pada tabel `users` di database platform (`2026_08_20_130000_add_notifications_read_to_users_table.php`) dan casting `array` pada model `User.php`.
-  - Memperbarui `NotificationCenterController.php` agar status dibaca (`readIds`) dibaca dan disimpan langsung ke database akun pengguna (`$user->notifications_read`) serta disinkronkan ke sesi aktif, sehingga status terbaca tetap bertahan permanen meskipun pengguna telah logout dan login kembali.
-  - Memperbaiki `NotificationDropdown.vue` dengan membuat `handleItemClick` bersifat asynchronous (`await markAsRead(item.id)`) sebelum memicu `router.visit(item.target_url)`, menambahkan opsi `keepalive: true` pada API fetch mark-read, serta pembaruan status visual secara instan (*optimistic UI update*).
-  - Memperbaiki teks rendering status memuat notifikasi.
-  - Menambahkan test suite `NotificationCenterTest.php` untuk memvalidasi alur pembacaan, persistensi database lintas sesi/login, dan fitur tandai semua notifikasi terbaca.
-- **Optimasi Key Transisi Halaman (Mencegah Kedipan / Blink pada Modal & Filter Query):**
-  - Mengubah binding `:key` pada wrapper `<Transition name="page">` di seluruh layout dari `$page.url` menjadi `currentPath` (path tanpa query string).
-  - Mencegah unmount/re-render seluruh halaman saat membuka/menutup modal pipeline dashboard (`?pipeline=...`) atau saat memfilter data dengan parameter URL sehingga modal terbuka/tertutup instan dan mulus tanpa kedipan layar putih.
-
 ### Added
 - **Animasi Transisi Halaman Mulus (Smooth Page Transitions):**
   - Implementasi komponen `<Transition name="page" mode="out-in" appear>` pada 4 layout utama (`AuthenticatedLayout.vue`, `AdminLayout.vue`, `ProvinceLayout.vue`, `RegencyLayout.vue`) berbasis `:key="$page.url"`.
@@ -68,16 +57,16 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 - **Penyempurnaan Animasi Interaktif Beranda & Portal Login (`Home.vue` & `Login.vue`):**
   - **Beranda (`Home.vue`)**: Interaksi 3D tilt parallax pada kartu mockup hero dengan respon pergerakan kursor mouse, floating pills multi-layer, animasi ambient glowing orbs berkala, dan micro-interaction spring pada kartu fitur.
   - **Portal Login (`Login.vue`)**: Interaksi 3D parallax pada panel informasi kiri, animasi live breathing bar chart keuangan, micro-interaction scale bounce pada toggle sandi, dan spring shake form saat validasi gagal.
-- **Dokumentasi Lengkap Panduan Pengguna (User Manual) (docs/USER_GUIDE.md):**
+- **Dokumentasi Lengkap Panduan Pengguna (User Manual) (`docs/USER_GUIDE.md`):**
   - Penyusunan dokumen panduan operasional komprehensif (35,7 KB, 452 baris) dalam Bahasa Indonesia mencakup seluruh 86 halaman dan alur kerja aplikasi SIDBM Next.
   - Dokumentasi lengkap untuk 24 bab: Mulai dari Autentikasi, Dashboard Drilldown, Master Data, Siklus Perguliran Pinjaman (6 tahapan), Akuntansi Double-Entry & Immutable Ledger, Inventaris Aset, E-Budgeting, 16 Laporan Keuangan & Piutang, Billing SaaS Multi-Gateway, Notifikasi WhatsApp, RBAC 37 permissions, Wizard Onboarding, Portal Supervisi Kabupaten/Provinsi, Superadmin SaaS, AI Assistant (Ariel), hingga Katalog 36 Dokumen Cetak PDF.
-- **Restrukturisasi Indeks Dokumentasi (docs/README.md & README.md):**
+- **Restrukturisasi Indeks Dokumentasi (`docs/README.md` & `README.md`):**
   - Pengelompokan seluruh 15 dokumen teknis ke dalam 4 kategori terstruktur: Panduan Pengguna & Operasional, Arsitektur & Spesifikasi Sistem, Analisis Komparatif & Migrasi Legacy, serta Roadmap & Riwayat Pengujian.
 - **Fitur Impersonasi Tenant Superadmin & Holding Sync API:**
-  - Implementasi login impersonasi satu klik dari panel Superadmin ke akun tenant/pengguna dengan token temporer berbatas waktu (TenantImpersonationService).
-  - Penambahan banner peringatan impersonasi aktif di \AuthenticatedLayout.vue\ dengan tombol kembali ke akun superadmin.
-  - Pembuatan endpoint API sinkronisasi tenant holding (HoldingTenantSyncController) dan panduan integrasi docs/HOLDING_API_INTEGRATION_GUIDE.md.
-  - Penambahan tabel migrasi \	enant_impersonation_tokens dan test suite TenantImpersonationTest.php.
+  - Implementasi login impersonasi satu klik dari panel Superadmin ke akun tenant/pengguna dengan token temporer berbatas waktu (`TenantImpersonationService`).
+  - Penambahan banner peringatan impersonasi aktif di `AuthenticatedLayout.vue` dengan tombol kembali ke akun superadmin.
+  - Pembuatan endpoint API sinkronisasi tenant holding (`HoldingTenantSyncController`) dan panduan integrasi `docs/HOLDING_API_INTEGRATION_GUIDE.md`.
+  - Penambahan tabel migrasi `tenant_impersonation_tokens` dan test suite `TenantImpersonationTest.php`.
 - **API Laporan Keuangan untuk Integrasi Aplikasi Holding (`routes/api.php`):**
   - Implementasi rute RESTful API lengkap untuk integrasi aplikasi Holding / BUMDesma Induk yang mencakup 5 laporan keuangan utama:
     - **Neraca / Balance Sheet** (`/api/v1/holding/reports/balance-sheet` & `/api/v1/holding/tenants/{tenant}/reports/balance-sheet`).
@@ -85,8 +74,8 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
     - **Arus Kas / Cash Flow** (`/api/v1/holding/reports/cash-flow` & `/api/v1/holding/tenants/{tenant}/reports/cash-flow`).
     - **Catatan Atas Laporan Keuangan / CALK** (`/api/v1/holding/reports/calk` & `/api/v1/holding/tenants/{tenant}/reports/calk`).
     - **Perubahan Ekuitas / Modal** (`/api/v1/holding/reports/equity-changes` & `/api/v1/holding/tenants/{tenant}/reports/equity-changes`).
-    - **Paket Lengkap / Financial Report Pack** (`/api/v1/holding/reports/pack` & `/api/v1/holding/tenants/{tenant}/reports/pack`) � mengembalikan 5 laporan keuangan sekaligus dalam 1 request roundtrip.
-    - **Laporan Keuangan Konsolidasi** (`/api/v1/holding/reports/consolidated/*`) � laporan konsolidasi seluruh anak perusahaan / unit usaha holding.
+    - **Paket Lengkap / Financial Report Pack** (`/api/v1/holding/reports/pack` & `/api/v1/holding/tenants/{tenant}/reports/pack`) — mengembalikan 5 laporan keuangan sekaligus dalam 1 request roundtrip.
+    - **Laporan Keuangan Konsolidasi** (`/api/v1/holding/reports/consolidated/*`) — laporan konsolidasi seluruh anak perusahaan / unit usaha holding.
     - **Direktori Anak Usaha / Tenants Discovery** (`/api/v1/holding/tenants` & `/api/v1/holding/tenants/{tenant}`).
   - Controller `App\Http\Controllers\Api\Holding\HoldingReportController` dan `App\Http\Controllers\Api\Holding\HoldingTenantController`.
   - Middleware otentikasi API Key `App\Http\Middleware\VerifyHoldingApiToken` (`holding.auth`) dengan dukungan Bearer token, header `X-Holding-Key`, `X-API-Key`, query parameter `api_key`, dan platform supervisor bypass.
@@ -122,6 +111,15 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
   - Form entri jurnal umum (`resources/js/Pages/Accounting/JournalEntries/Create.vue`) disesuaikan menjadi lebar penuh (*full-width*) dan penyesuaian tombol "Cek riwayat/saldo".
 
 ### Fixed
+- **Persistensi Status Notifikasi Terbaca & Handler Klik Notifikasi (Notification Center):**
+  - Menambahkan kolom `notifications_read` (JSON) pada tabel `users` di database platform (`2026_08_20_130000_add_notifications_read_to_users_table.php`) dan casting `array` pada model `User.php`.
+  - Memperbarui `NotificationCenterController.php` agar status dibaca (`readIds`) dibaca dan disimpan langsung ke database akun pengguna (`$user->notifications_read`) serta disinkronkan ke sesi aktif, sehingga status terbaca tetap bertahan permanen meskipun pengguna telah logout dan login kembali.
+  - Memperbaiki `NotificationDropdown.vue` dengan membuat `handleItemClick` bersifat asynchronous (`await markAsRead(item.id)`) sebelum memicu `router.visit(item.target_url)`, menambahkan opsi `keepalive: true` pada API fetch mark-read, serta pembaruan status visual secara instan (*optimistic UI update*).
+  - Memperbaiki teks rendering status memuat notifikasi.
+  - Menambahkan test suite `NotificationCenterTest.php` untuk memvalidasi alur pembacaan, persistensi database lintas sesi/login, dan fitur tandai semua notifikasi terbaca.
+- **Optimasi Key Transisi Halaman (Mencegah Kedipan / Blink pada Modal & Filter Query):**
+  - Mengubah binding `:key` pada wrapper `<Transition name="page">` di seluruh layout dari `$page.url` menjadi `currentPath` (path tanpa query string).
+  - Mencegah unmount/re-render seluruh halaman saat membuka/menutup modal pipeline dashboard (`?pipeline=...`) atau saat memfilter data dengan parameter URL sehingga modal terbuka/tertutup instan dan mulus tanpa kedipan layar putih.
 - **Penyelarasan Kolom Percakapan AI (`ai_conversations`):**
   - Perbaikan pembuatan conversation pada `AiAssistantController` menggunakan `external_user_id` untuk mengatasi error SQLSTATE[23502] Not Null Violation pada database Postgres/RAG.
 - **Migrasi Database RAG & Default:**
@@ -133,8 +131,6 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 - **Pembersihan Folder Legacy `packages/assistant`:**
   - Menghapus folder `packages/assistant/` dan direktori `packages/` karena package telah dikelola via Composer (`vendor/enpii/assistant`).
   - Memperbarui seluruh referensi path migrasi dan rute di `app/Services/TenantRegistrationService.php`, `routes/web.php`, dan `.github/workflows/deploy.yml` ke `vendor/enpii/assistant/`.
-
----
 
 ## [2026-08-19]
 
