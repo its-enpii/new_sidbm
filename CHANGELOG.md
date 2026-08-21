@@ -23,7 +23,6 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
   - Menambahkan automated feature test `ProfilePhotoTest.php` untuk memvalidasi alur unggah, simpan, serving via `/storage/{path}`, proteksi direktori traversal, dan hapus foto profil.
 
 ### Added
-### Added
 - **Pintasan Keyboard Global & Modal Panduan Shortcut (`useKeyboardShortcuts.js` & `KeyboardShortcutsModal.vue`):**
   - Pembuatan composable `useKeyboardShortcuts.js` dan modal dialog interaktif `KeyboardShortcutsModal.vue` dengan pemetaan pintasan keyboard produktivitas: `Ctrl+/` (atau `Cmd+/`) untuk panduan pintasan, `Ctrl+K` untuk Global Search / Command Palette, `Ctrl+Shift+A` untuk memicu widget Asisten AI, `Ctrl+Shift+N` untuk membuka pusat notifikasi, dan `Ctrl+Shift+S` untuk sinkronisasi data Desktop ke Cloud.
   - Integrasi event listener global pada layout utama (`AuthenticatedLayout.vue`), pusat notifikasi (`NotificationDropdown.vue`), titlebar desktop (`DesktopTitleBar.vue`), dan widget chatbot (`AssistantWidget.vue`).
