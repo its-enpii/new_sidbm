@@ -2,8 +2,8 @@
  * Markdown rendering for the assistant widget.
  *
  * Two output shapes:
- *   - formatMarkdown(text) Ã¢â€ â€™ HTML string (legacy; used inside Artifact modal)
- *   - parseMarkdownTree(text) Ã¢â€ â€™ Block[] tree (used by AssistantWidget for
+ *   - formatMarkdown(text) → HTML string (legacy; used inside Artifact modal)
+ *   - parseMarkdownTree(text) → Block[] tree (used by AssistantWidget for
  *     interactive component rendering)
  *
  * Supports:
@@ -13,8 +13,8 @@
  *   - bullet & numbered lists
  *   - tables (header + separator + body rows)
  *   - paragraphs (double newlines)
- *   - soft line breaks (single newline Ã¢â€ â€™ <br>)
- *   - component blocks (::type{json}::body::) Ã¢â€ â€™ artifact / button / poll
+ *   - soft line breaks (single newline → <br>)
+ *   - component blocks (::type{json}::body::) → artifact / button / poll
  *
  * All input is HTML-escaped first, then structural markdown is replaced.
  */

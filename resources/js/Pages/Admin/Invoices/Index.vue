@@ -99,11 +99,11 @@ function tone(status) {
                             </div>
                         </template>
                         <template #cell-tenant="{ row }">
-                            <span class="font-semibold text-primary">{{ row.tenant?.name || 'â€”' }}</span>
+                            <span class="font-semibold text-primary">{{ row.tenant?.name || '—' }}</span>
                             <span class="block text-xs text-on-surface-variant">{{ row.tenant?.code }}</span>
                         </template>
                         <template #cell-purpose="{ row }">
-                            <span class="font-semibold text-primary">{{ purposeLabels[row.purpose] || row.purpose || 'â€”' }}</span>
+                            <span class="font-semibold text-primary">{{ purposeLabels[row.purpose] || row.purpose || '—' }}</span>
                             <span v-if="row.description" class="block truncate text-xs text-on-surface-variant">{{ row.description }}</span>
                         </template>
                         <template #cell-amount="{ row }">{{ money(row.amount, row.currency) }}</template>

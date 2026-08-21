@@ -84,7 +84,7 @@ function go(year, month) {
         '/budgeting',
         { year, month },
         {
-            // Must replace props.year/month/sheet â€” preserveState keeps stale month.
+            // Must replace props.year/month/sheet — preserveState keeps stale month.
             preserveState: false,
             preserveScroll: true,
             replace: true,
@@ -166,7 +166,7 @@ function monthMeta(month) {
                 >
                     <span class="text-xs font-bold uppercase tracking-wide opacity-80">{{ monthLabels[m]?.slice(0, 3) }}</span>
                     <span class="mt-1 text-sm font-semibold">
-                        {{ monthMeta(m).line_count > 0 ? formatMoney(monthMeta(m).surplus) : 'â€”' }}
+                        {{ monthMeta(m).line_count > 0 ? formatMoney(monthMeta(m).surplus) : '—' }}
                     </span>
                 </AppButton>
             </div>

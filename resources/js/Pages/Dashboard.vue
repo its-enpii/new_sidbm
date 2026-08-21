@@ -37,7 +37,7 @@ function formatMoney(value) {
 }
 
 function formatDate(value) {
-    if (!value) return 'â€”';
+    if (!value) return '—';
     const d = new Date(`${value}T00:00:00`);
     if (Number.isNaN(d.getTime())) return value;
     return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -46,9 +46,9 @@ function formatDate(value) {
 const pipelineTotal = computed(() => props.pipeline.reduce((sum, row) => sum + Number(row.count || 0), 0));
 
 // Two independent states:
-//   `pendingKey`  â€” set the moment the user clicks a pipeline card. The
+//   `pendingKey`  — set the moment the user clicks a pipeline card. The
 //                   dialog MUST NOT open until data arrives.
-//   `open`        â€” gated by props.pipeline_modal arrival. Becomes true only
+//   `open`        — gated by props.pipeline_modal arrival. Becomes true only
 //                   after the server payload lands, so the modal never shows
 //                   empty/stale content.
 //
@@ -153,7 +153,7 @@ const sourceLabel = {
                         {{ unitName || 'Dashboard' }}
                     </h1>
                     <p class="mt-1 text-on-surface-variant">
-                        Data live per {{ formatDate(as_of) }} Â· {{ counts.active_loans }} pinjaman aktif Â·
+                        Data live per {{ formatDate(as_of) }} · {{ counts.active_loans }} pinjaman aktif ·
                         {{ counts.members }} anggota
                     </p>
                 </div>
@@ -259,10 +259,10 @@ const sourceLabel = {
                                     <td class="whitespace-nowrap px-6 py-3 text-on-surface-variant">{{ formatDate(row.transaction_date) }}</td>
                                     <td class="px-6 py-3">
                                         <p class="font-semibold text-primary">{{ row.journal_number || `#${row.row_id}` }}</p>
-                                        <p class="line-clamp-1 text-xs text-on-surface-variant">{{ row.description || 'â€”' }}</p>
+                                        <p class="line-clamp-1 text-xs text-on-surface-variant">{{ row.description || '—' }}</p>
                                     </td>
                                     <td class="px-6 py-3">
-                                        <AppBadge tone="neutral">{{ sourceLabel[row.source_type] || row.source_type || 'â€”' }}</AppBadge>
+                                        <AppBadge tone="neutral">{{ sourceLabel[row.source_type] || row.source_type || '—' }}</AppBadge>
                                     </td>
                                     <td class="whitespace-nowrap px-6 py-3 text-right font-semibold text-primary">
                                         {{ formatMoney(row.amount) }}
@@ -296,7 +296,7 @@ const sourceLabel = {
                                 <div class="min-w-0">
                                     <p class="truncate font-bold text-primary">{{ item.borrower }}</p>
                                     <p class="text-xs text-on-surface-variant">
-                                        {{ item.loan_number || 'Pinjaman' }} Â· {{ formatDate(item.due_date) }}
+                                        {{ item.loan_number || 'Pinjaman' }} · {{ formatDate(item.due_date) }}
                                     </p>
                                 </div>
                                 <p class="shrink-0 text-sm font-bold" :class="item.overdue ? 'text-error' : 'text-primary'">
@@ -322,10 +322,10 @@ const sourceLabel = {
                 <div class="relative space-y-2">
                     <h2 class="text-lg font-bold">Siap operasional</h2>
                     <p class="text-sm leading-6 text-primary-fixed-dim">
-                        KPI dihitung dari jurnal posted dan jadwal angsuran pinjaman aktif â€” tanpa salinan saldo legacy.
+                        KPI dihitung dari jurnal posted dan jadwal angsuran pinjaman aktif — tanpa salinan saldo legacy.
                     </p>
                     <Link href="/accounting/tax-estimate" class="inline-flex text-sm font-bold text-on-primary underline-offset-2 hover:underline">
-                        Lihat taksiran pajak â†’
+                        Lihat taksiran pajak →
                     </Link>
                 </div>
             </section>
@@ -333,7 +333,7 @@ const sourceLabel = {
 
         <AppModal
             :model-value="open"
-            :title="`Pinjaman Â· ${pipeline_modal?.label ?? ''}`"
+            :title="`Pinjaman · ${pipeline_modal?.label ?? ''}`"
             size="lg"
             @update:model-value="(value) => { if (!value) closePipeline(); }"
         >
@@ -367,16 +367,16 @@ const sourceLabel = {
                                 <td class="px-4 py-3 align-top">
                                     <p class="font-semibold text-primary">{{ row.group_name }}</p>
                                     <p v-if="row.group_address" class="mt-0.5 text-xs text-on-surface-variant">{{ row.group_address }}</p>
-                                    <p class="mt-0.5 text-[10px] uppercase tracking-wider text-outline">#{{ row.id }} Â· {{ row.product_code || 'â€”' }}</p>
+                                    <p class="mt-0.5 text-[10px] uppercase tracking-wider text-outline">#{{ row.id }} · {{ row.product_code || '—' }}</p>
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3 align-top text-on-surface-variant">{{ formatDate(dateForRow(row)) }}</td>
                                 <td class="whitespace-nowrap px-4 py-3 text-right align-top font-semibold text-primary">{{ formatMoney(amountForRow(row)) }}</td>
                                 <td class="whitespace-nowrap px-4 py-3 text-right align-top">
                                     <span v-if="row.principal_remaining > 0" class="font-semibold text-primary">{{ formatMoney(row.principal_remaining) }}</span>
-                                    <span v-else class="text-on-surface-variant">â€”</span>
+                                    <span v-else class="text-on-surface-variant">—</span>
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3 text-right align-top">
-                                    <Link :href="`/lending/loans/${row.row_id}`" class="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/10">Detail â†’</Link>
+                                    <Link :href="`/lending/loans/${row.row_id}`" class="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/10">Detail →</Link>
                                 </td>
                             </tr>
                         </tbody>
