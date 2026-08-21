@@ -1,4 +1,4 @@
-﻿# Perbandingan Database SIDBM Legacy vs. SIDBM Next (Modern)
+# Perbandingan Database SIDBM Legacy vs. SIDBM Next (Modern)
 
 Dokumen ini berisi panduan komparasi arsitektur database, pemetaan tabel (*table mapping*), transformasi kolom (*column transformation*), dan relasi data antara **SIDBM Legacy** (sistem monolitik tabel dinamis) dan **SIDBM Next** (arsitektur multi-tenant modern dengan database platform dan sharding).
 

@@ -1,4 +1,4 @@
-﻿# Roadmap Fitur & Status Implementasi (SIDBM Next vs Legacy)
+# Roadmap Fitur & Status Implementasi (SIDBM Next vs Legacy)
 
 Tujuan: **SIDBM Next sepenuhnya menggantikan SIDBM legacy dalam operasional harian tenant dan tingkat Kabupaten.**
 

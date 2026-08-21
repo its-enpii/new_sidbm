@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { Head, Link } from '@inertiajs/vue3';
 import AppBadge from '../../Components/AppBadge.vue';
 import AppButton from '../../Components/AppButton.vue';

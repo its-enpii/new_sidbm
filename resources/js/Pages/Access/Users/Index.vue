@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppBadge from '../../../Components/AppBadge.vue';

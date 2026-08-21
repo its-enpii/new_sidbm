@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { useConfirm } from '../../../composables/useConfirm';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';

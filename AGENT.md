@@ -1,4 +1,4 @@
-﻿# AGENT.md — Pedoman Wajib untuk Coding UI
+# AGENT.md — Pedoman Wajib untuk Coding UI
 
 Project ini adalah **Laravel + Inertia.js + Vue 3 (Composition API) + Tailwind** dengan token **Material Design 3** (`surface-container-lowest`, `on-surface-variant`, `primary`, `error-container`, dst). Sebelum menulis satu baris pun markup atau styling UI, **WAJIB** mengikuti protokol di bawah ini. Aturan ini meng-override default behavior — patuhi persis seperti tertulis.
 
@@ -102,7 +102,7 @@ Untuk setiap kebutuhan UI, bandingkan dengan inventory:
 Boleh membuat komponen baru hanya jika:
 
 1. Inventarisasi sudah selesai dan kecocokan jelas **tidak ada**.
-2. Komponen baru akan digunakan **â‰¥ 2 kali** atau punya kompleksitas nyata (â‰¥ ~50 baris).
+2. Komponen baru akan digunakan **≥ 2 kali** atau punya kompleksitas nyata (≥ ~50 baris).
 3. Nama mengikuti konvensi: PascalCase, bernoun (`AppSuffix` untuk atomik, domain-named untuk feature).
 4. Pakai `defineProps` + `defineModel` (Composition API `<script setup>`), `defineOptions({ inheritAttrs: false })` jika membungkus elemen root.
 5. Slot composition (`#header`, `#footer`, `#default`), bukan prop string HTML.

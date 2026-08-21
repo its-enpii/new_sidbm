@@ -33,7 +33,7 @@ const props = defineProps({
 });
 
 const page = usePage();
-
+const flash = computed(() => page.props.flash?.success);
 
 // === Tripay Tab ===
 const tripayModeOptions = [
@@ -202,10 +202,14 @@ const testDuitkuConnection = async () => {
 const activeTab = ref('personas');
 
 // === Toast ===
-const toast = useToast();
+const toast = ref(null);
+let toastTimer = null;
+
 const { confirm: askConfirm } = useConfirm();
 function showToast(message, tone = 'success') {
-    toast.show(tone, message);
+    if (toastTimer) clearTimeout(toastTimer);
+    toast.value = { message, tone };
+    toastTimer = setTimeout(() => { toast.value = null; }, 3500);
 }
 
 // === CSRF ===
@@ -415,11 +419,11 @@ async function fetchDocuments() {
 }
 
 const kbPersonaOptions = computed(() => [
-    { value: '', label: 'â€” Semua persona â€”', description: 'Tampilkan semua' },
+    { value: '', label: '— Semua persona —', description: 'Tampilkan semua' },
     ...personas.value.map((p) => ({ value: p.id, label: p.name, description: p.slug })),
 ]);
 const uploadPersonaOptions = computed(() => [
-    { value: '', label: 'â€” Tanpa persona (global) â€”', description: 'Dokumen tersedia global' },
+    { value: '', label: '— Tanpa persona (global) —', description: 'Dokumen tersedia global' },
     ...personas.value.map((p) => ({ value: p.id, label: p.name, description: p.slug })),
 ]);
 
@@ -510,7 +514,7 @@ let chatAbort = null;
 let chatSeq = 0;
 
 const chatPersonaOptions = computed(() => [
-    { value: '', label: 'â€” Default persona â€”', description: 'Gunakan persona default sistem' },
+    { value: '', label: '— Default persona —', description: 'Gunakan persona default sistem' },
     ...personas.value.filter((p) => p.is_active).map((p) => ({ value: p.id, label: p.name, description: p.slug })),
 ]);
 
@@ -603,20 +607,20 @@ function handleChatEvent(event, data, assistantMsg) {
     }
     if (event === 'tool_use') {
         chatTyping.value = true;
-        chatTypingLabel.value = 'Mencari dataâ€¦';
+        chatTypingLabel.value = 'Mencari data…';
         nextTick(scrollChatBottom);
         return;
     }
     if (event === 'tool_result') {
         chatTyping.value = true;
-        chatTypingLabel.value = 'Menyusun jawabanâ€¦';
+        chatTypingLabel.value = 'Menyusun jawaban…';
         nextTick(scrollChatBottom);
         return;
     }
     if (event === 'confirmation_required') {
         chatTyping.value = false;
         const summary = data?.summary ?? 'Aksi perlu konfirmasi.';
-        pushChat({ role: 'assistant', content: `âš ï¸Ã¯Â¸Â **Konfirmasi diperlukan:** ${summary}` });
+        pushChat({ role: 'assistant', content: `⚠️ï¸ **Konfirmasi diperlukan:** ${summary}` });
         return;
     }
     if (event === 'error') {
@@ -748,7 +752,7 @@ function formatBytes(n) {
     return `${v.toFixed(1)} ${u[i]}`;
 }
 function formatDate(iso) {
-    if (!iso) return 'â€”';
+    if (!iso) return '—';
     try {
         return new Date(iso).toLocaleString('id-ID', {
             day: '2-digit', month: 'short', year: 'numeric',
@@ -757,7 +761,7 @@ function formatDate(iso) {
     } catch { return iso; }
 }
 function formatTime(iso) {
-    if (!iso) return 'â€”';
+    if (!iso) return '—';
     try {
         return new Date(iso).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     } catch { return iso; }
@@ -794,6 +798,13 @@ onBeforeUnmount(() => {
                 </div>
             </header>
 
+            <!-- Flash success -->
+            <AppCard v-if="flash">
+                <div class="flex items-center gap-3">
+                    <div class="grid size-10 shrink-0 place-items-center rounded-full bg-secondary-container text-secondary">✓</div>
+                    <p class="font-bold text-primary">{{ flash.message }}</p>
+                </div>
+            </AppCard>
 
             <!-- Navigation Tabs -->
             <AppTabs
@@ -941,7 +952,7 @@ onBeforeUnmount(() => {
                                 v-model="uploadForm.persona_id"
                                 label="Persona (opsional)"
                                 :options="uploadPersonaOptions"
-                                placeholder="â€” Pilih persona â€”"
+                                placeholder="— Pilih persona —"
                                 hint="Dokumen akan di-scope ke persona ini. Kosongkan untuk global."
                                 :clearable="false"
                             />
@@ -959,7 +970,7 @@ onBeforeUnmount(() => {
                                 <p class="text-sm text-on-surface-variant">
                                     <span class="font-semibold text-primary">Klik untuk pilih</span> atau drop file di sini
                                 </p>
-                                <p class="text-xs text-on-surface-variant">PDF / DOCX / MD / HTML / TXT â€” maks 20 MB</p>
+                                <p class="text-xs text-on-surface-variant">PDF / DOCX / MD / HTML / TXT — maks 20 MB</p>
                                 <input type="file" class="hidden" accept=".pdf,.docx,.md,.markdown,.html,.htm,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html" @change="onUploadFile">
                             </label>
                             <p v-if="uploadFileName" class="mt-2 text-xs text-on-surface-variant">
@@ -987,7 +998,7 @@ onBeforeUnmount(() => {
                         </div>
                     </header>
 
-                    <div v-if="docs.loading" class="rounded-xl bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">Memuatâ€¦</div>
+                    <div v-if="docs.loading" class="rounded-xl bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">Memuat…</div>
                     <AppCard v-else-if="docs.error" class="border-tertiary bg-tertiary-fixed/30 text-tertiary">{{ docs.error }}</AppCard>
                     <AppEmptyState v-else-if="!docs.items.length" icon="library_books" title="Belum ada dokumen" description="Upload file di atas untuk mulai membangun knowledge base." />
                     <div v-else class="overflow-x-auto rounded-xl border border-outline-variant">
@@ -1011,7 +1022,7 @@ onBeforeUnmount(() => {
                                     </td>
                                     <td class="px-4 py-2 text-xs text-on-surface-variant">{{ d.persona_name ?? 'Global' }}</td>
                                     <td class="px-4 py-2">
-                                        <span class="rounded bg-surface-container-lowest px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">{{ d.format || 'â€”' }}</span>
+                                        <span class="rounded bg-surface-container-lowest px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">{{ d.format || '—' }}</span>
                                     </td>
                                     <td class="px-4 py-2 text-right tabular-nums">{{ formatBytes(d.content_length) }}</td>
                                     <td class="px-4 py-2 text-right tabular-nums">{{ d.chunks_count }}</td>
@@ -1087,7 +1098,7 @@ onBeforeUnmount(() => {
                         <textarea
                             v-model="chatInput"
                             rows="2"
-                            placeholder="Tulis pertanyaanâ€¦"
+                            placeholder="Tulis pertanyaan…"
                             class="min-h-12 max-h-32 flex-1 resize-none rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm leading-5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
                             :disabled="chatBusy"
                             @keydown.enter.exact.prevent="sendChat"
@@ -1107,7 +1118,7 @@ onBeforeUnmount(() => {
                             Refresh
                         </AppButton>
                     </header>
-                    <div v-if="conversations.loading" class="rounded-xl bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">Memuatâ€¦</div>
+                    <div v-if="conversations.loading" class="rounded-xl bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">Memuat…</div>
                     <AppEmptyState v-else-if="!conversations.items.length" icon="forum" title="Belum ada percakapan" />
                     <div v-else class="overflow-x-auto rounded-xl border border-outline-variant">
                         <table class="w-full text-sm">
@@ -1140,7 +1151,7 @@ onBeforeUnmount(() => {
                             Refresh
                         </AppButton>
                     </header>
-                    <div v-if="auditLogs.loading" class="rounded-xl bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">Memuatâ€¦</div>
+                    <div v-if="auditLogs.loading" class="rounded-xl bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">Memuat…</div>
                     <AppEmptyState v-else-if="!auditLogs.items.length" icon="history" title="Belum ada audit log" />
                     <div v-else class="overflow-x-auto rounded-xl border border-outline-variant">
                         <table class="w-full text-sm">
@@ -1161,7 +1172,7 @@ onBeforeUnmount(() => {
                                             {{ log.action }}
                                         </AppBadge>
                                     </td>
-                                    <td class="px-4 py-2 font-mono text-xs text-on-surface-variant">{{ log.entity_type }} #{{ log.entity_id?.slice(0, 8) ?? 'â€”' }}</td>
+                                    <td class="px-4 py-2 font-mono text-xs text-on-surface-variant">{{ log.entity_type }} #{{ log.entity_id?.slice(0, 8) ?? '—' }}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1174,7 +1185,7 @@ onBeforeUnmount(() => {
                 <div class="space-y-4">
                     <AppInput v-model="personaModal.data.name" label="Nama" placeholder="Contoh: Koperasi Assistant" />
                     <AppInput v-model="personaModal.data.slug" label="Slug" placeholder="Contoh: koperasi-assistant (otomatis dari nama jika kosong)" />
-                    <AppTextarea v-model="personaModal.data.system_prompt" label="System Prompt" placeholder="Deskripsikan kepribadian, gaya bahasa, dan batasan persona iniâ€¦" :rows="8" />
+                    <AppTextarea v-model="personaModal.data.system_prompt" label="System Prompt" placeholder="Deskripsikan kepribadian, gaya bahasa, dan batasan persona ini…" :rows="8" />
                     <div>
                         <label class="mb-2 block text-sm font-bold uppercase tracking-wider text-primary">Tool Scope (kosongkan = semua tools)</label>
                         <div class="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto rounded-xl border border-outline-variant bg-surface-container-lowest p-3 sm:grid-cols-2">
@@ -1270,6 +1281,13 @@ onBeforeUnmount(() => {
             <!-- Artifact modal -->
             <ArtifactModal :block="activeArtifactTest" @close="activeArtifactTest = null" />
 
+            <!-- Toast -->
+            <Transition name="fade">
+                <div v-if="toast" class="fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border p-4 shadow-lg"
+                    :class="toast.tone === 'error' ? 'border-error/30 bg-error-container text-error' : 'border-secondary/30 bg-secondary-container text-secondary'">
+                    <p class="text-sm font-semibold">{{ toast.message }}</p>
+                </div>
+            </Transition>
         </div>
     </AdminLayout>
 </template>
@@ -1278,5 +1296,6 @@ onBeforeUnmount(() => {
 .fade-enter-active, .fade-leave-active { transition: opacity 200ms ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>
+
 
 

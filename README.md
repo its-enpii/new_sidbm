@@ -1,4 +1,4 @@
-﻿# SIDBM Next
+# SIDBM Next
 
 Aplikasi pembaruan **SIDBM (Sistem Informasi Dana Bergulir Masyarakat / BUMDesma LKD)** berbasis **PHP 8.4 + Laravel 13**, **Vue 3.5 + Inertia 2.0**, **Tailwind CSS 4**, **MySQL 8.4 / SQLite multi-tenant shard**, **Redis 8 (Cache, Session, Queue Worker)**, **PostgreSQL 16 (pgvector RAG AI)**, dan **Docker Architecture**.
 

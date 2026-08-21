@@ -1,4 +1,4 @@
-﻿# Dokumen Analisis Perbandingan Komprehensif: SIDBM Legacy vs SIDBM Next
+# Dokumen Analisis Perbandingan Komprehensif: SIDBM Legacy vs SIDBM Next
 
 **Dokumen ID**: docs/PERBANDINGAN_SIDBM_LEGACY_VS_NEXT.md  
 **Tanggal**: 10 Agustus 2026  

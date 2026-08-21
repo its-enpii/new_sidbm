@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { Head } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppCard from '../../../Components/AppCard.vue';

@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
 import AppBadge from '../../Components/AppBadge.vue';
@@ -211,7 +211,7 @@ function monthMeta(month) {
                         class="grid gap-3 px-6 py-4 md:grid-cols-[1fr_220px] md:items-center"
                     >
                         <div>
-                            <p class="font-semibold text-primary">{{ account.code }} Â· {{ account.name }}</p>
+                            <p class="font-semibold text-primary">{{ account.code }} · {{ account.name }}</p>
                             <p class="text-xs text-on-surface-variant">Akun {{ group.label.toLowerCase() }}</p>
                         </div>
                         <AppCurrencyInput
@@ -233,7 +233,7 @@ function monthMeta(month) {
             <div class="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 sm:flex-row sm:items-center sm:justify-between lg:px-8">
                 <div class="min-w-0 text-sm text-on-surface-variant">
                     <span class="font-semibold text-primary">{{ monthLabels[month] }} {{ year }}</span>
-                    <span class="mx-2 text-outline">Â·</span>
+                    <span class="mx-2 text-outline">·</span>
                     Surplus {{ formatMoney(liveTotals.surplus) }}
                 </div>
                 <div v-if="can('budgeting.manage')" class="flex flex-wrap items-center gap-2">

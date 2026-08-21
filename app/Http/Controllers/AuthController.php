@@ -72,7 +72,7 @@ final class AuthController
             $request->session()->put('password_hash_'.Auth::getDefaultDriver(), $passwordHash);
         }
 
-        // Superadmin always lands on platform admin — ignore intended(/admin)
+        // Superadmin always lands on platform admin ? ignore intended(/admin)
         // left by a prior guest hit (would 403 non-superadmin, confuse superadmin flows).
         if ($user->is_superadmin === true) {
             $request->session()->forget('url.intended');

@@ -87,7 +87,7 @@ function switchTab(tabKey) {
 const moneyFormatter = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
 
 function formatNumber(value) {
-    if (value === null || value === undefined || value === '') return '—';
+    if (value === null || value === undefined || value === '') return '?';
     return moneyFormatter.format(Number(value));
 }
 
@@ -100,9 +100,9 @@ function formatServiceRate(value) {
 }
 
 function formatDate(value) {
-    if (!value) return '—';
+    if (!value) return '?';
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '—';
+    if (Number.isNaN(date.getTime())) return '?';
     return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
 }
 

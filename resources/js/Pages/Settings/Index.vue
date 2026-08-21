@@ -411,7 +411,7 @@ function applySignatureStarter() {
                                     <input type="file" accept="image/png,image/jpeg,image/webp" class="sr-only" @change="onLogoChange" />
                                     <AppIcon name="upload" class="text-2xl text-on-surface-variant" />
                                     <p class="mt-2 text-sm font-bold text-primary">Tarik gambar ke sini atau klik untuk pilih</p>
-                                    <p class="mt-1 text-xs text-on-surface-variant">PNG / JPG / WebP Â· Maks 2 MB</p>
+                                    <p class="mt-1 text-xs text-on-surface-variant">PNG / JPG / WebP · Maks 2 MB</p>
                                 </label>
                                 <p v-if="logoForm.errors.logo" class="text-sm text-error">{{ logoForm.errors.logo }}</p>
                                 <div class="flex justify-end gap-2 border-t border-outline-variant pt-4">
@@ -427,7 +427,7 @@ function applySignatureStarter() {
                             <div>
                                 <h2 class="text-lg font-bold text-primary">WhatsApp Gateway</h2>
                                 <p class="mt-1 text-sm text-on-surface-variant">
-                                    Pair nomor HP lewat Evolution API. Server: env global Â· instance
+                                    Pair nomor HP lewat Evolution API. Server: env global · instance
                                     <span class="font-semibold text-primary">{{ props.whatsapp.instance }}</span>
                                 </p>
                             </div>
@@ -524,7 +524,7 @@ function applySignatureStarter() {
                             :class="testResult.success ? 'border-secondary/30 bg-secondary-container/40' : 'border-error/30 bg-error-container/40'"
                         >
                             <div :class="['grid size-10 shrink-0 place-items-center rounded-full', testResult.success ? 'bg-secondary text-on-secondary' : 'bg-error text-on-error']">
-                                {{ testResult.success ? 'âœ“' : '!' }}
+                                {{ testResult.success ? '✓' : '!' }}
                             </div>
                             <div>
                                 <p class="font-bold" :class="testResult.success ? 'text-secondary' : 'text-error'">
@@ -532,7 +532,7 @@ function applySignatureStarter() {
                                 </p>
                                 <p class="mt-1 text-sm text-on-surface-variant">{{ testResult.message }}</p>
                                 <p v-if="testResult.state || testResult.instance" class="mt-1 text-xs text-on-surface-variant">
-                                    Instance: {{ testResult.instance || props.whatsapp.instance }} Â· State: {{ testResult.state || testResult.status }}
+                                    Instance: {{ testResult.instance || props.whatsapp.instance }} · State: {{ testResult.state || testResult.status }}
                                 </p>
                             </div>
                         </div>
@@ -569,13 +569,13 @@ function applySignatureStarter() {
                                     icon="table"
                                     @click="applySignatureStarter"
                                 >
-                                    Isi Template 1Ã—3
+                                    Isi Template 1×3
                                 </AppButton>
                             </div>
                             <AppRichEditor
                                 :key="signatureReportKey"
                                 v-model="currentSignatureHtml"
-                                placeholder="Sisipkan tabel penandatangan (ikon tabel di toolbar)â€¦"
+                                placeholder="Sisipkan tabel penandatangan (ikon tabel di toolbar)…"
                             />
                             <p v-if="signatureForm.errors.templates" class="text-sm text-error">
                                 {{ signatureForm.errors.templates }}

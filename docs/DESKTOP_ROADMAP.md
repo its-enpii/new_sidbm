@@ -38,16 +38,16 @@ Dokumen ini memetakan rancangan arsitektur, strategi sinkronisasi data, pembagia
 
 | Fitur | Online (Server Cloud) | Offline (Local SQLite) |
 |---|:---:|:---:|
-| Login & Autentikasi Pengguna | âœ… Server Auth | âœ… Sesi Tersimpan / Offline Cache |
-| Lihat Dashboard & Statistik | âœ… Realtime Cloud | âœ… Dari SQLite Lokal |
-| Lihat Daftar Pinjaman & Angsuran | âœ… Realtime Cloud | âœ… Dari SQLite Lokal |
-| Cetak Laporan Keuangan (PDF / Excel) | âœ… Realtime Cloud | âœ… Dari SQLite Lokal |
-| Cari Nasabah & Kelompok | âœ… Realtime Cloud | âœ… Dari SQLite Lokal |
-| Ajukan Pinjaman / Catat Angsuran | âœ… Diizinkan | ðŸ”’ Dikunci (Hanya Baca) |
-| Input Jurnal Umum / Mutasi Kas | âœ… Diizinkan | ðŸ”’ Dikunci (Hanya Baca) |
-| Tutup Buku Bulanan / Tahunan | âœ… Diizinkan | ðŸ”’ Dikunci (Hanya Baca) |
-| Native OS Notifications | âœ… Action Center | âœ… Sesuai Data Terakhir |
-| Atribusi Pelaku ("oleh {siapa}") | âœ… Tercatat User Realtime | âœ… Terarsip dalam Notifikasi |
+| Login & Autentikasi Pengguna | ✅ Server Auth | ✅ Sesi Tersimpan / Offline Cache |
+| Lihat Dashboard & Statistik | ✅ Realtime Cloud | ✅ Dari SQLite Lokal |
+| Lihat Daftar Pinjaman & Angsuran | ✅ Realtime Cloud | ✅ Dari SQLite Lokal |
+| Cetak Laporan Keuangan (PDF / Excel) | ✅ Realtime Cloud | ✅ Dari SQLite Lokal |
+| Cari Nasabah & Kelompok | ✅ Realtime Cloud | ✅ Dari SQLite Lokal |
+| Ajukan Pinjaman / Catat Angsuran | ✅ Diizinkan | 🔒 Dikunci (Hanya Baca) |
+| Input Jurnal Umum / Mutasi Kas | ✅ Diizinkan | 🔒 Dikunci (Hanya Baca) |
+| Tutup Buku Bulanan / Tahunan | ✅ Diizinkan | 🔒 Dikunci (Hanya Baca) |
+| Native OS Notifications | ✅ Action Center | ✅ Sesuai Data Terakhir |
+| Atribusi Pelaku ("oleh {siapa}") | ✅ Tercatat User Realtime | ✅ Terarsip dalam Notifikasi |
 
 ---
 

@@ -1,4 +1,4 @@
-﻿import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:56586';
 const TIMEOUT = 30000;

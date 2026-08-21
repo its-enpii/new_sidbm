@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { useId } from 'vue';
 import AppIcon from './AppIcon.vue';
 

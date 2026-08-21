@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref, watch, onMounted } from 'vue';
 import AppButton from '../../../Components/AppButton.vue';

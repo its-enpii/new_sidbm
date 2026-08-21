@@ -1,4 +1,4 @@
-﻿@php
+@php
     $province = strtoupper($province_name ?? 'PROVINSI');
     $periodLabel = $pack['period']['period_label'] ?? "Tahun {$year}";
     $bs = $pack['balance_sheet'] ?? [];

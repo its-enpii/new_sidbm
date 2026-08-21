@@ -53,10 +53,10 @@ Untuk menarik laporan per anak usaha, identitas tenant dapat dikirim melalui:
 
 ### 3.2 Parameter Periode Waktu
 Setiap endpoint laporan menerima parameter periode:
-- `year` *(integer, opsional, default: tahun berjalan)*: Contoh `2026` (rentang 2000 – 2100).
+- `year` *(integer, opsional, default: tahun berjalan)*: Contoh `2026` (rentang 2000 ? 2100).
 - `month` *(integer|string, opsional)*:
   - `1` s/d `12`: Laporan bulanan (misal `month=8` untuk Agustus).
-  - `all` / `0` / kosong: Laporan tahunan kumulatif (Januari – Desember).
+  - `all` / `0` / kosong: Laporan tahunan kumulatif (Januari ? Desember).
 
 ---
 

@@ -8,6 +8,11 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ## [2026-08-21]
 
 ### Fixed
+- **Audit & Normalisasi Encoding & Mojibake Menyeluruh (*Repository-Wide Character Cleanup*):**
+  - Mengaudit seluruh 949 berkas repositori dan membersihkan artefak karakter encoding/mojibake (em-dash `?`, middle dot `?`, centang `?`/`?`, silang `?`, relasi `?`, dan simbol matematika `?`/`?`) pada komponen antarmuka, routing, dan dokumentasi (`AGENT.md`, `Create.vue`, `AiAssistant/Index.vue`, `Budgeting/Index.vue`, `Settings/Index.vue`, `routes/web.php`, `DESKTOP_ROADMAP.md`).
+  - Menormalisasi berkas `JournalEntryRequest.php` dari UTF-16LE ke UTF-8 murni tanpa BOM serta memulihkan sintaks validasi form request pembuatan jurnal SOP.
+  - Memperbaiki byte CP1252 tidak valid menjadi simbol UTF-8 semantik pada `AuthController.php`, `HOLDING_API_INTEGRATION_GUIDE.md`, `README.md`, dan `Lending/Loans/Index.vue`.
+  - Menghapus Byte Order Mark (UTF-8 BOM) pada 41+ berkas Vue, Blade, TypeScript, dan Markdown untuk menjamin konsistensi encoding UTF-8 tanpa BOM di seluruh repositori.
 - **Perbaikan Unggah & Penayangan Foto Profil serta Storage Serving (`config/filesystems.php`, `ProfileController.php`, `StorageServeController.php`):**
   - Mengoreksi konfigurasi disk `local` (`'serve' => false`) dan disk `public` (`'serve' => true`, `'visibility' => 'public'`) pada `config/filesystems.php` yang sebelumnya menyebabkan disk privat membajak rute `/storage/...` dan menolak seluruh akses berkas publik dengan status HTTP 403 Forbidden.
   - Menambahkan controller fallback `StorageServeController.php` dan rute `/storage/{path}` untuk melayani berkas publik (foto profil, logo tenant, dll.) secara langsung dan aman jika symlink webserver belum tersedia atau dibatasi oleh lingkungan hosting.
