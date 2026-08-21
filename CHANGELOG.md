@@ -16,7 +16,15 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
   - Mengintegrasikan penayangan foto profil pengguna pada kartu profil sidebar seluruh layout aplikasi (`AuthenticatedLayout.vue`, `AdminLayout.vue`, `ProvinceLayout.vue`, `RegencyLayout.vue`).
   - Menambahkan langkah otomatis `docker compose exec -T app php artisan storage:link || true` pada pipeline CI/CD GitHub Actions (`.github/workflows/deploy.yml`).
   - Menambahkan automated feature test `ProfilePhotoTest.php` untuk memvalidasi alur unggah, simpan, serving via `/storage/{path}`, proteksi direktori traversal, dan hapus foto profil.
+
 ### Added
+- **Sistem Notifikasi Toast Global & Reaktif (`useToast.js` & `AppToast.vue`):**
+  - Pembuatan composable `useToast.js` berbasis event-bus reaktif dengan queue notifikasi mengambang (*stacked floating toasts*), timer *auto-dismiss*, *progress bar* durasi, dan method praktis: `toast.success()`, `toast.error()`, `toast.warning()`, dan `toast.info()`.
+  - Refaktor komponen `AppToast.vue` dengan animasi transisi masuk/keluar yang mulus, tema visual berbasis palet Tailwind UI SIDBM, dan tombol tutup instan.
+  - Migrasi seluruh alert banner statis ke sistem `useToast` terpusat pada halaman Pembuatan Jurnal (`JournalEntries/Create.vue`), AI Assistant (`AiAssistant/Index.vue`), Payment Gateways (`PaymentGateways/Index.vue`), dan Pengaturan Lembaga (`Settings/Index.vue`).
+- **Layar Pembuka (*Desktop Splash Screen*) & Kontrol Window IPC (`DesktopSplashScreen.vue` & `DesktopTitleBar.vue`):**
+  - Komponen `DesktopSplashScreen.vue` untuk transisi startup aplikasi Desktop Electron dengan animasi *pulsing logo* SIDBM Next, simulasi status inisialisasi koneksi database SQLite lokal, dan efek *fade-out* otomatis saat halaman utama siap.
+  - Penambahan sinkronisasi status maximize/unmaximize window melalui listener event IPC Electron pada `DesktopTitleBar.vue`.
 - **Arsitektur Aplikasi Desktop & Infrastruktur Sinkronisasi Offline (Hybrid Cloud-Desktop / Electron):**
   - Framework Desktop Hybrid SIDBM Next berbasis Electron + SQLite lokal + Cloud Sync Engine (`docs/DESKTOP_ROADMAP.md`).
   - Service Provider `DesktopAppServiceProvider.php` dan konfigurasi `config/desktop.php` dengan deteksi otomatis runtime desktop/offline.
