@@ -118,6 +118,7 @@ onMounted(async () => {
 
     window.addEventListener('online', checkOnline);
     window.addEventListener('offline', checkOnline);
+    window.addEventListener('app:trigger-sync', triggerSync);
 });
 
 onUnmounted(() => {
@@ -129,6 +130,7 @@ onUnmounted(() => {
     }
     window.removeEventListener('online', checkOnline);
     window.removeEventListener('offline', checkOnline);
+    window.removeEventListener('app:trigger-sync', triggerSync);
 });
 
 const tenantName = computed(() => {

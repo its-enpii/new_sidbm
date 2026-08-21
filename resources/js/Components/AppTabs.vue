@@ -1,7 +1,6 @@
 <script setup>
+import { computed } from 'vue';
 import AppIcon from './AppIcon.vue';
-
-defineOptions({ inheritAttrs: false });
 
 /**
  * Tab navigation dengan 3 varian layout:
@@ -20,16 +19,23 @@ const props = defineProps({
     variant: {
         type: String,
         default: 'underline',
-        validator: (value) => ['underline', 'pill', 'pills-bar'].includes(value),
+        validator: (value) => ['underline', 'pill', 'pills', 'pills-bar', 'pill-bar'].includes(value),
     },
+    vertical: { type: Boolean, default: false },
     ariaLabel: { type: String, default: 'Tab' },
 });
 
 defineEmits(['update:modelValue']);
 
+const normalizedVariant = computed(() => {
+    if (props.vertical || props.variant === 'pill' || props.variant === 'pills') return 'pill';
+    if (props.variant === 'pills-bar' || props.variant === 'pill-bar') return 'pills-bar';
+    return 'underline';
+});
+
 const wrapperClass = {
     underline: 'flex flex-wrap gap-x-6 gap-y-1',
-    pill: 'flex flex-col gap-1',
+    pill: 'flex flex-col gap-1 w-full',
     'pills-bar': 'flex flex-wrap gap-1 rounded-xl border border-outline-variant bg-surface-container-lowest p-1',
 };
 
@@ -40,27 +46,28 @@ const tabBase = {
 };
 
 const tabActive = {
-    underline: 'border-primary text-primary',
-    pill: 'bg-primary-container font-bold text-on-primary-container',
+    underline: 'border-primary text-primary font-bold',
+    pill: 'bg-primary-container font-bold text-on-primary-container shadow-xs',
     'pills-bar': 'bg-primary text-on-primary shadow-sm',
 };
 
 const tabInactive = {
     underline: 'border-transparent text-on-surface-variant hover:border-outline hover:text-on-surface',
-    pill: 'text-on-surface-variant hover:bg-surface-container',
+    pill: 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface',
     'pills-bar': 'text-on-surface-variant hover:bg-surface-container-low hover:text-primary',
 };
 
 function tabClass(item) {
+    const v = normalizedVariant.value;
     if (props.modelValue === item.key) {
-        return [tabBase[props.variant], tabActive[props.variant]];
+        return [tabBase[v], tabActive[v]];
     }
-    return [tabBase[props.variant], tabInactive[props.variant]];
+    return [tabBase[v], tabInactive[v]];
 }
 </script>
 
 <template>
-    <nav :class="wrapperClass[variant]" :aria-label="ariaLabel">
+    <nav :class="wrapperClass[normalizedVariant]" :aria-label="ariaLabel">
         <button
             v-for="item in items"
             :key="item.key"
@@ -75,11 +82,11 @@ function tabClass(item) {
             ]"
             @click="!item.disabled && $emit('update:modelValue', item.key)"
         >
-            <AppIcon v-if="item.icon" :name="item.icon" class="text-lg" />
-            <span>{{ item.label }}</span>
+            <AppIcon v-if="item.icon" :name="item.icon" class="shrink-0 text-lg" />
+            <span class="truncate">{{ item.label }}</span>
             <span
                 v-if="item.badge !== undefined && item.badge !== null"
-                class="ml-1 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-error/15 px-1.5 text-[10px] font-bold leading-4 text-error"
+                class="ml-auto inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-error/15 px-1.5 text-[10px] font-bold leading-4 text-error"
             >{{ item.badge }}</span>
         </button>
     </nav>

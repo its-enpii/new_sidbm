@@ -2,8 +2,8 @@
  * Markdown rendering for the assistant widget.
  *
  * Two output shapes:
- *   - formatMarkdown(text) → HTML string (legacy; used inside Artifact modal)
- *   - parseMarkdownTree(text) → Block[] tree (used by AssistantWidget for
+ *   - formatMarkdown(text) Ã¢â€ â€™ HTML string (legacy; used inside Artifact modal)
+ *   - parseMarkdownTree(text) Ã¢â€ â€™ Block[] tree (used by AssistantWidget for
  *     interactive component rendering)
  *
  * Supports:
@@ -13,8 +13,8 @@
  *   - bullet & numbered lists
  *   - tables (header + separator + body rows)
  *   - paragraphs (double newlines)
- *   - soft line breaks (single newline → <br>)
- *   - component blocks (::type{json}::body::) → artifact / button / poll
+ *   - soft line breaks (single newline Ã¢â€ â€™ <br>)
+ *   - component blocks (::type{json}::body::) Ã¢â€ â€™ artifact / button / poll
  *
  * All input is HTML-escaped first, then structural markdown is replaced.
  */
@@ -44,12 +44,13 @@ export function parseTableRow(line) {
  */
 function parseComponentAttrs(raw) {
     const trimmed = (raw ?? '').trim();
-    if (!trimmed || !trimmed.startsWith('{')) return {};
+    if (!trimmed) return {};
+    const withBraces = trimmed.startsWith('{') && trimmed.endsWith('}') ? trimmed : '{' + trimmed + '}';
     try {
-        return JSON.parse(trimmed);
+        return JSON.parse(withBraces);
     } catch (_e) {
         try {
-            return JSON.parse(trimmed.replace(/'/g, '"'));
+            return JSON.parse(withBraces.replace(/'/g, '"'));
         } catch (_e2) {
             return {};
         }
@@ -116,6 +117,8 @@ export function renderMarkdownHtml(raw) {
         t = t.replace(/^## (.+)$/gm, '<div class="md-h2">$1</div>');
         t = t.replace(/^# (.+)$/gm, '<div class="md-h2">$1</div>');
 
+        t = t.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-primary underline font-medium inline-flex items-center gap-0.5 hover:opacity-80">$1<span class="material-symbols-outlined text-[13px] leading-none">open_in_new</span></a>');
+
         t = t.replace(
             /(?:^\|?[ \t]*:?-+:?[ \t]*(\|[ \t]*:?-+:?[ \t]*)+\|?[ \t]*\n)((?:^\|?.+\n?)+)/gm,
             (match, _sep, rowsBlock) => {
@@ -165,7 +168,7 @@ export function parseMarkdownTree(raw) {
     let cursor = 0;
 
     // Pattern 1: ::type{json}::body::
-    const compRe = /::(artifact|button|poll)\s*\{([\s\S]*?)\}\s*\n([\s\S]*?)\n::/g;
+    const compRe = /::(artifact|button|poll)\s*\{([\s\S]*?)\}(?:\s*::|\s*\n([\s\S]*?)\n::|\s*\n::)/g;
     // Pattern 2: fenced code
     const codeRe = /```([\s\S]*?)```/g;
 
@@ -202,8 +205,11 @@ export function parseMarkdownTree(raw) {
                 tokens.push({
                     type: 'button',
                     id,
-                    label: attrs.label ?? attrs.value ?? 'Pilih',
+                    label: attrs.label ?? attrs.title ?? attrs.value ?? 'Pilih',
                     value: attrs.value ?? attrs.label ?? '',
+                    url: attrs.url ?? attrs.href ?? null,
+                    icon: attrs.icon ?? (attrs.url || attrs.href ? 'open_in_new' : 'check'),
+                    target: attrs.target ?? '_blank',
                 });
             } else {
                 tokens.push({

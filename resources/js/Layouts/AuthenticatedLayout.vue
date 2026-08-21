@@ -31,6 +31,7 @@ const impersonatedBy = computed(() => page.props.auth?.impersonated_by);
 const impersonatorName = computed(() => page.props.auth?.impersonator_name);
 const leaveForm = useForm({});
 const avatarError = ref(false);
+const { showShortcutsModal } = useKeyboardShortcuts();
 
 watch(() => user.value?.photo_url, () => {
     avatarError.value = false;
@@ -563,6 +564,7 @@ function logout() {
         </AppModal>
 
         <ThemeMenu v-model="themeOpen" />
+        <KeyboardShortcutsModal v-model="showShortcutsModal" />
 
         <Teleport to="body">
             <Transition name="cmdk">

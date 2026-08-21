@@ -123,6 +123,7 @@ function handleClickOutside(e) {
 onMounted(() => {
     fetchNotifications();
     document.addEventListener('click', handleClickOutside);
+    window.addEventListener('notifications:toggle', toggleDropdown);
 
     // Poll every 45s for desktop / web live notification sync
     pollTimer = setInterval(() => {
@@ -134,6 +135,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
     document.removeEventListener('click', handleClickOutside);
+    window.removeEventListener('notifications:toggle', toggleDropdown);
     if (pollTimer) {
         clearInterval(pollTimer);
     }

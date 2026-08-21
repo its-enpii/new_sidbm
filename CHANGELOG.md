@@ -23,6 +23,11 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
   - Menambahkan automated feature test `ProfilePhotoTest.php` untuk memvalidasi alur unggah, simpan, serving via `/storage/{path}`, proteksi direktori traversal, dan hapus foto profil.
 
 ### Added
+### Added
+- **Pintasan Keyboard Global & Modal Panduan Shortcut (`useKeyboardShortcuts.js` & `KeyboardShortcutsModal.vue`):**
+  - Pembuatan composable `useKeyboardShortcuts.js` dan modal dialog interaktif `KeyboardShortcutsModal.vue` dengan pemetaan pintasan keyboard produktivitas: `Ctrl+/` (atau `Cmd+/`) untuk panduan pintasan, `Ctrl+K` untuk Global Search / Command Palette, `Ctrl+Shift+A` untuk memicu widget Asisten AI, `Ctrl+Shift+N` untuk membuka pusat notifikasi, dan `Ctrl+Shift+S` untuk sinkronisasi data Desktop ke Cloud.
+  - Integrasi event listener global pada layout utama (`AuthenticatedLayout.vue`), pusat notifikasi (`NotificationDropdown.vue`), titlebar desktop (`DesktopTitleBar.vue`), dan widget chatbot (`AssistantWidget.vue`).
+  - Peningkatan komponen tombol aksi asisten (`ActionButton.vue`) dan parser markdown (`useMarkdown.js`) dengan dukungan tautan URL eksternal/internal otomatis.
 - **Sistem Notifikasi Toast Global & Reaktif (`useToast.js` & `AppToast.vue`):**
   - Pembuatan composable `useToast.js` berbasis event-bus reaktif dengan queue notifikasi mengambang (*stacked floating toasts*), timer *auto-dismiss*, *progress bar* durasi, dan method praktis: `toast.success()`, `toast.error()`, `toast.warning()`, dan `toast.info()`.
   - Refaktor komponen `AppToast.vue` dengan animasi transisi masuk/keluar yang mulus, tema visual berbasis palet Tailwind UI SIDBM, dan tombol tutup instan.

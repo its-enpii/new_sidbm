@@ -39,6 +39,8 @@ const shared = window.__assistantState__;
 const rootEl = ref(null);
 const listEl = ref(null);
 const inputEl = ref(null);
+const fileInputEl = ref(null);
+const attachedImages = ref([]);
 
 const open = ref(shared.open);
 const loading = ref(shared.loading);
@@ -94,6 +96,7 @@ function onDocumentPointerDown(event) {
 document.addEventListener('pointerdown', onDocumentPointerDown, true);
 onMounted(() => {
     ensureSession();
+    window.addEventListener('assistant:toggle', toggle);
 });
 
 function pickGreeting() {
@@ -273,12 +276,67 @@ function handleEvent(event, data, assistantMsg) {
     }
 }
 
+function triggerAttach() {
+    fileInputEl.value?.click();
+}
+
+function processFiles(files) {
+    const validImages = Array.from(files).filter((f) => f.type.startsWith('image/'));
+    for (const file of validImages) {
+        if (file.size > 10 * 1024 * 1024) {
+            error.value = 'Ukuran gambar maksimal 10MB.';
+            continue;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            attachedImages.value.push({
+                dataUrl: e.target.result,
+                name: file.name,
+                type: file.type,
+                size: file.size,
+            });
+            nextTick(scrollBottom);
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function onFilesSelected(event) {
+    const files = event.target.files;
+    if (files && files.length) {
+        processFiles(files);
+    }
+    event.target.value = '';
+}
+
+function onPaste(event) {
+    const items = Array.from(event.clipboardData?.items || []);
+    const imageFiles = items
+        .filter((it) => it.type.startsWith('image/'))
+        .map((it) => it.getAsFile())
+        .filter(Boolean);
+    if (imageFiles.length) {
+        processFiles(imageFiles);
+    }
+}
+
+function removeAttachedImage(index) {
+    attachedImages.value.splice(index, 1);
+}
+
 async function sendMessage() {
     const content = input.value.trim();
-    if (!content) return;
+    if (!content && !attachedImages.value.length) return;
+    const attachments = attachedImages.value.map((img) => ({
+        type: 'image',
+        url: img.dataUrl,
+        name: img.name,
+        mime: img.type,
+    }));
     input.value = '';
+    attachedImages.value = [];
     nextTick(resizeInput);
-    await sendContent(content);
+    await sendContent(content, attachments);
 }
 
 // --- Interactive component blocks (artifact / button / poll) ---
@@ -302,7 +360,7 @@ function onComponentSubmit(msg, block, payload) {
     else text = String(payload);
 
     // Show user message bubble first; then trigger the SSE flow.
-    pushMessage({ role: 'user', content: text });
+// sendContent handles pushMessage
     nextTick(scrollBottom);
     sendContent(text);
 }
@@ -324,11 +382,15 @@ function blocksFor(msg) {
     return parseMarkdownTree(msg.content);
 }
 
-async function sendContent(content) {
-    if (!content || sending.value) return;
+async function sendContent(content, attachments = []) {
+    if ((!content && !attachments.length) || sending.value) return;
     error.value = null;
     pendingConfirmation.value = null;
-    pushMessage({ role: 'user', content });
+    pushMessage({
+        role: 'user',
+        content: content || '(Lampiran Gambar)',
+        attachments: attachments.length ? [...attachments] : undefined,
+    });
     const assistantMsg = { role: 'assistant', content: '', _pushed: false };
     sending.value = true;
     typing.value = true;
@@ -336,6 +398,13 @@ async function sendContent(content) {
     scrollBottom();
     try {
         await ensureSession();
+        const payload = {
+            conversation_id: conversationId,
+            message: content || 'Berikut lampiran gambar untuk dianalisis.',
+        };
+        if (attachments && attachments.length) {
+            payload.attachments = attachments;
+        }
         const res = await fetch('/assistant/chat', {
             method: 'POST',
             credentials: 'same-origin',
@@ -344,13 +413,9 @@ async function sendContent(content) {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrfToken(),
             },
-            body: JSON.stringify({
-                conversation_id: conversationId,
-                message: content,
-            }),
+            body: JSON.stringify(payload),
         });
         await readSse(res, (event, data) => handleEvent(event, data, assistantMsg));
-        // No silent empty bubble — only surface real failure text
         if (!assistantMsg._pushed && !assistantMsg.content) {
             pushMessage({
                 role: 'assistant',
@@ -429,6 +494,7 @@ function onKeydown(e) {
 
 onBeforeUnmount(() => {
     document.removeEventListener('pointerdown', onDocumentPointerDown, true);
+    window.removeEventListener('assistant:toggle', toggle);
 });
 </script>
 
@@ -474,7 +540,18 @@ onBeforeUnmount(() => {
                                 <span class="font-semibold">{{ msg.kind === 'use' ? 'Tool' : 'Hasil' }}: {{ msg.name }}</span>
                                 <span v-if="msg.ok === false" class="text-error"> (gagal)</span>
                             </template>
-                            <template v-else-if="msg.role === 'user' || msg.role === 'error'">{{ msg.content }}</template>
+                            <template v-else-if="msg.role === 'user' || msg.role === 'error'">
+                                <div v-if="msg.attachments && msg.attachments.length" class="mb-2 flex flex-wrap gap-1.5">
+                                    <img
+                                        v-for="(att, i) in msg.attachments"
+                                        :key="i"
+                                        :src="att.url"
+                                        :alt="att.name || 'Gambar terlampir'"
+                                        class="max-h-36 max-w-full rounded-xl border border-white/20 object-cover shadow-sm"
+                                    />
+                                </div>
+                                <span v-if="msg.content && msg.content !== '(Lampiran Gambar)'">{{ msg.content }}</span>
+                            </template>
                             <div v-else class="flex flex-col gap-2">
                                 <template v-for="block in blocksFor(msg)" :key="block.id">
                                     <h1 v-if="block.type === 'heading' && block.level === 1" class="text-base font-bold">{{ block.text }}</h1>
@@ -545,26 +622,66 @@ onBeforeUnmount(() => {
                     </div>
                 </div>
 
-                <div class="flex shrink-0 items-end gap-2 border-t border-outline-variant bg-surface-container-lowest p-3">
-                    <textarea
-                        ref="inputEl"
-                        v-model="input"
-                        rows="2"
-                        class="assistant-composer min-h-[2.75rem] max-h-[7.5rem] flex-1 resize-none overflow-y-auto rounded-xl border border-outline-variant bg-surface px-3 py-2.5 text-sm leading-5 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-                        :placeholder="`Tulis ke ${displayName()}…`"
-                        :disabled="sending || loading"
-                        @input="afterInputChange"
-                        @keydown="onKeydown"
-                    />
-                    <button
-                        type="button"
-                        class="mb-0.5 grid size-11 shrink-0 place-items-center rounded-xl bg-primary text-on-primary disabled:opacity-50"
-                        :disabled="sending || loading || !input.trim()"
-                        aria-label="Kirim"
-                        @click="sendMessage"
-                    >
-                        <AppIcon name="send" class="text-xl" />
-                    </button>
+                <div class="border-t border-outline-variant bg-surface-container-lowest">
+                    <!-- Attached Images Preview -->
+                    <div v-if="attachedImages.length" class="flex flex-wrap gap-2 border-b border-outline-variant/50 px-3 pt-2.5 pb-2">
+                        <div
+                            v-for="(img, idx) in attachedImages"
+                            :key="idx"
+                            class="group relative size-14 shrink-0 overflow-hidden rounded-xl border border-outline-variant bg-surface-container"
+                        >
+                            <img :src="img.dataUrl" class="size-full object-cover" :alt="img.name" />
+                            <button
+                                type="button"
+                                class="absolute inset-0 grid place-items-center bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                                aria-label="Hapus gambar"
+                                @click="removeAttachedImage(idx)"
+                            >
+                                <AppIcon name="close" class="text-base" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex shrink-0 items-end gap-2 p-3">
+                        <input
+                            ref="fileInputEl"
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp,image/gif"
+                            multiple
+                            class="sr-only"
+                            @change="onFilesSelected"
+                        />
+                        <button
+                            type="button"
+                            class="mb-0.5 grid size-11 shrink-0 place-items-center rounded-xl border border-outline-variant text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                            :disabled="sending || loading"
+                            aria-label="Lampirkan Gambar"
+                            title="Lampirkan Gambar"
+                            @click="triggerAttach"
+                        >
+                            <AppIcon name="add_photo_alternate" class="text-xl" />
+                        </button>
+                        <textarea
+                            ref="inputEl"
+                            v-model="input"
+                            rows="2"
+                            class="assistant-composer min-h-[2.75rem] max-h-[7.5rem] flex-1 resize-none overflow-y-auto rounded-xl border border-outline-variant bg-surface px-3 py-2.5 text-sm leading-5 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                            :placeholder="`Tulis ke ${displayName()}...`"
+                            :disabled="sending || loading"
+                            @input="afterInputChange"
+                            @keydown="onKeydown"
+                            @paste="onPaste"
+                        />
+                        <button
+                            type="button"
+                            class="mb-0.5 grid size-11 shrink-0 place-items-center rounded-xl bg-primary text-on-primary disabled:opacity-50"
+                            :disabled="sending || loading || (!input.trim() && !attachedImages.length)"
+                            aria-label="Kirim"
+                            @click="sendMessage"
+                        >
+                            <AppIcon name="send" class="text-xl" />
+                        </button>
+                    </div>
                 </div>
             </div>
         </Transition>

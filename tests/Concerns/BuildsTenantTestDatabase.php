@@ -34,6 +34,9 @@ trait BuildsTenantTestDatabase
             }
         }
 
+        DB::connection('platform')->disconnect();
+        DB::connection('tenant')->disconnect();
+
         Artisan::call('migrate:fresh', [
             '--database' => 'platform',
             '--path' => 'database/migrations/platform',
