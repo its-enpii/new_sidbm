@@ -19,12 +19,14 @@ use App\Assistant\Handlers\SearchJournalsHandler;
 use App\Assistant\Handlers\SearchLoansHandler;
 use App\Assistant\Handlers\SearchMembersHandler;
 use App\Assistant\Handlers\SendBillingNoticesHandler;
+use App\Models\Platform\PersonalAccessToken;
 use App\Tenancy\TenantContext;
 use Enpii\Assistant\Contracts\SessionResolver;
 use Enpii\Assistant\Contracts\TenantResolver;
 use Enpii\Assistant\Services\Tools\ToolRegistry;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Sanctum\Sanctum;
 
 final class AppServiceProvider extends ServiceProvider
 {
@@ -66,6 +68,8 @@ final class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+
         if (
             str_starts_with((string) config('app.url'), 'https://') ||
             request()->isSecure() ||

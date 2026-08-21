@@ -11,6 +11,7 @@
         "enpii/assistant": "dev-main",
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/framework": "^13.0",
+        "laravel/sanctum": "*",
         "laravel/tinker": "^3.0",
         "predis/predis": "^3.0",
         "tightenco/ziggy": "*"

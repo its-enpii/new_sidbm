@@ -8,6 +8,16 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ## [2026-08-21]
 
 ### Added
+- **Arsitektur & RESTful API Aplikasi Lapangan Mobile Flutter (`docs/FLUTTER_MOBILE_ROADMAP.md` & `mobile/`):**
+  - Penyusunan roadmap arsitektur, clean architecture BLoC, dan spesifikasi integrasi multi-tenant Flutter Mobile App untuk operasional lapangan: Petugas Penagihan/Kolektor, Surveyor Lapangan, dan Eksekutif/Direktur.
+  - Implementasi Laravel Sanctum multi-tenant token guard (`app/Models/Platform/PersonalAccessToken.php`, `config/sanctum.php`, `database/migrations/platform/2026_08_21_162000_create_personal_access_tokens_table.php`).
+  - RESTful Mobile API Endpoints (`routes/api.php`, `app/Http/Controllers/Api/Mobile/`):
+    - **Autentikasi & Profil**: `/api/v1/mobile/auth/login`, `/api/v1/mobile/auth/me`, `/api/v1/mobile/auth/logout`.
+    - **Kolektor Lapangan**: `/api/v1/mobile/collection/loans`, `/api/v1/mobile/collection/loans/{id}`, `/api/v1/mobile/collection/pay` (dengan payload cetak struk Bluetooth Thermal & notifikasi WhatsApp otomatis).
+    - **Surveyor Verifikasi Pinjaman**: `/api/v1/mobile/verification/proposals`, `/api/v1/mobile/verification/proposals/{id}`, `/api/v1/mobile/verification/submit` (dengan analisis 5C, geo-tagging koordinat GPS, foto agunan/usaha, dan tanda tangan digital).
+    - **Eksekutif & Persetujuan Pinjaman**: `/api/v1/mobile/executive/summary`, `/api/v1/mobile/executive/approvals`, `/api/v1/mobile/executive/approvals/{id}`, `/api/v1/mobile/executive/approve`, `/api/v1/mobile/executive/reject`.
+  - Struktur starter project Flutter dengan Clean Architecture & BLoC state management (`mobile/`).
+  - Automated Feature Test Suite: `MobileAuthApiTest.php`, `MobileCollectionApiTest.php`, `MobileVerificationApiTest.php`, `MobileExecutiveApiTest.php` (19 test cases, 145 assertions).
 - **Sistem Pemblokiran Akses Tenant Berbasis Invoice Tertunggak (*Invoice Access Blocking*):**
   - Penambahan kolom `blocks_access` (boolean) pada tabel `invoices` platform dan dukungan opsi toggle pemblokiran akses operasional tenant saat pembuatan maupun pengelolaan invoice oleh Superadmin (`Admin/Invoices/Create.vue`, `Admin/Invoices/Show.vue`).
   - Middleware `EnsureSubscriptionActive.php` memblokir akses ke rute operasional jika tenant memiliki invoice terbuka dengan status `blocks_access = true` dan mengarahkan otomatis ke halaman penagihan (`/billing/invoices/{id}`), sementara tetap mengizinkan akses ke rute pembayaran dan autentikasi logout.
@@ -47,6 +57,9 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
   - Pengujian otomatis pada `LoanRoundingAndBeneficiarySplitTest.php`.
 
 ### Changed
+- **Penyempurnaan Pesan dan Tata Letak Pusat Notifikasi (`NotificationCenterController.php` & `NotificationDropdown.vue`):**
+  - Penyederhanaan struktur payload notifikasi, ringkasan pesan nominal tagihan dan tunggakan yang lebih padat, serta penguatan deep link aksi ke detail transaksi.
+  - Penyempurnaan indikator visual status belum dibaca (*unread dot*) dan ikon aksi pada daftar popover notifikasi.
 - **Audit & Pemolesan Animasi Mulus Seluruh Komponen Interaktif (*Component Animation & Transition Audit*):**
   - **SmartSelect (`SmartSelect.vue`):** Penambahan transisi `<Transition>` enter/leave dengan dynamic origin (`origin-top` / `origin-bottom`), animasi rotasi chevron dropdown 180°, transisi pencarian, dan *tactile active scale* (`active:scale-[0.99]`).
   - **AppDatePicker (`AppDatePicker.vue`):** Peningkatan transisi popover kalender dengan origin dinamis, animasi transisi antar-mode tampilan tanggal/bulan/tahun (`<Transition name="calendar-view" mode="out-in">`), serta feedback sentuhan mikro pada tombol navigasi dan pemilihan tanggal/bulan (`active:scale-90`).
