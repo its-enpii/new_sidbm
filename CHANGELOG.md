@@ -85,6 +85,11 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
   - Menambahkan langkah otomatis `docker compose exec -T app php artisan storage:link || true` pada pipeline CI/CD GitHub Actions (`.github/workflows/deploy.yml`).
   - Menambahkan automated feature test `ProfilePhotoTest.php` untuk memvalidasi alur unggah, simpan, serving via `/storage/{path}`, proteksi direktori traversal, dan hapus foto profil.
 
+### Removed
+- **Pembersihan Berkas Template Blade Legacy Tidak Terpakai (164 Berkas):**
+  - Menghapus berkas view legacy yang telah 100% dimigrasi ke Vue 3 / Inertia dan Service PDF baru: `resources/views/pelaporan/` (54 berkas), `resources/views/reports/legacy/` (54 berkas), `resources/views/reports/legacy_pinjaman/` (37 berkas), `resources/views/reports/legacy_sop/` (18 berkas), dan `resources/views/reports/pdf/loan_documents/cetak_kartu_angsuran_anggota.blade.php` (1 berkas duplikat usang).
+  - Mempertahankan 85 berkas template aktif (`resources/views/app.blade.php`, 12 berkas error pages, dan 72 berkas template DomPDF aktif di `resources/views/reports/pdf/`) yang telah diverifikasi bersih via `php artisan view:cache`.
+
 ---
 ## [2026-08-20]
 
