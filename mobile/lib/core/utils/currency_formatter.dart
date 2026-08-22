@@ -13,6 +13,8 @@ class CurrencyFormatter {
     return _rupiahFormat.format(numValue);
   }
 
+  static String formatRupiah(dynamic amount) => format(amount);
+
   static double parse(String formatted) {
     final cleaned = formatted.replaceAll(RegExp(r'[^\d]'), '');
     return double.tryParse(cleaned) ?? 0.0;

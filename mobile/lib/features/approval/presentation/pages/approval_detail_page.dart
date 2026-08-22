@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -197,7 +197,7 @@ class _ApprovalDetailPageState extends State<ApprovalDetailPage> {
                                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface),
                               ),
                               Text(
-                                '${detail.borrowerType} â€¢ ${detail.villageName}',
+                                '${detail.borrowerType} • ${detail.villageName}',
                                 style: const TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant),
                               ),
                               const Divider(height: 16, color: AppColors.outlineVariant),
@@ -230,7 +230,7 @@ class _ApprovalDetailPageState extends State<ApprovalDetailPage> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: AppColors.primaryContainer.withOpacity(0.4),
+                              color: AppColors.primaryContainer.withValues(alpha: 0.4),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(color: AppColors.primaryContainer),
                             ),
@@ -287,7 +287,7 @@ class _ApprovalDetailPageState extends State<ApprovalDetailPage> {
                     border: const Border(top: BorderSide(color: AppColors.outlineVariant)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         offset: const Offset(0, -2),
                         blurRadius: 6,
                       ),

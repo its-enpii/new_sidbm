@@ -1,5 +1,5 @@
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
-import 'package:flutter/services.dart';
+// import 'package:flutter/services.dart';
 
 class ReceiptData {
   final String receiptNumber;
@@ -135,3 +135,4 @@ class ThermalPrinterService {
         );
   }
 }
+

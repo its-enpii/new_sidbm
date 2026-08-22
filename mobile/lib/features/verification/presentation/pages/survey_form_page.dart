@@ -121,7 +121,7 @@ class _SurveyFormPageState extends State<SurveyFormPage> {
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface),
                         ),
                         Text(
-                          '${proposal.villageName} â€¢ ${proposal.groupAddress}',
+                          '${proposal.villageName} • ${proposal.groupAddress}',
                           style: const TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant),
                         ),
                         const SizedBox(height: 8),

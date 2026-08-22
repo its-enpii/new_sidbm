@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-enum AppBadgeTone { success, warning, error, primary, neutral }
+enum AppBadgeTone { success, warning, error, primary, neutral, info }
+typedef BadgeType = AppBadgeTone;
 
 class AppBadge extends StatelessWidget {
   final String label;
@@ -37,6 +38,7 @@ class AppBadge extends StatelessWidget {
         bgColor = AppColors.primaryContainer;
         fgColor = AppColors.onPrimaryContainer;
         break;
+      case AppBadgeTone.info:
       case AppBadgeTone.neutral:
         bgColor = AppColors.surfaceContainerHigh;
         fgColor = AppColors.onSurfaceVariant;

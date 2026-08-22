@@ -4,31 +4,31 @@ abstract class Failure extends Equatable {
   final String message;
   final int? statusCode;
 
-  const Failure({required this.message, this.statusCode});
+  const Failure({this.message = 'Terjadi kesalahan sistem', this.statusCode});
 
   @override
   List<Object?> get props => [message, statusCode];
 }
 
 class ServerFailure extends Failure {
-  const ServerFailure({required super.message, super.statusCode});
+  const ServerFailure({super.message = 'Terjadi kesalahan pada server', super.statusCode});
 }
 
 class AuthFailure extends Failure {
-  const AuthFailure({required super.message, super.statusCode = 401});
+  const AuthFailure({super.message = 'Sesi telah berakhir', super.statusCode = 401});
 }
 
 class NetworkFailure extends Failure {
-  const NetworkFailure({required super.message, super.statusCode});
+  const NetworkFailure({super.message = 'Koneksi internet bermasalah', super.statusCode});
 }
 
 class CacheFailure extends Failure {
-  const CacheFailure({required super.message, super.statusCode});
+  const CacheFailure({super.message = 'Gagal membaca cache lokal', super.statusCode});
 }
 
 class ValidationFailure extends Failure {
   final Map<String, dynamic>? errors;
-  const ValidationFailure({required super.message, this.errors, super.statusCode = 422});
+  const ValidationFailure({super.message = 'Validasi gagal', super.statusCode = 422, this.errors});
 
   @override
   List<Object?> get props => [message, statusCode, errors];

@@ -1,4 +1,4 @@
-﻿import '../../../../core/error/exceptions.dart';
+import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/utils/thermal_printer_service.dart';
 import '../../domain/entities/collection_entities.dart';
@@ -15,9 +15,9 @@ class CollectionRepositoryImpl implements CollectionRepository {
     try {
       return await remoteDataSource.searchLoans(search: search, villageId: villageId);
     } on ServerException catch (e) {
-      throw ServerFailure(e.message);
+      throw ServerFailure(message: e.message);
     } on NetworkException catch (e) {
-      throw NetworkFailure(e.message);
+      throw NetworkFailure(message: e.message);
     }
   }
 
@@ -26,9 +26,9 @@ class CollectionRepositoryImpl implements CollectionRepository {
     try {
       return await remoteDataSource.getLoanDetail(loanId);
     } on ServerException catch (e) {
-      throw ServerFailure(e.message);
+      throw ServerFailure(message: e.message);
     } on NetworkException catch (e) {
-      throw NetworkFailure(e.message);
+      throw NetworkFailure(message: e.message);
     }
   }
 
@@ -53,9 +53,10 @@ class CollectionRepositoryImpl implements CollectionRepository {
         description: description,
       );
     } on ServerException catch (e) {
-      throw ServerFailure(e.message);
+      throw ServerFailure(message: e.message);
     } on NetworkException catch (e) {
-      throw NetworkFailure(e.message);
+      throw NetworkFailure(message: e.message);
     }
   }
 }
+

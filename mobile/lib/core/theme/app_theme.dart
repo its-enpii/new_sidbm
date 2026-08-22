@@ -40,7 +40,7 @@ class AppTheme {
           color: AppColors.onSurface,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.surfaceContainerLowest,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -68,7 +68,7 @@ class AppTheme {
         fillColor: AppColors.surfaceContainerLowest,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         hintStyle: GoogleFonts.inter(
-          color: AppColors.onSurfaceVariant.withOpacity(0.7),
+          color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
           fontSize: 14,
         ),
         border: OutlineInputBorder(

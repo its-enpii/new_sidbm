@@ -27,3 +27,11 @@ test-results/
 
 *.sqlite
 *.sqlite-journal
+
+
+# Flutter & Mobile artifacts
+.pub_cache/
+.pub-cache/
+**/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins*

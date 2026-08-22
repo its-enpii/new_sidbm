@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -171,7 +171,7 @@ class _ApprovalListPageState extends State<ApprovalListPage> {
                 item.loanNumber,
                 style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary),
               ),
-              const AppBadge(label: 'SIAP APPROVAL', type: BadgeType.info),
+              const AppBadge(label: 'SIAP APPROVAL', tone: AppBadgeTone.info),
             ],
           ),
           const SizedBox(height: 8),
@@ -181,7 +181,7 @@ class _ApprovalListPageState extends State<ApprovalListPage> {
           ),
           const SizedBox(height: 2),
           Text(
-            '${item.borrowerType} â€¢ ${item.villageName}',
+            '${item.borrowerType} • ${item.villageName}',
             style: const TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant),
           ),
           if (item.verificationNotes != null && item.verificationNotes.isNotEmpty) ...[
@@ -257,3 +257,4 @@ class _ApprovalListPageState extends State<ApprovalListPage> {
     );
   }
 }
+

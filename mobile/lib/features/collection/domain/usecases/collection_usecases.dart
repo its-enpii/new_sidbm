@@ -1,6 +1,6 @@
 import '../../../../core/utils/thermal_printer_service.dart';
 import '../entities/collection_entities.dart';
-import '../../data/repositories/collection_repository_impl.dart';
+import '../repositories/collection_repository.dart';
 
 class SearchCollectionLoansUseCase {
   final CollectionRepository repository;

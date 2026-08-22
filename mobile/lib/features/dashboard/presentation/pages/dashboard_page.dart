@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_badge.dart';
@@ -119,7 +119,7 @@ class DashboardPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            user.isSuperadmin ? 'Superadmin Platform' : (user.username ?? user.email),
+                            user.isSuperadmin ? 'Superadmin Platform' : (user.username.isNotEmpty ? user.username : (user.email ?? '-')),
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.onSurfaceVariant,
@@ -130,7 +130,7 @@ class DashboardPage extends StatelessWidget {
                     ),
                     AppBadge(
                       label: user.isSuperadmin ? 'SUPERADMIN' : 'AKTIF',
-                      type: BadgeType.success,
+                      tone: AppBadgeTone.success,
                     ),
                   ],
                 ),
@@ -254,7 +254,7 @@ class DashboardPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, size: 22, color: color),
@@ -288,3 +288,6 @@ class DashboardPage extends StatelessWidget {
     );
   }
 }
+
+
+

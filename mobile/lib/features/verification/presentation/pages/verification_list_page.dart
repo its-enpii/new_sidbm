@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -220,7 +220,7 @@ class _VerificationListPageState extends State<VerificationListPage> {
               ),
               AppBadge(
                 label: isVerified ? 'TERVERIFIKASI' : 'PERLU SURVEI',
-                type: isVerified ? BadgeType.success : BadgeType.warning,
+                tone: isVerified ? AppBadgeTone.success : AppBadgeTone.warning,
               ),
             ],
           ),
@@ -231,7 +231,7 @@ class _VerificationListPageState extends State<VerificationListPage> {
           ),
           const SizedBox(height: 2),
           Text(
-            '${proposal.borrowerType} â€¢ ${proposal.villageName}',
+            '${proposal.borrowerType} • ${proposal.villageName}',
             style: const TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant),
           ),
           const Divider(height: 20, color: AppColors.outlineVariant),
@@ -291,3 +291,4 @@ class _VerificationListPageState extends State<VerificationListPage> {
     );
   }
 }
+
