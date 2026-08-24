@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\StoreInvoiceRequest;
 use App\Models\Platform\Invoice;
 use App\Models\Platform\Subscription;
 use App\Models\Platform\Tenant;
+use App\Services\Admin\AuditLogger;
 use App\Services\Billing\InvoiceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -133,19 +134,37 @@ final class InvoiceController
         ]);
     }
 
-    public function void(Invoice $invoice, InvoiceService $invoices): RedirectResponse
+    public function void(Invoice $invoice, InvoiceService $invoices, AuditLogger $audit): RedirectResponse
     {
         $invoices->void($invoice);
+
+        $audit->record(
+            'invoice.void',
+            $invoice->tenant,
+            Invoice::class,
+            $invoice->row_id,
+            sprintf('Invoice [%s] dibatalkan.', $invoice->number),
+            ['amount' => (float) $invoice->amount],
+        );
 
         return back()->with('success', 'Invoice dibatalkan.');
     }
 
-    public function toggleBlocking(Invoice $invoice): RedirectResponse
+    public function toggleBlocking(Invoice $invoice, AuditLogger $audit): RedirectResponse
     {
         $invoice->blocks_access = ! $invoice->blocks_access;
         $invoice->save();
 
         $statusText = $invoice->blocks_access ? 'diaktifkan (akses tenant diblokir sampai lunas)' : 'dinonaktifkan';
+
+        $audit->record(
+            'invoice.toggle_blocking',
+            $invoice->tenant,
+            Invoice::class,
+            $invoice->row_id,
+            sprintf('Blokir akses invoice [%s] %s.', $invoice->number, $statusText),
+            ['blocks_access' => (bool) $invoice->blocks_access],
+        );
 
         return back()->with('success', "Opsi blokir akses invoice {$invoice->number} {$statusText}.");
     }

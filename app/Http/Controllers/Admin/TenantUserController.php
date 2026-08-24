@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\UpdateTenantUserRequest;
 use App\Models\Platform\Tenant;
 use App\Models\Tenant\OrganizationUnit;
 use App\Models\User;
+use App\Services\Admin\AuditLogger;
 use App\Services\Admin\TenantUserService;
 use App\Tenancy\Services\TenantWorkbench;
 use Illuminate\Http\RedirectResponse;
@@ -76,9 +77,17 @@ final class TenantUserController
         ]);
     }
 
-    public function store(StoreTenantUserRequest $request, Tenant $tenant, TenantUserService $users): RedirectResponse
+    public function store(StoreTenantUserRequest $request, Tenant $tenant, TenantUserService $users, AuditLogger $audit): RedirectResponse
     {
-        $users->create($tenant, $request->validated());
+        $user = $users->create($tenant, $request->validated());
+
+        $audit->record(
+            'tenant_user.create',
+            $tenant,
+            User::class,
+            $user->row_id,
+            sprintf('User [%s] dibuat pada tenant [%s].', $user->username, $tenant->code),
+        );
 
         return to_route('admin.tenants.users.index', $tenant)->with('success', 'Pengguna ditambahkan.');
     }
@@ -100,21 +109,39 @@ final class TenantUserController
         ]);
     }
 
-    public function update(UpdateTenantUserRequest $request, Tenant $tenant, User $user, TenantUserService $users): RedirectResponse
+    public function update(UpdateTenantUserRequest $request, Tenant $tenant, User $user, TenantUserService $users, AuditLogger $audit): RedirectResponse
     {
         $this->assertBelongs($tenant, $user);
+        $before = $user->only(['name', 'username', 'email', 'status']);
         $users->update($tenant, $user, $request->validated());
+
+        $audit->record(
+            'tenant_user.update',
+            $tenant,
+            User::class,
+            $user->row_id,
+            sprintf('User [%s] diperbarui pada tenant [%s].', $user->username, $tenant->code),
+            ['changes' => AuditLogger::diff($before, $user->only(['name', 'username', 'email', 'status']))],
+        );
 
         return to_route('admin.tenants.users.index', $tenant)->with('success', 'Pengguna diperbarui.');
     }
 
-    public function resetPassword(Request $request, Tenant $tenant, User $user, TenantUserService $users): RedirectResponse
+    public function resetPassword(Request $request, Tenant $tenant, User $user, TenantUserService $users, AuditLogger $audit): RedirectResponse
     {
         $this->assertBelongs($tenant, $user);
         $data = $request->validate([
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
         ]);
         $users->resetPassword($user, $data['password']);
+
+        $audit->record(
+            'tenant_user.reset_password',
+            $tenant,
+            User::class,
+            $user->row_id,
+            sprintf('Password user [%s] pada tenant [%s] direset.', $user->username, $tenant->code),
+        );
 
         return back()->with('success', 'Password direset.');
     }

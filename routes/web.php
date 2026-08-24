@@ -12,17 +12,21 @@ use App\Http\Controllers\Accounting\PeriodCloseController;
 use App\Http\Controllers\Accounting\ReportController;
 use App\Http\Controllers\Accounting\TaxEstimateController;
 use App\Http\Controllers\Admin\AiAssistantController;
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\InvoiceController as AdminInvoiceController;
 use App\Http\Controllers\Admin\InvoicePaymentController as AdminInvoicePaymentController;
 use App\Http\Controllers\Admin\MigrationController as AdminMigrationController;
 use App\Http\Controllers\Admin\PaymentGatewayController;
 use App\Http\Controllers\Admin\PlanController as AdminPlanController;
+use App\Http\Controllers\Admin\PlatformSettingController;
 use App\Http\Controllers\Admin\RevenueController as AdminRevenueController;
+use App\Http\Controllers\Admin\ShardController;
 use App\Http\Controllers\Admin\TenantController as AdminTenantController;
 use App\Http\Controllers\Admin\TenantDataPurifierController;
 use App\Http\Controllers\Admin\TenantImpersonationController as AdminTenantImpersonationController;
 use App\Http\Controllers\Admin\TenantUserController as AdminTenantUserController;
+use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Assets\AssetController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Billing\InvoiceController as TenantInvoiceController;
@@ -148,6 +152,16 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::post('/invoices/{invoice}/payments/manual', [AdminInvoicePaymentController::class, 'storeManual'])->name('invoices.payments.manual');
     Route::post('/invoices/{invoice}/payments/tripay', [AdminInvoicePaymentController::class, 'storeTripay'])->name('invoices.payments.tripay');
     Route::get('/revenue', AdminRevenueController::class)->name('revenue.index');
+
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+    Route::get('/shards', [ShardController::class, 'index'])->name('shards.index');
+
+    Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+    Route::post('/users/{user}/toggle-status', [UserManagementController::class, 'toggleStatus'])->name('users.toggle-status');
+
+    Route::get('/settings', [PlatformSettingController::class, 'index'])->name('settings.index');
+    Route::post('/settings', [PlatformSettingController::class, 'update'])->name('settings.update');
+    Route::delete('/settings', [PlatformSettingController::class, 'destroy'])->name('settings.destroy');
 
     Route::get('/migration', [AdminMigrationController::class, 'index'])->name('migration.index');
     Route::get('/migrations', [AdminMigrationController::class, 'index'])->name('migrations.index');

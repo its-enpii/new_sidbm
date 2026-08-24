@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Platform\Tenant;
 use App\Models\User;
+use App\Services\Admin\AuditLogger;
 use App\Services\TenantImpersonationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,7 +16,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class TenantImpersonationController
 {
-    public function impersonate(Request $request, Tenant $tenant, TenantImpersonationService $service): JsonResponse|Response
+    public function impersonate(Request $request, Tenant $tenant, TenantImpersonationService $service, AuditLogger $audit): JsonResponse|Response
     {
         $data = $request->validate([
             'user_id' => [
@@ -33,6 +34,15 @@ final class TenantImpersonationController
         $domain = $data['domain'] ?? null;
 
         $result = $service->generateToken($tenant, $targetUser, $request->user(), $domain, $request);
+
+        $audit->record(
+            'tenant.impersonate',
+            $tenant,
+            User::class,
+            $result['target_user']->row_id,
+            sprintf('Impersonasi tenant [%s] sebagai user [%s].', $tenant->code, $result['target_user']->username),
+            ['domain' => $domain],
+        );
 
         if ($request->wantsJson() || $request->header('X-Inertia') === null) {
             return response()->json([

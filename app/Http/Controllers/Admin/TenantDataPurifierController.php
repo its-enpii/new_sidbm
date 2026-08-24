@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Platform\Tenant;
+use App\Services\Admin\AuditLogger;
 use App\Services\Admin\TenantDataPurifierService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -62,17 +63,34 @@ final class TenantDataPurifierController extends Controller
         ]);
     }
 
-    public function startTraining(Tenant $tenant, TenantDataPurifierService $purifier): RedirectResponse
+    public function startTraining(Tenant $tenant, TenantDataPurifierService $purifier, AuditLogger $audit): RedirectResponse
     {
         $purifier->startTraining($tenant);
+
+        $audit->record(
+            'data_purifier.start_training',
+            $tenant,
+            Tenant::class,
+            $tenant->row_id,
+            sprintf('Mode Pelatihan diaktifkan untuk tenant [%s].', $tenant->code),
+        );
 
         return back()->with('success', sprintf('Mode Pelatihan untuk tenant "%s" berhasil diaktifkan. Transaksi yang dicatat mulai sekarang akan ditandai sebagai data pelatihan.', $tenant->name));
     }
 
-    public function endTraining(Request $request, Tenant $tenant, TenantDataPurifierService $purifier): RedirectResponse
+    public function endTraining(Request $request, Tenant $tenant, TenantDataPurifierService $purifier, AuditLogger $audit): RedirectResponse
     {
         $purgeData = $request->boolean('purge_data');
         $result = $purifier->endTraining($tenant, $purgeData);
+
+        $audit->record(
+            'data_purifier.end_training',
+            $tenant,
+            Tenant::class,
+            $tenant->row_id,
+            sprintf('Mode Pelatihan diakhiri untuk tenant [%s].', $tenant->code),
+            ['purge_data' => $purgeData, 'deleted_entries' => $result['deleted_entries']],
+        );
 
         $message = sprintf('Sesi pelatihan selesai! Tenant "%s" sekarang beralih ke Mode Live / Produksi.', $tenant->name);
         if ($purgeData && $result['deleted_entries'] > 0) {
@@ -82,7 +100,7 @@ final class TenantDataPurifierController extends Controller
         return back()->with('success', $message);
     }
 
-    public function purge(Request $request, Tenant $tenant, TenantDataPurifierService $purifier): RedirectResponse
+    public function purge(Request $request, Tenant $tenant, TenantDataPurifierService $purifier, AuditLogger $audit): RedirectResponse
     {
         $data = $request->validate([
             'entry_ids' => ['required', 'array', 'min:1'],
@@ -96,6 +114,18 @@ final class TenantDataPurifierController extends Controller
             includeReversalPairs: (bool) ($data['include_reversal_pairs'] ?? true),
         );
 
+        $audit->record(
+            'data_purifier.purge',
+            $tenant,
+            Tenant::class,
+            $tenant->row_id,
+            sprintf('Penghapusan permanen transaksi pada tenant [%s].', $tenant->code),
+            [
+                'entry_ids_count' => count($data['entry_ids']),
+                ...$result,
+            ],
+        );
+
         return back()->with(
             'success',
             sprintf(
@@ -107,9 +137,18 @@ final class TenantDataPurifierController extends Controller
         );
     }
 
-    public function resetTraining(Request $request, Tenant $tenant, TenantDataPurifierService $purifier): RedirectResponse
+    public function resetTraining(Request $request, Tenant $tenant, TenantDataPurifierService $purifier, AuditLogger $audit): RedirectResponse
     {
         $result = $purifier->resetTrainingTransactions($tenant);
+
+        $audit->record(
+            'data_purifier.reset_training',
+            $tenant,
+            Tenant::class,
+            $tenant->row_id,
+            sprintf('Reset transaksi pelatihan pada tenant [%s].', $tenant->code),
+            ['deleted_entries' => $result['deleted_entries']],
+        );
 
         return back()->with(
             'success',

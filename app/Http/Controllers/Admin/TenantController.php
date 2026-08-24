@@ -9,6 +9,7 @@ use App\Http\Requests\StoreTenantRequest;
 use App\Models\Platform\Plan;
 use App\Models\Platform\Tenant;
 use App\Models\User;
+use App\Services\Admin\AuditLogger;
 use App\Services\Billing\SubscriptionService;
 use App\Services\TenantRegistrationService;
 use Illuminate\Http\RedirectResponse;
@@ -59,9 +60,18 @@ final class TenantController
         return Inertia::render('Admin/Tenants/Create');
     }
 
-    public function store(StoreTenantRequest $request, TenantRegistrationService $registration): RedirectResponse
+    public function store(StoreTenantRequest $request, TenantRegistrationService $registration, AuditLogger $audit): RedirectResponse
     {
         $tenant = $registration->register($request->validated());
+
+        $audit->record(
+            'tenant.create',
+            $tenant,
+            Tenant::class,
+            $tenant->row_id,
+            "Tenant [{$tenant->code}] didaftarkan.",
+            ['name' => $tenant->name],
+        );
 
         return to_route('admin.tenants.show', $tenant)->with('success', "Tenant [{$tenant->name}] berhasil didaftarkan.");
     }
@@ -158,6 +168,11 @@ final class TenantController
         $metadata['domains'] = $cleanDomains;
         unset($metadata['domain']);
 
+        $changes = AuditLogger::diff(
+            ['name' => $tenant->name, 'district_code' => $tenant->district_code, 'status' => $tenant->status, 'timezone' => $tenant->timezone],
+            ['name' => $data['name'], 'district_code' => $newDistrict, 'status' => $data['status'], 'timezone' => $data['timezone'] ?? $tenant->timezone],
+        );
+
         $tenant->forceFill([
             'name' => $data['name'],
             'district_code' => $newDistrict,
@@ -166,6 +181,15 @@ final class TenantController
             'suspended_at' => $data['status'] === 'suspended' ? ($tenant->suspended_at ?? now()) : null,
             'metadata' => $metadata,
         ])->save();
+
+        app(AuditLogger::class)->record(
+            'tenant.update',
+            $tenant,
+            Tenant::class,
+            $tenant->row_id,
+            "Tenant [{$tenant->code}] diperbarui.",
+            ['changes' => $changes],
+        );
 
         if ($newDistrict !== null && $newDistrict !== $oldDistrict) {
             try {
@@ -178,16 +202,20 @@ final class TenantController
         return to_route('admin.tenants.show', $tenant)->with('success', 'Tenant diperbarui.');
     }
 
-    public function suspend(Tenant $tenant): RedirectResponse
+    public function suspend(Tenant $tenant, AuditLogger $audit): RedirectResponse
     {
         $tenant->forceFill(['status' => 'suspended', 'suspended_at' => now()])->save();
+
+        $audit->record('tenant.suspend', $tenant, Tenant::class, $tenant->row_id, "Tenant [{$tenant->code}] ditangguhkan.");
 
         return back()->with('success', 'Tenant ditangguhkan.');
     }
 
-    public function activate(Tenant $tenant): RedirectResponse
+    public function activate(Tenant $tenant, AuditLogger $audit): RedirectResponse
     {
         $tenant->forceFill(['status' => 'active', 'suspended_at' => null])->save();
+
+        $audit->record('tenant.activate', $tenant, Tenant::class, $tenant->row_id, "Tenant [{$tenant->code}] diaktifkan kembali.");
 
         return back()->with('success', 'Tenant diaktifkan.');
     }
@@ -203,7 +231,7 @@ final class TenantController
         );
     }
 
-    public function assignSubscription(Request $request, Tenant $tenant, SubscriptionService $subscriptions): RedirectResponse
+    public function assignSubscription(Request $request, Tenant $tenant, SubscriptionService $subscriptions, AuditLogger $audit): RedirectResponse
     {
         $data = $request->validate([
             'plan_id' => ['required', 'integer', Rule::exists('plans', 'row_id')->where('is_active', true)],
@@ -213,7 +241,16 @@ final class TenantController
         ]);
 
         $plan = Plan::query()->findOrFail($data['plan_id']);
-        $subscriptions->assign($tenant, $plan, $data);
+        $subscription = $subscriptions->assign($tenant, $plan, $data);
+
+        $audit->record(
+            'tenant.subscription.assign',
+            $tenant,
+            Plan::class,
+            $plan->row_id,
+            "Plan [{$plan->name}] ditetapkan untuk tenant [{$tenant->code}].",
+            ['plan_code' => $plan->code, ...$data],
+        );
 
         return back()->with('success', 'Langganan ditetapkan.');
     }

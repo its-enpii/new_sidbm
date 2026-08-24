@@ -5,6 +5,31 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 
 ---
 
+## [2026-08-24]
+
+### Added
+- **Log Audit Platform Global (`/admin/audit-logs`):**
+  - Tabel `audit_logs` pada koneksi platform (migration `2026_08_24_100000_create_audit_logs_table.php`) dengan kolom aktor, tenant, aksi, subjek polimorfik ringan, deskripsi, properti JSON, IP address, dan user agent.
+  - Service `AuditLogger` (`app/Services/Admin/AuditLogger.php`) sebagai satu pintu pencatatan: tidak pernah melempar exception (try/catch + report) sehingga aksi utama admin selalu berhasil, plus helper `AuditLogger::diff()` untuk menghitung perubahan field before/after.
+  - Instrumentasi seluruh aksi sensitif superadmin: pembuatan/perubahan/suspensi/aktivasi tenant, penetapan langganan, impersonasi tenant, manajemen user tenant (create/update/reset password), invoice (void/toggle blocking), dan siklus Data Purifier (start/end training, purge, reset).
+  - Halaman viewer `/admin/audit-logs` dengan filter pencarian, dropdown aksi (distinct dari database), filter tenant, paginasi, badge tone per kategori aksi, dan detail properti JSON yang collapsible; terhubung ke navigasi sidebar AdminLayout.
+  - Automated feature test `tests/Feature/Admin/AuditLogTest.php` (5 test): akses halaman superadmin, penolakan non-superadmin, audit suspend tenant, audit void invoice, dan jaminan logger tidak melempar exception saat tabel tidak tersedia.
+- **Halaman Shard & Cutover (`/admin/shards`):**
+  - Halaman overview infrastruktur sharding hanya-baca: KPI ringkasan (total shard aktif, tenant ter-place, cutover selesai/gagal, shard dengan versi skema tertinggal), daftar shard dengan status, endpoint, jumlah tenant aktif, progress bar beban (weight), dan versi skema saat ini vs target.
+  - Riwayat cutover run terpaginasi via `SmartDataTable`: tenant, suffix, mode dry-run/produksi, progres step (X/Y ok), status run beserta pesan error yang ter-truncate.
+  - Controller `Admin\ShardController` dengan route `admin.shards.index`, entri navigasi sidebar AdminLayout, dan automated feature test `tests/Feature/Admin/ShardPageTest.php` (2 test): akses superadmin dan penolakan non-superadmin.
+- **Manajemen Pengguna Platform Global (`/admin/users`):**
+  - Pencarian pengguna lintas-tenant (nama/username/email), filter status akun dan tenant, KPI ringkasan (total user, aktif, nonaktif, tanpa tenant), serta login terakhir tiap user.
+  - Aksi disable/enable akun (`toggle-status`): menonaktifkan user langsung memblokir login di seluruh aplikasi (AuthController hanya menerima status `active`), menyinkronkan status membership tenant terkait, dan terekam ke log audit (`user.disable` / `user.enable`).
+  - Proteksi: akun superadmin dan akun sendiri tidak dapat dinonaktifkan; dialog konfirmasi sebelum eksekusi.
+  - Route `admin.users.index` + `admin.users.toggle-status`, entri navigasi sidebar AdminLayout, dan automated feature test `tests/Feature/Admin/UserManagementTest.php` (4 test): akses halaman, penolakan non-superadmin, siklus disable→login gagal→enable dengan audit, dan larangan menonaktifkan superadmin.
+- **Halaman Platform Settings (`/admin/settings`):**
+  - Manajemen key-value store tingkat instalasi (`platform_settings`) yang berlaku lintas tenant: kredensial payment gateway, template WhatsApp, dan konfigurasi integrasi lainnya. Tampilan terpaginasi dengan pencarian key, KPI (total setting & jumlah setting sensitif), tipe nilai (string/int/float/bool/json), dan waktu perubahan terakhir.
+  - Deteksi otomatis key sensitif (mengandung `secret`/`api_key`/`private_key`/`token`/`password`): nilainya disimpan terenkripsi via `PlatformSettingService::setEncrypted`, ditampilkan sebagai masker di UI, tidak pernah dikirim ke browser, dan dimasker juga pada properti log audit.
+  - Validasi sebelum simpan: JSON harus valid untuk tipe `json`, konversi tipe otomatis (bool dari `1/true/yes/on`, float menerima koma desimal); penghapusan setting melalui dialog konfirmasi.
+  - Setiap perubahan/hapus terekam ke log audit (`platform_setting.update` / `platform_setting.delete`).
+  - Controller `Admin\PlatformSettingController` dengan route `admin.settings.index/update/destroy`, entri navigasi sidebar AdminLayout, dan automated feature test `tests/Feature/Admin/PlatformSettingsTest.php` (5 test): akses halaman, penolakan non-superadmin, siklus update→hapus dengan audit, enkripsi & masking key sensitif, serta penolakan JSON tidak valid.
+
 ## [2026-08-21]
 
 ### Added
