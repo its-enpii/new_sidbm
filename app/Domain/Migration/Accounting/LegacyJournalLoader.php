@@ -46,7 +46,7 @@ final class LegacyJournalLoader
                     'tenant_id' => $tenantId,
                     'id' => $j->idt,
                     'public_id' => (string) Str::ulid(),
-                    'journal_number' => null,
+                    'journal_number' => (string) $j->idt,
                     'transaction_date' => $j->transactionDate,
                     'sequence_number' => $j->sequenceNumber,
                     'source_type' => 'legacy_transaksi',

@@ -54,7 +54,7 @@ final class BackfillJournalNumbers extends Command
                 })
                 ->orderBy('transaction_date')
                 ->orderBy('row_id')
-                ->get(['row_id', 'id', 'transaction_date']);
+                ->get(['row_id', 'id', 'transaction_date', 'source_type']);
 
             if ($entries->isEmpty()) {
                 $this->info('No journals need backfilling.');
@@ -66,18 +66,23 @@ final class BackfillJournalNumbers extends Command
 
             $filled = 0;
             foreach ($entries as $entry) {
-                $date = $entry->transaction_date;
-                $prefix = date('ym', strtotime($date));
-                $sequenceName = 'journal_number:'.$prefix;
+                if ($entry->source_type === 'legacy_transaksi') {
+                    $journalNumber = (string) $entry->id;
+                } else {
+                    $date = $entry->transaction_date;
+                    $prefix = date('ym', strtotime($date));
+                    $sequenceName = 'journal_number:'.$prefix;
 
-                $seq = $sequences->next($sequenceName);
-                $journalNumber = $prefix.str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+                    $seq = $sequences->next($sequenceName);
+                    $journalNumber = $prefix.str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+                }
 
                 $this->line(sprintf(
-                    '  #%d  %s  ->  %s',
+                    '  #%d  %s  ->  %s%s',
                     $entry->id,
-                    $date,
+                    $entry->transaction_date,
                     $journalNumber,
+                    $entry->source_type === 'legacy_transaksi' ? ' (legacy)' : '',
                 ));
 
                 if (! $this->option('dry-run')) {

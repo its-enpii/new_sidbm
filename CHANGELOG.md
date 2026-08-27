@@ -30,7 +30,7 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 - **Nomor / Kode Transaksi Otomatis (`journal_number`):**
   - Auto-generate kode transaksi dengan format `YYMMNNN` (contoh: `2608001`, `2608002`, dst.) saat jurnal diposting pada `JournalPostingService::post()`.
   - Menggunakan `TenantSequenceService` dengan sequence berlingkup per-bulan (`journal_number:YYMM`) sehingga nomor urut reset otomatis menjadi `001` setiap pergantian bulan dan aman dari race condition.
-  - Berlaku merata untuk semua jenis transaksi sistem: jurnal manual/umum, pencairan pinjaman, angsuran pinjaman, penghapusan buku (write-off), penjadwalan ulang (reschedule), pembalikan jurnal (reversal), alokasi laba, asisten AI, dan pencatatan saldo awal pada `TenantOnboardingService`.
+  - Berlaku merata untuk semua jenis transaksi sistem: jurnal manual/umum, pencairan pinjaman, angsuran pinjaman, penghapusan buku (write-off), penjadwalan ulang (reschedule), pembalikan jurnal (reversal), alokasi laba, asisten AI, dan pencatatan saldo awal pada `TenantOnboardingService`. Khusus transaksi hasil migrasi dari legacy (`LegacyJournalLoader` & `BackfillJournalNumbers`), kolom `journal_number` diisi dengan ID transaksi legacy asli untuk mempertahankan konsistensi nomor cetak dokumen historis.
   - Artisan command `php artisan accounting:backfill-journal-numbers {tenant}` (`BackfillJournalNumbers.php`) untuk mengisi `journal_number` pada transaksi historis/terposting yang masih kosong, dilengkapi opsi `--dry-run`.
 - **Masa Jabatan & Status Pengguna:**
   - Migrasi `2026_08_27_092016_add_term_end_at_to_users_table.php` menambahkan kolom `term_end_at` (tanggal selesai menjabat, nullable) pada tabel `users` (koneksi platform).

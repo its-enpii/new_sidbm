@@ -79,6 +79,7 @@ final class MigrateLegacyAccountingTest extends TestCase
         self::assertSame(1001, (int) $entry->id);
         self::assertSame('posted', $entry->status);
         self::assertSame('legacy_transaksi', $entry->source_type);
+        self::assertSame('1001', (string) $entry->journal_number);
 
         $second = $pipeline->run(
             suffix: '99',
