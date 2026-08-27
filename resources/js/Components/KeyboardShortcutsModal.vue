@@ -9,8 +9,8 @@ const isMac = computed(() => {
     return typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/.test(navigator.platform);
 });
 
-const modifierKey = computed(() => (isMac.value ? '⌥ Option' : 'Alt'));
-const cmdKey = computed(() => (isMac.value ? '⌘ Cmd' : 'Ctrl'));
+const modifierKey = computed(() => (isMac.value ? 'Option' : 'Alt'));
+const cmdKey = computed(() => (isMac.value ? 'Cmd' : 'Ctrl'));
 
 const shortcutGroups = computed(() => [
     {

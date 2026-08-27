@@ -93,9 +93,22 @@ function logout() {
             </div>
         </aside>
 
-        <header class="sticky top-0 z-30 flex h-16 items-center border-b border-outline-variant bg-surface px-4 lg:ml-64 lg:px-6">
-            <AppIconButton name="menu" tone="primary" size="sm" rounded="lg" aria-label="Buka navigasi" class="mr-3 lg:hidden" @click="mobileMenuOpen = true" />
-            <p class="text-sm font-bold text-primary">Panel Admin Platform</p>
+        <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-outline-variant bg-surface px-4 lg:ml-64 lg:px-6">
+            <div class="flex items-center gap-3">
+                <AppIconButton name="menu" tone="primary" size="sm" rounded="lg" aria-label="Buka navigasi" class="lg:hidden" @click="mobileMenuOpen = true" />
+                <p class="text-sm font-bold text-primary">Panel Admin Platform</p>
+            </div>
+            <div class="flex items-center gap-1">
+                <Link
+                    href="/changelog"
+                    class="grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary"
+                    :class="currentPath === '/changelog' && 'bg-surface-container text-primary'"
+                    title="Catatan Rilis & Changelog"
+                    aria-label="Catatan Rilis & Changelog"
+                >
+                    <AppIcon name="history_edu" class="text-2xl leading-none" />
+                </Link>
+            </div>
         </header>
 
         <main class="p-4 sm:p-6 lg:ml-64 lg:p-8">

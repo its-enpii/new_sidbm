@@ -8,6 +8,11 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ## [2026-08-27]
 
 ### Added
+- **Halaman Catatan Rilis (Changelog) & Ikon Navbar:**
+  - Controller `ChangelogController` (`app/Http/Controllers/ChangelogController.php`) yang mem-parsing `CHANGELOG.md` secara otomatis menjadi daftar rilis terstruktur dengan metadata versi, tanggal terformat, pengelompokan kategori perubahan (`Added`, `Changed`, `Fixed`, `Security`, dsb.), dan konversi markdown ke HTML via `Str::markdown()`.
+  - Halaman antarmuka interaktif `resources/js/Pages/Changelog/Index.vue` dengan linimasa rilis visual berstandar Material Design 3, pencarian kata kunci/fitur instan, filter segment per kategori perubahan, kartu rilis berbadge, dan penyesuaian layout otomatis sesuai peran pengguna (`AuthenticatedLayout`, `AdminLayout`, `ProvinceLayout`, `RegencyLayout`).
+  - Penambahan ikon tombol cepat Changelog (`history_edu`) pada navbar di seluruh layout aplikasi (`AuthenticatedLayout.vue`, `AdminLayout.vue`, `ProvinceLayout.vue`, `RegencyLayout.vue`) di samping menu tema & notifikasi.
+  - Automated feature test `tests/Feature/ChangelogTest.php` (3 test, 28 assertion).
 - **Peningkatan Ekosistem Asisten AI (Integrasi `enpii/assistant` v0.2.1):**
   - Pembaruan package `enpii/assistant` ke versi `0.2.1` (commit `e329d41`) dengan preservasi lampiran media pada auto-compaction percakapan.
   - Tool baru `simulate_loan` (`SimulateLoanHandler.php` & `AssistantToolService::simulateLoan`) yang dapat menghitung simulasi pinjaman interaktif dan memberikan tombol direct download PDF jadwal simulasi lengkap.

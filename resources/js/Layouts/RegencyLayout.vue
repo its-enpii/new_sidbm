@@ -96,6 +96,15 @@ function logout() {
                 </div>
             </div>
             <div class="flex items-center gap-2">
+                <Link
+                    href="/changelog"
+                    class="grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary"
+                    :class="currentPath === '/changelog' && 'bg-surface-container text-primary'"
+                    title="Catatan Rilis & Changelog"
+                    aria-label="Catatan Rilis & Changelog"
+                >
+                    <AppIcon name="history_edu" class="text-2xl leading-none" />
+                </Link>
                 <span class="inline-flex items-center gap-1.5 rounded-full bg-primary-fixed px-3 py-1 text-xs font-semibold text-primary">
                     <span class="size-1.5 rounded-full bg-primary"></span>
                     {{ user?.regency_name || 'Kabupaten' }}

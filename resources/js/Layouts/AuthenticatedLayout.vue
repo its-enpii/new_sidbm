@@ -520,6 +520,15 @@ function logout() {
                     :aria-expanded="themeOpen"
                     @click="themeOpen = !themeOpen"
                 />
+                <Link
+                    href="/changelog"
+                    class="grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary"
+                    :class="currentPath === '/changelog' && 'bg-surface-container text-primary'"
+                    title="Catatan Rilis & Changelog"
+                    aria-label="Catatan Rilis & Changelog"
+                >
+                    <AppIcon name="history_edu" class="text-2xl leading-none" />
+                </Link>
                 <NotificationDropdown />
                 <Link href="/profile" class="grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary" aria-label="Profil"><AppIcon name="account_circle" class="text-2xl leading-none" /></Link>
             </div>
@@ -717,3 +726,4 @@ function logout() {
     }
 }
 </style>
+
