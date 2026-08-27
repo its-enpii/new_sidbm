@@ -8,8 +8,8 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ## [2026-08-27]
 
 ### Added
-- **Peningkatan Ekosistem Asisten AI (Integrasi `enpii/assistant` v0.2.0):**
-  - Pembaruan package `enpii/assistant` ke versi `0.2.0` (commit `2fc63f4`).
+- **Peningkatan Ekosistem Asisten AI (Integrasi `enpii/assistant` v0.2.1):**
+  - Pembaruan package `enpii/assistant` ke versi `0.2.1` (commit `e329d41`) dengan preservasi lampiran media pada auto-compaction percakapan.
   - Tool baru `simulate_loan` (`SimulateLoanHandler.php` & `AssistantToolService::simulateLoan`) yang dapat menghitung simulasi pinjaman interaktif dan memberikan tombol direct download PDF jadwal simulasi lengkap.
   - Dukungan multi-modal lampiran dokumen (PDF/gambar) pada widget chat `AssistantWidget.vue` untuk parsing dokumen/kuitansi dengan OCR.
   - Implementasi interface `CompensatableToolHandler` pada `CreateJournalEntryHandler` untuk mendukung aksi rollback/kompensasi transaksi otomatis.
