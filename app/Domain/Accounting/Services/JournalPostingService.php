@@ -6,12 +6,17 @@ namespace App\Domain\Accounting\Services;
 
 use App\Domain\Accounting\Models\FiscalPeriod;
 use App\Domain\Accounting\Models\JournalEntry;
+use App\Tenancy\Services\TenantSequenceService;
 use DomainException;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\DB;
 
 final class JournalPostingService
 {
+    public function __construct(
+        private readonly TenantSequenceService $sequenceService,
+    ) {}
+
     public function post(JournalEntry $entry, int $platformUserId): JournalEntry
     {
         $connectionName = (string) config('tenancy.tenant_connection', 'tenant');
@@ -65,6 +70,12 @@ final class JournalPostingService
                     throw new DomainException('A journal entry must have a value greater than zero.');
                 }
 
+                if ($lockedEntry->journal_number === null || $lockedEntry->journal_number === '') {
+                    $lockedEntry->journal_number = $this->generateJournalNumber(
+                        $lockedEntry->transaction_date,
+                    );
+                }
+
                 $lockedEntry->status = 'posted';
                 $lockedEntry->posted_at = now();
                 $lockedEntry->posted_by_user_id = $platformUserId;
@@ -74,5 +85,24 @@ final class JournalPostingService
             },
             5,
         );
+    }
+
+    /**
+     * Format: YYMMNNN (contoh: 2608001).
+     *
+     * Menggunakan sequence per bulan sehingga nomor reset setiap bulan baru.
+     * Maksimal 999 jurnal per bulan; jika lebih, angka tetap bertambah (4+ digit).
+     */
+    private function generateJournalNumber(\DateTimeInterface $transactionDate): string
+    {
+        $prefix = $transactionDate->format('ym');
+
+        $sequenceName = 'journal_number:'.$prefix;
+
+        $seq = $this->sequenceService->next($sequenceName);
+
+        $number = str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+
+        return $prefix.$number;
     }
 }

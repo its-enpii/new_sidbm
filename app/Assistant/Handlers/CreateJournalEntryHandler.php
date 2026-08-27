@@ -6,8 +6,10 @@ namespace App\Assistant\Handlers;
 
 use App\Assistant\ToolHandlerBase;
 use App\Models\User;
+use Enpii\Assistant\Contracts\CompensatableToolHandler;
+use Enpii\Assistant\Contracts\ToolContext;
 
-final class CreateJournalEntryHandler extends ToolHandlerBase
+final class CreateJournalEntryHandler extends ToolHandlerBase implements CompensatableToolHandler
 {
     public function name(): string
     {
@@ -48,5 +50,20 @@ final class CreateJournalEntryHandler extends ToolHandlerBase
     protected function invoke(array $params, User $actor): array
     {
         return $this->tools->createJournalEntry($params, $actor);
+    }
+
+    public function rollback(array $params, array $output, ToolContext $ctx): array
+    {
+        $actor = $this->resolveActor($ctx);
+        $journalRowId = $output['journal_entry_row_id'] ?? $output['row_id'] ?? $output['entry_id'] ?? null;
+        if (! $journalRowId) {
+            return ['ok' => false, 'error' => 'No journal entry row_id found in execution output to rollback.'];
+        }
+
+        return $this->tools->reverseJournal([
+            'journal_entry_row_id' => (int) $journalRowId,
+            'reason' => 'Rollback otomatis dari asisten AI',
+            'confirm' => true,
+        ], $actor);
     }
 }

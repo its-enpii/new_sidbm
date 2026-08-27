@@ -1,4 +1,4 @@
-﻿# Roadmap & Arsitektur SIDBM Mobile App (Flutter)
+# Roadmap & Arsitektur SIDBM Mobile App (Flutter)
 
 Dokumen ini memetakan arsitektur, pembagian tanggung jawab fitur, strategi integrasi API multi-tenant, dan tahapan implementasi aplikasi mobile **SIDBM Mobile** berbasis **Flutter**.
 

@@ -71,6 +71,8 @@ final class TenantUserManagementController
             'village_row_id' => $user->village_row_id,
             'role_code' => $roleMap[(int) $user->row_id]['code'] ?? null,
             'role_name' => $roleMap[(int) $user->row_id]['name'] ?? null,
+            'appointed_at' => $user->appointed_at?->toDateString(),
+            'term_end_at' => $user->term_end_at?->toDateString(),
             'last_login_at' => $user->last_login_at?->toDateTimeString(),
             'is_self' => (int) $user->row_id === (int) $request->user()?->row_id,
         ]);
@@ -113,6 +115,8 @@ final class TenantUserManagementController
                 'username' => $data['username'],
                 'password' => Hash::make($data['password']),
                 'status' => $data['status'] ?? 'active',
+                'appointed_at' => $data['appointed_at'] ?? null,
+                'term_end_at' => $data['term_end_at'] ?? null,
                 'is_village_user' => $isVillage,
                 'village_row_id' => $isVillage && ! empty($data['village_row_id']) ? (int) $data['village_row_id'] : null,
             ]);
@@ -148,6 +152,8 @@ final class TenantUserManagementController
         return Inertia::render('Access/Users/Form', [
             'user' => [
                 ...$user->only(['row_id', 'name', 'username', 'email', 'status', 'is_village_user', 'village_row_id']),
+                'appointed_at' => $user->appointed_at?->toDateString(),
+                'term_end_at' => $user->term_end_at?->toDateString(),
                 'role' => $userRole?->role?->code ?? '',
             ],
             'roleOptions' => $roles,
@@ -168,6 +174,8 @@ final class TenantUserManagementController
                 'email' => $data['email'] ?? null,
                 'username' => $data['username'],
                 'status' => $data['status'],
+                'appointed_at' => $data['appointed_at'] ?? null,
+                'term_end_at' => $data['term_end_at'] ?? null,
                 'is_village_user' => $isVillage,
                 'village_row_id' => $isVillage && ! empty($data['village_row_id']) ? (int) $data['village_row_id'] : null,
             ])->save();

@@ -14,6 +14,7 @@ use App\Domain\Membership\Models\Group;
 use App\Domain\Membership\Models\Member;
 use App\Domain\Membership\Models\Person;
 use App\Support\Csv;
+use App\Tenancy\Services\TenantSequenceService;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -65,7 +66,12 @@ final class TenantOnboardingService
         }
 
         return DB::connection('tenant')->transaction(function () use ($validLines, $asOfDate, $userId): JournalEntry {
+            $prefix = date('ym', strtotime($asOfDate));
+            $seq = app(TenantSequenceService::class)->next('journal_number:'.$prefix);
+            $journalNumber = $prefix.str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+
             $entry = JournalEntry::query()->create([
+                'journal_number' => $journalNumber,
                 'transaction_date' => $asOfDate,
                 'transaction_type' => 'pemindahan_saldo',
                 'description' => 'Posting Saldo Awal Keuangan Tenant Baru (Opening Balances - '.$asOfDate.')',

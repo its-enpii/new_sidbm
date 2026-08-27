@@ -18,6 +18,17 @@ final class ReportPdf
     {
         $pdf = Pdf::loadView($view, $data)->setPaper($paper, $orientation);
 
+        if (request()->boolean('download') || request()->query('download') === '1') {
+            return $pdf->download($filename);
+        }
+
         return $pdf->stream($filename);
+    }
+
+    public function download(string $view, array $data, string $filename, string $orientation = 'portrait', string|array $paper = 'a4'): Response|StreamedResponse
+    {
+        $pdf = Pdf::loadView($view, $data)->setPaper($paper, $orientation);
+
+        return $pdf->download($filename);
     }
 }

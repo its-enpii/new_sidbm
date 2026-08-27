@@ -43,6 +43,7 @@ final class ProfileController
                 'phone' => $user->phone,
                 'education' => $user->education,
                 'appointed_at' => $user->appointed_at?->toDateString(),
+                'term_end_at' => $user->term_end_at?->toDateString(),
             ],
             'account' => [
                 'username' => (string) $user->username,
@@ -72,6 +73,7 @@ final class ProfileController
             'phone' => $data['phone'] ?? null,
             'education' => $data['education'] ?? null,
             'appointed_at' => $data['appointed_at'] ?? null,
+            'term_end_at' => $data['term_end_at'] ?? null,
         ]);
         $user->save();
 

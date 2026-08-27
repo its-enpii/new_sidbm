@@ -40,6 +40,7 @@ final class User extends Authenticatable
             'village_row_id' => 'integer',
             'birth_date' => 'date',
             'appointed_at' => 'date',
+            'term_end_at' => 'date',
             'notifications_read' => 'array',
         ];
     }

@@ -23,6 +23,7 @@ const columns = [
     { key: 'username', label: 'Username' },
     { key: 'email', label: 'Email' },
     { key: 'role', label: 'Role / Peran' },
+    { key: 'tenure', label: 'Masa Jabatan' },
     { key: 'status', label: 'Status' },
     { key: 'last_login_at', label: 'Login Terakhir' },
 ];
@@ -108,6 +109,13 @@ function confirmDelete(user) {
                                 {{ row.role_name }}
                             </span>
                             <span v-else class="text-xs italic text-on-surface-variant">Akses Penuh (Legacy)</span>
+                        </template>
+
+                        <template #cell-tenure="{ row }">
+                            <span v-if="row.appointed_at || row.term_end_at" class="text-xs text-on-surface">
+                                {{ row.appointed_at || '—' }} s.d. {{ row.term_end_at || 'Sekarang' }}
+                            </span>
+                            <span v-else class="text-xs text-on-surface-variant">—</span>
                         </template>
 
                         <template #cell-status="{ row }">

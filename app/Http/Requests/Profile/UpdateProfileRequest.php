@@ -34,6 +34,7 @@ final class UpdateProfileRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:20'],
             'education' => ['nullable', Rule::in(self::EDUCATIONS)],
             'appointed_at' => ['nullable', 'date'],
+            'term_end_at' => ['nullable', 'date', 'after_or_equal:appointed_at'],
         ];
     }
 
@@ -48,7 +49,8 @@ final class UpdateProfileRequest extends FormRequest
             'address' => 'alamat',
             'phone' => 'telepon',
             'education' => 'pendidikan',
-            'appointed_at' => 'tanggal menjabat',
+            'appointed_at' => 'tanggal mulai menjabat',
+            'term_end_at' => 'tanggal selesai menjabat',
         ];
     }
 }

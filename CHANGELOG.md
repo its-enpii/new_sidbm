@@ -5,6 +5,45 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 
 ---
 
+## [2026-08-27]
+
+### Added
+- **Peningkatan Ekosistem Asisten AI (Integrasi `enpii/assistant` v0.2.0):**
+  - Pembaruan package `enpii/assistant` ke versi `0.2.0` (commit `2fc63f4`).
+  - Tool baru `simulate_loan` (`SimulateLoanHandler.php` & `AssistantToolService::simulateLoan`) yang dapat menghitung simulasi pinjaman interaktif dan memberikan tombol direct download PDF jadwal simulasi lengkap.
+  - Dukungan multi-modal lampiran dokumen (PDF/gambar) pada widget chat `AssistantWidget.vue` untuk parsing dokumen/kuitansi dengan OCR.
+  - Implementasi interface `CompensatableToolHandler` pada `CreateJournalEntryHandler` untuk mendukung aksi rollback/kompensasi transaksi otomatis.
+  - Penanganan real-time SSE event `tool_progress` pada widget chat untuk menampilkan kemajuan eksekusi tool secara visual.
+  - Penanda status pesan terbaca (*read receipts*) dan badge jumlah pesan belum dibaca (*unread count*) pada tombol bubble chat.
+  - Automated feature test `tests/Feature/Assistant/SimulateLoanToolTest.php` (4 test, 25 assertion).
+- **Fitur Simulasi Pinjaman (`/lending/simulation`):**
+  - Mesin kalkulasi `LoanSimulationService` (`app/Domain/Lending/Services/LoanSimulationService.php`) yang mendukung metode perhitungan bunga Flat (Tetap), Efektif Menurun (Declining), dan Anuitas (Annuity).
+  - Mendukung kustomisasi frekuensi pembayaran pokok dan jasa (Bulanan, Triwulanan, Semesteran, Tahunan, Jatuh Tempo di Akhir) serta aturan pembulatan nilai angsuran minimal Rp 500 (Rp 500, Rp 1.000, Rp 5.000, Rp 10.000, Rp 50.000).
+  - Controller `LoanSimulationController` (`app/Http/Controllers/Lending/LoanSimulationController.php`) dengan 3 endpoint:
+    - `GET /lending/simulation` (index): Halaman kalkulator interaktif dengan preset produk pinjaman yang aktif.
+    - `POST /lending/simulation/calculate` (calculate): API kalkulasi JSON tervalidasi.
+    - `GET /lending/simulation/pdf` (pdf): Cetak dokumen resmi estimasi jadwal angsuran berformat PDF.
+  - Template cetak laporan PDF `resources/views/reports/pdf/loan_simulation.blade.php` lengkap dengan kop identitas lembaga, ringkasan peminjam & plafon, serta tabel jadwal amortisasi angsuran.
+  - Antarmuka interaktif `resources/js/Pages/Lending/Simulation/Index.vue` dengan pemilihan cepat template produk kredit (SPP, UEP, PL), kalkulasi real-time di browser, kartu KPI (Total Pinjaman, Total Bunga, Total Pembayaran, Estimasi Bulanan), filter tanggal mulai, dan ekspor cetak PDF.
+  - Navigasi sidebar `resources/js/Layouts/AuthenticatedLayout.vue` pada menu Perguliran dan pemetaan permission `loans.view` di `config/permissions.php`.
+  - Automated feature test `tests/Feature/Lending/LoanSimulationTest.php` (8 test, 70 assertion).
+- **Nomor / Kode Transaksi Otomatis (`journal_number`):**
+  - Auto-generate kode transaksi dengan format `YYMMNNN` (contoh: `2608001`, `2608002`, dst.) saat jurnal diposting pada `JournalPostingService::post()`.
+  - Menggunakan `TenantSequenceService` dengan sequence berlingkup per-bulan (`journal_number:YYMM`) sehingga nomor urut reset otomatis menjadi `001` setiap pergantian bulan dan aman dari race condition.
+  - Berlaku merata untuk semua jenis transaksi sistem: jurnal manual/umum, pencairan pinjaman, angsuran pinjaman, penghapusan buku (write-off), penjadwalan ulang (reschedule), pembalikan jurnal (reversal), alokasi laba, asisten AI, dan pencatatan saldo awal pada `TenantOnboardingService`.
+  - Artisan command `php artisan accounting:backfill-journal-numbers {tenant}` (`BackfillJournalNumbers.php`) untuk mengisi `journal_number` pada transaksi historis/terposting yang masih kosong, dilengkapi opsi `--dry-run`.
+- **Masa Jabatan & Status Pengguna:**
+  - Migrasi `2026_08_27_092016_add_term_end_at_to_users_table.php` menambahkan kolom `term_end_at` (tanggal selesai menjabat, nullable) pada tabel `users` (koneksi platform).
+  - Cast `term_end_at` sebagai tipe `date` pada model `User`.
+  - Kolom tanggal mulai menjabat (`appointed_at`) dan selesai menjabat (`term_end_at`) terintegrasi pada form profil pengguna (`/profile`, tab Data Pribadi) dan manajemen akses pengguna tenant (`/access/users/create`, `/access/users/{id}/edit`).
+  - Kolom "Masa Jabatan" ditampilkan pada tabel daftar pengguna (`/access/users`) dengan rentang tanggal `appointed_at s.d. term_end_at`.
+  - Validasi request pada `UpdateProfileRequest`, `StoreTenantUserRequest`, dan `UpdateTenantUserRequest` (`term_end_at` harus berformat tanggal dan `after_or_equal:appointed_at`).
+- **Tool AI Asisten: Download Laporan Langsung (`download_report`):**
+  - Tool handler `App\Assistant\Handlers\DownloadReportHandler` (`download_report`) yang terdaftar di `ToolRegistry` dan dipetakan ke permission `reports.view`.
+  - Method `AssistantToolService::downloadReport()` yang menyusun URL endpoint ekspor PDF/Excel beserta komponen visual tombol interaktif (`::button{"label":"...","url":"...","icon":"download"}::`) yang otomatis di-render oleh widget chat `AssistantWidget.vue`.
+  - Mendukung seluruh laporan akuntansi/keuangan (Neraca, Laba Rugi, Arus Kas, Neraca Saldo, Perubahan Ekuitas, CALK, Buku Besar, Jurnal Transaksi, Kesehatan Keuangan, Daftar Aset Tetap) dan laporan pinjaman (Portofolio, Rencana vs Realisasi, LPP Desa, LPP Kelompok, Kolektibilitas, PPAP Cadangan Penghapusan, Ekspor Anggota/Kelompok).
+  - Dilengkapi test otomatis `tests/Feature/Assistant/DownloadReportToolTest.php` (6 tests).
+
 ## [2026-08-24]
 
 ### Added

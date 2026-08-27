@@ -13,7 +13,9 @@ use App\Domain\Accounting\Services\JournalReversalService;
 use App\Domain\Assets\Models\Asset;
 use App\Domain\Assets\Services\AssetService;
 use App\Domain\Lending\Models\Loan;
+use App\Domain\Lending\Models\LoanProduct;
 use App\Domain\Lending\Services\LoanService;
+use App\Domain\Lending\Services\LoanSimulationService;
 use App\Domain\Membership\Models\Member;
 use App\Domain\Notifications\Services\WhatsappNotificationService;
 use App\Http\Requests\Accounting\JournalEntryRequest;
@@ -40,6 +42,7 @@ final class AssistantToolService
         private readonly JournalPostingService $journalPosting,
         private readonly JournalReversalService $journalReversal,
         private readonly LoanService $loans,
+        private readonly LoanSimulationService $loanSimulator,
         private readonly WhatsappNotificationService $notices,
     ) {}
 
@@ -72,6 +75,8 @@ final class AssistantToolService
             'reverse_journal' => $this->reverseJournal($params, $actor),
             'record_installment' => $this->recordInstallment($params, $actor),
             'send_billing_notices' => $this->sendBillingNotices($params),
+            'download_report' => $this->downloadReport($params),
+            'simulate_loan' => $this->simulateLoan($params),
             default => throw new RuntimeException("Unknown tool: {$tool}"),
         };
     }
@@ -100,6 +105,8 @@ final class AssistantToolService
             'reverse_journal' => $this->reverseJournal($params, $actor),
             'record_installment' => $this->recordInstallment($params, $actor),
             'send_billing_notices' => $this->sendBillingNotices($params),
+            'download_report' => $this->downloadReport($params),
+            'simulate_loan' => $this->simulateLoan($params),
             default => throw new RuntimeException("Unknown tool: {$tool}"),
         };
     }
@@ -2778,6 +2785,296 @@ final class AssistantToolService
                 'debit' => (float) $l->debit,
                 'credit' => (float) $l->credit,
             ])->all(),
+        ];
+    }
+
+    /**
+     * Build direct download URL and button block for reports.
+     *
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    public function downloadReport(array $params): array
+    {
+        $rawType = strtolower(trim((string) ($params['report_type'] ?? 'balance_sheet')));
+        $format = strtolower(trim((string) ($params['format'] ?? 'pdf')));
+        if (! in_array($format, ['pdf', 'excel'], true)) {
+            $format = 'pdf';
+        }
+
+        $now = CarbonImmutable::now();
+        $year = isset($params['year']) && is_numeric($params['year']) ? (int) $params['year'] : $now->year;
+        $month = isset($params['month']) && is_numeric($params['month']) ? (int) $params['month'] : null;
+
+        $monthNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+        ];
+
+        $periodLabel = $month && isset($monthNames[$month])
+            ? "{$monthNames[$month]} {$year}"
+            : "Tahun {$year}";
+
+        // Normalize aliases
+        $type = match ($rawType) {
+            'neraca', 'balance_sheet' => 'balance_sheet',
+            'laba_rugi', 'labarugi', 'surplus_defisit', 'income_statement' => 'income_statement',
+            'arus_kas', 'cash_flow' => 'cash_flow',
+            'neraca_saldo', 'trial_balance' => 'trial_balance',
+            'perubahan_modal', 'perubahan_ekuitas', 'equity_change' => 'equity_change',
+            'calk', 'catatan_atas_laporan_keuangan' => 'calk',
+            'buku_besar', 'general_ledger' => 'general_ledger',
+            'jurnal', 'jurnal_transaksi', 'journals' => 'journals',
+            'kesehatan_keuangan', 'financial_health' => 'financial_health',
+            'aset_tetap', 'fixed_assets', 'inventaris' => 'fixed_assets',
+            'aset_takberwujud', 'intangible_assets' => 'intangible_assets',
+            'portofolio', 'portfolio', 'perkembangan_pinjaman' => 'portfolio',
+            'rencana_vs_realisasi', 'schedule_vs_actual' => 'schedule_vs_actual',
+            'lpp_desa' => 'lpp_desa',
+            'lpp_kelompok' => 'lpp_kelompok',
+            'kolek_desa', 'kolektibilitas' => 'kolek_desa',
+            'cadangan_penghapusan', 'ppap' => 'cadangan_penghapusan',
+            'anggota', 'members' => 'members',
+            'kelompok', 'groups' => 'groups',
+            default => 'balance_sheet',
+        };
+
+        $reportMeta = match ($type) {
+            'balance_sheet' => [
+                'name' => 'Laporan Neraca',
+                'short_name' => 'Neraca',
+                'pdf' => '/accounting/reports/balance-sheet/pdf',
+                'excel' => '/accounting/reports/balance-sheet/excel',
+                'query' => array_filter(['month' => $month, 'year' => $year]),
+            ],
+            'income_statement' => [
+                'name' => 'Laporan Laba Rugi',
+                'short_name' => 'Laba Rugi',
+                'pdf' => '/accounting/reports/income-statement/pdf',
+                'excel' => '/accounting/reports/income-statement/excel',
+                'query' => array_filter(['month' => $month, 'year' => $year]),
+            ],
+            'cash_flow' => [
+                'name' => 'Laporan Arus Kas',
+                'short_name' => 'Arus Kas',
+                'pdf' => '/accounting/reports/cash-flow/pdf',
+                'excel' => '/accounting/reports/cash-flow/excel',
+                'query' => array_filter(['month' => $month, 'year' => $year]),
+            ],
+            'trial_balance' => [
+                'name' => 'Laporan Neraca Saldo',
+                'short_name' => 'Neraca Saldo',
+                'pdf' => '/accounting/reports/trial-balance/pdf',
+                'excel' => '/accounting/reports/trial-balance/excel',
+                'query' => array_filter(['month' => $month, 'year' => $year]),
+            ],
+            'equity_change' => [
+                'name' => 'Laporan Perubahan Ekuitas',
+                'short_name' => 'Perubahan Modal',
+                'pdf' => '/accounting/reports/equity-change/pdf',
+                'excel' => '/accounting/reports/equity-change/excel',
+                'query' => array_filter(['month' => $month, 'year' => $year]),
+            ],
+            'calk' => [
+                'name' => 'Catatan Atas Laporan Keuangan (CALK)',
+                'short_name' => 'CALK',
+                'pdf' => '/accounting/reports/calk/pdf',
+                'excel' => null,
+                'query' => array_filter(['month' => $month, 'year' => $year]),
+            ],
+            'general_ledger' => [
+                'name' => 'Laporan Buku Besar',
+                'short_name' => 'Buku Besar',
+                'pdf' => '/accounting/reports/general-ledger/pdf',
+                'excel' => '/accounting/reports/general-ledger/excel',
+                'query' => array_filter([
+                    'month' => $month,
+                    'year' => $year,
+                    'account_id' => $params['account_id'] ?? null,
+                ]),
+            ],
+            'journals' => [
+                'name' => 'Laporan Jurnal Transaksi',
+                'short_name' => 'Jurnal',
+                'pdf' => '/accounting/reports/journals/pdf',
+                'excel' => '/accounting/reports/journals/excel',
+                'query' => array_filter([
+                    'from' => $params['from_date'] ?? ($month ? sprintf('%04d-%02d-01', $year, $month) : sprintf('%04d-01-01', $year)),
+                    'to' => $params['to_date'] ?? ($month ? CarbonImmutable::createFromDate($year, $month, 1)->endOfMonth()->toDateString() : sprintf('%04d-12-31', $year)),
+                ]),
+            ],
+            'financial_health' => [
+                'name' => 'Analisis Kesehatan Keuangan',
+                'short_name' => 'Kesehatan Keuangan',
+                'pdf' => '/accounting/reports/financial-health/pdf',
+                'excel' => null,
+                'query' => array_filter(['month' => $month, 'year' => $year]),
+            ],
+            'fixed_assets' => [
+                'name' => 'Daftar Aset Tetap',
+                'short_name' => 'Aset Tetap',
+                'pdf' => '/accounting/reports/assets/fixed/pdf',
+                'excel' => '/accounting/reports/assets/fixed/excel',
+                'query' => array_filter(['as_of' => $params['as_of_date'] ?? $now->toDateString()]),
+            ],
+            'intangible_assets' => [
+                'name' => 'Daftar Aset Tidak Berwujud',
+                'short_name' => 'Aset Tak Berwujud',
+                'pdf' => '/accounting/reports/assets/intangible/pdf',
+                'excel' => '/accounting/reports/assets/intangible/excel',
+                'query' => array_filter(['as_of' => $params['as_of_date'] ?? $now->toDateString()]),
+            ],
+            'portfolio' => [
+                'name' => 'Laporan Portofolio Pinjaman',
+                'short_name' => 'Portofolio',
+                'pdf' => '/lending/reports/portfolio/pdf',
+                'excel' => null,
+                'query' => array_filter(['month' => $month, 'year' => $year]),
+            ],
+            'schedule_vs_actual' => [
+                'name' => 'Laporan Rencana vs Realisasi Pinjaman',
+                'short_name' => 'Rencana vs Realisasi',
+                'pdf' => '/lending/reports/schedule-vs-actual/pdf',
+                'excel' => null,
+                'query' => array_filter(['month' => $month, 'year' => $year]),
+            ],
+            'lpp_desa' => [
+                'name' => 'LPP per Desa',
+                'short_name' => 'LPP Desa',
+                'pdf' => '/lending/reports/lpp-desa/pdf',
+                'excel' => null,
+                'query' => array_filter(['month' => $month, 'year' => $year]),
+            ],
+            'lpp_kelompok' => [
+                'name' => 'LPP per Kelompok',
+                'short_name' => 'LPP Kelompok',
+                'pdf' => '/lending/reports/lpp-kelompok/pdf',
+                'excel' => null,
+                'query' => array_filter(['month' => $month, 'year' => $year]),
+            ],
+            'kolek_desa' => [
+                'name' => 'Laporan Kolektibilitas per Desa',
+                'short_name' => 'Kolektibilitas',
+                'pdf' => '/lending/reports/kolek-desa/pdf',
+                'excel' => null,
+                'query' => array_filter(['month' => $month, 'year' => $year]),
+            ],
+            'cadangan_penghapusan' => [
+                'name' => 'Laporan Cadangan Penghapusan Pinjaman',
+                'short_name' => 'Cadangan PPAP',
+                'pdf' => '/lending/reports/cadangan-penghapusan/pdf',
+                'excel' => null,
+                'query' => array_filter(['month' => $month, 'year' => $year]),
+            ],
+            'members' => [
+                'name' => 'Ekspor Data Anggota',
+                'short_name' => 'Data Anggota',
+                'pdf' => null,
+                'excel' => '/members/export',
+                'query' => [],
+            ],
+            'groups' => [
+                'name' => 'Ekspor Data Kelompok',
+                'short_name' => 'Data Kelompok',
+                'pdf' => null,
+                'excel' => '/groups/export',
+                'query' => [],
+            ],
+        };
+
+        // Fallback format if requested format is not supported for this report
+        if ($format === 'excel' && empty($reportMeta['excel'])) {
+            $format = 'pdf';
+        } elseif ($format === 'pdf' && empty($reportMeta['pdf'])) {
+            $format = 'excel';
+        }
+
+        $queryParams = $reportMeta['query'];
+        if ($format === 'pdf') {
+            $queryParams['download'] = 1;
+        }
+
+        $basePath = $format === 'excel' ? $reportMeta['excel'] : $reportMeta['pdf'];
+        $queryString = http_build_query($queryParams);
+        $url = $basePath.($queryString !== '' ? '?'.$queryString : '');
+
+        $reportName = $reportMeta['name'];
+        $shortName = $reportMeta['short_name'] ?? $reportName;
+        $formatUpper = strtoupper($format);
+        $btnLabel = "Unduh {$shortName} ({$formatUpper})";
+        $actionButton = sprintf('::button{"label":"%s","url":"%s","icon":"download"}::', $btnLabel, $url);
+        $markdownLink = sprintf('[%s](%s)', $btnLabel, $url);
+
+        return [
+            'ok' => true,
+            'report_type' => $type,
+            'report_name' => $reportName,
+            'short_name' => $shortName,
+            'format' => $format,
+            'period' => $periodLabel,
+            'download_url' => $url,
+            'action_button' => $actionButton,
+            'markdown_link' => $markdownLink,
+            'instructions' => 'Sertakan tombol action_button ini dalam respon Anda agar pengguna bisa langsung mendownload file laporan dengan satu klik.',
+        ];
+    }
+
+    public function simulateLoan(array $params): array
+    {
+        $productCode = isset($params['product_code']) ? strtolower(trim((string) $params['product_code'])) : null;
+        if ($productCode !== null && $productCode !== '') {
+            $product = LoanProduct::query()->where('code', $productCode)->where('is_active', true)->first();
+            if ($product !== null) {
+                if (! isset($params['interest_rate'])) {
+                    $params['interest_rate'] = (float) $product->default_interest_rate;
+                }
+                if (! isset($params['term_months'])) {
+                    $params['term_months'] = (int) $product->default_term_months;
+                }
+                if (! isset($params['rounding_step'])) {
+                    $params['rounding_step'] = is_numeric($product->rounding_method) ? max(500, (int) $product->rounding_method) : 500;
+                }
+            }
+        }
+
+        $params['principal_amount'] = max(100000.0, (float) ($params['principal_amount'] ?? 10000000));
+        $params['term_months'] = max(1, min(120, (int) ($params['term_months'] ?? 12)));
+        $params['interest_rate'] = max(0.0, min(100.0, (float) ($params['interest_rate'] ?? 12.0)));
+        $params['installment_method'] = (string) ($params['installment_method'] ?? 'flat');
+        if (! in_array($params['installment_method'], ['flat', 'declining', 'annuity'], true)) {
+            $params['installment_method'] = 'flat';
+        }
+        $params['principal_frequency'] = (string) ($params['principal_frequency'] ?? 'monthly');
+        $params['interest_frequency'] = (string) ($params['interest_frequency'] ?? 'monthly');
+        $params['rounding_step'] = max(500, (int) ($params['rounding_step'] ?? 500));
+        $params['start_date'] = (string) ($params['start_date'] ?? date('Y-m-d'));
+
+        $simulation = $this->loanSimulator->simulate($params);
+
+        $borrowerName = (string) ($params['borrower_name'] ?? 'Calon Peminjam');
+        $pdfQuery = http_build_query([
+            'principal_amount' => $params['principal_amount'],
+            'term_months' => $params['term_months'],
+            'interest_rate' => $params['interest_rate'],
+            'installment_method' => $params['installment_method'],
+            'principal_frequency' => $params['principal_frequency'],
+            'interest_frequency' => $params['interest_frequency'],
+            'rounding_step' => $params['rounding_step'],
+            'start_date' => $params['start_date'],
+            'borrower_name' => $borrowerName,
+            'download' => '1',
+        ]);
+        $pdfUrl = "/lending/simulation/pdf?{$pdfQuery}";
+        $buttonMarkup = sprintf('::button{"label":"Unduh Jadwal Simulasi (PDF)","url":"%s","icon":"download"}::', $pdfUrl);
+
+        return [
+            'success' => true,
+            'summary' => $simulation['summary'],
+            'pdf_url' => $pdfUrl,
+            'download_button' => $buttonMarkup,
+            'schedule_preview' => array_slice($simulation['schedule'], 0, 3),
+            'total_installments' => count($simulation['schedule']),
         ];
     }
 }

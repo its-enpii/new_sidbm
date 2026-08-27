@@ -26,6 +26,7 @@ if (!window.__assistantState__) {
         persona: null,
         conversationId: null,
         msgSeq: 0,
+        unreadCount: 0,
     });
 } else {
     // Migration: drop legacy session-token fields if a stale shape exists
@@ -52,6 +53,7 @@ const input = ref(shared.input);
 const messages = ref(shared.messages);
 const pendingConfirmation = ref(shared.pendingConfirmation);
 const persona = ref(shared.persona);
+const unreadCount = ref(shared.unreadCount || 0);
 
 // Watch wrapper so all `xxx.value = ...` calls round-trip into shared module state,
 // otherwise Inertia layout remounts would lose chat history.
@@ -65,6 +67,7 @@ watch(input, (v) => (shared.input = v));
 watch(messages, (v) => (shared.messages = v), { deep: true });
 watch(pendingConfirmation, (v) => (shared.pendingConfirmation = v), { deep: true });
 watch(persona, (v) => (shared.persona = v), { deep: true });
+watch(unreadCount, (v) => (shared.unreadCount = v));
 
 let conversationId = shared.conversationId || null;
 let msgSeq = shared.msgSeq;
@@ -73,6 +76,23 @@ watch(() => shared.conversationId, (v) => (conversationId = v));
 
 function csrfToken() {
     return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+}
+
+async function markCurrentConversationRead() {
+    unreadCount.value = 0;
+    if (!conversationId) return;
+    try {
+        await fetch(`/assistant/conversations/${conversationId}/mark-read`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': csrfToken(),
+            },
+        });
+    } catch {
+        // ignore
+    }
 }
 
 function displayName() {
@@ -220,12 +240,23 @@ function handleEvent(event, data, assistantMsg) {
                     role: 'assistant',
                     content: assistantMsg.content,
                 });
+                if (!open.value) unreadCount.value++;
             } else {
                 assistantMsg.content += delta;
                 if (assistantMsg._ref) assistantMsg._ref.content = assistantMsg.content;
             }
             scrollBottom();
         }
+        return;
+    }
+    if (event === 'tool_progress') {
+        typing.value = true;
+        if (data?.message) {
+            typingLabel.value = data.message;
+        } else if (data?.progress) {
+            typingLabel.value = `Memproses (${data.progress}%)?`;
+        }
+        scrollBottom();
         return;
     }
     // Tools stay internal — only status on typing chip (not chat bubbles).
@@ -281,12 +312,15 @@ function triggerAttach() {
 }
 
 function processFiles(files) {
-    const validImages = Array.from(files).filter((f) => f.type.startsWith('image/'));
-    for (const file of validImages) {
-        if (file.size > 10 * 1024 * 1024) {
-            error.value = 'Ukuran gambar maksimal 10MB.';
+    const validFiles = Array.from(files).filter(
+        (f) => f.type.startsWith('image/') || f.type === 'application/pdf'
+    );
+    for (const file of validFiles) {
+        if (file.size > 15 * 1024 * 1024) {
+            error.value = 'Ukuran berkas maksimal 15MB.';
             continue;
         }
+        const isPdf = file.type === 'application/pdf';
         const reader = new FileReader();
         reader.onload = (e) => {
             attachedImages.value.push({
@@ -294,6 +328,7 @@ function processFiles(files) {
                 name: file.name,
                 type: file.type,
                 size: file.size,
+                isPdf,
             });
             nextTick(scrollBottom);
         };
@@ -327,11 +362,11 @@ function removeAttachedImage(index) {
 async function sendMessage() {
     const content = input.value.trim();
     if (!content && !attachedImages.value.length) return;
-    const attachments = attachedImages.value.map((img) => ({
-        type: 'image',
-        url: img.dataUrl,
-        name: img.name,
-        mime: img.type,
+    const attachments = attachedImages.value.map((att) => ({
+        type: att.isPdf ? 'document' : 'image',
+        url: att.dataUrl,
+        name: att.name,
+        mime: att.type,
     }));
     input.value = '';
     attachedImages.value = [];
@@ -366,6 +401,23 @@ function onComponentSubmit(msg, block, payload) {
 }
 
 // Artifact modal state (only one artifact open at a time).
+const previewImageUrl = ref(null);
+
+function previewImage(url) {
+    previewImageUrl.value = url;
+}
+
+function closeImagePreview() {
+    previewImageUrl.value = null;
+}
+
+function formatFileSize(bytes) {
+    if (!bytes || bytes <= 0) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 const activeArtifact = ref(null);
 function openArtifact(block) {
     activeArtifact.value = block;
@@ -479,6 +531,7 @@ function toggle() {
         if (!messages.value.length) {
             pushMessage({ role: 'assistant', content: pickGreeting() });
         }
+        markCurrentConversationRead();
         ensureSession();
         nextTick(scrollBottom);
     }
@@ -541,14 +594,51 @@ onBeforeUnmount(() => {
                                 <span v-if="msg.ok === false" class="text-error"> (gagal)</span>
                             </template>
                             <template v-else-if="msg.role === 'user' || msg.role === 'error'">
-                                <div v-if="msg.attachments && msg.attachments.length" class="mb-2 flex flex-wrap gap-1.5">
-                                    <img
-                                        v-for="(att, i) in msg.attachments"
-                                        :key="i"
-                                        :src="att.url"
-                                        :alt="att.name || 'Gambar terlampir'"
-                                        class="max-h-36 max-w-full rounded-xl border border-white/20 object-cover shadow-sm"
-                                    />
+                                <div v-if="msg.attachments && msg.attachments.length" class="mb-2 flex flex-col gap-2">
+                                    <template v-for="(att, i) in msg.attachments" :key="i">
+                                        <!-- Image Bubble Preview -->
+                                        <div
+                                            v-if="att.type === 'image' || att.mime?.startsWith('image/')"
+                                            class="group relative max-w-full overflow-hidden rounded-xl border border-white/20 shadow-sm"
+                                        >
+                                            <img
+                                                :src="att.url"
+                                                :alt="att.name || 'Gambar terlampir'"
+                                                class="max-h-48 w-full object-cover transition duration-150 group-hover:brightness-95 cursor-pointer"
+                                                @click="previewImage(att.url)"
+                                            />
+                                            <div
+                                                class="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100"
+                                            >
+                                                <span class="rounded-full bg-black/60 p-1.5 text-white shadow">
+                                                    <AppIcon name="visibility" class="text-base" />
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Document / PDF Bubble Card -->
+                                        <div
+                                            v-else
+                                            class="flex items-center gap-2.5 rounded-xl border border-white/20 bg-black/20 p-2.5 text-on-primary shadow-sm"
+                                        >
+                                            <div class="grid size-10 shrink-0 place-items-center rounded-lg bg-white/15 text-white">
+                                                <AppIcon name="picture_as_pdf" class="text-2xl" />
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <span class="block truncate text-xs font-bold leading-tight">{{ att.name || 'Dokumen' }}</span>
+                                                <span class="block text-[10px] text-white/75 mt-0.5">{{ formatFileSize(att.size) || 'PDF Dokumen' }}</span>
+                                            </div>
+                                            <a
+                                                v-if="att.url"
+                                                :href="att.url"
+                                                :download="att.name || 'dokumen.pdf'"
+                                                class="grid size-8 shrink-0 place-items-center rounded-lg bg-white/10 text-white transition hover:bg-white/20"
+                                                title="Unduh Berkas"
+                                            >
+                                                <AppIcon name="download" class="text-base" />
+                                            </a>
+                                        </div>
+                                    </template>
                                 </div>
                                 <span v-if="msg.content && msg.content !== '(Lampiran Gambar)'">{{ msg.content }}</span>
                             </template>
@@ -623,18 +713,22 @@ onBeforeUnmount(() => {
                 </div>
 
                 <div class="border-t border-outline-variant bg-surface-container-lowest">
-                    <!-- Attached Images Preview -->
+                    <!-- Attached Files Preview -->
                     <div v-if="attachedImages.length" class="flex flex-wrap gap-2 border-b border-outline-variant/50 px-3 pt-2.5 pb-2">
                         <div
-                            v-for="(img, idx) in attachedImages"
+                            v-for="(att, idx) in attachedImages"
                             :key="idx"
-                            class="group relative size-14 shrink-0 overflow-hidden rounded-xl border border-outline-variant bg-surface-container"
+                            class="group relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-outline-variant bg-surface-container"
                         >
-                            <img :src="img.dataUrl" class="size-full object-cover" :alt="img.name" />
+                            <img v-if="!att.isPdf" :src="att.dataUrl" class="size-full object-cover" :alt="att.name" />
+                            <div v-else class="flex flex-col items-center justify-center p-1 text-center text-on-surface-variant">
+                                <AppIcon name="picture_as_pdf" class="text-lg text-primary" />
+                                <span class="max-w-12 truncate text-[9px] font-semibold">{{ att.name }}</span>
+                            </div>
                             <button
                                 type="button"
                                 class="absolute inset-0 grid place-items-center bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
-                                aria-label="Hapus gambar"
+                                aria-label="Hapus lampiran"
                                 @click="removeAttachedImage(idx)"
                             >
                                 <AppIcon name="close" class="text-base" />
@@ -646,7 +740,7 @@ onBeforeUnmount(() => {
                         <input
                             ref="fileInputEl"
                             type="file"
-                            accept="image/png,image/jpeg,image/webp,image/gif"
+                            accept="image/png,image/jpeg,image/webp,image/gif,application/pdf"
                             multiple
                             class="sr-only"
                             @change="onFilesSelected"
@@ -655,8 +749,8 @@ onBeforeUnmount(() => {
                             type="button"
                             class="mb-0.5 grid size-11 shrink-0 place-items-center rounded-xl border border-outline-variant text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
                             :disabled="sending || loading"
-                            aria-label="Lampirkan Gambar"
-                            title="Lampirkan Gambar"
+                            aria-label="Lampirkan Gambar atau Dokumen"
+                            title="Lampirkan Gambar atau Dokumen (PDF)"
                             @click="triggerAttach"
                         >
                             <AppIcon name="add_photo_alternate" class="text-xl" />
@@ -688,14 +782,45 @@ onBeforeUnmount(() => {
 
         <ArtifactModal :block="activeArtifact" @close="closeArtifact" />
 
+        <!-- Full-Screen Image Lightbox Modal -->
+        <Teleport to="body">
+            <Transition name="fade">
+                <div
+                    v-if="previewImageUrl"
+                    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+                    role="dialog"
+                    aria-label="Preview Gambar"
+                    @click.self="closeImagePreview"
+                >
+                    <div class="relative max-h-[90vh] max-w-[90vw] overflow-hidden rounded-2xl bg-surface-container-lowest shadow-2xl">
+                        <button
+                            type="button"
+                            class="absolute top-3 right-3 z-10 grid size-9 place-items-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
+                            aria-label="Tutup preview"
+                            @click="closeImagePreview"
+                        >
+                            <AppIcon name="close" class="text-xl" />
+                        </button>
+                        <img :src="previewImageUrl" alt="Preview Gambar" class="max-h-[85vh] max-w-full object-contain" />
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
+
         <button
             type="button"
-            class="pointer-events-auto grid size-14 place-items-center rounded-full bg-primary text-on-primary shadow-lg transition duration-200 hover:scale-105 hover:bg-primary-container focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-95"
+            class="pointer-events-auto relative grid size-14 place-items-center rounded-full bg-primary text-on-primary shadow-lg transition duration-200 hover:scale-105 hover:bg-primary-container focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-95"
             :aria-expanded="open"
             :aria-label="`Buka ${displayName()}`"
             @click="toggle"
         >
             <AppIcon :name="open ? 'close' : 'smart_toy'" class="text-2xl transition-transform duration-200" />
+            <span
+                v-if="!open && unreadCount > 0"
+                class="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-error px-1 text-[11px] font-bold text-on-error shadow"
+            >
+                {{ unreadCount > 99 ? '99+' : unreadCount }}
+            </span>
         </button>
     </div>
 </template>
@@ -715,6 +840,15 @@ onBeforeUnmount(() => {
         opacity 0.2s ease,
         transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+
 .assistant-panel-enter-from,
 .assistant-panel-leave-to {
     opacity: 0;

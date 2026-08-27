@@ -37,6 +37,7 @@ use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\Lending\LoanController;
 use App\Http\Controllers\Lending\LoanDocumentController;
 use App\Http\Controllers\Lending\LoanReportController;
+use App\Http\Controllers\Lending\LoanSimulationController;
 use App\Http\Controllers\MasterData\GroupController;
 use App\Http\Controllers\MasterData\MemberController;
 use App\Http\Controllers\MasterData\OtherInstitutionController;
@@ -345,6 +346,10 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
     Route::post('/lending/proposals/{proposal}/submit', [LoanController::class, 'submit'])->name('lending.proposals.submit');
     Route::post('/lending/proposals/{proposal}/approve', [LoanController::class, 'approve'])->name('lending.proposals.approve');
     Route::post('/lending/proposals/{proposal}/reject', [LoanController::class, 'reject'])->name('lending.proposals.reject');
+
+    Route::get('/lending/simulation', [LoanSimulationController::class, 'index'])->name('lending.simulation.index');
+    Route::post('/lending/simulation/calculate', [LoanSimulationController::class, 'calculate'])->name('lending.simulation.calculate');
+    Route::get('/lending/simulation/pdf', [LoanSimulationController::class, 'pdf'])->name('lending.simulation.pdf');
 
     Route::get('/lending/loans', [LoanController::class, 'index'])->name('lending.loans.index');
     Route::get('/lending/loans/create', [LoanController::class, 'create'])->name('lending.loans.create');

@@ -62,6 +62,7 @@ const personalForm = useForm({
     phone: props.profile.phone ?? '',
     education: props.profile.education ?? '',
     appointed_at: props.profile.appointed_at ?? '',
+    term_end_at: props.profile.term_end_at ?? '',
 });
 
 function submitPersonal() {
@@ -237,9 +238,14 @@ async function destroyPhoto() {
                                 />
                                 <AppDatePicker
                                     v-model="personalForm.appointed_at"
-                                    label="Tanggal Mulai Bekerja"
-                                    :max="today"
+                                    label="Mulai Menjabat"
                                     :error="personalForm.errors.appointed_at"
+                                />
+                                <AppDatePicker
+                                    v-model="personalForm.term_end_at"
+                                    label="Selesai Menjabat"
+                                    :min="personalForm.appointed_at || undefined"
+                                    :error="personalForm.errors.term_end_at"
                                 />
                             </div>
                             <div class="flex justify-end border-t border-outline-variant pt-4">

@@ -745,12 +745,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:its-enpii/enpii-assistant.git",
-                "reference": "2c676f0e55686bebd1137e662ec44cf7a8d6a5dc"
+                "reference": "2fc63f4a77cd632d9716c56efeb52b06a2725509"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/its-enpii/enpii-assistant/zipball/2c676f0e55686bebd1137e662ec44cf7a8d6a5dc",
-                "reference": "2c676f0e55686bebd1137e662ec44cf7a8d6a5dc",
+                "url": "https://api.github.com/repos/its-enpii/enpii-assistant/zipball/2fc63f4a77cd632d9716c56efeb52b06a2725509",
+                "reference": "2fc63f4a77cd632d9716c56efeb52b06a2725509",
                 "shasum": ""
             },
             "require": {
@@ -765,6 +765,7 @@
             "require-dev": {
                 "laravel/pint": "^1.24",
                 "mockery/mockery": "^1.6",
+                "orchestra/testbench": "^11.0",
                 "phpunit/phpunit": "^12.5.12"
             },
             "default-branch": true,
@@ -795,7 +796,7 @@
                 "source": "https://github.com/its-enpii/enpii-assistant",
                 "issues": "https://github.com/its-enpii/enpii-assistant/issues"
             },
-            "time": "2026-08-20T02:56:52+00:00"
+            "time": "2026-08-27T03:33:09+00:00"
         },
         {
             "name": "fruitcake/php-cors",

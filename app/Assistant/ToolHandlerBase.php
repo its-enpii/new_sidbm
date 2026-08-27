@@ -43,11 +43,16 @@ abstract class ToolHandlerBase implements ToolHandler
      */
     final public function handle(array $params, ToolContext $ctx): array
     {
-        $actor = $ctx->actor instanceof User
-            ? $ctx->actor
-            : $this->resolveSystemActor();
+        $actor = $this->resolveActor($ctx);
 
         return $this->invoke($params, $actor);
+    }
+
+    protected function resolveActor(ToolContext $ctx): User
+    {
+        return $ctx->actor instanceof User
+            ? $ctx->actor
+            : $this->resolveSystemActor();
     }
 
     /**

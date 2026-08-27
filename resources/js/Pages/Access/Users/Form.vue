@@ -4,6 +4,7 @@ import { computed } from 'vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import AppCheckbox from '../../../Components/AppCheckbox.vue';
+import AppDatePicker from '../../../Components/AppDatePicker.vue';
 import AppIcon from '../../../Components/AppIcon.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
@@ -24,6 +25,8 @@ const form = useForm({
     password: '',
     password_confirmation: '',
     status: props.user?.status || 'active',
+    appointed_at: props.user?.appointed_at || '',
+    term_end_at: props.user?.term_end_at || '',
     role: props.user?.role || '',
     is_village_user: Boolean(props.user?.is_village_user),
     village_row_id: props.user?.village_row_id || '',
@@ -96,6 +99,20 @@ function submit() {
                         <div class="grid gap-4 sm:grid-cols-2">
                             <SmartSelect v-model="form.role" label="Peran (Role)" :options="roleOptions" :error="form.errors.role" />
                             <SmartSelect v-model="form.status" label="Status Akun" :options="statusOptions" required :error="form.errors.status" />
+                        </div>
+
+                        <div class="grid gap-4 sm:grid-cols-2 border-t border-outline-variant pt-4">
+                            <AppDatePicker
+                                v-model="form.appointed_at"
+                                label="Mulai Menjabat"
+                                :error="form.errors.appointed_at"
+                            />
+                            <AppDatePicker
+                                v-model="form.term_end_at"
+                                label="Selesai Menjabat"
+                                :min="form.appointed_at || undefined"
+                                :error="form.errors.term_end_at"
+                            />
                         </div>
 
                         <div class="border-t border-outline-variant pt-4 space-y-3">

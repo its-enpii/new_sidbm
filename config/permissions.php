@@ -202,6 +202,7 @@ return [
         '/lending/loans/create' => 'loans.propose',
         '/lending/loans' => 'loans.view',
         '/lending/reports' => 'loans.view',
+        '/lending/simulation' => 'loans.view',
         '/accounting/journals' => 'journals.view',
         '/accounting/assets' => 'assets.view',
         '/accounting/journal-entries/installment' => 'installments.record',
@@ -271,5 +272,7 @@ return [
         'reverse_journal' => 'journals.create',
         'record_installment' => 'installments.record',
         'send_billing_notices' => 'messages.send',
+        'download_report' => 'reports.view',
+        'simulate_loan' => 'loans.view',
     ],
 ];

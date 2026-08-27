@@ -9,6 +9,17 @@ const emit = defineEmits(['submit']);
 
 function onClick() {
     if (props.block.url) {
+        if (props.block.icon === 'download' || props.block.download || props.block.url.includes('download=1')) {
+            const link = document.createElement('a');
+            link.href = props.block.url;
+            link.target = '_blank';
+            link.setAttribute('download', '');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            return;
+        }
+
         window.open(props.block.url, props.block.target || '_blank', 'noopener,noreferrer');
         return;
     }

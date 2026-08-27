@@ -309,8 +309,34 @@ final class PrintAssistantToolDefinitions extends Command
                     ],
                 ],
             ],
+            [
+                'name' => 'download_report',
+                'description' => 'Menghasilkan tombol/link direct download untuk laporan keuangan (Neraca, Laba Rugi, Arus Kas, Buku Besar, Jurnal, dll) dan laporan pinjaman (Portofolio, LPP, Kolektibilitas, dll) dalam format PDF atau Excel.',
+                'requires_confirmation' => false,
+                'endpoint_url' => $base.'/api/assistant/tools/download_report',
+                'json_schema' => [
+                    'type' => 'object',
+                    'required' => ['report_type'],
+                    'properties' => [
+                        'report_type' => [
+                            'type' => 'string',
+                            'description' => 'balance_sheet, income_statement, cash_flow, trial_balance, equity_change, calk, general_ledger, journals, financial_health, fixed_assets, portfolio, schedule_vs_actual, lpp_desa, lpp_kelompok, kolek_desa, cadangan_penghapusan, members, groups',
+                        ],
+                        'format' => [
+                            'type' => 'string',
+                            'enum' => ['pdf', 'excel'],
+                            'description' => 'Format file: pdf atau excel (default pdf)',
+                        ],
+                        'month' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 12],
+                        'year' => ['type' => 'integer'],
+                        'from_date' => ['type' => 'string', 'format' => 'date'],
+                        'to_date' => ['type' => 'string', 'format' => 'date'],
+                        'account_id' => ['type' => 'integer'],
+                        'as_of_date' => ['type' => 'string', 'format' => 'date'],
+                    ],
+                ],
+            ],
         ];
-
         $this->line(json_encode($tools, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
         return self::SUCCESS;

@@ -268,6 +268,7 @@ const sections = [
             },
             { label: 'Register Proposal', icon: 'assignment_add', href: '/lending/loans/create', exact: true },
             { label: 'Tahapan Perguliran', icon: 'sync_alt', href: '/lending/loans', exclude: '/lending/loans/create' },
+            { label: 'Simulasi Pinjaman', icon: 'calculate', href: '/lending/simulation' },
         ],
     },
     {
