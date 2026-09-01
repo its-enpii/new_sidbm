@@ -254,15 +254,16 @@ const filteredReleases = computed(() => {
             </AppCard>
 
             <!-- Changelog Timeline Cards -->
-            <div v-if="filteredReleases.length > 0" class="relative pl-6 sm:pl-9 ml-2 sm:ml-8 border-l-2 border-outline-variant/70 space-y-8">
+            <div v-if="filteredReleases.length > 0" class="relative space-y-8">
+                <div aria-hidden="true" class="absolute inset-y-0 left-4 w-0.5 -translate-x-1/2 bg-outline-variant/70"></div>
                 <article
                     v-for="release in filteredReleases"
                     :key="release.version"
-                    class="relative"
+                    class="relative pl-11"
                 >
                     <!-- Timeline Node Indicator -->
                     <div
-                        class="absolute -left-[36px] sm:-left-[52px] top-6 flex size-5 sm:size-6 items-center justify-center rounded-full border-2 bg-surface-container-lowest shadow-xs transition-transform"
+                        class="absolute left-4 top-6 flex size-5 sm:size-6 -translate-x-1/2 items-center justify-center rounded-full border-2 bg-surface-container-lowest shadow-xs transition-transform"
                         :class="release.is_latest ? 'border-secondary' : 'border-outline'"
                     >
                         <span
