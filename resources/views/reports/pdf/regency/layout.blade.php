@@ -5,17 +5,17 @@
     <title>{{ $title ?? 'Laporan Konsolidasi Kabupaten' }}</title>
     <style>
         * { font-family: Arial, Helvetica, sans-serif; }
-        html { margin: 40px 50px; }
+        html { margin: 75.59px 94.48px; }
         body { font-size: 11px; color: #111; line-height: 1.3; }
         table { border-collapse: collapse; width: 100%; }
-        table tr th, table tr td { padding: 3px 5px; }
+        table tr th, table tr td { padding: 2px 4px; }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .font-bold { font-weight: bold; }
-        .l { border-left: 1px solid #333; }
-        .t { border-top: 1px solid #333; }
-        .r { border-right: 1px solid #333; }
-        .b { border-bottom: 1px solid #333; }
+        .l { border-left: 1px solid #000; }
+        .t { border-top: 1px solid #000; }
+        .r { border-right: 1px solid #000; }
+        .b { border-bottom: 1px solid #000; }
         .bg-gray { background-color: #f3f4f6; }
         .header-title { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
         .header-sub { font-size: 11px; color: #4b5563; margin-bottom: 15px; }

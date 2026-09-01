@@ -2,7 +2,6 @@
 
 @section('content')
     <style>
-        html { margin: 40px; margin-left: 40px; }
         .num { text-align: right; white-space: nowrap; }
     </style>
 
@@ -20,9 +19,9 @@
     </table>
 
     <!-- Ringkasan Predikat -->
-    <table border="0" width="100%" cellspacing="0" cellpadding="6" style="margin-bottom: 12px; border: 1px solid #cbd5e0; background: #f7fafc;">
+    <table border="0" width="100%" cellspacing="0" cellpadding="6" style="margin-bottom: 12px; border: 1px solid rgb(232,232,232); background: rgb(232,232,232);">
         <tr>
-            <td width="30%" align="center" style="border-right: 1px solid #cbd5e0;">
+            <td width="30%" align="center" style="border-right: 1px solid rgb(232,232,232);">
                 <div style="font-size: 10px; color: #718096; font-weight: bold;">SKOR TINGKAT KESEHATAN</div>
                 <div style="font-size: 26px; font-weight: bold; color: #2b6cb0;">{{ $total_score }} <span style="font-size: 12px; color: #718096;">/ 100</span></div>
             </td>
@@ -41,7 +40,7 @@
     <!-- Rincian Indikator Rasio Finansial -->
     <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 9px; table-layout: fixed;">
         <thead>
-            <tr style="background: #e2e8f0; font-weight: bold; text-align: center;">
+            <tr style="background: rgb(232,232,232); font-weight: bold; text-align: center;">
                 <th class="t l b" width="4%">No</th>
                 <th class="t l b" width="28%" align="left">Indikator Kinerja Keuangan</th>
                 <th class="t l b" width="22%" align="left">Formula / Rasio</th>
@@ -70,7 +69,7 @@
             @endforeach
         </tbody>
         <tfoot>
-            <tr style="background: #e2e8f0; font-weight: bold;">
+            <tr style="background: rgb(232,232,232); font-weight: bold;">
                 <th class="t l b" colspan="4" align="left">TOTAL SKOR PENILAIAN</th>
                 <th class="t l b" align="center">100</th>
                 <th class="t l b" align="center">{{ number_format($total_score, 1, ',', '.') }}</th>

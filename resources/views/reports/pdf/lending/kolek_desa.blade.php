@@ -2,7 +2,7 @@
 
 @section('content')
     <style>
-        html { margin: 40px; margin-left: 40px; }
+        html { margin-left: 40px; margin-right: 40px; }
         .num { text-align: right; white-space: nowrap; }
     </style>
 
@@ -14,10 +14,10 @@
         <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px; margin-bottom: 10px;">
             <tr>
                 <td align="center">
-                    <div style="font-size: 14px; font-weight: bold;">
+                    <div style="font-size: 18px; font-weight: bold;">
                         DAFTAR KOLEKTIBILITAS PINJAMAN REKAP DESA — {{ strtoupper($prod['product_name']) }} ({{ $prod['product_code'] }})
                     </div>
-                    <div style="font-size: 12px; font-weight: bold; color: #444;">
+                    <div style="font-size: 16px; font-weight: bold;">
                         PERIODE: {{ strtoupper($period_label) }}
                     </div>
                 </td>
@@ -26,7 +26,7 @@
 
         <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 8.5px; table-layout: fixed;">
             <thead>
-                <tr style="background: #e2e8f0; font-weight: bold; text-align: center;">
+                <tr style="background: rgb(230, 230, 230); font-weight: bold; text-align: center;">
                     <th class="t l b" rowspan="2" width="24%">Desa</th>
                     <th class="t l b" rowspan="2" width="11%">Alokasi</th>
                     <th class="t l b" rowspan="2" width="11%">Saldo Pokok</th>
@@ -36,7 +36,7 @@
                     <th class="t l b" width="9%">Diragukan</th>
                     <th class="t l b r" width="9%">Macet</th>
                 </tr>
-                <tr style="background: #edf2f7; font-weight: bold; text-align: center;">
+                <tr style="background: rgb(230, 230, 230); font-weight: bold; text-align: center;">
                     <th class="t l b">Pokok</th>
                     <th class="t l b">Jasa</th>
                     <th class="t l b">(Tgk 1-3 Bln)</th>
@@ -66,7 +66,7 @@
                 @php
                     $prodPct = $prod['totals']['alokasi'] > 0 ? round(($prod['totals']['saldo'] / $prod['totals']['alokasi']) * 100, 1) : 0;
                 @endphp
-                <tr style="background: #e2e8f0; font-weight: bold;">
+                <tr style="background: rgb(232,232,232); font-weight: bold;">
                     <th class="t l b" align="left">TOTAL {{ $prod['product_code'] }}</th>
                     <th class="t l b num">{{ number_format($prod['totals']['alokasi'], 0, ',', '.') }}</th>
                     <th class="t l b num">{{ number_format($prod['totals']['saldo'], 0, ',', '.') }}</th>

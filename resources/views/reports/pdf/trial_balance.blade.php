@@ -10,21 +10,21 @@
     </tr>
     <tr><td colspan="7" height="5"></td></tr>
     <tr style="background: rgb(230, 230, 230); font-weight: bold;">
-        <td width="40%" rowspan="2" class="t l b" align="center">Rekening</td>
-        <td colspan="2" class="t l b" align="center">Neraca Saldo</td>
-        <td colspan="2" class="t l b" align="center">Laba Rugi</td>
-        <td colspan="2" class="t l b r" align="center">Neraca</td>
+        <th rowspan="2" class="t l b" width="40%" height="30">Rekening</th>
+        <th colspan="2" class="t l b" width="20%">Neraca Saldo</th>
+        <th colspan="2" class="t l b" width="20%">Laba Rugi</th>
+        <th colspan="2" class="t l b r" width="20%">Neraca</th>
     </tr>
     <tr style="background: rgb(230, 230, 230); font-weight: bold;">
-        <td class="t l b" align="center">Debit</td>
-        <td class="t l b" align="center">Kredit</td>
-        <td class="t l b" align="center">Debit</td>
-        <td class="t l b" align="center">Kredit</td>
-        <td class="t l b" align="center">Debit</td>
-        <td class="t l b r" align="center">Kredit</td>
+        <th class="t l b" width="10%">Debit</th>
+        <th class="t l b" width="10%">Kredit</th>
+        <th class="t l b" width="10%">Debit</th>
+        <th class="t l b" width="10%">Kredit</th>
+        <th class="t l b" width="10%">Debit</th>
+        <th class="t l b r" width="10%">Kredit</th>
     </tr>
     @foreach($rows as $idx => $row)
-        <tr style="background: {{ $idx % 2 === 0 ? 'rgb(230, 230, 230)' : 'rgba(255, 255, 255)' }};">
+        <tr>
             <td class="t l b">{{ $row['code'] }}. {{ $row['name'] }}</td>
             <td class="t l b" align="right">
                 @if($row['ns_debit'] < 0)({{ number_format(abs($row['ns_debit']), 2) }})@else{{ number_format($row['ns_debit'], 2) }}@endif
@@ -47,7 +47,7 @@
         </tr>
     @endforeach
     <tr style="background: rgb(242, 242, 242); font-weight: bold;">
-        <td class="t l b">Jumlah</td>
+        <td class="t l b" align="center">Jumlah</td>
         <td class="t l b" align="right">{{ number_format($totals['ns_debit'], 2) }}</td>
         <td class="t l b" align="right">{{ number_format($totals['ns_credit'], 2) }}</td>
         <td class="t l b" align="right">{{ number_format($totals['lr_debit'], 2) }}</td>

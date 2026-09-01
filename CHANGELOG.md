@@ -5,6 +5,14 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 
 ---
 
+## [2026-08-31]
+
+### Added
+- **Jenis Transaksi Pembelian Aset Tak Berwujud (Lisensi/Sewa/Asuransi):**
+  - Penghubungan jenis transaksi `pembelian_aset_tak_berwujud` ke alur pembelian aset pada `JournalEntryOptionResolver` (COA debit `1.2.03`, umur ekonomis default 60 bulan), sehingga kini menampilkan field nama barang, jumlah unit, harga satuan, dan umur ekonomis pada form jurnal (`Create.vue` & `Edit.vue`) dan otomatis mendaftarkan aset baru ke modul Inventaris dengan kategori `ATB` melalui `JournalEntryController`, `JournalEditService`, dan `AssistantToolService`.
+  - Dukungan `AssetService::create` untuk parameter `category_code` guna pengisian kategori aset otomatis saat registrasi dari jurnal.
+  - Penambahan heuristik asisten AI (`AssistantToolService`) untuk mengenali lisensi/sewa/asuransi sebagai pembelian aset tak berwujud dan memetakan akun debit ke sub-akun `1.2.03.xx` yang sesuai (Biaya Pendirian Organisasi, Lisensi, Sewa Dibayar Dimuka, Asuransi Dibayar Dimuka).
+
 ## [2026-08-27]
 
 ### Added

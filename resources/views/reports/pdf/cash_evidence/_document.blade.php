@@ -50,17 +50,22 @@
             background: #fff;
         }
         body {
-            padding: 4px;
+            padding: 20px;
         }
         .box {
             width: 100%;
             border: 2px solid #000;
-            padding: 6px 12px;
+            padding-top: 16px;
+            padding-bottom: 12px;
+            padding-right: 22px;
+            padding-left: 12px;
         }
         .box-header {
             width: 100%;
             border-bottom: 1px solid rgba(0, 0, 0, 0.5);
-            padding-bottom: 4px;
+            padding-left: 16px;
+            padding-right: 16px;
+            padding-bottom: 8px;
         }
         .box-header td {
             vertical-align: middle;
@@ -72,7 +77,7 @@
             padding-top: 4px;
         }
         h1 {
-            font-size: 13px;
+            font-size: 28px;
             font-weight: bold;
             margin: 4px 0 6px 0;
             text-align: center;
@@ -80,7 +85,7 @@
         .body-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 10px;
+            font-size: 12px;
         }
         .body-table td {
             padding: 2.5px 4px;
@@ -143,37 +148,44 @@
         <table class="body-table" cellspacing="0" cellpadding="0">
             @if ($isCashIn)
                 <tr>
-                    <td width="26%">Terima Dari</td>
+                    <td width="30%">Terima Dari</td>
                     <td width="2%">:</td>
-                    <td width="72%" class="keterangan">{{ $relation ?: '--' }}</td>
+                    <td width="68%" class="keterangan">{{ $relation ?: '--' }}</td>
                 </tr>
             @elseif ($isCashOut)
                 <tr>
-                    <td width="26%">Dibayar Kepada</td>
+                    <td width="30%">Dibayar Kepada</td>
                     <td width="2%">:</td>
-                    <td width="72%" class="keterangan">{{ $relation ?: '--' }}</td>
+                    <td width="68%" class="keterangan">{{ $relation ?: '--' }}</td>
                 </tr>
             @endif
             <tr>
-                <td width="26%">Keterangan</td>
+                <td width="30%">Keterangan</td>
                 <td width="2%">:</td>
-                <td width="72%" class="keterangan">{{ $description }}</td>
+                <td width="68%" class="keterangan">{{ $description }}</td>
             </tr>
             <tr>
-                <td width="26%">Jumlah</td>
+                <td width="30%">Jumlah</td>
                 <td width="2%">:</td>
-                <td width="72%" class="keterangan">{{ $amountLabel }}</td>
+                <td width="68%" class="keterangan">{{ $amountLabel }}</td>
             </tr>
             <tr>
-                <td width="26%">Kode Akun (D/K)</td>
+                <td width="30%">Kode Akun (D/K)</td>
                 <td width="2%">&nbsp;</td>
-                <td width="72%" class="keterangan">Debit {{ $debitLabel }}</td>
+                <td width="68%" class="keterangan">Debit {{ $debitLabel }}</td>
             </tr>
             <tr>
-                <td width="26%">&nbsp;</td>
+                <td width="30%">&nbsp;</td>
                 <td width="2%">&nbsp;</td>
-                <td width="72%" class="keterangan">Kredit {{ $creditLabel }}</td>
+                <td width="68%" class="keterangan">Kredit {{ $creditLabel }}</td>
             </tr>
+            @if ($isMemorial)
+                <tr>
+                    <td width="30%">&nbsp;</td>
+                    <td width="2%">&nbsp;</td>
+                    <td width="68%" class="keterangan">&nbsp;</td>
+                </tr>
+            @endif
         </table>
 
         <table class="sign-table" cellspacing="0" cellpadding="0">

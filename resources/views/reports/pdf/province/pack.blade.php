@@ -16,7 +16,7 @@
     <title>Laporan Keuangan Konsolidasi {{ $province }} - {{ $periodLabel }}</title>
     <style>
         * { font-family: Arial, Helvetica, sans-serif; box-sizing: border-box; }
-        html, body { margin: 0; padding: 25px 35px; font-size: 11px; color: #111; }
+        html, body { margin: 0; padding: 75.59px 94.48px; font-size: 12px; color: #111; }
         .break { page-break-after: always; clear: both; }
         .cover { text-align: center; padding-top: 120px; }
         .cover h1 { font-size: 20px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
@@ -26,7 +26,7 @@
         .header-box h2 { margin: 0; font-size: 15px; text-transform: uppercase; }
         .header-box p { margin: 3px 0 0 0; font-size: 11px; color: #444; }
         table.data-table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 15px; }
-        table.data-table th, table.data-table td { border: 1px solid #777; padding: 5px 7px; font-size: 10px; }
+        table.data-table th, table.data-table td { border: 1px solid #000; padding: 2px 4px; font-size: 10px; }
         table.data-table th { background-color: #f2f2f2; text-align: center; font-weight: bold; }
         .text-right { text-align: right; }
         .text-center { text-align: center; }

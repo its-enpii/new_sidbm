@@ -114,6 +114,7 @@ final class JournalEntryController
                     'unit_cost' => (float) $data['asset_unit_cost'],
                     'useful_life_months' => (int) $data['asset_useful_life_months'],
                     'status' => 'good',
+                    'category_code' => JournalEntryOptionResolver::ATB_PURCHASE_TYPES[$data['transaction_type']] ?? null,
                 ], $userId);
 
                 $entry->update(['source_row_id' => (int) $asset->row_id]);

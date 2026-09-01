@@ -1545,6 +1545,10 @@ final class AssistantToolService
                 '1.2.01.01' => 'pembelian_aset_tanah',
                 '1.2.01.02' => 'pembelian_aset_gedung',
                 '1.2.01.03' => 'pembelian_aset_kendaraan',
+                '1.2.03.01' => 'pembelian_biaya_pendirian',
+                '1.2.03.02' => 'pembelian_lisensi',
+                '1.2.03.03' => 'pembelian_sewa_dibayar_dimuka',
+                '1.2.03.04' => 'pembelian_asuransi_dibayar_dimuka',
                 default => 'pembelian_aset_peralatan',
             };
             $params['transaction_type'] = $type;
@@ -1723,6 +1727,7 @@ final class AssistantToolService
                     'unit_cost' => (float) $data['asset_unit_cost'],
                     'useful_life_months' => (int) ($data['asset_useful_life_months'] ?? 0),
                     'status' => 'good',
+                    'category_code' => JournalEntryOptionResolver::ATB_PURCHASE_TYPES[$data['transaction_type']] ?? null,
                 ], $userId);
                 $entry->update(['source_row_id' => (int) $asset->row_id]);
             }
@@ -1758,7 +1763,7 @@ final class AssistantToolService
             return true;
         }
         $t = mb_strtolower($text);
-        foreach (['beli', 'membeli', 'pembelian', 'inventaris', 'aset tetap', 'motor', 'mobil', 'kendaraan', 'laptop', 'komputer', 'meja', 'kursi', 'printer', 'mesin'] as $kw) {
+        foreach (['beli', 'membeli', 'pembelian', 'inventaris', 'aset tetap', 'aset tak berwujud', 'lisensi', 'sewa', 'asuransi', 'motor', 'mobil', 'kendaraan', 'laptop', 'komputer', 'meja', 'kursi', 'printer', 'mesin'] as $kw) {
             if (str_contains($t, $kw)) {
                 return true;
             }
@@ -1818,7 +1823,8 @@ final class AssistantToolService
         // Resolve debit (inventaris) / credit (kas) if missing.
         if (empty($params['debit_account_row_id'])) {
             $code = $this->suggestInventoryAccountCode((string) $params['asset_name']);
-            $params['debit_account_row_id'] = $this->findPostableAccountRowId($code, '1.2.01.');
+            $isIntangible = str_starts_with($code, '1.2.03.');
+            $params['debit_account_row_id'] = $this->findPostableAccountRowId($code, $isIntangible ? '1.2.03.' : '1.2.01.');
         }
         if (empty($params['credit_account_row_id'])) {
             $cashCode = (string) ($params['cash_account_code'] ?? '1.1.01.01');
@@ -1851,6 +1857,11 @@ final class AssistantToolService
         if (str_contains($t, 'tanah')) {
             return 0; // non-depreciating
         }
+        foreach (['lisensi', 'sewa', 'asuransi', 'hak pakai', 'aset tak berwujud'] as $kw) {
+            if (str_contains($t, $kw)) {
+                return 60;
+            }
+        }
         // Inventaris/peralatan & elektronik
         foreach (['laptop', 'komputer', 'printer', 'monitor', 'hp', 'handphone'] as $kw) {
             if (str_contains($t, $kw)) {
@@ -1864,6 +1875,18 @@ final class AssistantToolService
     private function suggestInventoryAccountCode(string $assetName): string
     {
         $t = mb_strtolower($assetName);
+        if (str_contains($t, 'pendirian')) {
+            return '1.2.03.01';
+        }
+        if (str_contains($t, 'lisensi')) {
+            return '1.2.03.02';
+        }
+        if (str_contains($t, 'sewa')) {
+            return '1.2.03.03';
+        }
+        if (str_contains($t, 'asuransi')) {
+            return '1.2.03.04';
+        }
         if (str_contains($t, 'tanah')) {
             return '1.2.01.01';
         }

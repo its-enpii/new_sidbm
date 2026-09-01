@@ -108,9 +108,19 @@ final class AssetService
         return DB::connection('tenant')->transaction(function () use ($data, $userId): Asset {
             $this->ensureDefaultCategories();
 
+            $categoryCode = isset($data['category_code']) && is_string($data['category_code']) && $data['category_code'] !== ''
+                ? $data['category_code']
+                : null;
+            $categoryId = $categoryCode !== null
+                ? AssetCategory::query()->where('code', $categoryCode)->value('row_id')
+                : null;
+            if ($categoryId === null && isset($data['asset_category_row_id']) && (int) $data['asset_category_row_id'] > 0) {
+                $categoryId = (int) $data['asset_category_row_id'];
+            }
+
             $asset = Asset::query()->create([
                 'organization_unit_row_id' => $data['organization_unit_row_id'] ?? null,
-                'asset_category_row_id' => $data['asset_category_row_id'] ?? null,
+                'asset_category_row_id' => $categoryId ?? ($data['asset_category_row_id'] ?? null),
                 'asset_code' => $data['asset_code'] ?? null,
                 'name' => $data['name'],
                 'purchased_at' => $data['purchased_at'] ?? null,

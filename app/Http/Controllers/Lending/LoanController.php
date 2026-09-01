@@ -383,6 +383,23 @@ final class LoanController
         ]);
     }
 
+    public function cardReprint(Loan $loan, LoanCardService $cards, ReportPdf $pdf): HttpResponse|StreamedResponse
+    {
+        $loan->load(['installments']);
+        try {
+            $data = $cards->build($loan);
+        } catch (DomainException $e) {
+            abort(422, $e->getMessage());
+        }
+
+        return $pdf->stream(
+            'reports.pdf.loan_card_reprint',
+            $data,
+            'cetak-kartu-angsuran-'.$loan->id.'.pdf',
+            'landscape',
+        );
+    }
+
     public function card(Loan $loan, LoanCardService $cards, ReportPdf $pdf): HttpResponse|StreamedResponse
     {
         $loan->load(['installments']);

@@ -47,6 +47,10 @@ const ASSET_PURCHASE_TYPES = [
     'pembelian_aset_gedung',
     'pembelian_aset_kendaraan',
     'pembelian_aset_peralatan',
+    'pembelian_biaya_pendirian',
+    'pembelian_lisensi',
+    'pembelian_sewa_dibayar_dimuka',
+    'pembelian_asuransi_dibayar_dimuka',
     'pembelian_inventaris', // legacy
 ];
 const DEFAULT_LIFE = {
@@ -54,6 +58,10 @@ const DEFAULT_LIFE = {
     pembelian_aset_gedung: 240,
     pembelian_aset_kendaraan: 60,
     pembelian_aset_peralatan: 48,
+    pembelian_biaya_pendirian: 60,
+    pembelian_lisensi: 60,
+    pembelian_sewa_dibayar_dimuka: 60,
+    pembelian_asuransi_dibayar_dimuka: 60,
     pembelian_inventaris: 48,
 };
 

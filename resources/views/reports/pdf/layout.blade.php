@@ -24,15 +24,15 @@
     <style>
         * { font-family: Arial, Helvetica, sans-serif; }
         html { margin: 75px; margin-left: 94px; }
-        body { font-size: 12px; color: #111; }
+        body { font-size: 12px; }
         header {
             position: fixed;
             top: -10px;
             left: 0;
             right: 0;
         }
-        table { border-collapse: collapse; }
         table tr th, table tr td { padding: 2px 4px; }
+        ul, ol { margin-left: -10px; page-break-inside: auto !important; }
         table tr td table tr td { padding: 0 !important; }
         .break { page-break-after: always; }
         .l { border-left: 1px solid #000; }

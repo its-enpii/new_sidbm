@@ -8,12 +8,13 @@
             <div style="font-size: 16px;"><b>{{ strtoupper($period['period_label'] ?? '') }}</b></div>
         </td>
     </tr>
-    <tr><td colspan="3" height="5"></td></tr>
-    <tr style="background: #000; color: #fff; font-weight: bold;">
-        <td width="10%" align="center" height="20">Kode</td>
+    <tr><td colspan="3" height="3"></td></tr>
+    <tr style="background: #000; color: #fff;">
+        <td width="10%">Kode</td>
         <td width="70%">Nama Akun</td>
         <td width="20%" align="right">Saldo</td>
     </tr>
+    <tr><td colspan="3" height="1"></td></tr>
     @foreach($sections as $l1)
         <tr style="background: rgb(74, 74, 74); color: #fff;">
             <td colspan="3" align="center" height="20"><b>{{ $l1['code'] }}. {{ $l1['name'] }}</b></td>
@@ -45,14 +46,20 @@
                 default => 'Jumlah '.$l1['name'],
             };
         @endphp
-        <tr style="background: rgb(167, 167, 167); font-weight: bold;">
-            <td colspan="2">{{ $sectionLabel }}</td>
-            <td align="right">
-                @if(($l1['balance'] ?? 0) < 0)
-                    ({{ number_format(abs($l1['balance']), 2) }})
-                @else
-                    {{ number_format($l1['balance'] ?? 0, 2) }}
-                @endif
+        <tr>
+            <td colspan="3" style="padding: 0px !important;">
+                <table class="p" border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px;">
+                    <tr style="background: rgb(167, 167, 167); font-weight: bold;">
+                        <td colspan="2">{{ $sectionLabel }}</td>
+                        <td align="right">
+                            @if(($l1['balance'] ?? 0) < 0)
+                                ({{ number_format(abs($l1['balance']), 2) }})
+                            @else
+                                {{ number_format($l1['balance'] ?? 0, 2) }}
+                            @endif
+                        </td>
+                    </tr>
+                </table>
             </td>
         </tr>
     @endforeach

@@ -77,22 +77,3 @@
         <td colspan="3" height="5"></td>
     </tr>
 </table>
-
-<table border="1" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px;">
-    <tr style="background: rgb(232, 232, 232)">
-        <th class="l t b" width="5%" align="center">No</th>
-        <th class="l t b" width="30%" align="center">Nama Pemanfaat</th>
-        <th class="l t b" width="20%" align="center">NIK Pemanfaat</th>
-        <th class="l t b" width="30%" align="center">Nama Penjamin</th>
-        <th class="l t b r" width="15%" align="center">Status FC</th>
-    </tr>
-    @foreach ($beneficiaries as $b)
-        <tr>
-            <td class="l b" align="center">{{ $loop->iteration }}</td>
-            <td class="l b">{{ $b['name'] }}</td>
-            <td class="l b" align="center">{{ $b['nik'] }}</td>
-            <td class="l b">{{ $b['guarantor'] }}</td>
-            <td class="l b r" align="center">&nbsp;</td>
-        </tr>
-    @endforeach
-</table>

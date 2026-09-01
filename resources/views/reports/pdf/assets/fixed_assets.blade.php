@@ -2,7 +2,6 @@
 
 @section('content')
     <style>
-        html { margin: 40px; margin-left: 40px; }
         .num { text-align: right; white-space: nowrap; }
     </style>
 
@@ -26,7 +25,7 @@
 
         <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 8px; table-layout: fixed;">
             <thead>
-                <tr style="background: #e2e8f0; font-weight: bold; text-align: center;">
+                <tr style="background: rgb(232,232,232); font-weight: bold; text-align: center;">
                     <th class="t l b" rowspan="2" width="3%">No</th>
                     <th class="t l b" rowspan="2" width="7%">Tgl Beli</th>
                     <th class="t l b" rowspan="2" width="18%">Nama Barang</th>
@@ -41,7 +40,7 @@
                     <th class="t l b" colspan="2" width="12%">s.d. Tahun Ini</th>
                     <th class="t l b r" rowspan="2" width="9%">Nilai Buku</th>
                 </tr>
-                <tr style="background: #edf2f7; font-weight: bold; text-align: center;">
+                <tr style="background: rgb(242,242,242); font-weight: bold; text-align: center;">
                     <th class="t l b">Bln</th>
                     <th class="t l b">Biaya</th>
                     <th class="t l b">Bln</th>
@@ -70,7 +69,7 @@
                 @endforeach
             </tbody>
             <tfoot>
-                <tr style="background: #e2e8f0; font-weight: bold;">
+                <tr style="background: rgb(232,232,232); font-weight: bold;">
                     <th class="t l b" colspan="5" align="left">TOTAL {{ $cat['category_name'] }}</th>
                     <th class="t l b" align="center">{{ $cat['totals']['unit'] }}</th>
                     <th class="t l b"></th>

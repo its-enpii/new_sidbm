@@ -360,6 +360,7 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
     Route::get('/lending/loans/pdf', [LoanController::class, 'exportPdf'])->name('lending.loans.pdf');
     Route::get('/lending/loans/{loan}', [LoanController::class, 'show'])->name('lending.loans.show');
     Route::get('/lending/loans/{loan}/card', [LoanController::class, 'card'])->name('lending.loans.card');
+    Route::get('/lending/loans/{loan}/card/reprint', [LoanController::class, 'cardReprint'])->name('lending.loans.card.reprint');
     Route::get('/lending/loans/{loan}/edit', [LoanController::class, 'edit'])->name('lending.loans.edit');
     Route::get('/lending/loans/{loan}/documents/{type}', [LoanDocumentController::class, 'document'])
         ->where('type', '[a-z_]+')

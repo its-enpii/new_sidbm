@@ -2,7 +2,7 @@
 
 @section('content')
     <style>
-        html { margin: 40px; margin-left: 40px; }
+        html { margin-left: 40px; margin-right: 40px; }
         .num { text-align: right; white-space: nowrap; }
     </style>
 
@@ -14,10 +14,10 @@
         <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px; margin-bottom: 10px;">
             <tr>
                 <td align="center">
-                    <div style="font-size: 14px; font-weight: bold;">
+                    <div style="font-size: 18px; font-weight: bold;">
                         DAFTAR PERKEMBANGAN PIUTANG (LPP) RINCIAN KELOMPOK — {{ strtoupper($prod['product_name']) }} ({{ $prod['product_code'] }})
                     </div>
-                    <div style="font-size: 12px; font-weight: bold; color: #444;">
+                    <div style="font-size: 16px; font-weight: bold;">
                         PERIODE: {{ strtoupper($period_label) }}
                     </div>
                 </td>
@@ -26,7 +26,7 @@
 
         <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 8px; table-layout: fixed;">
             <thead>
-                <tr style="background: #e2e8f0; font-weight: bold; text-align: center;">
+                <tr style="background: rgb(230, 230, 230); font-weight: bold; text-align: center;">
                     <th class="t l b" rowspan="2" width="18%">Kelompok / Loan ID</th>
                     <th class="t l b" rowspan="2" width="7%">Pencairan</th>
                     <th class="t l b" rowspan="2" width="4%">Pmf</th>
@@ -38,7 +38,7 @@
                     <th class="t l b" colspan="2" width="13%">Saldo</th>
                     <th class="t l b r" colspan="2" width="13%">Tunggakan</th>
                 </tr>
-                <tr style="background: #edf2f7; font-weight: bold; text-align: center;">
+                <tr style="background: rgb(230, 230, 230); font-weight: bold; text-align: center;">
                     <th class="t l b">Pokok</th>
                     <th class="t l b">Jasa</th>
                     <th class="t l b">Pokok</th>
@@ -55,7 +55,7 @@
             </thead>
             <tbody>
                 @foreach ($prod['villages'] as $v)
-                    <tr style="background: #f7fafc; font-weight: bold;">
+                    <tr style="font-weight: bold;">
                         <td class="l b" colspan="17">DESA: {{ strtoupper($v['village_name']) }}</td>
                     </tr>
                     @foreach ($v['loans'] as $loan)
@@ -78,7 +78,7 @@
                             <td class="l b r num" style="{{ $loan['tunggakan_jasa'] > 0 ? 'color: #c53030;' : '' }}">{{ number_format($loan['tunggakan_jasa'], 0, ',', '.') }}</td>
                         </tr>
                     @endforeach
-                    <tr style="background: #edf2f7; font-weight: bold;">
+                    <tr style="background: rgb(242,242,242); font-weight: bold;">
                         <td class="l b" colspan="2">Subtotal {{ $v['village_name'] }}</td>
                         <td class="l b" align="center">{{ $v['subtotal']['pemanfaat_count'] }}</td>
                         <td class="l b num">{{ number_format($v['subtotal']['alokasi'], 0, ',', '.') }}</td>
@@ -98,7 +98,7 @@
                 @endforeach
             </tbody>
             <tfoot>
-                <tr style="background: #e2e8f0; font-weight: bold;">
+                <tr style="background: rgb(232,232,232); font-weight: bold;">
                     <th class="t l b" colspan="2" align="left">TOTAL {{ $prod['product_code'] }}</th>
                     <th class="t l b" align="center">{{ $prod['totals']['pemanfaat_count'] }}</th>
                     <th class="t l b num">{{ number_format($prod['totals']['alokasi'], 0, ',', '.') }}</th>
