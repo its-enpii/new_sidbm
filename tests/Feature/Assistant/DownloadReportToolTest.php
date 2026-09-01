@@ -57,6 +57,9 @@ final class DownloadReportToolTest extends TestCase
         self::assertStringContainsString('Unduh Neraca (PDF)', $res['action_button']);
         self::assertStringContainsString('download=1', $res['action_button']);
         self::assertStringContainsString('download', $res['action_button']);
+        parse_str(parse_url($res['download_url'], PHP_URL_QUERY) ?? '', $query);
+        self::assertSame('8', $query['month']);
+        self::assertSame('2026', $query['year']);
     }
 
     public function test_download_income_statement_excel(): void
@@ -93,8 +96,73 @@ final class DownloadReportToolTest extends TestCase
         self::assertTrue($res['ok']);
         self::assertSame('portfolio', $res['report_type']);
         self::assertSame('Portofolio', $res['short_name']);
-        self::assertSame('/lending/reports/portfolio/pdf?year=2026&download=1', $res['download_url']);
+        parse_str(parse_url($res['download_url'], PHP_URL_QUERY) ?? '', $query);
+        self::assertSame('2026-12-31', $query['as_of']);
+        self::assertArrayNotHasKey('month', $query);
+        self::assertArrayNotHasKey('year', $query);
         self::assertStringContainsString('Unduh Portofolio (PDF)', $res['action_button']);
+    }
+
+    public function test_download_journals_pdf_uses_controller_period_contract(): void
+    {
+        /** @var AssistantToolService $tools */
+        $tools = app(AssistantToolService::class);
+
+        $res = $tools->downloadReport([
+            'report_type' => 'journals',
+            'format' => 'pdf',
+            'month' => 7,
+            'year' => 2026,
+        ]);
+
+        self::assertTrue($res['ok']);
+        parse_str(parse_url($res['download_url'], PHP_URL_QUERY) ?? '', $query);
+        self::assertSame('7', $query['month']);
+        self::assertSame('2026', $query['year']);
+        self::assertSame('1', $query['download']);
+        self::assertArrayNotHasKey('from', $query);
+        self::assertArrayNotHasKey('to', $query);
+    }
+
+    public function test_download_general_ledger_pdf_uses_controller_account_contract(): void
+    {
+        /** @var AssistantToolService $tools */
+        $tools = app(AssistantToolService::class);
+
+        $res = $tools->downloadReport([
+            'report_type' => 'general_ledger',
+            'format' => 'pdf',
+            'month' => 7,
+            'year' => 2026,
+            'account_id' => 42,
+        ]);
+
+        self::assertTrue($res['ok']);
+        parse_str(parse_url($res['download_url'], PHP_URL_QUERY) ?? '', $query);
+        self::assertSame('7', $query['month']);
+        self::assertSame('2026', $query['year']);
+        self::assertSame('42', $query['account']);
+        self::assertSame('1', $query['download']);
+        self::assertArrayNotHasKey('account_id', $query);
+    }
+
+    public function test_download_lending_schedule_pdf_uses_controller_period_contract(): void
+    {
+        /** @var AssistantToolService $tools */
+        $tools = app(AssistantToolService::class);
+
+        $res = $tools->downloadReport([
+            'report_type' => 'schedule_vs_actual',
+            'format' => 'pdf',
+            'month' => 7,
+            'year' => 2026,
+        ]);
+
+        self::assertTrue($res['ok']);
+        parse_str(parse_url($res['download_url'], PHP_URL_QUERY) ?? '', $query);
+        self::assertSame('7', $query['month']);
+        self::assertSame('2026', $query['year']);
+        self::assertSame('1', $query['download']);
     }
 
     public function test_download_calk_falls_back_to_pdf_download(): void

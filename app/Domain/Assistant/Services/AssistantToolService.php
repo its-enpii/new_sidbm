@@ -2914,7 +2914,7 @@ final class AssistantToolService
                 'query' => array_filter([
                     'month' => $month,
                     'year' => $year,
-                    'account_id' => $params['account_id'] ?? null,
+                    'account' => $params['account_id'] ?? null,
                 ]),
             ],
             'journals' => [
@@ -2922,10 +2922,7 @@ final class AssistantToolService
                 'short_name' => 'Jurnal',
                 'pdf' => '/accounting/reports/journals/pdf',
                 'excel' => '/accounting/reports/journals/excel',
-                'query' => array_filter([
-                    'from' => $params['from_date'] ?? ($month ? sprintf('%04d-%02d-01', $year, $month) : sprintf('%04d-01-01', $year)),
-                    'to' => $params['to_date'] ?? ($month ? CarbonImmutable::createFromDate($year, $month, 1)->endOfMonth()->toDateString() : sprintf('%04d-12-31', $year)),
-                ]),
+                'query' => array_filter(['month' => $month, 'year' => $year]),
             ],
             'financial_health' => [
                 'name' => 'Analisis Kesehatan Keuangan',
@@ -2953,7 +2950,9 @@ final class AssistantToolService
                 'short_name' => 'Portofolio',
                 'pdf' => '/lending/reports/portfolio/pdf',
                 'excel' => null,
-                'query' => array_filter(['month' => $month, 'year' => $year]),
+                'query' => array_filter([
+                    'as_of' => $params['as_of_date'] ?? ($month ? CarbonImmutable::createFromDate($year, $month, 1)->endOfMonth()->toDateString() : "{$year}-12-31"),
+                ]),
             ],
             'schedule_vs_actual' => [
                 'name' => 'Laporan Rencana vs Realisasi Pinjaman',

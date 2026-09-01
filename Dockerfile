@@ -17,17 +17,23 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         git \
         libicu-dev \
+        libfreetype6-dev \
+        libjpeg-dev \
         libonig-dev \
         libpq-dev \
+        libzip-dev \
         unzip \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" \
         bcmath \
+        gd \
         intl \
         mbstring \
         opcache \
         pdo_mysql \
         pdo_pgsql \
         pgsql \
+        zip \
     && rm -rf /var/lib/apt/lists/*
 
 # Composer (pinned to v2 to match the lock file format).

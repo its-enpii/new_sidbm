@@ -27,9 +27,11 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 - Middleware `BlockOfflineMutations` memberikan pengecualian mutasi hanya untuk pengguna tenant yang ditetapkan sebagai pengguna offline, sedangkan autentikasi mobile tetap di-whitelist.
 
 ### Fixed
+- Kontrak parameter URL `download_report` AI Assistant agar sesuai dengan controller laporan: jurnal menggunakan `year`/`month`, buku besar menggunakan `account`, dan portofolio pinjaman menggunakan `as_of`.
 - Keamanan halaman multi-instance WhatsApp: operasi `update` kini melakukan otorisasi izin `settings.manage` sebelum perubahan data.
 - Kesalahan parameter entity pemanfaat pinjaman pada test mobile agar analisis Flutter kembali berjalan tanpa error pada kode test.
 - Deklarasi `ext-bcmath` pada `composer.json` karena `JournalPostingService` memakai `bccomp()` dan Dockerfile sudah menginstall ekstensi tersebut (environment tanpa bcmath gagal 111 test).
+- Instalasi ekstensi `gd` dan `zip` pada Dockerfile serta deklarasi `ext-gd` dan `ext-zip` pada `composer.json` agar fitur foto/profile dan export Excel tidak gagal saat runtime.
 - Konsistensi token MD3 pada `SignaturePad.vue` (ganti `text-slate-400` → `text-on-surface-variant`) dan format pembulatan simulasi pinjaman memakai `useMoney()` pada `Lending/Simulation/Index.vue`.
 - Pembersihan artefak karakter asing pada `docs/audit/2026-08-15/loan-deletion-audit.md`.
 

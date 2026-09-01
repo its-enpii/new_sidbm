@@ -8,6 +8,8 @@
         "php": "^8.3",
         "ext-pdo": "*",
         "ext-bcmath": "*",
+        "ext-gd": "*",
+        "ext-zip": "*",
         "barryvdh/laravel-dompdf": "^3.1",
         "enpii/assistant": "dev-main",
         "inertiajs/inertia-laravel": "^2.0",
