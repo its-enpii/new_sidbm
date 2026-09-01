@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Domain\Sync\Services\DesktopOutboxService;
 use App\Domain\Sync\Services\DesktopSyncClientService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,7 @@ final class DesktopClientController
 {
     public function __construct(
         private readonly DesktopSyncClientService $syncClient,
+        private readonly DesktopOutboxService $outboxService,
     ) {}
 
     /**
@@ -21,6 +23,7 @@ final class DesktopClientController
     {
         $lastSync = $this->syncClient->getLastSyncInfo();
         $ping = $this->syncClient->pingServer();
+        $outbox = $this->outboxService->stats();
 
         return response()->json([
             'status' => 'success',
@@ -34,6 +37,7 @@ final class DesktopClientController
                 'name' => $lastSync['tenant_name'],
             ] : null,
             'synced_at' => $lastSync['synced_at'] ?? null,
+            'outbox' => $outbox,
         ]);
     }
 
@@ -47,6 +51,7 @@ final class DesktopClientController
         $since = $request->input('since');
 
         try {
+            $push = $this->outboxService->flushPendingMutations($tenant ? (string) $tenant : null);
             $result = $this->syncClient->syncFromCloud(
                 $tenant ? (string) $tenant : null,
                 $isDelta,
@@ -57,6 +62,7 @@ final class DesktopClientController
                 'status' => 'success',
                 'message' => 'Data successfully synchronized from cloud server.',
                 'details' => $result,
+                'push' => $push,
             ]);
         } catch (\Throwable $e) {
             return response()->json([

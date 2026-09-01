@@ -3,6 +3,12 @@
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- Outbox lokal, sinkronisasi dua arah desktop, log konflik, dan indikator jumlah mutasi offline pada Pengaturan.
+
 ## [2026-09-01]
 
 ### Added

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Desktop;
 
+use App\Domain\Sync\Services\DesktopPushApplyService;
 use App\Domain\Sync\Services\TenantSnapshotService;
 use App\Models\Platform\Tenant;
 use App\Tenancy\TenantContext;
@@ -14,6 +15,7 @@ final class DesktopSyncController
 {
     public function __construct(
         private readonly TenantSnapshotService $snapshotService,
+        private readonly DesktopPushApplyService $pushService,
         private readonly TenantContext $tenantContext,
     ) {}
 
@@ -33,6 +35,36 @@ final class DesktopSyncController
             'status' => 'success',
             'message' => 'Full tenant snapshot generated successfully.',
             ...$payload,
+        ]);
+    }
+
+    public function push(Request $request, ?string $tenant = null): JsonResponse
+    {
+        $targetTenant = $this->resolveTenant($request, $tenant);
+        if ($targetTenant === null) {
+            return $this->tenantNotFoundResponse();
+        }
+
+        $validated = $request->validate([
+            'mutations' => ['required', 'array', 'max:200'],
+            'mutations.*.mutation_uuid' => ['required', 'uuid'],
+            'mutations.*.table_name' => ['required', 'string', 'max:100'],
+            'mutations.*.operation' => ['required', 'string', 'in:insert,update,delete'],
+            'mutations.*.row_public_id' => ['required', 'integer'],
+            'mutations.*.payload' => ['required', 'array'],
+            'mutations.*.client_updated_at' => ['nullable', 'date'],
+            'last_pulled_at' => ['nullable', 'date'],
+        ]);
+
+        $result = $this->pushService->apply(
+            $targetTenant,
+            $validated['mutations'],
+            isset($validated['last_pulled_at']) ? (string) $validated['last_pulled_at'] : null,
+        );
+
+        return response()->json([
+            'status' => 'success',
+            ...$result,
         ]);
     }
 

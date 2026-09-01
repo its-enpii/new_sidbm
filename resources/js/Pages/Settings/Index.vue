@@ -2,7 +2,7 @@
 import { useConfirm } from '../../composables/useConfirm';
 import { useToast } from '../../composables/useToast';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import AppBadge from '../../Components/AppBadge.vue';
 import AppButton from '../../Components/AppButton.vue';
 import AppCard from '../../Components/AppCard.vue';
@@ -170,6 +170,22 @@ const offlineUserOptions = computed(() => (props.offline.users ?? []).map((u) =>
     value: u.row_id,
     label: u.name + (u.username ? ` (${u.username})` : ''),
 })));
+
+const outbox = ref({ pending: 0, failed: 0, synced: 0 });
+async function loadOutbox() {
+    try {
+        const response = await fetch('/desktop/sync/status', {
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        outbox.value = data.outbox ?? outbox.value;
+    } catch {
+        outbox.value = { pending: 0, failed: 0, synced: 0 };
+    }
+}
+onMounted(loadOutbox);
 
 function submitOffline() {
     if (offlineForm.is_enabled && !offlineForm.user_id) {
@@ -339,6 +355,14 @@ function applySignatureStarter() {
                         <p class="mb-5 text-sm text-on-surface-variant">
                             Aktifkan agar satu pengguna terpilih tetap dapat menginput, mengedit, dan menghapus data saat offline di desktop dan Android.
                         </p>
+                        <div class="mb-5 flex flex-wrap items-center gap-3 rounded-lg bg-surface-container-low p-4">
+                            <AppBadge tone="primary-soft">Mutasi menunggu sinkron</AppBadge>
+                            <span class="text-lg font-bold text-primary">{{ outbox.pending }}</span>
+                            <AppBadge tone="error-soft">Gagal</AppBadge>
+                            <span class="text-lg font-bold text-error">{{ outbox.failed }}</span>
+                            <AppBadge tone="success-soft">Tersinkron</AppBadge>
+                            <span class="text-lg font-bold text-success">{{ outbox.synced }}</span>
+                        </div>
                         <form class="space-y-5" @submit.prevent="submitOffline">
                             <div class="flex items-center justify-between rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3">
                                 <div>

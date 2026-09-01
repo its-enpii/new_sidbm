@@ -13,6 +13,7 @@ final class DesktopSyncClientService
 {
     public function __construct(
         private readonly DesktopSnapshotIngestionService $ingestionService,
+        private readonly DesktopOutboxService $outboxService,
     ) {}
 
     /**
@@ -22,6 +23,7 @@ final class DesktopSyncClientService
      */
     public function syncFromCloud(?string $tenantCode = null, bool $isDelta = false, ?string $since = null): array
     {
+        $pushResult = $this->outboxService->flushPendingMutations($tenantCode);
         $serverUrl = rtrim((string) config('desktop.server.url', 'https://app.sidbm.id'), '/');
         $apiKey = (string) config('desktop.server.api_key', '');
         $targetTenant = $tenantCode ?? (string) config('desktop.server.tenant_code', 'default');
@@ -57,7 +59,10 @@ final class DesktopSyncClientService
             throw new RuntimeException('Invalid response format received from sync server.');
         }
 
-        return $this->ingestionService->ingest($snapshotPayload);
+        $result = $this->ingestionService->ingest($snapshotPayload);
+        $result['push'] = $pushResult;
+
+        return $result;
     }
 
     /**

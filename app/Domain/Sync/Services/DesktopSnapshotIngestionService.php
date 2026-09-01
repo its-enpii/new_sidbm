@@ -41,12 +41,23 @@ final class DesktopSnapshotIngestionService
 
         try {
             DB::connection($conn)->transaction(function () use ($conn, $schema, $tablesOrder, $data, $type, &$totalIngested, &$tableResults): void {
+                $pendingRows = $this->pendingRowIdentifiers($conn, $schema);
+
                 // If full snapshot, wipe existing data in reverse topological order first
                 if ($type === 'full') {
                     $reverseOrder = array_reverse($tablesOrder);
                     foreach ($reverseOrder as $tableName) {
-                        if ($schema->hasTable($tableName)) {
+                        if (! $schema->hasTable($tableName)) {
+                            continue;
+                        }
+
+                        $pending = $pendingRows[$tableName] ?? [];
+                        if ($pending === []) {
                             DB::connection($conn)->table($tableName)->delete();
+                        } else {
+                            DB::connection($conn)->table($tableName)
+                                ->whereNotIn('id', $pending)
+                                ->delete();
                         }
                     }
                 }
@@ -69,6 +80,12 @@ final class DesktopSnapshotIngestionService
                     }
 
                     $count = 0;
+                    $rows = array_values(array_filter($rows, function (array $row) use ($tableName, $pendingRows): bool {
+                        $pending = $pendingRows[$tableName] ?? [];
+                        $identifier = (string) ($row['public_id'] ?? $row['id'] ?? '');
+
+                        return $identifier === '' || ! in_array($identifier, $pending, true);
+                    }));
                     $chunks = array_chunk($rows, 100);
 
                     foreach ($chunks as $chunk) {
@@ -134,6 +151,24 @@ final class DesktopSnapshotIngestionService
                 throw new RuntimeException('Snapshot payload checksum mismatch. Data may be corrupted.');
             }
         }
+    }
+
+    /**
+     * @return array<string, array<int, string>>
+     */
+    private function pendingRowIdentifiers(string $conn, $schema): array
+    {
+        if (! $schema->hasTable('outbox')) {
+            return [];
+        }
+
+        return DB::connection($conn)->table('outbox')
+            ->whereIn('status', ['pending', 'failed'])
+            ->where('operation', '!=', 'delete')
+            ->get(['table_name', 'row_public_id'])
+            ->groupBy('table_name')
+            ->map(fn ($rows) => $rows->pluck('row_public_id')->all())
+            ->all();
     }
 
     /**

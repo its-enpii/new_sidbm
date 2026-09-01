@@ -99,6 +99,8 @@ $registerDesktopSyncRoutes = function (string $prefix): void {
             Route::get('/tenants/{tenant}/status', [DesktopSyncController::class, 'status'])->name("api.{$prefix}.tenant.status");
             Route::get('/tenants/{tenant}/snapshot', [DesktopSyncController::class, 'snapshot'])->name("api.{$prefix}.tenant.snapshot");
             Route::get('/tenants/{tenant}/delta', [DesktopSyncController::class, 'delta'])->name("api.{$prefix}.tenant.delta");
+            Route::post('/tenants/{tenant}/push', [DesktopSyncController::class, 'push'])
+                ->name("api.{$prefix}.tenant.push");
         });
 };
 

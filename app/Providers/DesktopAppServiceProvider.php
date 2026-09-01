@@ -7,6 +7,8 @@ namespace App\Providers;
 use App\Console\Commands\DesktopInitCommand;
 use App\Console\Commands\DesktopStatusCommand;
 use App\Console\Commands\DesktopSyncCommand;
+use App\Domain\Sync\Observers\DesktopOutboxObserver;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
 
@@ -25,6 +27,10 @@ final class DesktopAppServiceProvider extends ServiceProvider
                 DesktopStatusCommand::class,
                 DesktopSyncCommand::class,
             ]);
+        }
+
+        if (config('database.default') === 'sqlite') {
+            Model::observe(DesktopOutboxObserver::class);
         }
 
         // When running in desktop mode, ensure the local SQLite file exists
