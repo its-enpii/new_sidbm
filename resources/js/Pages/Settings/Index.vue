@@ -37,7 +37,6 @@ const tabs = [
     { key: 'lending-system', label: 'Sistem Pinjaman', icon: 'tune' },
     { key: 'logo', label: 'Logo Lembaga', icon: 'image' },
     { key: 'offline', label: 'Akses Offline', icon: 'cloud_off' },
-    { key: 'whatsapp', label: 'WhatsApp Gateway', icon: 'chat' },
     { key: 'signatures', label: 'Tanda Tangan', icon: 'draw' },
 ];
 
@@ -124,6 +123,7 @@ function submitLogo() {
 }
 const { confirm: confirmAction } = useConfirm();
 const toast = useToast();
+const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
 
 const syncLoading = ref(false);
 async function syncRounding() {
@@ -160,103 +160,6 @@ async function destroyLogo() {
     router.delete('/settings/logo', { preserveScroll: true });
 }
 
-// === WhatsApp ===
-const whatsappForm = useForm({
-    template_billing: props.whatsapp.template_billing ?? '',
-    template_installment: props.whatsapp.template_installment ?? '',
-    is_enabled: props.whatsapp.is_enabled ?? false,
-});
-const testResult = ref(null);
-const testLoading = ref(false);
-const createResult = ref(null);
-const createLoading = ref(false);
-const qrCode = ref(props.whatsapp.connection?.qr ?? null);
-const instanceStatus = ref(props.whatsapp.connection?.state || props.whatsapp.connection?.status || 'unknown');
-let pollTimer = null;
-
-async function createInstance() {
-    createLoading.value = true;
-    createResult.value = null;
-    try {
-        const response = await fetch('/settings/whatsapp/create', {
-            method: 'POST',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': csrfToken(),
-            },
-            credentials: 'same-origin',
-        });
-        const res = await response.json();
-        createResult.value = res;
-        if (res.qr) qrCode.value = res.qr;
-        if (res.state) instanceStatus.value = res.state;
-        startPolling();
-    } catch (e) {
-        createResult.value = { success: false, message: e.message };
-    } finally {
-        createLoading.value = false;
-    }
-}
-
-async function deleteInstance() {
-    if (!await confirmAction({ title: 'Hapus Session WhatsApp', message: 'Apakah Anda yakin ingin menghapus session WhatsApp ini?' })) return;
-    try {
-        const response = await fetch('/settings/whatsapp/delete', {
-            method: 'DELETE',
-            headers: {
-                Accept: 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': csrfToken(),
-            },
-            credentials: 'same-origin',
-        });
-        const res = await response.json();
-        qrCode.value = null;
-        instanceStatus.value = 'missing';
-        createResult.value = { success: true, message: res.message || 'Session dihapus.' };
-        stopPolling();
-    } catch (e) {
-        createResult.value = { success: false, message: e.message };
-    }
-}
-
-function startPolling() {
-    stopPolling();
-    pollTimer = setInterval(async () => {
-        try {
-            const response = await fetch('/settings/whatsapp/state', {
-                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                credentials: 'same-origin',
-            });
-            const res = await response.json();
-            if (res.qr) qrCode.value = res.qr;
-            if (res.state || res.status) instanceStatus.value = res.state || res.status;
-            if (['open', 'connected'].includes(instanceStatus.value.toLowerCase())) {
-                stopPolling();
-                qrCode.value = null;
-            }
-        } catch {
-            // ignore
-        }
-    }, 3000);
-}
-
-function stopPolling() {
-    if (pollTimer) {
-        clearInterval(pollTimer);
-        pollTimer = null;
-    }
-}
-const pairResult = ref(null);
-const pairLoading = ref(false);
-const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
-
-function submitWhatsapp() {
-    whatsappForm.put('/settings/whatsapp', { preserveScroll: true });
-}
-
 // === Offline Access ===
 const offlineForm = useForm({
     is_enabled: props.offline.is_enabled ?? false,
@@ -275,56 +178,6 @@ function submitOffline() {
     }
     offlineForm.put('/settings/offline-access', { preserveScroll: true });
 }
-async function testConnection() {
-    testLoading.value = true;
-    testResult.value = null;
-    try {
-        const response = await fetch('/settings/whatsapp/test', {
-            method: 'POST',
-            headers: {
-                Accept: 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': csrfToken(),
-            },
-            credentials: 'same-origin',
-        });
-        testResult.value = await response.json();
-    } catch (e) {
-        testResult.value = { success: false, status: 'client_error', message: e.message };
-    } finally {
-        testLoading.value = false;
-    }
-}
-async function pairDevice() {
-    pairLoading.value = true;
-    pairResult.value = null;
-    try {
-        const response = await fetch('/settings/whatsapp/pair', {
-            method: 'POST',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': csrfToken(),
-            },
-            credentials: 'same-origin',
-            body: JSON.stringify({ pairing_phone: whatsappForm.pairing_phone }),
-        });
-        pairResult.value = await response.json();
-    } catch (e) {
-        pairResult.value = { success: false, message: e.message, pairing_code: null };
-    } finally {
-        pairLoading.value = false;
-    }
-}
-
-const connectionTone = computed(() => {
-    const state = (props.whatsapp.connection?.state || props.whatsapp.connection?.status || '').toLowerCase();
-    if (['open', 'connected'].includes(state)) return 'success';
-    if (['unconfigured', 'missing', 'close', 'closed'].includes(state)) return 'warning';
-    return 'neutral';
-});
-
 // === Signatures ===
 const signatureReportKey = ref(props.signatures.reportTypes?.[0]?.key ?? 'default');
 const signatureDrafts = ref({ ...(props.signatures.templates ?? {}) });
@@ -538,133 +391,6 @@ function applySignatureStarter() {
                                     <AppButton type="submit" :loading="logoForm.processing" :disabled="!logoForm.logo || logoForm.processing" icon="upload">Unggah Logo</AppButton>
                                 </div>
                             </form>
-                        </div>
-                    </AppCard>
-
-                    <AppCard v-show="activeTab === 'whatsapp'" bordered>
-                        <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                            <div>
-                                <h2 class="text-lg font-bold text-primary">WhatsApp Gateway</h2>
-                                <p class="mt-1 text-sm text-on-surface-variant">
-                                    Kelola beberapa nomor WhatsApp per lembaga melalui halaman WhatsApp Gateway.
-                                </p>
-                            </div>
-                            <AppBadge :tone="connectionTone">
-                                {{ props.whatsapp.connection?.state || props.whatsapp.connection?.status || 'unknown' }}
-                            </AppBadge>
-                        </div>
-
-                        <div class="mb-6 flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container-low p-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <p class="font-bold text-primary">Multi-Instance WhatsApp</p>
-                                <p class="text-xs text-on-surface-variant">
-                                    Tambah, pasangkan, dan rotasi nomor WhatsApp untuk menekan risiko blokir.
-                                </p>
-                            </div>
-                            <AppButton type="button" variant="secondary" icon="open_in_new" @click="router.get('/settings/whatsapp/manage')">
-                                Buka Halaman WhatsApp
-                            </AppButton>
-                        </div>
-
-                        <!-- Panel Buat Instance & QR Scan -->
-                        <div class="mb-6 rounded-xl border border-outline-variant bg-surface-container-low p-4 space-y-3">
-                            <div class="flex flex-wrap items-center justify-between gap-3">
-                                <div>
-                                    <p class="font-bold text-primary">Aktifasi & Scan QR</p>
-                                    <p class="text-xs text-on-surface-variant">
-                                        Klik "Buat Instance" untuk mendapatkan QR Code scan WhatsApp Business.
-                                    </p>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <AppButton
-                                        type="button"
-                                        variant="secondary"
-                                        icon="qr_code_scanner"
-                                        :loading="createLoading"
-                                        :disabled="createLoading || !props.whatsapp.configured"
-                                        @click="createInstance"
-                                    >
-                                        Buat Instance
-                                    </AppButton>
-                                    <AppButton
-                                        type="button"
-                                        variant="danger"
-                                        icon="delete"
-                                        :disabled="!props.whatsapp.configured"
-                                        @click="deleteInstance"
-                                    >
-                                        Hapus Instance
-                                    </AppButton>
-                                </div>
-                            </div>
-
-                            <div v-if="qrCode" class="mt-4 flex flex-col items-center justify-center p-4 bg-surface rounded-lg border border-outline-variant">
-                                <p class="mb-2 text-xs font-bold text-on-surface-variant">Scan QR Code ini menggunakan WhatsApp di HP Anda:</p>
-                                <img :src="qrCode" alt="QR Code WhatsApp" class="size-64 object-contain" />
-                                <p class="mt-2 text-xs text-on-surface-variant animate-pulse">Menunggu scan QR... (auto-refresh status tiap 3 detik)</p>
-                            </div>
-
-                            <div v-if="createResult" class="mt-2 text-xs" :class="createResult.success ? 'text-primary font-semibold' : 'text-error font-semibold'">
-                                {{ createResult.message }}
-                            </div>
-                        </div>
-
-                        <form class="space-y-5" @submit.prevent="submitWhatsapp">
-
-                            <div class="grid gap-4 sm:grid-cols-2">
-                                <AppTextarea
-                                    v-model="whatsappForm.template_billing"
-                                    label="Pesan Tagihan"
-                                    :rows="5"
-                                    placeholder="Yth. Bapak/Ibu {nama}, tagihan angsuran ke-{angsuran_ke} sebesar Rp {total} jatuh tempo {tanggal}."
-                                    :error="whatsappForm.errors.template_billing"
-                                    hint="Placeholder: {nama}, {angsuran_ke}, {total}, {tanggal}, {pinjaman}, {produk}"
-                                />
-                                <AppTextarea
-                                    v-model="whatsappForm.template_installment"
-                                    label="Pesan Angsuran"
-                                    :rows="5"
-                                    placeholder="Terima kasih, pembayaran angsuran ke-{angsuran_ke} a/n {penyetor} sebesar Rp {total} telah diterima pada {tanggal}."
-                                    :error="whatsappForm.errors.template_installment"
-                                    hint="Placeholder: {nama}, {penyetor}, {angsuran_ke}, {total}, {pokok}, {jasa}, {denda}, {tanggal}, {pinjaman}"
-                                />
-                            </div>
-
-                            <div class="flex items-center justify-between rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3">
-                                <div>
-                                    <p class="text-sm font-bold text-primary">Aktifkan Gateway</p>
-                                    <p class="text-xs text-on-surface-variant">Jika nonaktif, pengiriman WhatsApp akan diblokir.</p>
-                                </div>
-                                <AppSwitch v-model="whatsappForm.is_enabled" />
-                            </div>
-
-                            <div class="flex flex-wrap justify-between gap-2 border-t border-outline-variant pt-4">
-                                <AppButton type="button" variant="secondary" icon="wifi" :loading="testLoading" :disabled="testLoading || !props.whatsapp.configured" @click="testConnection">
-                                    Cek Status
-                                </AppButton>
-                                <AppButton type="submit" :loading="whatsappForm.processing" :disabled="whatsappForm.processing" icon="save">
-                                    Simpan Pengaturan
-                                </AppButton>
-                            </div>
-                        </form>
-
-                        <div
-                            v-if="testResult"
-                            class="mt-4 flex items-start gap-3 rounded-lg border p-4"
-                            :class="testResult.success ? 'border-secondary/30 bg-secondary-container/40' : 'border-error/30 bg-error-container/40'"
-                        >
-                            <div :class="['grid size-10 shrink-0 place-items-center rounded-full', testResult.success ? 'bg-secondary text-on-secondary' : 'bg-error text-on-error']">
-                                {{ testResult.success ? '✓' : '!' }}
-                            </div>
-                            <div>
-                                <p class="font-bold" :class="testResult.success ? 'text-secondary' : 'text-error'">
-                                    {{ testResult.success ? 'Status OK' : 'Status Gagal' }}
-                                </p>
-                                <p class="mt-1 text-sm text-on-surface-variant">{{ testResult.message }}</p>
-                                <p v-if="testResult.state || testResult.instance" class="mt-1 text-xs text-on-surface-variant">
-                                    Instance: {{ testResult.instance || props.whatsapp.instance }} · State: {{ testResult.state || testResult.status }}
-                                </p>
-                            </div>
                         </div>
                     </AppCard>
 

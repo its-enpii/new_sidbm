@@ -556,10 +556,10 @@ test.describe('D9 — Tenant Billing', () => {
 test.describe('D10 — Notifications & WA', () => {
     test.beforeEach(async ({ page }) => { await loginAs(page, 'dev'); });
 
-    test('10.1 /notifications/billing page loads', async ({ page }) => {
-        const resp = await gotoNoErr(page, `${BASE}/notifications/billing`);
+    test('10.1 WhatsApp Hub billing tab loads', async ({ page }) => {
+        const resp = await gotoNoErr(page, `${BASE}/settings/whatsapp?tab=billing`);
         recordTest('notifications-wa', '10.1 Billing notifications', {
-            input: 'GET /notifications/billing',
+            input: 'GET /settings/whatsapp?tab=billing',
             expected: 'status < 500',
             actual: `status=${resp?.status() ?? '?'}`,
             status: resp && resp.status() < 500 ? 'PASS' : 'FAIL',

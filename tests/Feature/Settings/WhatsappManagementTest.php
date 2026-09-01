@@ -49,7 +49,7 @@ final class WhatsappManagementTest extends TestCase
         $response = $this->actingAs($this->user)->get('/settings/whatsapp/manage');
         $response->assertOk();
         $response->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('Settings/Whatsapp/Index')
+            ->component('Settings/Whatsapp/Hub')
             ->has('instances')
             ->has('global')
         );
@@ -114,7 +114,7 @@ final class WhatsappManagementTest extends TestCase
             'template_installment' => 'Template angsuran khusus',
             'is_enabled' => true,
             'rotation_mode' => 'round_robin',
-        ])->assertRedirect('/settings/whatsapp/manage');
+        ])->assertRedirect('/settings/whatsapp');
 
         $gateway = app(WhatsappGatewayService::class);
         $this->assertTrue($gateway->isEnabled());

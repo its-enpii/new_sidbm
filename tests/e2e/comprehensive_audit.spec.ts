@@ -433,7 +433,7 @@ test.describe('19. Profile', () => {
 test.describe('20. Billing & Notifications', () => {
     test.beforeEach(async ({ page }) => { await loginAs(page, 'dev'); });
     test('20.1 Billing invoices', async ({ page }) => { await go(page, '/billing/invoices'); await noErr(page); });
-    test('20.2 Billing notices', async ({ page }) => { await go(page, '/notifications/billing'); await noErr(page); });
+    test('20.2 WhatsApp Hub billing tab', async ({ page }) => { await go(page, '/settings/whatsapp?tab=billing'); await noErr(page); });
 });
 
 /* ---- SECTION 21: ONBOARDING ---- */

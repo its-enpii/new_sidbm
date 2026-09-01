@@ -7,6 +7,7 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 
 ### Added
 - Halaman mandiri **WhatsApp Gateway** (`/settings/whatsapp/manage`) untuk mengelola beberapa nomor/instance WhatsApp per tenant.
+- **WhatsApp Hub** satu halaman bertab pada `/settings/whatsapp` untuk Status & Instance, Template Pesan, dan Kirim Tagihan. Halaman ini memakai payload per izin (`settings.manage` atau `messages.send`) tanpa menambah endpoint baru.
 - Tabel tenant `whatsapp_instances` untuk menyimpan nama, status koneksi, nomor, batas harian, status default, dan status aktif setiap instance WhatsApp.
 - Strategi rotasi pesan Round Robin atau Nomor Utama pada `WhatsappGatewayService` agar beban notifikasi dapat didistribusikan antar nomor dan membantu mengurangi risiko blokir.
 - Kolom koordinat tenant (`map_latitude`, `map_longitude`, `map_zoom`) pada tabel platform `tenants` dan registry shard `tenant_registry`, dengan sinkronisasi registry dan tampilan koordinat di detail tenant.
@@ -17,6 +18,8 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 - Antrean sinkronisasi offline mobile (`OfflineQueueService` dan `MobileOfflineSyncService`) yang menyimpan pengajuan pembayaran saat koneksi terputus lalu mengirim ulang otomatis dengan batas percobaan.
 
 ### Changed
+- Tab "WhatsApp Gateway" pada halaman Pengaturan dihapus agar template dan status WhatsApp hanya dikelola melalui WhatsApp Hub. Endpoint `/settings/whatsapp/manage` tetap tersedia sebagai alias.
+- Halaman Notifikasi Tagihan kini dialihkan ke tab "Kirim Tagihan" pada WhatsApp Hub, item menu Keuangan→Periodik dihapus, dan navigasi WhatsApp diarahkan ke `/settings/whatsapp`.
 - Resolver peta konsolidasi kabupaten kini membaca koordinat tersimpan tenant terlebih dahulu, lalu fallback ke dataset `RegencyGeoService`.
 - Validasi koordinat tenant dibatasi ke rentang global dan batas radius kabupaten/kota terpilih pada `StoreTenantRequest` serta `Admin\\UpdateTenantRequest`.
 - Kalkulator simulasi pinjaman mendukung satuan bunga bulanan/tahunan, preskripsi pembulatan tanpa batas minimum, ringkasan pemanfaat, dan tampilan hasil yang diperbarui.

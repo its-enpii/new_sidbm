@@ -266,9 +266,9 @@ test.describe('Scenario 1: Happy Path — Full CRUD & Core Workflows', () => {
         await expect(page.locator('body')).toBeVisible();
     });
 
-    test('1.23 Notifications — billing notice page loads', async ({ page }) => {
+    test('1.23 WhatsApp Hub — billing tab loads', async ({ page }) => {
         await loginAs(page, 'dev');
-        await page.goto(`${BASE}/notifications/billing`, { waitUntil: 'domcontentloaded' });
+        await page.goto(`${BASE}/settings/whatsapp?tab=billing`, { waitUntil: 'domcontentloaded' });
         await expect(page.locator('body')).toBeVisible();
     });
 

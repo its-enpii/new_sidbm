@@ -559,6 +559,7 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
         Route::delete('/signatures/image', [SettingsController::class, 'destroySignatureImage'])->name('signatures.image.destroy');
 
         // Multi-Instance WhatsApp Gateway
+        Route::get('/whatsapp', [WhatsappSettingController::class, 'index'])->name('whatsapp.hub');
         Route::get('/whatsapp/manage', [WhatsappSettingController::class, 'index'])->name('whatsapp.manage');
         Route::post('/whatsapp/instances', [WhatsappSettingController::class, 'store'])->name('whatsapp.instances.store');
         Route::put('/whatsapp/instances/{instance}', [WhatsappSettingController::class, 'update'])->name('whatsapp.instances.update');

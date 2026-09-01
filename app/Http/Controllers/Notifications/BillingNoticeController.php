@@ -10,8 +10,6 @@ use App\Services\WhatsappGatewayService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 final class BillingNoticeController
 {
@@ -21,38 +19,9 @@ final class BillingNoticeController
         private readonly PermissionChecker $permissions,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(): RedirectResponse
     {
-        $this->permissions->denyUnless($request->user(), 'messages.send');
-
-        $due = $this->resolveDueDate($request);
-        $items = $this->notices->dueOn($due);
-        $state = $this->gateway->isConfigured()
-            ? $this->gateway->connectionState()
-            : [
-                'success' => false,
-                'status' => 'unconfigured',
-                'message' => 'Gateway WhatsApp belum dikonfigurasi.',
-                'state' => null,
-                'instance' => $this->gateway->getInstance(),
-            ];
-
-        return Inertia::render('Notifications/BillingNotice', [
-            'due_date' => $due->toDateString(),
-            'items' => $items,
-            'gateway' => [
-                'enabled' => $this->gateway->isEnabled(),
-                'configured' => $this->gateway->isConfigured(),
-                'instance' => $this->gateway->getInstance(),
-                'state' => $state['state'] ?? null,
-                'status_message' => $state['message'] ?? null,
-            ],
-            'totals' => [
-                'count' => count($items),
-                'amount' => array_sum(array_column($items, 'amount')),
-                'with_phone' => count(array_filter($items, fn (array $i): bool => $i['can_send'])),
-            ],
-        ]);
+        return redirect()->route('settings.whatsapp.hub', ['tab' => 'billing']);
     }
 
     public function send(Request $request, PermissionChecker $permissions): RedirectResponse
@@ -84,12 +53,12 @@ final class BillingNoticeController
 
         if ($result['sent'] > 0 && $result['failed'] === 0) {
             return redirect()
-                ->route('notifications.billing', ['due_date' => $due->toDateString()])
+                ->route('settings.whatsapp.hub', ['tab' => 'billing', 'due_date' => $due->toDateString()])
                 ->with('success', $message);
         }
 
         return redirect()
-            ->route('notifications.billing', ['due_date' => $due->toDateString()])
+            ->route('settings.whatsapp.hub', ['tab' => 'billing', 'due_date' => $due->toDateString()])
             ->with($result['sent'] > 0 ? 'warning' : 'error', $message);
     }
 

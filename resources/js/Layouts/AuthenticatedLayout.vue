@@ -294,7 +294,6 @@ const sections = [
                     { label: 'E-Budgeting', href: '/budgeting' },
                     { label: 'Tutup Buku', href: '/accounting/period-close' },
                     { label: 'Taksiran Pajak', href: '/accounting/tax-estimate' },
-                    { label: 'Notifikasi Tagihan', href: '/notifications/billing' },
                 ],
             },
             {
@@ -341,7 +340,7 @@ const sections = [
         label: 'Pengaturan',
         items: [
             { label: 'Pengaturan', icon: 'settings', href: '/settings' },
-            { label: 'WhatsApp Gateway', icon: 'chat', href: '/settings/whatsapp/manage' },
+            { label: 'WhatsApp Gateway', icon: 'chat', href: '/settings/whatsapp' },
         ],
     },
 ];
@@ -727,4 +726,3 @@ function logout() {
     }
 }
 </style>
-
