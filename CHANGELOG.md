@@ -26,6 +26,9 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ### Fixed
 - Keamanan halaman multi-instance WhatsApp: operasi `update` kini melakukan otorisasi izin `settings.manage` sebelum perubahan data.
 - Kesalahan parameter entity pemanfaat pinjaman pada test mobile agar analisis Flutter kembali berjalan tanpa error pada kode test.
+- Deklarasi `ext-bcmath` pada `composer.json` karena `JournalPostingService` memakai `bccomp()` dan Dockerfile sudah menginstall ekstensi tersebut (environment tanpa bcmath gagal 111 test).
+- Konsistensi token MD3 pada `SignaturePad.vue` (ganti `text-slate-400` → `text-on-surface-variant`) dan format pembulatan simulasi pinjaman memakai `useMoney()` pada `Lending/Simulation/Index.vue`.
+- Pembersihan artefak karakter asing pada `docs/audit/2026-08-15/loan-deletion-audit.md`.
 
 ---
 

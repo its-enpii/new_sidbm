@@ -264,8 +264,8 @@ menyimpan IP, user-agent, atau signature request).
 ### 4.3 `loan_activities` — TIDAK ADA
 
 Berbeda dengan modul lain (membership, accounting) yang punya tabel
-activity log, lending tidak punya tabel sendiri. Audit hanya依靠
-`loan_status_histories`.
+activity log, lending tidak punya tabel sendiri. Audit hanya bergantung pada
+activity log yang tersimpan di `loan_status_histories`.
 
 ---
 
@@ -324,7 +324,7 @@ Tapi best practice Laravel = selalu pakai Form Request dengan
 | Loan salah status (mis. di-`active` padahal salah input) | Bisa di-`revert` ke draft (line 644), lalu diedit. Tapi `revertToDraft` hanya jalan dari `verified`/`waiting`/`approved`, bukan dari `active`. Jadi tidak ada rollback dari `active`/`disbursed`. |
 | Salah klik "Hapus Pemanfaat" | Modal `useConfirm()` standar, ada tombol Cancel. Tapi tidak ada undo setelah eksekusi. |
 | Bulk corruption (mis. migration gagal tengah jalan) | Bisa di-truncate via `migrate:fresh` (testing only) atau operasi SQL manual. Tidak ada admin UI. |
-| Force-delete loan via SQL | FK restrict dari `loan_payments` & `loan_write_offs`阻止. Harus hapus dependent rows dulu (cascade order: payments → write_offs → loan). Tidak ada tool internal. |
+| Force-delete loan via SQL | FK restrict dari `loan_payments` & `loan_write_offs` memblokir. Harus hapus dependent rows dulu (cascade order: payments → write_offs → loan). Tidak ada tool internal. |
 
 ---
 

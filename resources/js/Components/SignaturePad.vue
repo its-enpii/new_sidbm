@@ -114,10 +114,10 @@ defineExpose({ clear, save });
             />
             <div
                 v-if="!hasDrawn"
-                class="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-slate-400 select-none"
+                class="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-on-surface-variant select-none"
             >
                 <div class="flex items-center gap-2">
-                    <AppIcon name="draw" class="text-slate-400" />
+                    <AppIcon name="draw" class="text-on-surface-variant" />
                     <span>Goreskan tanda tangan di sini</span>
                 </div>
             </div>

@@ -66,7 +66,7 @@ Glob: resources/js/composables/*.js
 - `useMarkdown()` — render markdown
 - `usePeriodOptions()` — opsi periode laporan (bulan/tahun)
 
-> **Catatan:** `useToast()` **tidak ada** di codebase. Toast dipicu otomatis lewat `page.props.flash` Inertia (lihat `AppToast.vue`). Untuk notifikasi dari event handler, set `usePage().props.flash` atau flash session biasa dari controller — atau render `<AppBadge tone="success|error">` inline.
+> **Catatan:** `useToast()` tersedia di `resources/js/composables/useToast.js` dan dikonsumsi `AppToast.vue`; composable ini juga menyediakan notifikasi programatis melalui method `success`, `error`, `warning`, dan `info`. Toast dari flash Inertia tetap jalan lewat watcher `page.props.flash` pada `AppToast.vue`.
 
 #### Layout
 
@@ -84,7 +84,7 @@ Untuk setiap kebutuhan UI, bandingkan dengan inventory:
 | Tombol icon-only (lingkaran/persegi kecil di tabel) | `AppIconButton` (props: `name`, `tone`, `size`, `tooltip`) |
 | Input teks/nomor/email/dll | `AppInput` (atau `AppTextarea`/`AppCurrencyInput`) |
 | Konfirmasi "Yakin hapus?" | `useConfirm()` → render `<AppConfirmDialog />` sekali di root layout |
-| Toast sukses/gagal | Flash Inertia lewat `page.props.flash` (lihat `AppToast.vue`) — **bukan** `useToast()` |
+| Toast sukses/gagal | Flash Inertia lewat `page.props.flash` (lihat `AppToast.vue`), atau `useToast()` untuk notifikasi programatis dari event handler |
 | Pilih tanggal | `AppDatePicker` |
 | Toggle aktif/non-aktif | `AppSwitch` (boolean `v-model`) — atau `AppCheckbox :value="x" v-model="array"` untuk multi-select |
 | Checkbox dalam tabel | `AppCheckbox` (`variant="cell"` default; `inline` untuk Login "remember me"; `field` untuk form-field sejajar AppInput) |

@@ -675,7 +675,7 @@ Est. Angsuran/Bln: ${money(s.estimated_monthly)}`;
                         <span class="text-outline">·</span>
                         <span>Suku Bunga: <strong class="text-on-surface">{{ simulationResult.summary.interest_rate_monthly.toFixed(2) }}% / bln</strong> ({{ simulationResult.summary.interest_rate_annual.toFixed(2) }}% p.a.)</span>
                         <span class="text-outline">·</span>
-                        <span>Pembulatan: <strong class="text-on-surface">{{ form.rounding_step > 0 ? `Rp ${Number(form.rounding_step).toLocaleString('id-ID')}` : 'Tanpa Pembulatan' }}</strong></span>
+                        <span>Pembulatan: <strong class="text-on-surface">{{ form.rounding_step > 0 ? money(form.rounding_step) : 'Tanpa Pembulatan' }}</strong></span>
                         <span v-if="form.installment_method === 'declining'" class="text-outline">·</span>
                         <span v-if="form.installment_method === 'declining'">
                             Rentang: <strong class="text-primary">{{ money(simulationResult.summary.first_due) }}</strong> s/d <strong class="text-secondary">{{ money(simulationResult.summary.last_due) }}</strong>
