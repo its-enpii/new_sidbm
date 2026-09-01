@@ -37,6 +37,8 @@ defineEmits(['update:modelValue']);
 
 const wrapperBase = 'flex flex-wrap gap-2';
 
+const alignCls = 'inline-flex items-center justify-center gap-1.5';
+
 const base = {
     outline: 'rounded-xl border transition-all duration-150 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest',
     solid: 'rounded-full transition-all duration-150 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest',
@@ -63,6 +65,7 @@ const inactiveCls = {
 function pillClass(item) {
     const isActive = props.modelValue === item.value;
     return [
+        alignCls,
         base[props.variant],
         sizeCls[props.size],
         isActive ? activeCls[props.variant] : inactiveCls[props.variant],

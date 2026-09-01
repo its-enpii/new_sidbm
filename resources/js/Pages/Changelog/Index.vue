@@ -254,7 +254,7 @@ const filteredReleases = computed(() => {
             </AppCard>
 
             <!-- Changelog Timeline Cards -->
-            <div v-if="filteredReleases.length > 0" class="relative pl-6 sm:pl-9 ml-2 sm:ml-4 border-l-2 border-outline-variant/70 space-y-8">
+            <div v-if="filteredReleases.length > 0" class="relative pl-6 sm:pl-9 ml-2 sm:ml-8 border-l-2 border-outline-variant/70 space-y-8">
                 <article
                     v-for="release in filteredReleases"
                     :key="release.version"
@@ -262,7 +262,7 @@ const filteredReleases = computed(() => {
                 >
                     <!-- Timeline Node Indicator -->
                     <div
-                        class="absolute -left-[31px] sm:-left-[43px] top-6 flex size-5 sm:size-6 items-center justify-center rounded-full border-2 bg-surface-container-lowest shadow-xs transition-transform"
+                        class="absolute -left-[36px] sm:-left-[52px] top-6 flex size-5 sm:size-6 items-center justify-center rounded-full border-2 bg-surface-container-lowest shadow-xs transition-transform"
                         :class="release.is_latest ? 'border-secondary' : 'border-outline'"
                     >
                         <span
