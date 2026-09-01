@@ -18,6 +18,9 @@ final class Tenant extends PlatformModel
             'training_ended_at' => 'datetime',
             'provisioned_at' => 'datetime',
             'suspended_at' => 'datetime',
+            'map_latitude' => 'float',
+            'map_longitude' => 'float',
+            'map_zoom' => 'integer',
         ];
     }
 

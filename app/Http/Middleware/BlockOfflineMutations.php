@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Services\OfflineAccessService;
+use App\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 final class BlockOfflineMutations
 {
@@ -19,6 +22,7 @@ final class BlockOfflineMutations
         'login*',
         'logout*',
         'desktop/sync*',
+        'api/v1/mobile/auth/*',
         'up',
     ];
 
@@ -61,6 +65,11 @@ final class BlockOfflineMutations
 
     private function isOffline(Request $request): bool
     {
+        // The designated offline user can still perform mutations
+        if ($this->offlineMutationAllowed($request)) {
+            return false;
+        }
+
         // Explicit offline simulation header from frontend / client
         if ($request->header('X-Client-Offline') === 'true' || $request->query('simulate_offline') === '1') {
             return true;
@@ -72,5 +81,20 @@ final class BlockOfflineMutations
         }
 
         return false;
+    }
+
+    private function offlineMutationAllowed(Request $request): bool
+    {
+        try {
+            $context = app(TenantContext::class);
+            if (! $context->isInitialized() || $request->user() === null) {
+                return false;
+            }
+
+            return app(OfflineAccessService::class)
+                ->isUserAllowed($context->id(), (int) $request->user()->getAttribute('row_id'));
+        } catch (Throwable) {
+            return false;
+        }
     }
 }

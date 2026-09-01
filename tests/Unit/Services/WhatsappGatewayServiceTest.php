@@ -31,7 +31,7 @@ final class WhatsappGatewayServiceTest extends TestCase
         $shard = new DatabaseShard;
         $shard->row_id = 1;
 
-        $context = new TenantContext;
+        $context = app(TenantContext::class);
         $context->initialize($tenant, $placement, $shard);
 
         $settingsRef = new ReflectionClass(TenantSettingService::class);

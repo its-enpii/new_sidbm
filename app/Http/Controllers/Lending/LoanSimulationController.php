@@ -49,11 +49,12 @@ final class LoanSimulationController extends Controller
         $defaultParams = [
             'principal_amount' => (float) ($request->query('principal') ?: 10000000),
             'term_months' => (int) ($request->query('term') ?: 12),
-            'interest_rate' => (float) ($request->query('rate') ?: 12.0),
+            'interest_rate' => (float) ($request->query('rate') ?: 1.5),
+            'rate_unit' => (string) ($request->query('rate_unit') ?: 'monthly'),
             'installment_method' => (string) ($request->query('method') ?: 'flat'),
             'principal_frequency' => (string) ($request->query('principal_freq') ?: 'monthly'),
             'interest_frequency' => (string) ($request->query('interest_freq') ?: 'monthly'),
-            'rounding_step' => max(500, (int) ($request->query('rounding') ?: 500)),
+            'rounding_step' => $request->has('rounding') ? max(0, (int) $request->query('rounding')) : 500,
             'start_date' => (string) ($request->query('start_date') ?: date('Y-m-d')),
         ];
 
@@ -70,12 +71,26 @@ final class LoanSimulationController extends Controller
                 ['value' => 'at_maturity', 'label' => 'Jatuh Tempo (Sekaligus di Akhir)'],
             ],
             'methodOptions' => [
-                ['value' => 'flat', 'label' => 'Flat / Tetap (Bunga Dihitung dari Plafon Awal)'],
-                ['value' => 'declining', 'label' => 'Efektif Menurun (Bunga Dihitung dari Sisa Pokok)'],
-                ['value' => 'annuity', 'label' => 'Anuitas (Total Angsuran Tetap Tiap Periode)'],
+                [
+                    'value' => 'flat',
+                    'label' => 'Flat / Tetap',
+                    'description' => 'Angsuran pokok dan jasa bernilai sama/tetap setiap periode.',
+                ],
+                [
+                    'value' => 'declining',
+                    'label' => 'Efektif Menurun',
+                    'description' => 'Pokok tetap, bunga dihitung dari sisa saldo pokok pinjaman sehingga total angsuran menurun.',
+                ],
+                [
+                    'value' => 'annuity',
+                    'label' => 'Anuitas',
+                    'description' => 'Total angsuran (pokok + jasa) tetap tiap periode, proporsi pokok bertambah & jasa menurun.',
+                ],
             ],
             'roundingOptions' => [
-                ['value' => 500, 'label' => 'Pembulatan Rp 500 (Minimal)'],
+                ['value' => 0, 'label' => 'Tanpa Pembulatan (Desimal / Rp 1)'],
+                ['value' => 100, 'label' => 'Pembulatan Ratusan (Rp 100)'],
+                ['value' => 500, 'label' => 'Pembulatan Rp 500 (Standar UPK)'],
                 ['value' => 1000, 'label' => 'Pembulatan Ribuan (Rp 1.000)'],
                 ['value' => 5000, 'label' => 'Pembulatan Rp 5.000'],
                 ['value' => 10000, 'label' => 'Pembulatan Puluhan Ribu (Rp 10.000)'],
@@ -91,10 +106,11 @@ final class LoanSimulationController extends Controller
             'principal_amount' => ['required', 'numeric', 'min:100000'],
             'term_months' => ['required', 'integer', 'min:1', 'max:120'],
             'interest_rate' => ['required', 'numeric', 'min:0', 'max:100'],
+            'rate_unit' => ['nullable', 'string', 'in:monthly,annual'],
             'installment_method' => ['required', 'string', 'in:flat,declining,annuity'],
             'principal_frequency' => ['required', 'string', 'in:monthly,quarterly,semi_annually,annually,at_maturity'],
             'interest_frequency' => ['required', 'string', 'in:monthly,quarterly,semi_annually,annually,at_maturity'],
-            'rounding_step' => ['nullable', 'integer', 'min:500'],
+            'rounding_step' => ['nullable', 'integer', 'min:0'],
             'start_date' => ['nullable', 'date'],
         ]);
 
@@ -109,11 +125,12 @@ final class LoanSimulationController extends Controller
         $params = [
             'principal_amount' => (float) ($request->query('principal_amount') ?: 10000000),
             'term_months' => (int) ($request->query('term_months') ?: 12),
-            'interest_rate' => (float) ($request->query('interest_rate') ?: 12.0),
+            'interest_rate' => (float) ($request->query('interest_rate') ?: 1.5),
+            'rate_unit' => (string) ($request->query('rate_unit') ?: 'monthly'),
             'installment_method' => (string) ($request->query('installment_method') ?: 'flat'),
             'principal_frequency' => (string) ($request->query('principal_frequency') ?: 'monthly'),
             'interest_frequency' => (string) ($request->query('interest_frequency') ?: 'monthly'),
-            'rounding_step' => max(500, (int) ($request->query('rounding_step') ?: 500)),
+            'rounding_step' => $request->has('rounding_step') ? max(0, (int) $request->query('rounding_step')) : 500,
             'start_date' => (string) ($request->query('start_date') ?: date('Y-m-d')),
         ];
 
@@ -154,10 +171,12 @@ final class LoanSimulationController extends Controller
         }
 
         if (is_numeric($method)) {
-            return max(500, (int) $method);
+            return max(0, (int) $method);
         }
 
         return match ($method) {
+            'decimal_2', 'rupiah_bersih', '0' => 0,
+            '100', 'ceil_100', 'floor_100' => 100,
             '500' => 500,
             '1000' => 1000,
             '5000' => 5000,

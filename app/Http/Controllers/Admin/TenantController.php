@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\Admin\AuditLogger;
 use App\Services\Billing\SubscriptionService;
 use App\Services\TenantRegistrationService;
+use App\Tenancy\Services\TenantRegistrySynchronizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -44,6 +45,9 @@ final class TenantController
                 'code' => $tenant->code,
                 'name' => $tenant->name,
                 'district_code' => $tenant->district_code,
+                'map_latitude' => $tenant->map_latitude ? (float) $tenant->map_latitude : null,
+                'map_longitude' => $tenant->map_longitude ? (float) $tenant->map_longitude : null,
+                'map_zoom' => $tenant->map_zoom ? (int) $tenant->map_zoom : null,
                 'status' => $tenant->status,
                 'provisioned_at' => $tenant->provisioned_at?->toDateTimeString(),
                 'memberships_count' => $tenant->memberships_count,
@@ -106,6 +110,9 @@ final class TenantController
                 'code' => $tenant->code,
                 'name' => $tenant->name,
                 'district_code' => $tenant->district_code,
+                'map_latitude' => $tenant->map_latitude ? (float) $tenant->map_latitude : null,
+                'map_longitude' => $tenant->map_longitude ? (float) $tenant->map_longitude : null,
+                'map_zoom' => $tenant->map_zoom ? (int) $tenant->map_zoom : null,
                 'status' => $tenant->status,
                 'timezone' => $tenant->timezone,
                 'custom_domains' => array_values(array_filter($domains)),
@@ -137,7 +144,7 @@ final class TenantController
 
         return Inertia::render('Admin/Tenants/Edit', [
             'tenant' => [
-                ...$tenant->only(['row_id', 'code', 'name', 'district_code', 'status', 'timezone']),
+                ...$tenant->only(['row_id', 'code', 'name', 'district_code', 'status', 'timezone', 'map_latitude', 'map_longitude', 'map_zoom']),
                 'custom_domains' => array_values(array_filter($domains)),
             ],
         ]);
@@ -148,6 +155,9 @@ final class TenantController
         $data = $request->validated();
         $oldDistrict = (string) $tenant->district_code;
         $newDistrict = isset($data['district_code']) && is_string($data['district_code']) ? $data['district_code'] : null;
+        $newLat = isset($data['map_latitude']) && $data['map_latitude'] !== '' && $data['map_latitude'] !== null ? (float) $data['map_latitude'] : null;
+        $newLng = isset($data['map_longitude']) && $data['map_longitude'] !== '' && $data['map_longitude'] !== null ? (float) $data['map_longitude'] : null;
+        $newZoom = isset($data['map_zoom']) && $data['map_zoom'] !== '' && $data['map_zoom'] !== null ? (int) $data['map_zoom'] : null;
 
         $rawDomains = (array) ($data['custom_domains'] ?? []);
         $cleanDomains = [];
@@ -169,13 +179,16 @@ final class TenantController
         unset($metadata['domain']);
 
         $changes = AuditLogger::diff(
-            ['name' => $tenant->name, 'district_code' => $tenant->district_code, 'status' => $tenant->status, 'timezone' => $tenant->timezone],
-            ['name' => $data['name'], 'district_code' => $newDistrict, 'status' => $data['status'], 'timezone' => $data['timezone'] ?? $tenant->timezone],
+            ['name' => $tenant->name, 'district_code' => $tenant->district_code, 'map_latitude' => $tenant->map_latitude, 'map_longitude' => $tenant->map_longitude, 'map_zoom' => $tenant->map_zoom, 'status' => $tenant->status, 'timezone' => $tenant->timezone],
+            ['name' => $data['name'], 'district_code' => $newDistrict, 'map_latitude' => $newLat, 'map_longitude' => $newLng, 'map_zoom' => $newZoom, 'status' => $data['status'], 'timezone' => $data['timezone'] ?? $tenant->timezone],
         );
 
         $tenant->forceFill([
             'name' => $data['name'],
             'district_code' => $newDistrict,
+            'map_latitude' => $newLat,
+            'map_longitude' => $newLng,
+            'map_zoom' => $newZoom,
             'status' => $data['status'],
             'timezone' => $data['timezone'] ?? $tenant->timezone,
             'suspended_at' => $data['status'] === 'suspended' ? ($tenant->suspended_at ?? now()) : null,
@@ -190,6 +203,12 @@ final class TenantController
             "Tenant [{$tenant->code}] diperbarui.",
             ['changes' => $changes],
         );
+
+        try {
+            app(TenantRegistrySynchronizer::class)->sync($tenant);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         if ($newDistrict !== null && $newDistrict !== $oldDistrict) {
             try {

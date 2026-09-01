@@ -49,6 +49,9 @@ final readonly class TenantRegistrationService
                 'code' => $this->tenantCode($data['name']),
                 'name' => $data['name'],
                 'district_code' => $data['district_code'],
+                'map_latitude' => $data['map_latitude'] ?? null,
+                'map_longitude' => $data['map_longitude'] ?? null,
+                'map_zoom' => $data['map_zoom'] ?? null,
                 'status' => 'provisioning',
                 'timezone' => 'Asia/Jakarta',
             ]);

@@ -38,6 +38,7 @@ final class LoanController
     public function index(Request $request): Response
     {
         $tab = $request->query('tab', 'proposal');
+        $view = $request->query('view', 'table') === 'kanban' ? 'kanban' : 'table';
         $search = trim((string) $request->query('search', ''));
         $perPage = $this->perPage($request->query('per_page'));
         $sort = $this->sort($tab, (string) $request->query('sort', ''));
@@ -102,9 +103,87 @@ final class LoanController
             ->withQueryString()
             ->through(fn (Loan $loan): array => $this->presentLoan($loan, $tab));
 
+        if ($view === 'kanban') {
+            $grouped = $loan::query()
+                ->with([
+                    'beneficiaries.member.person',
+                    'installments',
+                    'statusHistories' => fn ($q) => $q->orderBy('changed_at'),
+                ])
+                ->with(['borrower.group.village:row_id,name', 'product:row_id,code,name'])
+                ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q
+                    ->where('loan_number', 'like', "%{$search}%")
+                    ->orWhereHas('borrower.group', fn ($g) => $g->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('product', fn ($p) => $p->where('name', 'like', "%{$search}%"))))
+                ->where(function ($query): void {
+                    $query->whereIn('status', ['draft', 'verified', 'waiting', 'approved', 'active', 'disbursed', 'completed'])
+                        ->orWhere(function ($inner): void {
+                            $inner->whereIn('status', ['active', 'disbursed'])
+                                ->whereDoesntHave('installments', fn ($inst) => $inst->whereRaw('principal_due > principal_paid'));
+                        });
+                })
+                ->orderBy('proposed_at')
+                ->get()
+                ->map(fn (Loan $loan) => $this->presentLoan($loan, 'aktif'))
+                ->groupBy(function (array $row): string {
+                    if (in_array($row['status'], ['completed', 'written_off', 'rescheduled'], true)) {
+                        return 'lunas';
+                    }
+
+                    if (in_array($row['status'], ['active', 'disbursed'], true) && (float) $row['principal_remaining'] <= 0) {
+                        return 'lunas';
+                    }
+
+                    return match ($row['status']) {
+                        'draft' => 'proposal',
+                        'verified' => 'verifikasi',
+                        'waiting', 'approved' => 'waiting',
+                        default => 'aktif',
+                    };
+                })
+                ->map(fn ($items) => $items->values()->all());
+
+            return Inertia::render('Lending/Loans/Index', [
+                'loans' => [
+                    'data' => [],
+                    'total' => 0,
+                    'per_page' => $perPage,
+                    'current_page' => 1,
+                    'last_page' => 1,
+                ],
+                'kanban' => $grouped,
+                'tab' => $tab,
+                'view' => $view,
+                'columns' => $this->columnsFor($tab),
+                'sortable' => $allowedSort,
+                'search' => $search,
+                'perPage' => $perPage,
+                'sort' => $sort,
+                'direction' => $direction,
+                'disbursementAccounts' => Account::query()
+                    ->where('is_active', true)
+                    ->where('code', 'like', '1.1.01.__')
+                    ->where('code', 'not like', '1.1.01.00')
+                    ->orderBy('code')
+                    ->get(['row_id', 'code', 'name', 'account_type'])
+                    ->map(fn (Account $account): array => [
+                        'value' => $account->row_id,
+                        'label' => $account->code.' · '.$account->name.' ('.$account->account_type.')',
+                    ])->all(),
+                'today' => now()->toDateString(),
+            ]);
+        }
+
+        $allowedSort = $this->sortOptions($tab);
+        $loans = $query->orderBy($sort ?: ($allowedSort[0] ?? 'proposed_at'), $direction)
+            ->paginate($perPage)
+            ->withQueryString()
+            ->through(fn (Loan $loan): array => $this->presentLoan($loan, $tab));
+
         return Inertia::render('Lending/Loans/Index', [
             'loans' => $loans,
             'tab' => $tab,
+            'view' => $view,
             'columns' => $this->columnsFor($tab),
             'sortable' => $allowedSort,
             'search' => $search,
@@ -286,6 +365,16 @@ final class LoanController
             'group_name' => $group?->name ?? '—',
             'group_address' => trim(($group?->address ?? '').' '.($group?->village?->name ?? '')),
             'beneficiaries_count' => $loan->beneficiaries->count(),
+            'beneficiaries' => $loan->beneficiaries->map(fn ($beneficiary): array => [
+                'row_id' => $beneficiary->row_id,
+                'member_row_id' => $beneficiary->member_row_id,
+                'member_id' => $beneficiary->member?->id,
+                'name' => $beneficiary->member?->person?->full_name,
+                'nik' => $beneficiary->member?->person?->national_identity_number,
+                'proposed_amount' => (float) ($beneficiary->proposed_amount ?? $beneficiary->allocated_amount),
+                'verified_amount' => $beneficiary->verified_amount !== null ? (float) $beneficiary->verified_amount : null,
+                'allocated_amount' => (float) $beneficiary->allocated_amount,
+            ])->values()->all(),
         ];
     }
 
@@ -421,12 +510,20 @@ final class LoanController
     {
         $loans->verify($loan, $request->validated(), (int) $request->user()->row_id);
 
+        if ($request->boolean('from_kanban')) {
+            return redirect('/lending/loans?view=kanban')->with('success', 'Pinjaman berhasil diverifikasi.');
+        }
+
         return to_route('lending.loans.show', ['loan' => $loan->row_id])->with('success', 'Pinjaman berhasil diverifikasi.');
     }
 
     public function approve(LoanApproveRequest $request, Loan $loan, LoanService $loans): RedirectResponse
     {
         $loans->approve($loan, $request->validated(), (int) $request->user()->row_id);
+
+        if ($request->boolean('from_kanban')) {
+            return redirect('/lending/loans?view=kanban')->with('success', 'Alokasi pinjaman berhasil ditetapkan.');
+        }
 
         return to_route('lending.loans.show', ['loan' => $loan->row_id])->with('success', 'Alokasi pinjaman berhasil ditetapkan.');
     }
@@ -435,12 +532,20 @@ final class LoanController
     {
         $loans->disburse($loan, $request->validated(), (int) $request->user()->row_id);
 
+        if ($request->boolean('from_kanban')) {
+            return redirect('/lending/loans?view=kanban')->with('success', 'Pencairan pinjaman berhasil dicatat.');
+        }
+
         return to_route('lending.loans.show', ['loan' => $loan->row_id])->with('success', 'Pencairan pinjaman berhasil dicatat.');
     }
 
     public function revert(Loan $loan, LoanService $loans): RedirectResponse
     {
         $loans->revertToDraft($loan, (int) request()->user()->row_id);
+
+        if ((bool) request()->query('from_kanban')) {
+            return redirect('/lending/loans?view=kanban')->with('success', 'Pinjaman dikembalikan ke status proposal.');
+        }
 
         return to_route('lending.loans.show', ['loan' => $loan->row_id])->with('success', 'Pinjaman dikembalikan ke status proposal.');
     }

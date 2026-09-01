@@ -13,6 +13,8 @@ import AppSwitch from '../../Components/AppSwitch.vue';
 import AppTextarea from '../../Components/AppTextarea.vue';
 import SmartSelect from '../../Components/SmartSelect.vue';
 import AppRichEditor from '../../Components/AppRichEditor.vue';
+import AppModal from '../../Components/AppModal.vue';
+import SignaturePad from '../../Components/SignaturePad.vue';
 import AppTabs from '../../Components/AppTabs.vue';
 import AuthenticatedLayout from '../../Layouts/AuthenticatedLayout.vue';
 
@@ -22,6 +24,8 @@ const props = defineProps({
     logoUrl: { type: String, default: null },
     whatsapp: { type: Object, required: true },
     signatures: { type: Object, required: true },
+    signatureImages: { type: Object, default: () => ({}) },
+    offline: { type: Object, default: () => ({ is_enabled: false, user_id: null, users: [] }) },
 });
 
 const page = usePage();
@@ -32,6 +36,7 @@ const tabs = [
     { key: 'identity', label: 'Identitas Lembaga', icon: 'badge' },
     { key: 'lending-system', label: 'Sistem Pinjaman', icon: 'tune' },
     { key: 'logo', label: 'Logo Lembaga', icon: 'image' },
+    { key: 'offline', label: 'Akses Offline', icon: 'cloud_off' },
     { key: 'whatsapp', label: 'WhatsApp Gateway', icon: 'chat' },
     { key: 'signatures', label: 'Tanda Tangan', icon: 'draw' },
 ];
@@ -251,6 +256,25 @@ const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAt
 function submitWhatsapp() {
     whatsappForm.put('/settings/whatsapp', { preserveScroll: true });
 }
+
+// === Offline Access ===
+const offlineForm = useForm({
+    is_enabled: props.offline.is_enabled ?? false,
+    user_id: props.offline.user_id ?? null,
+});
+
+const offlineUserOptions = computed(() => (props.offline.users ?? []).map((u) => ({
+    value: u.row_id,
+    label: u.name + (u.username ? ` (${u.username})` : ''),
+})));
+
+function submitOffline() {
+    if (offlineForm.is_enabled && !offlineForm.user_id) {
+        alert('Pilih satu pengguna offline terlebih dahulu.');
+        return;
+    }
+    offlineForm.put('/settings/offline-access', { preserveScroll: true });
+}
 async function testConnection() {
     testLoading.value = true;
     testResult.value = null;
@@ -321,6 +345,71 @@ function submitSignatures() {
     signatureForm.templates = { ...signatureDrafts.value };
     signatureForm.put('/settings/signatures', { preserveScroll: true });
 }
+const showSignaturePad = ref(false);
+const signatureImagePad = ref(null);
+const signatureImageForm = useForm({ report_key: '', image: '' });
+const signatureDeleteForm = useForm({ report_key: '' });
+
+const currentSignatureImageUrl = computed(() => props.signatureImages?.[signatureReportKey.value] ?? null);
+
+function openSignaturePad() {
+    signatureImageForm.report_key = signatureReportKey.value;
+    signatureImageForm.image = '';
+    showSignaturePad.value = true;
+}
+
+async function saveSignatureImage(dataUrl) {
+    if (!dataUrl) return;
+    signatureImageForm.image = dataUrl;
+    try {
+        await signatureImageForm.post('/settings/signatures/image', {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                showSignaturePad.value = false;
+                signatureImageForm.reset();
+            },
+        });
+    } catch (error) {
+        console.error('Gagal menyimpan tanda tangan:', error);
+    }
+}
+
+async function removeSignatureImage() {
+    if (!currentSignatureImageUrl.value) return;
+    const confirmed = await confirmAction({
+        title: 'Hapus Tanda Tangan',
+        message: 'Hapus tanda tangan digital untuk jenis dokumen ini?',
+    });
+    if (!confirmed) return;
+
+    signatureDeleteForm.report_key = signatureReportKey.value;
+    router.delete('/settings/signatures/image', {
+        data: { report_key: signatureDeleteForm.report_key },
+        preserveScroll: true,
+        onSuccess: () => signatureDeleteForm.reset(),
+    });
+}
+
+async function handleUploadSignatureImage(event) {
+    const file = event.target.files?.[0] ?? null;
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        signatureImageForm.report_key = signatureReportKey.value;
+        signatureImageForm.image = String(reader.result ?? '');
+        signatureImageForm.post('/settings/signatures/image', {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => signatureImageForm.reset(),
+        });
+    };
+    reader.readAsDataURL(file);
+
+    event.target.value = '';
+}
+
 function applySignatureStarter() {
     currentSignatureHtml.value = `<table style="width:100%"><tbody><tr><td style="width:33%;text-align:center"><p>Mengetahui,</p><p><br><br><br></p><p><strong>( ........................ )</strong></p></td><td style="width:33%;text-align:center"><p>Dibuat oleh,</p><p><br><br><br></p><p><strong>( ........................ )</strong></p></td><td style="width:33%;text-align:center"><p>Bendahara,</p><p><br><br><br></p><p><strong>( ........................ )</strong></p></td></tr></tbody></table>`;
 }
@@ -392,6 +481,36 @@ function applySignatureStarter() {
                         </div>
                     </AppCard>
 
+                    <AppCard v-show="activeTab === 'offline'" bordered>
+                        <h2 class="mb-1 text-lg font-bold text-primary">Akses Offline</h2>
+                        <p class="mb-5 text-sm text-on-surface-variant">
+                            Aktifkan agar satu pengguna terpilih tetap dapat menginput, mengedit, dan menghapus data saat offline di desktop dan Android.
+                        </p>
+                        <form class="space-y-5" @submit.prevent="submitOffline">
+                            <div class="flex items-center justify-between rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3">
+                                <div>
+                                    <p class="text-sm font-bold text-primary">Aktifkan Akses Offline</p>
+                                    <p class="text-xs text-on-surface-variant">Jika nonaktif, mode offline akan kembali hanya-baca.</p>
+                                </div>
+                                <AppSwitch v-model="offlineForm.is_enabled" />
+                            </div>
+                            <SmartSelect
+                                v-model="offlineForm.user_id"
+                                label="Pengguna Offline"
+                                placeholder="Pilih satu pengguna"
+                                :options="offlineUserOptions"
+                                :required="offlineForm.is_enabled"
+                                hint="Hanya satu pengguna per tenant yang dapat diizinkan."
+                            />
+                            <p v-if="offlineForm.errors.user_id" class="text-sm text-error">{{ offlineForm.errors.user_id }}</p>
+                            <p v-if="offlineForm.errors.is_enabled" class="text-sm text-error">{{ offlineForm.errors.is_enabled }}</p>
+                            <div class="flex justify-end border-t border-outline-variant pt-4">
+                                <AppButton type="submit" icon="save" :loading="offlineForm.processing" :disabled="offlineForm.processing">
+                                    Simpan Pengaturan Offline
+                                </AppButton>
+                            </div>
+                        </form>
+                    </AppCard>
                     <AppCard v-show="activeTab === 'logo'" bordered>
                         <h2 class="mb-1 text-lg font-bold text-primary">Logo Lembaga</h2>
                         <p class="mb-5 text-sm text-on-surface-variant">Logo akan tampil di sidebar aplikasi. Format: PNG, JPG, atau WebP. Maks 2 MB.</p>
@@ -427,13 +546,24 @@ function applySignatureStarter() {
                             <div>
                                 <h2 class="text-lg font-bold text-primary">WhatsApp Gateway</h2>
                                 <p class="mt-1 text-sm text-on-surface-variant">
-                                    Pair nomor HP lewat Evolution API. Server: env global · instance
-                                    <span class="font-semibold text-primary">{{ props.whatsapp.instance }}</span>
+                                    Kelola beberapa nomor WhatsApp per lembaga melalui halaman WhatsApp Gateway.
                                 </p>
                             </div>
                             <AppBadge :tone="connectionTone">
                                 {{ props.whatsapp.connection?.state || props.whatsapp.connection?.status || 'unknown' }}
                             </AppBadge>
+                        </div>
+
+                        <div class="mb-6 flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container-low p-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p class="font-bold text-primary">Multi-Instance WhatsApp</p>
+                                <p class="text-xs text-on-surface-variant">
+                                    Tambah, pasangkan, dan rotasi nomor WhatsApp untuk menekan risiko blokir.
+                                </p>
+                            </div>
+                            <AppButton type="button" variant="secondary" icon="open_in_new" @click="router.get('/settings/whatsapp/manage')">
+                                Buka Halaman WhatsApp
+                            </AppButton>
                         </div>
 
                         <!-- Panel Buat Instance & QR Scan -->
@@ -546,9 +676,66 @@ function applySignatureStarter() {
                         <div class="mb-5 flex items-start gap-3 rounded-xl border border-outline-variant bg-surface-container-low p-4">
                             <AppIcon name="info" class="mt-0.5 text-primary" />
                             <p class="text-sm text-on-surface-variant">
-                                Template tanda tangan akan dipakai otomatis setelah fitur
-                                <span class="font-semibold text-primary">laporan</span> ditambahkan.
-                                Saat ini hanya penyimpanan konfigurasi.
+                                Tanda tangan gambar akan otomatis disisipkan ke PDF melalui placeholder
+                                <code class="rounded bg-surface-container px-1.5 py-0.5 font-mono text-xs">{ttd_image}</code>
+                                atau langsung ke baris kosong pertama pada template.
+                            </p>
+                        </div>
+
+                        <div class="mb-6 rounded-xl border border-outline-variant bg-surface-container-low p-4">
+                            <div class="mb-3 flex items-center justify-between gap-4">
+                                <h3 class="text-base font-bold text-primary">Tanda Tangan Digital</h3>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <AppButton
+                                        type="button"
+                                        variant="secondary"
+                                        size="compact"
+                                        icon="draw"
+                                        @click="openSignaturePad"
+                                    >
+                                        Gambar Tanda Tangan
+                                    </AppButton>
+                                    <label>
+                                        <input
+                                            type="file"
+                                            accept="image/png,image/jpeg,image/webp"
+                                            class="sr-only"
+                                            @change="handleUploadSignatureImage"
+                                        />
+                                        <AppButton
+                                            variant="secondary"
+                                            size="compact"
+                                            icon="upload"
+                                            @click="event => event.currentTarget.closest('label')?.querySelector('input')?.click()"
+                                        >
+                                            Unggah Gambar
+                                        </AppButton>
+                                    </label>
+                                    <AppButton
+                                        v-if="currentSignatureImageUrl"
+                                        type="button"
+                                        variant="danger"
+                                        size="compact"
+                                        icon="delete"
+                                        :loading="signatureDeleteForm.processing"
+                                        @click="removeSignatureImage"
+                                    >
+                                        Hapus
+                                    </AppButton>
+                                </div>
+                            </div>
+
+                            <div v-if="currentSignatureImageUrl" class="flex justify-center rounded-lg bg-white p-4">
+                                <img :src="currentSignatureImageUrl" alt="Tanda Tangan Digital" class="max-h-32 object-contain" />
+                            </div>
+                            <p v-else class="py-6 text-center text-sm text-on-surface-variant">
+                                Belum ada tanda tangan digital untuk jenis dokumen ini.
+                            </p>
+                            <p v-if="signatureImageForm.errors.image" class="mt-2 text-sm text-error">
+                                {{ signatureImageForm.errors.image }}
+                            </p>
+                            <p v-if="signatureDeleteForm.errors.report_key" class="mt-2 text-sm text-error">
+                                {{ signatureDeleteForm.errors.report_key }}
                             </p>
                         </div>
                         <form class="space-y-5" @submit.prevent="submitSignatures">
@@ -592,6 +779,10 @@ function applySignatureStarter() {
                             </div>
                         </form>
                     </AppCard>
+
+                    <AppModal v-model="showSignaturePad" title="Gambar Tanda Tangan" size="md">
+                        <SignaturePad ref="signatureImagePad" @save="saveSignatureImage" @cancel="showSignaturePad = false" />
+                    </AppModal>
                 </div>
             </div>
         </div>

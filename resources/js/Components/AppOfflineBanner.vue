@@ -84,7 +84,7 @@ onUnmounted(() => {
                 <div class="flex items-center gap-3">
                     <AppIcon name="wifi_off" tone="warning" container-size="9" container-shape="pill" class="shrink-0" />
                     <div class="min-w-0">
-                        <p class="text-xs font-bold sm:text-sm">Mode Offline (Hanya Baca)</p>
+                        <p class="text-xs font-bold sm:text-sm">Mode Offline — Input Diizinkan</p>
                         <p class="truncate text-[11px] opacity-90 sm:text-xs">
                             {{ customMessage || 'Data tetap dapat dibaca & dicetak dari database lokal. Fitur penambahan/perubahan data dinonaktifkan.' }}
                         </p>

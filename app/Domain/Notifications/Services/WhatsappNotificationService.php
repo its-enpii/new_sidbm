@@ -193,7 +193,7 @@ final class WhatsappNotificationService
 
         if (count($toSend) > 1) {
             $bulkPayload = array_column($toSend, 'payload');
-            $bulkRes = $this->gateway->sendMessages($bulkPayload);
+            $bulkRes = $this->gateway->sendMessages($bulkPayload, $this->gateway->resolveActiveInstance());
             if ($bulkRes['success']) {
                 $sent += count($toSend);
                 foreach ($toSend as $entry) {

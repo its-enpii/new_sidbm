@@ -3,6 +3,30 @@
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
+## [2026-09-01]
+
+### Added
+- Halaman mandiri **WhatsApp Gateway** (`/settings/whatsapp/manage`) untuk mengelola beberapa nomor/instance WhatsApp per tenant.
+- Tabel tenant `whatsapp_instances` untuk menyimpan nama, status koneksi, nomor, batas harian, status default, dan status aktif setiap instance WhatsApp.
+- Strategi rotasi pesan Round Robin atau Nomor Utama pada `WhatsappGatewayService` agar beban notifikasi dapat didistribusikan antar nomor dan membantu mengurangi risiko blokir.
+- Kolom koordinat tenant (`map_latitude`, `map_longitude`, `map_zoom`) pada tabel platform `tenants` dan registry shard `tenant_registry`, dengan sinkronisasi registry dan tampilan koordinat di detail tenant.
+- Pemilih lokasi Leaflet (`LocationMapPicker.vue`) pada form create/edit tenant dengan input latitude/longitude, klik-to-set, drag pin, dan zoom opsional.
+- Endpoint `GET /admin/regional/regency-center/{regency}` untuk menentukan pusat peta berdasarkan kode kabupaten/kota.
+- Papan status pinjaman (`LoanKanbanBoard`) untuk mempercepat verifikasi, persetujuan, alokasi pemanfaat, dan pencatatan pencairan dari satu tampilan.
+- Upload dan penghapusan gambar tanda tangan (`SignaturePad`) pada Pengaturan, dengan validasi tipe file, ukuran maksimal 2 MB, dan penyimpanan aman untuk laporan pinjaman.
+- Antrean sinkronisasi offline mobile (`OfflineQueueService` dan `MobileOfflineSyncService`) yang menyimpan pengajuan pembayaran saat koneksi terputus lalu mengirim ulang otomatis dengan batas percobaan.
+
+### Changed
+- Resolver peta konsolidasi kabupaten kini membaca koordinat tersimpan tenant terlebih dahulu, lalu fallback ke dataset `RegencyGeoService`.
+- Validasi koordinat tenant dibatasi ke rentang global dan batas radius kabupaten/kota terpilih pada `StoreTenantRequest` serta `Admin\\UpdateTenantRequest`.
+- Kalkulator simulasi pinjaman mendukung satuan bunga bulanan/tahunan, preskripsi pembulatan tanpa batas minimum, ringkasan pemanfaat, dan tampilan hasil yang diperbarui.
+- Dashboard kabupaten menambahkan metrik perputaran, total aset, NPL, dan tunggakan pokok beserta peta sebaran kecamatan berbasis Leaflet.
+- Middleware `BlockOfflineMutations` memberikan pengecualian mutasi hanya untuk pengguna tenant yang ditetapkan sebagai pengguna offline, sedangkan autentikasi mobile tetap di-whitelist.
+
+### Fixed
+- Keamanan halaman multi-instance WhatsApp: operasi `update` kini melakukan otorisasi izin `settings.manage` sebelum perubahan data.
+- Kesalahan parameter entity pemanfaat pinjaman pada test mobile agar analisis Flutter kembali berjalan tanpa error pada kode test.
+
 ---
 
 ## [2026-08-31]

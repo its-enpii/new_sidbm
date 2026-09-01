@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Regency;
 
 use App\Domain\Accounting\Services\Reports\RegencyConsolidatedReportService;
 use App\Models\Platform\DatabaseShard;
+use App\Services\RegencyGeoService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -32,13 +33,16 @@ final class RegencyDashboardController
         $tenantIds = $kecamatans->pluck('row_id')->map(fn ($id) => (int) $id)->all();
 
         $metrics = $this->reportService->dashboardMetrics($shard, $tenantIds, $year, $month);
+        $regencyCode = $user?->regency_code ?: ($shard->regency_code ?: '');
+        $regencyCenter = RegencyGeoService::resolveRegencyCenter($regencyCode);
 
         return Inertia::render('Regency/Dashboard', [
             'metrics' => $metrics,
             'year' => $year,
             'month' => $month,
             'regency_name' => $user?->regency_name ?: ($shard->regency_name ?: 'Kabupaten'),
-            'regency_code' => $user?->regency_code ?: ($shard->regency_code ?: ''),
+            'regency_code' => $regencyCode,
+            'regency_center' => $regencyCenter,
         ]);
     }
 }

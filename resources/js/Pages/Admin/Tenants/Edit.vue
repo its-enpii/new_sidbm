@@ -1,11 +1,12 @@
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ref, watch, onMounted } from 'vue';
+import { reactive, ref, watch, onMounted } from 'vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import AppIcon from '../../../Components/AppIcon.vue';
 import AppIconButton from '../../../Components/AppIconButton.vue';
 import AppInput from '../../../Components/AppInput.vue';
+import LocationMapPicker from '../../../Components/LocationMapPicker.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 
@@ -23,6 +24,9 @@ const form = useForm({
     province_code: initialProvince,
     regency_code: initialRegency,
     district_code: props.tenant.district_code || '',
+    map_latitude: props.tenant.map_latitude ?? null,
+    map_longitude: props.tenant.map_longitude ?? null,
+    map_zoom: props.tenant.map_zoom ?? 13,
     custom_domains: Array.isArray(props.tenant.custom_domains) ? [...props.tenant.custom_domains] : [],
 });
 
@@ -40,6 +44,28 @@ const statusOptions = [
     { value: 'provisioning', label: 'Provisioning' },
     { value: 'provisioning_failed', label: 'Provisioning gagal' },
 ];
+
+const regencyCenter = reactive({
+    lat: -7.5,
+    lng: 109.5,
+    zoom: 11,
+});
+
+async function loadRegencyCenter(regencyCode) {
+    if (!regencyCode) return;
+    try {
+        const response = await fetch(`/admin/regional/regency-center/${regencyCode}`, {
+            headers: { Accept: 'application/json' },
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.data) return;
+        regencyCenter.lat = payload.data.lat;
+        regencyCenter.lng = payload.data.lng;
+        regencyCenter.zoom = payload.data.zoom || 11;
+    } catch (error) {
+        console.error(error);
+    }
+}
 
 function addDomain() {
     domainError.value = '';
@@ -85,7 +111,10 @@ watch(() => form.province_code, async (value) => {
 
 watch(() => form.regency_code, async (value) => {
     districts.value = [];
-    if (value) await load(`/admin/regional/districts/${value}`, districts);
+    if (value) {
+        await load(`/admin/regional/districts/${value}`, districts);
+        await loadRegencyCenter(value);
+    }
 });
 
 onMounted(async () => {
@@ -95,6 +124,7 @@ onMounted(async () => {
     }
     if (initialRegency) {
         await load(`/admin/regional/districts/${initialRegency}`, districts);
+        await loadRegencyCenter(initialRegency);
     }
 });
 
@@ -185,6 +215,19 @@ function submit() {
                             <SmartSelect v-model="form.regency_code" label="Kabupaten/Kota" :options="regencies.map((item) => ({ value: item.code, label: item.name }))" placeholder="Pilih kabupaten/kota" :error="form.errors.regency_code" :disabled="!form.province_code" :loading="loading" searchable />
                             <SmartSelect v-model="form.district_code" label="Kecamatan" :options="districts.map((item) => ({ value: item.code, label: item.name }))" placeholder="Pilih kecamatan" :error="form.errors.district_code" :disabled="!form.regency_code" :loading="loading" searchable />
                         </div>
+                    </div>
+
+                    <!-- Titik Koordinat & Peta Lokasi Section -->
+                    <div class="border-t border-outline-variant pt-5">
+                        <h2 class="font-semibold text-primary">Titik Koordinat & Peta Lokasi</h2>
+                        <p class="text-xs text-on-surface-variant mb-4">Tentukan titik koordinat kantor / wilayah tenant untuk keperluan pemetaan konsolidasi.</p>
+                        <LocationMapPicker
+                            v-model:latitude="form.map_latitude"
+                            v-model:longitude="form.map_longitude"
+                            v-model:zoom="form.map_zoom"
+                            :regency-center="regencyCenter"
+                            :error="form.errors.map_latitude || form.errors.map_longitude"
+                        />
                     </div>
 
                     <div class="flex justify-end gap-3 pt-2">

@@ -48,7 +48,7 @@ final class LoanSimulationTest extends TestCase
             'code' => 'SPP',
             'name' => 'Simpan Pinjam Perempuan',
             'interest_method' => 'flat',
-            'default_interest_rate' => 12.0,
+            'default_interest_rate' => 1.5,
             'default_term_months' => 12,
             'minimum_amount' => 1000000,
             'maximum_amount' => 50000000,
@@ -80,6 +80,7 @@ final class LoanSimulationTest extends TestCase
             'principal_amount' => 12000000,
             'term_months' => 12,
             'interest_rate' => 12.0,
+            'rate_unit' => 'annual',
             'installment_method' => 'flat',
             'principal_frequency' => 'monthly',
             'interest_frequency' => 'monthly',
@@ -112,6 +113,7 @@ final class LoanSimulationTest extends TestCase
             'principal_amount' => 10000000,
             'term_months' => 12,
             'interest_rate' => 12.0,
+            'rate_unit' => 'annual',
             'installment_method' => 'annuity',
             'principal_frequency' => 'monthly',
             'interest_frequency' => 'monthly',
@@ -139,6 +141,7 @@ final class LoanSimulationTest extends TestCase
             'principal_amount' => 10000000,
             'term_months' => 10,
             'interest_rate' => 12.0,
+            'rate_unit' => 'annual',
             'installment_method' => 'declining',
             'principal_frequency' => 'monthly',
             'interest_frequency' => 'monthly',
@@ -166,6 +169,7 @@ final class LoanSimulationTest extends TestCase
             'principal_amount' => 10000000,
             'term_months' => 12,
             'interest_rate' => 12.0,
+            'rate_unit' => 'annual',
             'installment_method' => 'flat',
             'principal_frequency' => 'monthly',
             'interest_frequency' => 'monthly',
@@ -195,7 +199,7 @@ final class LoanSimulationTest extends TestCase
             'installment_method' => 'invalid_method',
             'principal_frequency' => 'unknown',
             'interest_frequency' => 'unknown',
-            'rounding_step' => 100, // min is 500
+            'rounding_step' => -100, // min is 0
         ];
 
         $response = $this->actingAs($this->user)

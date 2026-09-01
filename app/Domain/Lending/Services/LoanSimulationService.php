@@ -28,6 +28,9 @@ final class LoanSimulationService
      *     total_payment: float,
      *     estimated_monthly_payment: float,
      *     term_months: int,
+     *     interest_rate: float,
+     *     rate_unit: string,
+     *     interest_rate_monthly: float,
      *     interest_rate_annual: float,
      *     installment_method: string,
      *     rounding_step: int,
@@ -46,7 +49,29 @@ final class LoanSimulationService
     {
         $principal = max(0.0, (float) ($params['principal_amount'] ?? 10000000));
         $termMonths = max(1, (int) ($params['term_months'] ?? 12));
-        $rateAnnual = max(0.0, (float) ($params['interest_rate'] ?? 12.0));
+        $rawRate = max(0.0, (float) ($params['interest_rate'] ?? 1.5));
+        $rateUnit = (string) ($params['rate_unit'] ?? '');
+
+        // Standardize monthly vs annual rate
+        if ($rateUnit === 'monthly') {
+            $rateMonthly = $rawRate;
+            $rateAnnual = $rawRate * 12;
+        } elseif ($rateUnit === 'annual') {
+            $rateAnnual = $rawRate;
+            $rateMonthly = $rawRate / 12;
+        } else {
+            // Auto-detect: values >= 10 without explicit unit are treated as annual rate (e.g. 12% p.a.)
+            if ($rawRate >= 10.0) {
+                $rateAnnual = $rawRate;
+                $rateMonthly = $rawRate / 12;
+                $rateUnit = 'annual';
+            } else {
+                $rateMonthly = $rawRate;
+                $rateAnnual = $rawRate * 12;
+                $rateUnit = 'monthly';
+            }
+        }
+
         $method = (string) ($params['installment_method'] ?? 'flat');
         if (! in_array($method, ['flat', 'annuity', 'declining'], true)) {
             $method = 'flat';
@@ -54,14 +79,14 @@ final class LoanSimulationService
 
         $principalFreq = (string) ($params['principal_frequency'] ?? 'monthly');
         $interestFreq = (string) ($params['interest_frequency'] ?? 'monthly');
-        $roundingStep = max(500, (int) ($params['rounding_step'] ?? 500));
+        $roundingStep = isset($params['rounding_step']) ? max(0, (int) $params['rounding_step']) : 500;
         $startDateStr = (string) ($params['start_date'] ?? date('Y-m-d'));
         $start = CarbonImmutable::parse($startDateStr);
 
         $schedule = match ($method) {
-            'annuity' => $this->calculateAnnuity($principal, $termMonths, $rateAnnual, $roundingStep, $start),
-            'declining' => $this->calculateDeclining($principal, $termMonths, $rateAnnual, $principalFreq, $roundingStep, $start),
-            default => $this->calculateFlat($principal, $termMonths, $rateAnnual, $principalFreq, $interestFreq, $roundingStep, $start),
+            'annuity' => $this->calculateAnnuity($principal, $termMonths, $rateMonthly, $principalFreq, $roundingStep, $start),
+            'declining' => $this->calculateDeclining($principal, $termMonths, $rateMonthly, $principalFreq, $roundingStep, $start),
+            default => $this->calculateFlat($principal, $termMonths, $rateMonthly, $principalFreq, $interestFreq, $roundingStep, $start),
         };
 
         $totalInterest = 0.0;
@@ -78,7 +103,8 @@ final class LoanSimulationService
             'parameters' => [
                 'principal_amount' => $principal,
                 'term_months' => $termMonths,
-                'interest_rate' => $rateAnnual,
+                'interest_rate' => $rawRate,
+                'rate_unit' => $rateUnit,
                 'installment_method' => $method,
                 'principal_frequency' => $principalFreq,
                 'interest_frequency' => $interestFreq,
@@ -91,7 +117,10 @@ final class LoanSimulationService
                 'total_payment' => round($totalPayment, 2),
                 'estimated_monthly_payment' => round($estimatedMonthly, 2),
                 'term_months' => $termMonths,
-                'interest_rate_annual' => round($rateAnnual, 2),
+                'interest_rate' => round($rawRate, 4),
+                'rate_unit' => $rateUnit,
+                'interest_rate_monthly' => round($rateMonthly, 4),
+                'interest_rate_annual' => round($rateAnnual, 4),
                 'installment_method' => $method,
                 'rounding_step' => $roundingStep,
             ],
@@ -107,7 +136,7 @@ final class LoanSimulationService
     private function calculateFlat(
         float $principal,
         int $termMonths,
-        float $rateAnnual,
+        float $rateMonthly,
         string $principalFreq,
         string $interestFreq,
         int $roundingStep,
@@ -115,7 +144,7 @@ final class LoanSimulationService
     ): array {
         $pPeriods = $this->periodsCount($principalFreq, $termMonths);
         $iPeriods = $this->periodsCount($interestFreq, $termMonths);
-        $totalInterest = $principal * ($rateAnnual / 100) * ($termMonths / 12);
+        $totalInterest = $principal * ($rateMonthly / 100) * $termMonths;
 
         $rawPrincipalPerPeriod = $pPeriods > 0 ? $principal / $pPeriods : $principal;
         $roundedPrincipal = $this->roundValue($rawPrincipalPerPeriod, $roundingStep);
@@ -159,7 +188,6 @@ final class LoanSimulationService
         }
 
         // Split frequencies (e.g. interest monthly, principal at_maturity or quarterly)
-        $maxMonths = $termMonths;
         $schedule = [];
         $accumulatedPrincipal = 0.0;
         $accumulatedInterest = 0.0;
@@ -184,8 +212,7 @@ final class LoanSimulationService
             $interestDueMap[$m] = $iDue;
         }
 
-        // Build monthly breakdown
-        for ($m = 1; $m <= $maxMonths; $m++) {
+        for ($m = 1; $m <= $termMonths; $m++) {
             $pDue = $principalDueMap[$m] ?? 0.0;
             $iDue = $interestDueMap[$m] ?? 0.0;
             if ($pDue <= 0.0 && $iDue <= 0.0) {
@@ -209,14 +236,14 @@ final class LoanSimulationService
     }
 
     /**
-     * Declining balance: bunga dihitung dari sisa pokok pinjaman.
+     * Declining balance (Efektif Menurun): pokok tetap per periode, bunga dihitung dari sisa pokok pinjaman.
      *
      * @return list<array{number: int, due_date: string, principal_due: float, interest_due: float, total_due: float, remaining_principal: float}>
      */
     private function calculateDeclining(
         float $principal,
         int $termMonths,
-        float $rateAnnual,
+        float $rateMonthly,
         string $principalFreq,
         int $roundingStep,
         CarbonImmutable $start,
@@ -226,7 +253,7 @@ final class LoanSimulationService
         $roundedPrincipal = $this->roundValue($rawPrincipalPerPeriod, $roundingStep);
 
         $monthsPerPeriod = $pPeriods > 0 ? (int) round($termMonths / $pPeriods) : 1;
-        $periodicRate = ($rateAnnual / 100) * ($monthsPerPeriod / 12);
+        $periodicRate = ($rateMonthly / 100) * $monthsPerPeriod;
 
         $schedule = [];
         $accumulatedPrincipal = 0.0;
@@ -235,10 +262,11 @@ final class LoanSimulationService
         for ($i = 1; $i <= $pPeriods; $i++) {
             $pDue = ($i === $pPeriods)
                 ? round($principal - $accumulatedPrincipal, 2)
-                : $roundedPrincipal;
+                : min($remaining, $roundedPrincipal);
             $accumulatedPrincipal = round($accumulatedPrincipal + $pDue, 2);
 
-            $iDue = $this->roundValue($remaining * $periodicRate, $roundingStep);
+            $rawInterest = $remaining * $periodicRate;
+            $iDue = $this->roundValue($rawInterest, $roundingStep);
             $remaining = max(0.0, round($remaining - $pDue, 2));
             $dueDate = $this->advanceDate($start, $principalFreq, $i, $termMonths);
 
@@ -256,23 +284,26 @@ final class LoanSimulationService
     }
 
     /**
-     * Annuity calculation: angsuran total (pokok + bunga) tetap setiap bulan.
+     * Annuity calculation: angsuran total (pokok + bunga) tetap setiap periode, bunga dihitung dari saldo pokok.
      *
      * @return list<array{number: int, due_date: string, principal_due: float, interest_due: float, total_due: float, remaining_principal: float}>
      */
     private function calculateAnnuity(
         float $principal,
         int $termMonths,
-        float $rateAnnual,
+        float $rateMonthly,
+        string $principalFreq,
         int $roundingStep,
         CarbonImmutable $start,
     ): array {
-        $monthlyRate = ($rateAnnual / 100) / 12;
+        $periods = $this->periodsCount($principalFreq, $termMonths);
+        $monthsPerPeriod = $periods > 0 ? (int) round($termMonths / $periods) : 1;
+        $periodicRate = ($rateMonthly / 100) * $monthsPerPeriod;
 
-        if ($monthlyRate > 0) {
-            $rawPmt = $principal * ($monthlyRate * (1 + $monthlyRate) ** $termMonths) / (((1 + $monthlyRate) ** $termMonths) - 1);
+        if ($periodicRate > 0) {
+            $rawPmt = $principal * ($periodicRate * (1 + $periodicRate) ** $periods) / (((1 + $periodicRate) ** $periods) - 1);
         } else {
-            $rawPmt = $principal / max(1, $termMonths);
+            $rawPmt = $principal / max(1, $periods);
         }
 
         $pmt = $this->roundValue($rawPmt, $roundingStep);
@@ -280,18 +311,22 @@ final class LoanSimulationService
         $schedule = [];
         $remaining = $principal;
 
-        for ($i = 1; $i <= $termMonths; $i++) {
-            $iDue = $this->roundValue($remaining * $monthlyRate, $roundingStep);
+        for ($i = 1; $i <= $periods; $i++) {
+            $rawInterest = $remaining * $periodicRate;
+            $iDue = $this->roundValue($rawInterest, $roundingStep);
 
-            if ($i === $termMonths) {
+            if ($i === $periods) {
                 $pDue = $remaining;
                 $remaining = 0.0;
             } else {
                 $pDue = max(0.0, round($pmt - $iDue, 2));
+                if ($pDue > $remaining) {
+                    $pDue = $remaining;
+                }
                 $remaining = max(0.0, round($remaining - $pDue, 2));
             }
 
-            $dueDate = $start->addMonths($i);
+            $dueDate = $this->advanceDate($start, $principalFreq, $i, $termMonths);
 
             $schedule[] = [
                 'number' => $i,
@@ -331,10 +366,13 @@ final class LoanSimulationService
         return $start->addMonths($periodIndex * $step);
     }
 
-    public function roundValue(float $amount, int $step): float
+    public function roundValue(float $amount, int|string $step): float
     {
-        $effectiveStep = max(500, $step);
+        $s = is_numeric($step) ? (int) $step : 0;
+        if ($s <= 1) {
+            return round($amount, 2);
+        }
 
-        return (float) (round($amount / $effectiveStep) * $effectiveStep);
+        return (float) (round($amount / $s) * $s);
     }
 }

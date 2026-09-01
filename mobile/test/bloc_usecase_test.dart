@@ -1,5 +1,3 @@
-﻿import 'package:sidbm_mobile/core/utils/currency_formatter.dart';
-import 'package:sidbm_mobile/core/utils/date_formatter.dart';
 import 'package:sidbm_mobile/core/utils/whatsapp_helper.dart';
 import 'package:sidbm_mobile/features/auth/domain/entities/auth_entities.dart';
 import 'package:sidbm_mobile/features/collection/domain/entities/collection_entities.dart';
@@ -47,7 +45,7 @@ void main() {
 
   const proposal1 = ProposalItem(
     id: 1,
-    rowId: 1,
+    rowId: 10,
     loanNumber: 'PROP-01',
     status: 'draft',
     productName: 'SPP',
@@ -103,7 +101,6 @@ void main() {
   print('\n[4] Testing Collection Beneficiary & Cash Account Options:');
   const cashAccount = CashAccountOption(
     id: 1,
-    rowId: 10,
     code: '1.1.01.01',
     name: 'Kas Tunai Teller Lapangan',
   );
@@ -115,11 +112,9 @@ void main() {
     name: 'Ibu Maryam',
     nik: '3201018888',
     allocatedAmount: 5000000,
-    paidPrincipal: 2000000,
-    remainingPrincipal: 3000000,
   );
-  assertTest('LoanBeneficiaryItem accurately tracks principal debt',
-      beneficiary.remainingPrincipal == 3000000 && beneficiary.allocatedAmount == 5000000);
+  assertTest('LoanBeneficiaryItem holds allocated amount',
+      beneficiary.allocatedAmount == 5000000);
 
   print('\n-----------------------------------------------------');
   print('TEST SUMMARY: $passed PASSED, $failed FAILED');

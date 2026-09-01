@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Services\RegencyGeoService;
 use App\Services\RegionalCodeApi;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -23,6 +24,9 @@ final class StoreTenantRequest extends FormRequest
             'province_code' => ['required', 'digits:2'],
             'regency_code' => ['required', 'digits:4'],
             'district_code' => ['required', 'digits:6', Rule::unique('tenants', 'district_code')],
+            'map_latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'map_longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'map_zoom' => ['nullable', 'integer', 'between:3,19'],
             'user_name' => ['required', 'string', 'max:150'],
             'username' => ['required', 'string', 'max:100', 'alpha_dash', Rule::unique('users', 'username')],
             'email' => ['required', 'email', 'max:190', Rule::unique('users', 'email')],
@@ -53,6 +57,13 @@ final class StoreTenantRequest extends FormRequest
             } catch (\Throwable) {
                 $validator->errors()->add('district_code', 'Data wilayah tidak dapat diverifikasi.');
             }
+
+            RegencyGeoService::validateWithinRegency(
+                $this->string('regency_code'),
+                $this->input('map_latitude'),
+                $this->input('map_longitude'),
+                $validator,
+            );
         });
     }
 
@@ -60,6 +71,9 @@ final class StoreTenantRequest extends FormRequest
     {
         return [
             'name' => 'nama tenant',
+            'map_latitude' => 'latitude peta',
+            'map_longitude' => 'longitude peta',
+            'map_zoom' => 'zoom peta',
             'user_name' => 'nama pengguna pertama',
             'username' => 'nama pengguna',
             'email' => 'surel',

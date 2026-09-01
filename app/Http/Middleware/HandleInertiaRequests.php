@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Domain\Access\Services\PermissionChecker;
 use App\Domain\Membership\Models\OrganizationProfile;
+use App\Services\OfflineAccessService;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -34,7 +35,26 @@ final class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
+        $offlineAccessData = [
+            'is_enabled' => false,
+            'user_id' => null,
+            'current_user_allowed' => false,
+        ];
+        try {
+            $offlineContext = app(TenantContext::class);
+            if ($offlineContext->isInitialized()) {
+                $offlineService = app(OfflineAccessService::class);
+                $offlineTenantId = $offlineContext->id();
+                $offlineAccessData['is_enabled'] = $offlineService->isEnabled($offlineTenantId);
+                $offlineAccessData['user_id'] = $offlineService->userId($offlineTenantId);
+                $offlineAccessData['current_user_allowed'] = $user !== null
+                    && $offlineService->isUserAllowed($offlineTenantId, (int) $user->row_id);
+            }
+        } catch (Throwable) {
+        }
+
         return [
+
             ...parent::share($request),
             'appName' => config('app.name'),
             'auth' => [
@@ -71,6 +91,7 @@ final class HandleInertiaRequests extends Middleware
             'logoPath' => $this->resolveLogoPath(),
             'assistant' => $this->resolveAssistant($request),
             'tenant' => $this->resolveTenantInfo(),
+            'offline_access' => $offlineAccessData,
             'desktop' => [
                 'is_desktop' => (bool) config('desktop.enabled', false),
                 'app_version' => '1.0.0',

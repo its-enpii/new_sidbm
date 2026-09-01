@@ -33,3 +33,6 @@ class ValidationFailure extends Failure {
   @override
   List<Object?> get props => [message, statusCode, errors];
 }
+class OfflineQueuedFailure extends Failure {
+  const OfflineQueuedFailure({super.message = 'Data disimpan di antrean offline'});
+}

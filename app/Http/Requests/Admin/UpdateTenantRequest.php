@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin;
 
 use App\Models\Platform\Tenant;
+use App\Services\RegencyGeoService;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -21,6 +22,9 @@ final class UpdateTenantRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:150'],
             'district_code' => ['nullable', 'string', 'regex:/^\d{6}$/'],
+            'map_latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'map_longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'map_zoom' => ['nullable', 'integer', 'between:3,19'],
             'status' => ['required', Rule::in(['active', 'suspended', 'provisioning', 'provisioning_failed'])],
             'timezone' => ['nullable', 'string', 'max:50'],
             'custom_domains' => ['nullable', 'array'],
@@ -38,6 +42,18 @@ final class UpdateTenantRequest extends FormRequest
             /** @var Tenant|null $tenant */
             $tenant = $this->route('tenant');
             $tenantRowId = $tenant instanceof Tenant ? (int) $tenant->row_id : null;
+
+            $regencyCode = $this->input('regency_code', '');
+            if ($tenantRowId !== null) {
+                $regencyCode = Tenant::query()->whereKey($tenantRowId)->value('regency_code') ?? '';
+            }
+
+            RegencyGeoService::validateWithinRegency(
+                (string) $regencyCode,
+                $this->input('map_latitude'),
+                $this->input('map_longitude'),
+                $validator,
+            );
 
             $domains = (array) $this->input('custom_domains', []);
             $reserved = ['localhost', '127.0.0.1', '::1', 'host.docker.internal'];
@@ -108,6 +124,9 @@ final class UpdateTenantRequest extends FormRequest
     {
         return [
             'name' => 'nama tenant',
+            'map_latitude' => 'latitude peta',
+            'map_longitude' => 'longitude peta',
+            'map_zoom' => 'zoom peta',
             'status' => 'status',
             'timezone' => 'zona waktu',
             'custom_domains' => 'custom domain',

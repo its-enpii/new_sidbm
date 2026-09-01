@@ -140,6 +140,7 @@ async function autoLogin(domain = null, userId = null) {
                         <div><dt class="text-sm text-on-surface-variant">Database</dt><dd class="font-semibold text-primary">{{ tenant.placement?.shard?.database_name || '—' }}</dd></div>
                         <div><dt class="text-sm text-on-surface-variant">Provisioned</dt><dd class="font-semibold text-primary">{{ tenant.provisioned_at || '—' }}</dd></div>
                         <div><dt class="text-sm text-on-surface-variant">Suspended</dt><dd class="font-semibold text-primary">{{ tenant.suspended_at || '—' }}</dd></div>
+                        <div><dt class="text-sm text-on-surface-variant">Koordinat Peta</dt><dd class="font-semibold text-primary font-mono text-xs">{{ tenant.map_latitude && tenant.map_longitude ? tenant.map_latitude + ', ' + tenant.map_longitude + ' (Zoom: ' + (tenant.map_zoom || 13) + ')' : 'Belum diatur' }}</dd></div>
                     </dl>
 
                     <div class="mt-6 border-t border-outline-variant pt-4">

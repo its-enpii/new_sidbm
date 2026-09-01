@@ -10,6 +10,7 @@ import AppModal from '../../../Components/AppModal.vue';
 import AppTabs from '../../../Components/AppTabs.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import SmartDataTable from '../../../Components/SmartDataTable.vue';
+import LoanKanbanBoard from '../../../Components/LoanKanbanBoard.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
 import { useCan } from '../../../composables/useCan';
 import { useConfirm } from '../../../composables/useConfirm';
@@ -31,6 +32,10 @@ async function confirmDelete(row) {
 const props = defineProps({
     loans: { type: Object, required: true },
     tab: { type: String, default: 'proposal' },
+    view: { type: String, default: 'table' },
+    kanban: { type: Object, default: () => ({}) },
+    disbursementAccounts: { type: Array, default: () => [] },
+    today: { type: String, default: '' },
     columns: { type: Array, required: true },
     search: { type: String, default: '' },
     perPage: { type: [Number, String], default: 15 },
@@ -81,7 +86,15 @@ function submitPdfPrint() {
 }
 
 function switchTab(tabKey) {
-    router.get('/lending/loans', { tab: tabKey }, { preserveState: false });
+    router.get('/lending/loans', { tab: tabKey, view: props.view }, { preserveState: false });
+}
+
+function switchView(newView) {
+    router.get('/lending/loans', { tab: props.tab, view: newView }, { preserveState: false });
+}
+
+function refreshBoard() {
+    router.get('/lending/loans', { tab: props.tab, view: 'kanban' }, { preserveState: false, preserveScroll: true });
 }
 
 const moneyFormatter = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
@@ -125,12 +138,15 @@ const emptyMessages = {
                     <p class="mt-1 text-on-surface-variant">Pantau pergerakan pinjaman dari pengajuan hingga pelunasan.</p>
                 </div>
                 <div class="flex items-center gap-3">
+                    <AppButton variant="secondary" :icon="view === 'kanban' ? 'table_chart' : 'view_kanban'" @click="switchView(view === 'kanban' ? 'table' : 'kanban')">
+                        {{ view === 'kanban' ? 'Tampilan Tabel' : 'Tampilan Kanban' }}
+                    </AppButton>
                     <AppButton variant="secondary" icon="print" @click="openPdfModal">Cetak PDF</AppButton>
                     <Link v-if="can('loans.propose')" href="/lending/loans/create"><AppButton icon="add">Register Proposal</AppButton></Link>
                 </div>
             </header>
 
-            <div class="border-b border-outline-variant">
+            <div v-if="view === 'table'" class="border-b border-outline-variant">
                 <AppTabs
                     :model-value="tab"
                     :items="tabs"
@@ -140,7 +156,17 @@ const emptyMessages = {
                 />
             </div>
 
-            <AppCard :padded="false">
+            <template v-if="view === 'kanban'">
+                <LoanKanbanBoard
+                    :columns="kanban"
+                    :disbursement-accounts="disbursementAccounts"
+                    :search="search"
+                    :today="today"
+                    @refresh="refreshBoard"
+                />
+            </template>
+
+            <AppCard v-else :padded="false">
                 <div class="p-6">
                     <SmartDataTable
                         :rows="loans.data"

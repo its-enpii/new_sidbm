@@ -1,14 +1,12 @@
-﻿import 'package:sidbm_mobile/core/error/failures.dart';
 import 'package:sidbm_mobile/core/utils/currency_formatter.dart';
 import 'package:sidbm_mobile/core/utils/date_formatter.dart';
-import 'package:sidbm_mobile/features/auth/data/models/auth_models.dart';
+import 'package:sidbm_mobile/core/error/failures.dart';
 import 'package:sidbm_mobile/features/auth/domain/entities/auth_entities.dart';
 import 'package:sidbm_mobile/features/collection/data/models/collection_models.dart';
 import 'package:sidbm_mobile/features/collection/domain/entities/collection_entities.dart';
 import 'package:sidbm_mobile/features/verification/data/models/verification_models.dart';
 import 'package:sidbm_mobile/features/verification/domain/entities/verification_entities.dart';
 import 'package:sidbm_mobile/features/approval/data/models/approval_models.dart';
-import 'package:sidbm_mobile/features/approval/domain/entities/approval_entities.dart';
 
 void main() {
   int passed = 0;
@@ -247,5 +245,5 @@ void main() {
 
   if (failed > 0) {
     throw Exception('$failed tests failed in Flutter Mobile App test suite.');
-  }
+}
 }

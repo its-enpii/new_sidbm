@@ -1,5 +1,7 @@
-﻿import 'package:get_it/get_it.dart';
+import 'package:get_it/get_it.dart';
 import 'core/network/dio_client.dart';
+import 'core/network/mobile_offline_sync_service.dart';
+import 'core/storage/offline_queue_service.dart';
 import 'core/storage/secure_storage_service.dart';
 import 'core/utils/thermal_printer_service.dart';
 import 'features/approval/data/datasources/approval_remote_datasource.dart';
@@ -28,7 +30,13 @@ final sl = GetIt.instance;
 Future<void> initDependencies() async {
   // Core
   sl.registerLazySingleton<SecureStorageService>(() => SecureStorageService());
+  sl.registerLazySingleton<OfflineQueueService>(() => OfflineQueueService());
   sl.registerLazySingleton<DioClient>(() => DioClient(storageService: sl()));
+  sl.registerLazySingleton<MobileOfflineSyncService>(() => MobileOfflineSyncService(
+    dio: sl<DioClient>().dio,
+    queue: sl<OfflineQueueService>(),
+    storage: sl<SecureStorageService>(),
+  ));
   sl.registerLazySingleton<ThermalPrinterService>(() => ThermalPrinterService());
 
   // Features - Auth
@@ -57,7 +65,7 @@ Future<void> initDependencies() async {
     () => CollectionRemoteDataSourceImpl(dioClient: sl()),
   );
   sl.registerLazySingleton<CollectionRepository>(
-    () => CollectionRepositoryImpl(remoteDataSource: sl()),
+    () => CollectionRepositoryImpl(remoteDataSource: sl(), offlineQueue: sl()),
   );
   sl.registerLazySingleton(() => SearchCollectionLoansUseCase(repository: sl()));
   sl.registerLazySingleton(() => GetLoanDetailUseCase(repository: sl()));

@@ -1,9 +1,10 @@
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import AppInput from '../../../Components/AppInput.vue';
+import LocationMapPicker from '../../../Components/LocationMapPicker.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 
@@ -12,6 +13,9 @@ const form = useForm({
     province_code: '',
     regency_code: '',
     district_code: '',
+    map_latitude: null,
+    map_longitude: null,
+    map_zoom: 13,
     user_name: '',
     username: '',
     email: '',
@@ -23,6 +27,12 @@ const provinces = ref([]);
 const regencies = ref([]);
 const districts = ref([]);
 const loading = ref(false);
+
+const regencyCenter = reactive({
+    lat: -7.5,
+    lng: 109.5,
+    zoom: 11,
+});
 
 async function load(url, target) {
     loading.value = true;
@@ -39,6 +49,22 @@ async function load(url, target) {
     }
 }
 
+async function loadRegencyCenter(regencyCode) {
+    if (!regencyCode) return;
+    try {
+        const response = await fetch(`/admin/regional/regency-center/${regencyCode}`, {
+            headers: { Accept: 'application/json' },
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.data) return;
+        regencyCenter.lat = payload.data.lat;
+        regencyCenter.lng = payload.data.lng;
+        regencyCenter.zoom = payload.data.zoom || 11;
+    } catch (error) {
+        console.error(error);
+    }
+}
+
 watch(() => form.province_code, async (value) => {
     form.regency_code = '';
     form.district_code = '';
@@ -50,7 +76,10 @@ watch(() => form.province_code, async (value) => {
 watch(() => form.regency_code, async (value) => {
     form.district_code = '';
     districts.value = [];
-    if (value) await load(`/admin/regional/districts/${value}`, districts);
+    if (value) {
+        await load(`/admin/regional/districts/${value}`, districts);
+        await loadRegencyCenter(value);
+    }
 });
 
 load('/admin/regional/provinces', provinces);
@@ -81,6 +110,18 @@ function submit() {
                             <SmartSelect v-model="form.regency_code" label="Kabupaten/Kota" :options="regencies.map((item) => ({ value: item.code, label: item.name }))" placeholder="Pilih kabupaten/kota" required :error="form.errors.regency_code" :disabled="!form.province_code" :loading="loading" searchable />
                             <SmartSelect v-model="form.district_code" label="Kecamatan" :options="districts.map((item) => ({ value: item.code, label: item.name }))" placeholder="Pilih kecamatan" required :error="form.errors.district_code" :disabled="!form.regency_code" :loading="loading" searchable />
                         </div>
+                    </div>
+
+                    <div class="border-t border-outline-variant pt-5">
+                        <h2 class="font-semibold text-primary">Titik Koordinat & Peta Lokasi</h2>
+                        <p class="text-xs text-on-surface-variant mb-4">Tentukan titik koordinat kantor / wilayah tenant untuk keperluan pemetaan konsolidasi.</p>
+                        <LocationMapPicker
+                            v-model:latitude="form.map_latitude"
+                            v-model:longitude="form.map_longitude"
+                            v-model:zoom="form.map_zoom"
+                            :regency-center="regencyCenter"
+                            :error="form.errors.map_latitude || form.errors.map_longitude"
+                        />
                     </div>
 
                     <div class="border-t border-outline-variant pt-5">

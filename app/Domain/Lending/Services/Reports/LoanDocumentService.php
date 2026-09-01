@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Lending\Services\Reports;
 
+use App\Domain\Documents\Services\SignatureImageService;
 use App\Domain\Documents\Services\SignatureTemplateService;
 use App\Domain\Lending\Models\Loan;
 use App\Domain\Membership\Models\GroupOfficer;
@@ -82,6 +83,7 @@ final class LoanDocumentService
 
     public function __construct(
         private readonly SignatureTemplateService $signatures,
+        private readonly SignatureImageService $signatureImages,
     ) {}
 
     /**
@@ -226,12 +228,28 @@ final class LoanDocumentService
             return '';
         }
 
-        return (string) strtr($html, $tokens);
+        return $this->injectSignatureImage((string) strtr($html, $tokens), $reportKey);
     }
 
     /**
      * @return array{identity: array<string, string>, loan: array<string, mixed>, group: array<string, mixed>, committee: array<int, array<string, string>>, beneficiaries: array<int, array<string, mixed>>, document: array<string, mixed>, tokens: array<string, string>, signature: string, today: string, today_label: string}
      */
+    private function injectSignatureImage(string $html, string $reportKey): string
+    {
+        $uri = $this->signatureImages->dataUri($reportKey);
+        if ($uri === null) {
+            return $html;
+        }
+
+        $img = '<img src="'.$uri.'" style="height:50px;max-width:180px;object-fit:contain" alt="Tanda Tangan" />';
+
+        if (str_contains($html, '{ttd_image}')) {
+            return str_replace('{ttd_image}', $img, $html);
+        }
+
+        return preg_replace('/(<p>(<br\s*\/?>\s*)+<\/p>)/i', $img.'$1', $html, 1) ?? $html;
+    }
+
     private function payloadShape(): array
     {
         return [

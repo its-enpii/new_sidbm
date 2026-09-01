@@ -171,10 +171,10 @@ const tenantName = computed(() => {
             <div
                 v-else
                 class="flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-400"
-                title="Aplikasi dalam mode offline lokal (Hanya Baca dari SQLite)"
+                title="Mode offline lokal aktif; input, edit, dan delete tetap diizinkan"
             >
                 <span class="inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
-                <span>Offline (Hanya Baca)</span>
+                <span>Offline (Input Diizinkan)</span>
             </div>
 
             <!-- Quick Sync Button -->

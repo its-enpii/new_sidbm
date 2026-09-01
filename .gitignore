@@ -30,6 +30,7 @@ test-results/
 
 
 # Flutter & Mobile artifacts
+.npm-cache/
 .pub_cache/
 .pub-cache/
 **/.dart_tool/

@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Domain\Notifications\Models\WhatsappInstance;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
  * WA Gateway API client for n8n webhook proxy -> Evolution API.
+ * Supports multi-instance per tenant with rotation / load-balancing.
  *
  * @see F:\Workspace\laragon\www\sidbm\WA-GATEWAY-API.md
  */
@@ -20,6 +23,10 @@ final class WhatsappGatewayService
     private const KEY_ENABLED = 'whatsapp.is_enabled';
 
     private const KEY_PHONE = 'whatsapp.pairing_phone';
+
+    private const KEY_ROTATION = 'whatsapp.rotation_mode'; // 'round_robin' | 'default_only'
+
+    private const KEY_LAST_ROTATION_ID = 'whatsapp.last_rotated_instance_id';
 
     public function __construct(
         private TenantSettingService $settings,
@@ -37,6 +44,17 @@ final class WhatsappGatewayService
         return $this->baseUrl() !== '' && $this->apiKey() !== '';
     }
 
+    /** Rotates across active instances or always uses the default instance. */
+    public function getRotationMode(): string
+    {
+        return (string) ($this->settings->get(self::KEY_ROTATION, 'round_robin') ?: 'round_robin');
+    }
+
+    public function setRotationMode(string $mode): void
+    {
+        $this->settings->set(self::KEY_ROTATION, in_array($mode, ['round_robin', 'default_only'], true) ? $mode : 'round_robin');
+    }
+
     public function getInstance(): string
     {
         $prefix = (string) config('services.wa_gateway.instance_prefix', 'app-sidbm');
@@ -48,6 +66,14 @@ final class WhatsappGatewayService
         $tenantId = $this->context->id();
 
         return $prefix.'-'.$tenantId;
+    }
+
+    public function buildInstanceName(string|int $suffix): string
+    {
+        $base = $this->getInstance();
+        $cleanSuffix = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) $suffix) ?: '1';
+
+        return $base.'-'.$cleanSuffix;
     }
 
     public function getPairingPhone(): string
@@ -70,12 +96,14 @@ final class WhatsappGatewayService
      *
      * @return array{success:bool,instance:string,qr:?string,pairingCode:?string,state:string,message:string}
      */
-    public function createInstance(?string $lokasi = null): array
+    public function createInstance(?string $lokasi = null, ?string $instanceName = null): array
     {
+        $targetInstance = $instanceName ?: $this->getInstance();
+
         if (! $this->isConfigured()) {
             return [
                 'success' => false,
-                'instance' => $this->getInstance(),
+                'instance' => $targetInstance,
                 'qr' => null,
                 'pairingCode' => null,
                 'state' => 'unconfigured',
@@ -83,23 +111,23 @@ final class WhatsappGatewayService
             ];
         }
 
-        $instance = $this->getInstance();
         $lokasiCode = $lokasi ?? (string) $this->context->id();
 
         try {
             $response = $this->request('post', '/create-instance', [
-                'instance' => $instance,
+                'instance' => $targetInstance,
                 'lokasi' => $lokasiCode,
             ]);
         } catch (\Throwable $e) {
             Log::warning('WhatsApp createInstance failed', [
                 'tenant_id' => $this->context->id(),
+                'instance' => $targetInstance,
                 'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'instance' => $instance,
+                'instance' => $targetInstance,
                 'qr' => null,
                 'pairingCode' => null,
                 'state' => 'network_error',
@@ -111,9 +139,11 @@ final class WhatsappGatewayService
         $qr = $payload['qr'] ?? $payload['instance']['qr'] ?? null;
         $state = $payload['state'] ?? $payload['instance']['status'] ?? ($response->successful() ? 'connecting' : 'failed');
 
+        $this->updateInstanceStatusIfTracked($targetInstance, (string) $state);
+
         return [
             'success' => $response->successful() && (bool) ($payload['success'] ?? true),
-            'instance' => $instance,
+            'instance' => $targetInstance,
             'qr' => is_string($qr) && $qr !== '' ? $qr : null,
             'pairingCode' => $payload['pairingCode'] ?? null,
             'state' => (string) $state,
@@ -126,26 +156,27 @@ final class WhatsappGatewayService
      *
      * @return array{success:bool,status:string,state:?string,qr:?string,instance:string,message:string,payload?:array<string,mixed>}
      */
-    public function connectionState(): array
+    public function connectionState(?string $instanceName = null): array
     {
+        $targetInstance = $instanceName ?: $this->getInstance();
+
         if (! $this->isConfigured()) {
             return [
                 'success' => false,
                 'status' => 'unconfigured',
                 'state' => null,
                 'qr' => null,
-                'instance' => $this->getInstance(),
+                'instance' => $targetInstance,
                 'message' => 'WA_GATEWAY_BASE / WA_GATEWAY_API_KEY belum diisi.',
             ];
         }
 
-        $instance = $this->getInstance();
-
         try {
-            $response = $this->request('get', '/instance-state', query: ['instance' => $instance]);
+            $response = $this->request('get', '/instance-state', query: ['instance' => $targetInstance]);
         } catch (\Throwable $e) {
             Log::warning('WhatsApp connectionState failed', [
                 'tenant_id' => $this->context->id(),
+                'instance' => $targetInstance,
                 'error' => $e->getMessage(),
             ]);
 
@@ -154,7 +185,7 @@ final class WhatsappGatewayService
                 'status' => 'network_error',
                 'state' => null,
                 'qr' => null,
-                'instance' => $instance,
+                'instance' => $targetInstance,
                 'message' => 'Gagal menghubungi server: '.$e->getMessage(),
             ];
         }
@@ -164,12 +195,14 @@ final class WhatsappGatewayService
         $qr = $payload['qr'] ?? $payload['instance']['qr'] ?? null;
 
         if ($response->status() === 404) {
+            $this->updateInstanceStatusIfTracked($targetInstance, 'close');
+
             return [
                 'success' => true,
                 'status' => 'missing',
                 'state' => 'missing',
                 'qr' => null,
-                'instance' => $instance,
+                'instance' => $targetInstance,
                 'message' => 'Instance belum dibuat. Klik "Buat Instance" untuk memulainya.',
                 'payload' => is_array($payload) ? $payload : [],
             ];
@@ -181,20 +214,22 @@ final class WhatsappGatewayService
                 'status' => 'http_'.$response->status(),
                 'state' => $state,
                 'qr' => is_string($qr) ? $qr : null,
-                'instance' => $instance,
+                'instance' => $targetInstance,
                 'message' => 'Server gateway mengembalikan status '.$response->status().'.',
                 'payload' => is_array($payload) ? $payload : [],
             ];
         }
 
         $open = in_array(strtolower((string) $state), ['open', 'connected'], true);
+        $normalizedState = $open ? 'open' : ($state ?: 'connecting');
+        $this->updateInstanceStatusIfTracked($targetInstance, $normalizedState);
 
         return [
             'success' => true,
             'status' => $open ? 'open' : 'connecting',
-            'state' => $state ?: ($open ? 'open' : 'connecting'),
+            'state' => $normalizedState,
             'qr' => $open ? null : (is_string($qr) ? $qr : null),
-            'instance' => $instance,
+            'instance' => $targetInstance,
             'message' => $open ? 'WhatsApp terhubung.' : 'WhatsApp belum terhubung (scan QR).',
             'payload' => is_array($payload) ? $payload : [],
         ];
@@ -205,17 +240,19 @@ final class WhatsappGatewayService
      *
      * @return array{success:bool,deleted:bool,message:string}
      */
-    public function deleteInstance(): array
+    public function deleteInstance(?string $instanceName = null): array
     {
+        $targetInstance = $instanceName ?: $this->getInstance();
+
         if (! $this->isConfigured()) {
             return ['success' => false, 'deleted' => false, 'message' => 'Gateway belum dikonfigurasi.'];
         }
 
-        $instance = $this->getInstance();
-
         try {
-            $response = $this->request('delete', '/delete-instance', query: ['instance' => $instance]);
+            $response = $this->request('delete', '/delete-instance', query: ['instance' => $targetInstance]);
             $payload = $response->json() ?? [];
+
+            $this->updateInstanceStatusIfTracked($targetInstance, 'close');
 
             return [
                 'success' => $response->successful(),
@@ -225,6 +262,7 @@ final class WhatsappGatewayService
         } catch (\Throwable $e) {
             Log::warning('WhatsApp deleteInstance failed', [
                 'tenant_id' => $this->context->id(),
+                'instance' => $targetInstance,
                 'error' => $e->getMessage(),
             ]);
 
@@ -235,7 +273,7 @@ final class WhatsappGatewayService
     /**
      * Endpoint 4: Send Single Message via n8n POST /send-message
      *
-     * @return array{success:bool,message:string,data?:mixed}
+     * @return array{success:bool,message:string,data?:mixed,instance?:string}
      */
     public function sendText(string $phone, string $message, ?string $instance = null): array
     {
@@ -257,7 +295,7 @@ final class WhatsappGatewayService
             return ['success' => false, 'message' => 'Isi pesan kosong.'];
         }
 
-        $targetInstance = $instance ?? $this->getInstance();
+        $targetInstance = $instance ?: $this->resolveActiveInstance();
 
         try {
             $response = $this->request('post', '/send-message', [
@@ -269,26 +307,29 @@ final class WhatsappGatewayService
             $payload = $response->json() ?? [];
 
             if ($response->successful() && ($payload['success'] ?? true)) {
-                return ['success' => true, 'message' => 'Pesan terkirim.', 'data' => $payload];
+                return ['success' => true, 'message' => 'Pesan terkirim.', 'data' => $payload, 'instance' => $targetInstance];
             }
 
             Log::warning('WhatsApp sendText failed', [
                 'tenant_id' => $this->context->id(),
+                'instance' => $targetInstance,
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
 
             return [
                 'success' => false,
+                'instance' => $targetInstance,
                 'message' => (string) ($payload['message'] ?? 'Gagal mengirim pesan: HTTP '.$response->status()),
             ];
         } catch (\Throwable $e) {
             Log::warning('WhatsApp sendText exception', [
                 'tenant_id' => $this->context->id(),
+                'instance' => $targetInstance,
                 'error' => $e->getMessage(),
             ]);
 
-            return ['success' => false, 'message' => 'Exception: '.$e->getMessage()];
+            return ['success' => false, 'instance' => $targetInstance, 'message' => 'Exception: '.$e->getMessage()];
         }
     }
 
@@ -296,7 +337,7 @@ final class WhatsappGatewayService
      * Endpoint 5: Send Bulk Messages via n8n POST /send-messages
      *
      * @param  list<array{number:string,text:string}>  $messages
-     * @return array{success:bool,count:int,message:string}
+     * @return array{success:bool,count:int,message:string,instance?:string}
      */
     public function sendMessages(array $messages, ?string $instance = null): array
     {
@@ -321,7 +362,7 @@ final class WhatsappGatewayService
             return ['success' => false, 'count' => 0, 'message' => 'Daftar pesan kosong atau tidak valid.'];
         }
 
-        $targetInstance = $instance ?? $this->getInstance();
+        $targetInstance = $instance ?: $this->resolveActiveInstance();
 
         try {
             $response = $this->request('post', '/send-messages', [
@@ -335,6 +376,7 @@ final class WhatsappGatewayService
                 return [
                     'success' => true,
                     'count' => count($formatted),
+                    'instance' => $targetInstance,
                     'message' => 'Berhasil mengirim '.count($formatted).' pesan.',
                 ];
             }
@@ -342,15 +384,17 @@ final class WhatsappGatewayService
             return [
                 'success' => false,
                 'count' => 0,
+                'instance' => $targetInstance,
                 'message' => (string) ($payload['message'] ?? 'Gagal mengirim pesan massal.'),
             ];
         } catch (\Throwable $e) {
             Log::warning('WhatsApp sendMessages exception', [
                 'tenant_id' => $this->context->id(),
+                'instance' => $targetInstance,
                 'error' => $e->getMessage(),
             ]);
 
-            return ['success' => false, 'count' => 0, 'message' => $e->getMessage()];
+            return ['success' => false, 'count' => 0, 'instance' => $targetInstance, 'message' => $e->getMessage()];
         }
     }
 
@@ -365,7 +409,7 @@ final class WhatsappGatewayService
             return ['success' => false, 'data' => [], 'message' => 'Gateway belum dikonfigurasi.'];
         }
 
-        $targetInstance = $instance ?? $this->getInstance();
+        $targetInstance = $instance ?: $this->resolveActiveInstance();
 
         try {
             $response = $this->request('get', '/history-message', query: ['instance' => $targetInstance]);
@@ -374,11 +418,53 @@ final class WhatsappGatewayService
         } catch (\Throwable $e) {
             Log::warning('WhatsApp historyMessage exception', [
                 'tenant_id' => $this->context->id(),
+                'instance' => $targetInstance,
                 'error' => $e->getMessage(),
             ]);
 
             return ['success' => false, 'data' => [], 'message' => $e->getMessage()];
         }
+    }
+
+    /**
+     * Resolves the next instance according to rotation strategy (Round-robin or Default).
+     */
+    public function resolveActiveInstance(): string
+    {
+        if (! $this->context->isInitialized() || ! $this->instancesTableExists()) {
+            return $this->getInstance();
+        }
+
+        $instances = WhatsappInstance::query()
+            ->where('is_active', true)
+            ->orderByDesc('is_default')
+            ->orderBy('row_id')
+            ->get();
+
+        if ($instances->isEmpty()) {
+            return $this->getInstance();
+        }
+
+        if ($this->getRotationMode() === 'default_only' || $instances->count() === 1) {
+            $default = $instances->firstWhere('is_default', true) ?? $instances->first();
+
+            return (string) ($default->instance_name ?: $this->getInstance());
+        }
+
+        // Round Robin rotation across active instances
+        $connectedInstances = $instances->filter(fn ($i) => in_array(strtolower((string) $i->status), ['open', 'connected'], true));
+        $pool = $connectedInstances->isNotEmpty() ? $connectedInstances : $instances;
+
+        $lastId = (int) $this->settings->get(self::KEY_LAST_ROTATION_ID, 0);
+        $next = $pool->first(fn ($i) => (int) $i->row_id > $lastId) ?? $pool->first();
+
+        if ($next !== null) {
+            $this->settings->set(self::KEY_LAST_ROTATION_ID, (int) $next->row_id, 'int');
+
+            return (string) ($next->instance_name ?: $this->getInstance());
+        }
+
+        return $this->getInstance();
     }
 
     /**
@@ -398,6 +484,30 @@ final class WhatsappGatewayService
         }
 
         return $digits;
+    }
+
+    private function updateInstanceStatusIfTracked(string $instanceName, string $status): void
+    {
+        if (! $this->context->isInitialized() || ! $this->instancesTableExists()) {
+            return;
+        }
+
+        try {
+            WhatsappInstance::query()
+                ->where('instance_name', $instanceName)
+                ->update(['status' => $status, 'updated_at' => now()]);
+        } catch (\Throwable) {
+            // ignore non-critical update failure
+        }
+    }
+
+    private function instancesTableExists(): bool
+    {
+        try {
+            return DB::connection('tenant')->getSchemaBuilder()->hasTable('whatsapp_instances');
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**

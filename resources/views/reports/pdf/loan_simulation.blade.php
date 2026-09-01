@@ -10,6 +10,19 @@
     </tr>
 </table>
 
+@php
+    $methodLabels = [
+        'flat' => 'Flat / Tetap',
+        'declining' => 'Efektif Menurun',
+        'annuity' => 'Anuitas',
+    ];
+    $methodName = $methodLabels[$simulation['summary']['installment_method'] ?? 'flat'] ?? ucfirst($simulation['summary']['installment_method'] ?? 'Flat');
+    $roundingVal = (int) ($simulation['summary']['rounding_step'] ?? 500);
+    $roundingLabel = $roundingVal > 0 ? 'Rp ' . number_format($roundingVal, 0, ',', '.') : 'Tanpa Pembulatan (Desimal)';
+    $rateMonthly = $simulation['summary']['interest_rate_monthly'] ?? round(($simulation['summary']['interest_rate_annual'] ?? 0) / 12, 2);
+    $rateAnnual = $simulation['summary']['interest_rate_annual'] ?? ($rateMonthly * 12);
+@endphp
+
 <table border="0" width="100%" cellspacing="0" cellpadding="4" style="font-size: 11px; margin-bottom: 15px; border: 1px solid #ddd; background: #fafafa;">
     <tr>
         <td width="20%" style="font-weight: bold;">Peminjam / Kelompok</td>
@@ -31,9 +44,15 @@
     </tr>
     <tr>
         <td style="font-weight: bold;">Suku Bunga / Jasa</td>
-        <td>: {{ $simulation['summary']['interest_rate_annual'] }}% per tahun ({{ ucfirst($simulation['summary']['installment_method']) }})</td>
+        <td>: {{ number_format($rateMonthly, 2, ',', '.') }}% / bln ({{ number_format($rateAnnual, 2, ',', '.') }}% p.a.)</td>
         <td style="font-weight: bold;">Estimasi per Bulan</td>
         <td align="right" style="font-weight: bold;">: Rp {{ number_format($simulation['summary']['estimated_monthly_payment'], 2, ',', '.') }}</td>
+    </tr>
+    <tr>
+        <td style="font-weight: bold;">Sistem Bunga</td>
+        <td>: {{ $methodName }}</td>
+        <td style="font-weight: bold;">Metode Pembulatan</td>
+        <td align="right">: {{ $roundingLabel }}</td>
     </tr>
 </table>
 

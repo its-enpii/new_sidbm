@@ -4,11 +4,13 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/dashboard/presentation/pages/dashboard_page.dart';
+import 'core/network/mobile_offline_sync_service.dart';
 import 'injection_container.dart' as di;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await di.initDependencies();
+  di.sl<MobileOfflineSyncService>().startPeriodicFlush();
   runApp(const SidbmMobileApp());
 }
 

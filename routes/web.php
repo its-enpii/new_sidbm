@@ -53,6 +53,7 @@ use App\Http\Controllers\Regency\RegencyReportController;
 use App\Http\Controllers\RegionalCodeController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Settings\SettingsController;
+use App\Http\Controllers\Settings\WhatsappSettingController;
 use App\Http\Controllers\StorageServeController;
 use App\Http\Controllers\Tenant\TenantOnboardingImportController;
 use App\Http\Controllers\Webhooks\DuitkuWebhookController;
@@ -176,6 +177,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::get('/regional/provinces', [RegionalCodeController::class, 'provinces'])->name('regional.provinces');
     Route::get('/regional/regencies/{province}', [RegionalCodeController::class, 'regencies'])->name('regional.regencies');
     Route::get('/regional/districts/{regency}', [RegionalCodeController::class, 'districts'])->name('regional.districts');
+    Route::get('/regional/regency-center/{regency}', [RegionalCodeController::class, 'regencyCenter'])->name('regional.regency-center');
     Route::get('/regional/villages/{district}', [RegionalCodeController::class, 'villages'])->name('regional.villages');
 
     // Payment Gateways
@@ -545,12 +547,27 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
         Route::post('/logo', [SettingsController::class, 'updateLogo'])->name('logo.update');
         Route::delete('/logo', [SettingsController::class, 'destroyLogo'])->name('logo.destroy');
         Route::put('/whatsapp', [SettingsController::class, 'updateWhatsapp'])->name('whatsapp.update');
+        Route::put('/offline-access', [SettingsController::class, 'updateOfflineAccess'])->name('offline-access.update');
+        Route::get('/offline-users', [SettingsController::class, 'offlineUsers'])->name('offline-users.index');
         Route::post('/whatsapp/create', [SettingsController::class, 'createWhatsappInstance'])->name('whatsapp.create');
         Route::delete('/whatsapp/delete', [SettingsController::class, 'deleteWhatsappInstance'])->name('whatsapp.delete');
         Route::get('/whatsapp/state', [SettingsController::class, 'instanceState'])->name('whatsapp.state');
         Route::post('/whatsapp/test', [SettingsController::class, 'testWhatsapp'])->name('whatsapp.test');
         Route::post('/whatsapp/pair', [SettingsController::class, 'pairWhatsapp'])->name('whatsapp.pair');
         Route::put('/signatures', [SettingsController::class, 'updateSignatures'])->name('signatures.update');
+        Route::post('/signatures/image', [SettingsController::class, 'storeSignatureImage'])->name('signatures.image.store');
+        Route::delete('/signatures/image', [SettingsController::class, 'destroySignatureImage'])->name('signatures.image.destroy');
+
+        // Multi-Instance WhatsApp Gateway
+        Route::get('/whatsapp/manage', [WhatsappSettingController::class, 'index'])->name('whatsapp.manage');
+        Route::post('/whatsapp/instances', [WhatsappSettingController::class, 'store'])->name('whatsapp.instances.store');
+        Route::put('/whatsapp/instances/{instance}', [WhatsappSettingController::class, 'update'])->name('whatsapp.instances.update');
+        Route::delete('/whatsapp/instances/{instance}', [WhatsappSettingController::class, 'destroy'])->name('whatsapp.instances.destroy');
+        Route::post('/whatsapp/instances/{instance}/create-session', [WhatsappSettingController::class, 'createSession'])->name('whatsapp.instances.create-session');
+        Route::get('/whatsapp/instances/{instance}/state', [WhatsappSettingController::class, 'state'])->name('whatsapp.instances.state');
+        Route::delete('/whatsapp/instances/{instance}/delete-session', [WhatsappSettingController::class, 'deleteSession'])->name('whatsapp.instances.delete-session');
+        Route::post('/whatsapp/instances/{instance}/test', [WhatsappSettingController::class, 'test'])->name('whatsapp.instances.test');
+        Route::put('/whatsapp/global', [WhatsappSettingController::class, 'updateGlobal'])->name('whatsapp.global');
     });
 
     // Notifications (Center & Billing Notice)

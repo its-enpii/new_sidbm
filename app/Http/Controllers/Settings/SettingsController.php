@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Settings;
 
+use App\Domain\Documents\Services\SignatureImageService;
 use App\Domain\Documents\Services\SignatureTemplateService;
 use App\Domain\Lending\Services\LoanService;
 use App\Domain\Membership\Models\OrganizationProfile;
 use App\Http\Requests\Settings\IdentityRequest;
 use App\Http\Requests\Settings\LendingSystemRequest;
 use App\Http\Requests\Settings\LogoUploadRequest;
+use App\Http\Requests\Settings\OfflineAccessRequest;
+use App\Http\Requests\Settings\SignatureImageUploadRequest;
 use App\Http\Requests\Settings\SignaturesRequest;
 use App\Http\Requests\Settings\WhatsappRequest;
+use App\Services\OfflineAccessService;
 use App\Services\TenantSettingService;
 use App\Services\WhatsappGatewayService;
 use App\Tenancy\TenantContext;
@@ -23,6 +27,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use InvalidArgumentException;
+use RuntimeException;
 
 final class SettingsController
 {
@@ -31,6 +37,8 @@ final class SettingsController
         TenantSettingService $settings,
         WhatsappGatewayService $gateway,
         SignatureTemplateService $signatures,
+        SignatureImageService $images,
+        OfflineAccessService $offlineAccess,
     ): Response {
         $profile = OrganizationProfile::query()->first() ?? new OrganizationProfile([
             'legal_name' => '',
@@ -61,12 +69,14 @@ final class SettingsController
 
         $logoUrl = $profile->logo_path ? asset('storage/'.$profile->logo_path) : null;
         $templates = $signatures->all();
+        $signatureImages = $images->urls();
         $hasAny = collect($templates)->contains(fn (string $html) => trim($html) !== '');
         if (! $hasAny) {
             $templates['default'] = SignatureTemplateService::starterHtml();
         }
 
         return Inertia::render('Settings/Index', [
+            'signatureImages' => $signatureImages,
             'identity' => [
                 'legal_name' => (string) $profile->legal_name,
                 'short_name' => $profile->short_name,
@@ -82,6 +92,11 @@ final class SettingsController
             'products' => $products,
             'logoUrl' => $logoUrl,
             'whatsapp' => $this->whatsappPayload($settings, $gateway),
+            'offline' => [
+                'is_enabled' => $offlineAccess->isEnabled($context->id()),
+                'user_id' => $offlineAccess->userId($context->id()),
+                'users' => $offlineAccess->selectableUsers($context->id()),
+            ],
             'signatures' => [
                 'templates' => $templates,
                 'reportTypes' => $signatures->reportTypes(),
@@ -223,6 +238,32 @@ final class SettingsController
         return $this->flashRedirect('Template tanda tangan berhasil disimpan.', 'signatures');
     }
 
+    public function storeSignatureImage(SignatureImageUploadRequest $request, SignatureImageService $images): RedirectResponse
+    {
+        $data = $request->validated();
+
+        try {
+            $images->store($data['report_key'], $data['image']);
+        } catch (RuntimeException $e) {
+            return $this->flashRedirect($e->getMessage(), 'signatures');
+        }
+
+        return $this->flashRedirect('Tanda tangan gambar berhasil disimpan.', 'signatures');
+    }
+
+    public function destroySignatureImage(Request $request, SignatureImageService $images): RedirectResponse
+    {
+        $reportKey = (string) $request->input('report_key');
+
+        try {
+            $images->delete($reportKey);
+        } catch (RuntimeException) {
+            abort(422, 'Jenis dokumen tidak dikenal.');
+        }
+
+        return $this->flashRedirect('Tanda tangan gambar berhasil dihapus.', 'signatures');
+    }
+
     public function testWhatsapp(Request $request, WhatsappGatewayService $gateway): JsonResponse
     {
         if (! $gateway->isConfigured()) {
@@ -248,6 +289,32 @@ final class SettingsController
     /**
      * @return array<string, mixed>
      */
+    public function offlineUsers(TenantContext $context, OfflineAccessService $offlineAccess): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $offlineAccess->selectableUsers($context->id()),
+        ]);
+    }
+
+    public function updateOfflineAccess(
+        OfflineAccessRequest $request,
+        TenantContext $context,
+        OfflineAccessService $offlineAccess,
+    ): RedirectResponse {
+        try {
+            $offlineAccess->save(
+                $context->id(),
+                $request->boolean('is_enabled'),
+                $request->filled('user_id') ? $request->integer('user_id') : null,
+            );
+        } catch (InvalidArgumentException $e) {
+            return $this->flashRedirect($e->getMessage(), 'offline');
+        }
+
+        return $this->flashRedirect('Pengaturan akses offline berhasil disimpan.', 'offline');
+    }
+
     private function whatsappPayload(TenantSettingService $settings, WhatsappGatewayService $gateway): array
     {
         $state = $gateway->isConfigured()

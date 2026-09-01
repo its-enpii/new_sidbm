@@ -209,6 +209,9 @@ final class RegencyConsolidatedReportTest extends TestCase
             'regency_code' => '33.01',
             'regency_name' => 'Cilacap',
             'district_code' => '330101',
+            'map_latitude' => -7.585,
+            'map_longitude' => 108.798,
+            'map_zoom' => 13,
             'status' => 'active',
             'timezone' => 'Asia/Jakarta',
         ]);
@@ -240,6 +243,9 @@ final class RegencyConsolidatedReportTest extends TestCase
             'regency_code' => '33.01',
             'regency_name' => 'Cilacap',
             'district_code' => '330102',
+            'map_latitude' => -7.616,
+            'map_longitude' => 109.112,
+            'map_zoom' => 13,
             'status' => 'active',
             'timezone' => 'Asia/Jakarta',
         ]);

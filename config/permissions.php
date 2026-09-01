@@ -27,8 +27,11 @@ use App\Http\Requests\MasterData\VillageRequest;
 use App\Http\Requests\Settings\IdentityRequest;
 use App\Http\Requests\Settings\LendingSystemRequest;
 use App\Http\Requests\Settings\LogoUploadRequest;
+use App\Http\Requests\Settings\OfflineAccessRequest;
 use App\Http\Requests\Settings\OrchestratorRequest;
+use App\Http\Requests\Settings\SignatureImageUploadRequest;
 use App\Http\Requests\Settings\SignaturesRequest;
+use App\Http\Requests\Settings\WhatsappInstanceRequest;
 use App\Http\Requests\Settings\WhatsappRequest;
 
 /**
@@ -247,8 +250,11 @@ return [
         LendingSystemRequest::class => 'settings.manage',
         LogoUploadRequest::class => 'settings.manage',
         WhatsappRequest::class => 'settings.manage',
+        OfflineAccessRequest::class => 'settings.manage',
+        WhatsappInstanceRequest::class => 'settings.manage',
         OrchestratorRequest::class => 'settings.manage',
         SignaturesRequest::class => 'settings.manage',
+        SignatureImageUploadRequest::class => 'settings.manage',
         AssetRequest::class => 'assets.manage',
         VillageRequest::class => 'villages.manage',
         OtherInstitutionRequest::class => 'institutions.manage',
