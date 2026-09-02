@@ -45,6 +45,7 @@ use App\Http\Controllers\MasterData\OtherInstitutionController;
 use App\Http\Controllers\MasterData\VillageController;
 use App\Http\Controllers\Notifications\BillingNoticeController;
 use App\Http\Controllers\Notifications\NotificationCenterController;
+use App\Http\Controllers\Portal\PortalMemberController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Province\ProvinceDashboardController;
 use App\Http\Controllers\Province\ProvinceReportController;
@@ -269,6 +270,13 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/changelog', [ChangelogController::class, 'index'])->name('changelog');
     Route::get('/search', SearchController::class)->name('search');
+
+    Route::prefix('portal')
+        ->name('portal.')
+        ->middleware('permission:portal.self')
+        ->group(function (): void {
+            Route::get('/', [PortalMemberController::class, 'index'])->name('index');
+        });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'updateProfile'])->name('profile.update');

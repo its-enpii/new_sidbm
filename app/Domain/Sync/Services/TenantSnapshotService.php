@@ -31,6 +31,7 @@ final class TenantSnapshotService
         'group_functions',
         'roles',
         'user_roles',
+        'member_user_links',
         'people',
         'members',
         'member_addresses',

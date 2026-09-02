@@ -91,6 +91,7 @@ return [
         'settings.manage',
         'assistant.use',
         // User & Role Access Management
+        'portal.self',
         'users.view',
         'users.manage',
         'roles.view',
@@ -188,6 +189,13 @@ return [
                 'village_user.access',
             ],
         ],
+        'anggota' => [
+            'name' => 'Anggota',
+            'is_system' => true,
+            'permissions' => [
+                'portal.self',
+            ],
+        ],
     ],
 
     /**
@@ -195,6 +203,7 @@ return [
      * Longest prefix wins when matching. Missing = always show (auth only).
      */
     'nav_map' => [
+        '/portal' => 'portal.self',
         '/master-data/villages' => 'villages.view',
         '/master-data/members/create' => 'members.manage',
         '/master-data/members' => 'members.view',

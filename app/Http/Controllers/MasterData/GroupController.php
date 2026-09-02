@@ -322,6 +322,7 @@ final class GroupController
         return [
             'value' => $member->row_id,
             'label' => $member->person?->full_name.' · '.$member->member_number,
+            'member_number' => $member->member_number,
             'name' => $member->person?->full_name,
             'nik' => $member->person?->national_identity_number,
         ];

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Access;
 
+use App\Domain\Membership\Models\Member;
 use App\Http\Requests\Concerns\AuthorizesPermission;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
@@ -25,6 +26,7 @@ final class StoreTenantUserRequest extends FormRequest
             'appointed_at' => ['nullable', 'date'],
             'term_end_at' => ['nullable', 'date', 'after_or_equal:appointed_at'],
             'role' => ['nullable', 'string', 'max:80'],
+            'member_row_id' => ['required_if:role,anggota', 'nullable', 'integer', Rule::exists(Member::class, 'row_id')],
             'is_village_user' => ['nullable', 'boolean'],
             'village_row_id' => ['nullable', 'integer'],
         ];
@@ -41,6 +43,7 @@ final class StoreTenantUserRequest extends FormRequest
             'appointed_at' => 'mulai menjabat',
             'term_end_at' => 'selesai menjabat',
             'role' => 'role',
+            'member_row_id' => 'anggota terhubung',
             'is_village_user' => 'operator desa',
             'village_row_id' => 'desa',
         ];

@@ -229,6 +229,10 @@ const sections = [
         items: [{ label: 'Dashboard', icon: 'dashboard', href: '/dashboard', exact: true }],
     },
     {
+        label: 'Anggota',
+        items: [{ label: 'Portal Saya', icon: 'account_circle', href: '/portal' }],
+    },
+    {
         label: 'SIDBM',
         items: [
             {

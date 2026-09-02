@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\BlockOfflineMutations;
+use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureProvinceSupervisor;
 use App\Http\Middleware\EnsureRegencySupervisor;
 use App\Http\Middleware\EnsureSubscriptionActive;
@@ -77,6 +78,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'province' => EnsureProvinceSupervisor::class,
             'province.user' => EnsureProvinceSupervisor::class,
             'subscription.active' => EnsureSubscriptionActive::class,
+            'permission' => EnsurePermission::class,
             'orchestrator.signature' => VerifyOrchestratorSignature::class,
             'assistant.signature' => VerifyOrchestratorSignature::class,
             'assistant.actor' => ResolveAssistantActor::class,
