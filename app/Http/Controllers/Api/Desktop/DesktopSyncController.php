@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Desktop;
 
 use App\Domain\Billing\Services\SubscriptionGateService;
+use App\Domain\Desktop\Services\UpdateManifestService;
 use App\Domain\Sync\Services\DesktopPushApplyService;
 use App\Domain\Sync\Services\TenantSnapshotService;
 use App\Models\Platform\Tenant;
@@ -19,6 +20,7 @@ final class DesktopSyncController
         private readonly DesktopPushApplyService $pushService,
         private readonly TenantContext $tenantContext,
         private readonly SubscriptionGateService $subscriptionGate,
+        private readonly UpdateManifestService $updateManifest,
     ) {}
 
     /**
@@ -47,7 +49,16 @@ final class DesktopSyncController
             return $this->tenantNotFoundResponse();
         }
 
+        if ($this->updateManifest->outdated($request->header('X-App-Version'))) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 'CLIENT_OUTDATED',
+                'min_supported_version' => (string) config('desktop-update.min_version'),
+            ], 426);
+        }
+
         $subscriptionGate = $this->subscriptionGate->check((int) $targetTenant->row_id);
+        $update = $this->updateManifest->manifest((string) $request->query('current_version', ''));
         if ($subscriptionGate['blocked']) {
             return response()->json([
                 'status' => 'blocked',
@@ -118,12 +129,13 @@ final class DesktopSyncController
         }
 
         $subscriptionGate = $this->subscriptionGate->check((int) $targetTenant->row_id);
+        $update = $this->updateManifest->manifest($request->query('current_version'));
 
         return response()->json([
             'status' => 'success',
             'server_time' => now()->toIso8601String(),
             'app_name' => config('app.name', 'SIDBM Next'),
-            'app_version' => '1.0.0',
+            'app_version' => (string) config('desktop-update.server_version'),
             'tenant' => [
                 'id' => (int) $targetTenant->row_id,
                 'code' => (string) $targetTenant->code,
@@ -140,6 +152,41 @@ final class DesktopSyncController
                 'reason' => $subscriptionGate['reason'],
                 'invoice_number' => $subscriptionGate['invoice_number'],
                 'message' => $subscriptionGate['message'],
+            ],
+            'update' => [
+                'update_available' => $update['update_available'],
+                'latest_version' => $update['latest_version'],
+                'force_update' => $update['force_update'],
+            ],
+        ]);
+    }
+
+    public function updateCheck(Request $request): JsonResponse
+    {
+        $update = $this->updateManifest->manifest($request->query('current_version'));
+        $tenant = $this->resolveTenant($request, null);
+
+        if ($tenant === null) {
+            return response()->json([
+                ...$update,
+                'subscription' => [
+                    'blocked' => false,
+                    'reason' => null,
+                    'message' => null,
+                    'invoice_number' => null,
+                ],
+            ]);
+        }
+
+        $subscriptionGate = $this->subscriptionGate->check((int) $tenant->row_id);
+
+        return response()->json([
+            ...$update,
+            'subscription' => [
+                'blocked' => $subscriptionGate['blocked'],
+                'reason' => $subscriptionGate['reason'],
+                'message' => $subscriptionGate['message'],
+                'invoice_number' => $subscriptionGate['invoice_number'],
             ],
         ]);
     }

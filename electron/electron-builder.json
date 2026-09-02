@@ -15,6 +15,12 @@
     "vendor/**/*",
     "package.json"
   ],
+  "publish": [
+    {
+      "provider": "generic",
+      "url": "https://github.com/its-enpii/new_sidbm/releases/latest/download"
+    }
+  ],
   "win": {
     "target": [
       {
@@ -29,6 +35,7 @@
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "shortcutName": "SIDBM Next Desktop"
+    "shortcutName": "SIDBM Next Desktop",
+    "differentialPackage": true
   }
 }

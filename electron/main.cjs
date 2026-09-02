@@ -1,9 +1,11 @@
 const { app, BrowserWindow, Menu, ipcMain, shell, dialog, Notification, session } = require('electron');
 const path = require('path');
 const http = require('http');
+const { autoUpdater } = require('electron-updater');
 
 let mainWindow = null;
 let isForceClosing = false;
+let updateTimer = null;
 
 const DEFAULT_CONFIG = {
     title: 'SIDBM Next Desktop',
@@ -103,6 +105,74 @@ ipcMain.on('desktop:window-minimize', () => {
     }
 });
 
+function sendUpdateEvent(channel, payload = {}) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(channel, payload);
+    }
+}
+
+function requireRestartAfterUpdate(force = false) {
+    if (Notification.isSupported()) {
+        new Notification({
+            title: 'SIDBM Next Desktop',
+            body: 'Update baru sudah diunduh. Restart untuk menerapkan pembaruan.',
+        }).show();
+    }
+
+    const options = {
+        type: 'question',
+        title: 'Update Siap',
+        message: 'Restart untuk update sekarang?',
+        detail: 'Data lokal SQLite dan antrean sinkronisasi tidak akan diubah.',
+        buttons: ['Restart', 'Nanti'],
+        defaultId: 0,
+        cancelId: force ? 0 : 1,
+        noLink: true,
+    };
+
+    if (force) {
+        options.closeable = false;
+    }
+
+    dialog.showMessageBox(mainWindow, options).then(({ response }) => {
+        if (response === 0) {
+            autoUpdater.quitAndInstall();
+        }
+    }).catch(() => {});
+}
+
+function initializeAutoUpdater() {
+    if (!app.isPackaged) {
+        console.info('[updater] disabled in development');
+        return;
+    }
+
+    autoUpdater.autoDownload = true;
+    autoUpdater.on('update-available', (info) => {
+        sendUpdateEvent('update:available', info);
+    });
+    autoUpdater.on('download-progress', (progress) => {
+        sendUpdateEvent('update:download-progress', progress);
+    });
+    autoUpdater.on('update-downloaded', (info) => {
+        sendUpdateEvent('update:downloaded', info);
+        requireRestartAfterUpdate(false);
+    });
+    autoUpdater.on('error', (error) => {
+        sendUpdateEvent('update:error', { message: error?.message || 'Unknown update error' });
+    });
+}
+
+async function checkForUpdates(force = false) {
+    if (!app.isPackaged) {
+        console.info('[updater] update check skipped in development');
+        return null;
+    }
+
+    sendUpdateEvent('update:checking', { force });
+    return autoUpdater.checkForUpdates();
+}
+
 ipcMain.on('desktop:window-maximize', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
         if (mainWindow.isMaximized()) {
@@ -123,6 +193,8 @@ ipcMain.on('desktop:window-close', () => {
 ipcMain.handle('desktop:is-maximized', () => {
     return mainWindow ? mainWindow.isMaximized() : false;
 });
+
+ipcMain.handle('update:check', (_, force = false) => checkForUpdates(Boolean(force)));
 
 // Native OS Push Notification Handler (Zero Firebase required)
 ipcMain.on('desktop:send-notification', (_, { title, body, icon, url }) => {
@@ -184,6 +256,17 @@ ipcMain.handle('desktop:check-connectivity', async (_, urlToCheck) => {
 
 app.whenReady().then(() => {
     createWindow();
+    initializeAutoUpdater();
+
+    mainWindow?.webContents.once('did-finish-load', () => {
+        setTimeout(() => {
+            checkForUpdates().catch(() => {});
+        }, 5000);
+    });
+
+    updateTimer = setInterval(() => {
+        checkForUpdates().catch(() => {});
+    }, 6 * 60 * 60 * 1000);
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
@@ -193,6 +276,9 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+    if (updateTimer) {
+        clearInterval(updateTimer);
+    }
     if (process.platform !== 'darwin') {
         app.quit();
     }

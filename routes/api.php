@@ -94,6 +94,7 @@ $registerDesktopSyncRoutes = function (string $prefix): void {
         ->prefix($prefix)
         ->group(function () use ($prefix): void {
             Route::get('/status', [DesktopSyncController::class, 'status'])->name("api.{$prefix}.status");
+            Route::get('/update/check', [DesktopSyncController::class, 'updateCheck'])->name("api.{$prefix}.update.check");
             Route::get('/snapshot', [DesktopSyncController::class, 'snapshot'])->name("api.{$prefix}.snapshot");
             Route::get('/delta', [DesktopSyncController::class, 'delta'])->name("api.{$prefix}.delta");
 

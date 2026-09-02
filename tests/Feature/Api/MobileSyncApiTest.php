@@ -183,6 +183,24 @@ final class MobileSyncApiTest extends TestCase
         $payResponse->assertForbidden()->assertJsonPath('code', 'OFFLINE_READ_ONLY_GUARD');
     }
 
+    public function test_push_rejects_outdated_client_header_before_processing_mutations(): void
+    {
+        config(['desktop-update.min_version' => '2.0.0']);
+        $cashAccount = Account::on('tenant')->where('is_postable', true)->where('code', 'like', '1.1.01.%')->first();
+        $mutationUuid = (string) Str::uuid();
+
+        $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->withHeader('X-App-Version', '1.9.0')
+            ->postJson('/api/v1/mobile/sync/push', [
+                'mutations' => [$this->paymentMutation($mutationUuid, (int) $cashAccount->row_id)],
+            ])
+            ->assertStatus(426)
+            ->assertJsonPath('code', 'CLIENT_OUTDATED')
+            ->assertJsonPath('min_supported_version', '2.0.0');
+
+        $this->assertDatabaseMissing('loan_payments', ['reference_number' => $mutationUuid], 'tenant');
+    }
+
     private function pull(array $query = [])
     {
         return $this->withHeader('Authorization', "Bearer {$this->token}")

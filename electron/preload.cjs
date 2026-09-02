@@ -5,6 +5,29 @@ contextBridge.exposeInMainWorld('desktopAPI', {
     platform: process.platform,
     getAppInfo: () => ipcRenderer.invoke('desktop:get-info'),
     checkConnectivity: (url) => ipcRenderer.invoke('desktop:check-connectivity', url),
+
+    // Automatic update channel
+    checkForUpdates: (force = false) => ipcRenderer.invoke('update:check', force),
+    onUpdateAvailable: (callback) => {
+        const listener = (_, info) => callback(info);
+        ipcRenderer.on('update:available', listener);
+        return () => ipcRenderer.removeListener('update:available', listener);
+    },
+    onUpdateDownloadProgress: (callback) => {
+        const listener = (_, progress) => callback(progress);
+        ipcRenderer.on('update:download-progress', listener);
+        return () => ipcRenderer.removeListener('update:download-progress', listener);
+    },
+    onUpdateDownloaded: (callback) => {
+        const listener = (_, info) => callback(info);
+        ipcRenderer.on('update:downloaded', listener);
+        return () => ipcRenderer.removeListener('update:downloaded', listener);
+    },
+    onUpdateError: (callback) => {
+        const listener = (_, error) => callback(error);
+        ipcRenderer.on('update:error', listener);
+        return () => ipcRenderer.removeListener('update:error', listener);
+    },
     
     // Native OS Push Notifications (No Firebase needed)
     sendNotification: ({ title, body, icon, url }) => {

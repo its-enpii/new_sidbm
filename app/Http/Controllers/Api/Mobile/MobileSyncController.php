@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Mobile;
 
 use App\Domain\Accounting\Models\Account;
+use App\Domain\Desktop\Services\UpdateManifestService;
 use App\Domain\Lending\Models\Loan;
 use App\Domain\Membership\Models\Member;
 use App\Domain\Sync\Services\DesktopPushApplyService;
@@ -22,6 +23,7 @@ final class MobileSyncController
     public function __construct(
         private readonly DesktopPushApplyService $pushService,
         private readonly TenantContext $context,
+        private readonly UpdateManifestService $updateManifest,
     ) {}
 
     public function collection(Request $request): JsonResponse
@@ -110,6 +112,14 @@ final class MobileSyncController
 
     public function push(Request $request): JsonResponse
     {
+        if ($this->updateManifest->outdated($request->header('X-App-Version'))) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 'CLIENT_OUTDATED',
+                'min_supported_version' => (string) config('desktop-update.min_version'),
+            ], 426);
+        }
+
         $validated = $request->validate([
             'mutations' => ['required', 'array', 'max:200'],
             'mutations.*.mutation_uuid' => ['required', 'uuid'],
