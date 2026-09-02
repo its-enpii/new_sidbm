@@ -7,6 +7,11 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 
 ### Added
 
+- Endpoint update check desktop dengan manifest versi terbaru, minimum version, download URL, dan status subscription.
+- Automatic updater Electron menggunakan feed GitHub Releases generic, jadwal pemeriksaan non-blokir, IPC progress, dan dialog restart.
+- Version gate `X-App-Version` pada push desktop dan mobile dengan HTTP 426 untuk client di bawah versi minimum.
+- Workflow GitHub Actions untuk build NSIS Windows, artifact installer, dan GitHub Release.
+
 - Outbox lokal, sinkronisasi dua arah desktop, log konflik, dan indikator jumlah mutasi offline pada Pengaturan.
 - Endpoint pull/push offline mobile (`/api/v1/mobile/sync/collection` dan `/api/v1/mobile/sync/push`) dengan scoping per petugas desa, whitelist mutasi terbatas, idempotensi `mutation_uuid`, audit log, serta pengecualian push sync saat mode offline.
 - `SubscriptionGateService` sebagai satu sumber status blokir langganan, respons blok `subscription` pada `/sync/status`, penangguhan push desktop HTTP 402, dan pemeriksaan langganan pertama pada alur reconnect desktop sebelum push/pull; data outbox lokal tetap aman.
@@ -14,6 +19,7 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ## [2026-09-01]
 
 ### Added
+- Upload foto KTP anggota di halaman detail Master Data Anggota dan render foto tersebut pada dokumen pinjaman "FC KTP", lengkap dengan validasi gambar, penggantian/penghapusan aman, serta placeholder bila foto belum tersedia.
 - Halaman mandiri **WhatsApp Gateway** (`/settings/whatsapp/manage`) untuk mengelola beberapa nomor/instance WhatsApp per tenant.
 - **WhatsApp Hub** satu halaman bertab pada `/settings/whatsapp` untuk Status & Instance, Template Pesan, dan Kirim Tagihan. Halaman ini memakai payload per izin (`settings.manage` atau `messages.send`) tanpa menambah endpoint baru.
 - Tabel tenant `whatsapp_instances` untuk menyimpan nama, status koneksi, nomor, batas harian, status default, dan status aktif setiap instance WhatsApp.

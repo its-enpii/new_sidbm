@@ -30,11 +30,11 @@
         padding: 2px 4px;
     }
 
-    table.p0 tr th,
-    table.p0 tr td {
-        padding: 0px !important;
+    .identity-card {
+        width: 85.6mm;
+        height: 54mm;
+        page-break-inside: avoid;
     }
-
     .break {
         page-break-after: always;
     }
@@ -77,3 +77,34 @@
         <td colspan="3" height="5"></td>
     </tr>
 </table>
+
+@foreach ($beneficiaries as $b)
+    <div class="identity-card">
+        <table width="100%" height="100%" cellspacing="0" cellpadding="4" style="table-layout:fixed;border:1px solid #000;">
+            <tr>
+                <td width="46%" align="center" valign="middle" style="border-right:1px solid #000;">
+                    @if (! empty($b['identity_photo_data']))
+                        <img src="{{ $b['identity_photo_data'] }}" alt="Foto KTP {{ $b['name'] }}" style="max-width:100%;max-height:100%;object-fit:contain;" />
+                    @else
+                        <div style="height:100%;padding:6px;border:1px dashed #666;color:#666;">
+                            <b>FOTO KTP BELUM DIUNGGAH</b>
+                            <br />
+                            Unggah di profil anggota
+                        </div>
+                    @endif
+                </td>
+                <td valign="top">
+                    <b>{{ $b['name'] }}</b>
+                    <br />
+                    NIK: {{ $b['nik'] ?: '—' }}
+                    <br />
+                    {{ $group['address'] ?: '—' }}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    @unless ($loop->last)
+        <div style="page-break-after:always;"></div>
+    @endunless
+@endforeach

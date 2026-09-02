@@ -293,6 +293,8 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
         Route::post('/members/import', [MemberController::class, 'import'])->name('members.import');
         Route::post('/members', [MemberController::class, 'store'])->name('members.store');
         Route::get('/members/{member}', [MemberController::class, 'show'])->name('members.show');
+        Route::post('/members/{member}/identity-photo', [MemberController::class, 'uploadIdentityPhoto'])->name('members.identity-photo.store');
+        Route::delete('/members/{member}/identity-photo', [MemberController::class, 'destroyIdentityPhoto'])->name('members.identity-photo.destroy');
         Route::get('/members/{member}/edit', [MemberController::class, 'edit'])->name('members.edit');
         Route::put('/members/{member}', [MemberController::class, 'update'])->name('members.update');
         Route::delete('/members/{member}', [MemberController::class, 'destroy'])->name('members.destroy');

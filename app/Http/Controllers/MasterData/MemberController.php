@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -123,6 +124,56 @@ final class MemberController
                 'principal_remaining' => round((float) $outstanding, 2),
             ],
         ]);
+    }
+
+    public function uploadIdentityPhoto(Request $request, Member $member): RedirectResponse
+    {
+        app(PermissionChecker::class)->denyUnless($request->user(), 'members.manage');
+
+        $validated = $request->validate([
+            'identity_photo' => [
+                'required',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:4096',
+            ],
+        ]);
+
+        $person = $member->person()->firstOrFail();
+        $file = $request->file('identity_photo');
+        $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+
+        if ($person->identity_photo_path) {
+            Storage::disk('public')->delete($person->identity_photo_path);
+        }
+
+        $person->identity_photo_path = $file->storeAs(
+            'identity-photos/'.$person->getKey(),
+            'ktp.'.$extension,
+            'public',
+        );
+        $person->touch();
+        $person->save();
+
+        return to_route('master-data.members.show', $member->getKey())
+            ->with('success', 'Foto KTP anggota berhasil diunggah.');
+    }
+
+    public function destroyIdentityPhoto(Request $request, Member $member): RedirectResponse
+    {
+        app(PermissionChecker::class)->denyUnless($request->user(), 'members.manage');
+
+        $person = $member->person()->firstOrFail();
+
+        if ($person->identity_photo_path) {
+            Storage::disk('public')->delete($person->identity_photo_path);
+            $person->identity_photo_path = null;
+            $person->touch();
+            $person->save();
+        }
+
+        return to_route('master-data.members.show', $member->getKey())
+            ->with('success', 'Foto KTP anggota dihapus.');
     }
 
     public function edit(Member $member): Response
@@ -271,6 +322,8 @@ final class MemberController
             'village' => $member->village?->only(['row_id', 'name', 'code']),
             'registered_at' => $member->registered_at?->format('Y-m-d'),
             'status' => $member->status,
+            'identity_photo_path' => $member->person?->identity_photo_path,
+            'identity_photo_updated_at' => $member->person?->updated_at?->timestamp,
             'guarantor' => $member->guarantor ? [
                 'nik' => $member->guarantor->person?->national_identity_number,
                 'name' => $member->guarantor->person?->full_name,

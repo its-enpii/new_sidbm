@@ -11,6 +11,7 @@ use App\Domain\Membership\Models\GroupOfficer;
 use App\Domain\Membership\Models\OrganizationProfile;
 use Carbon\CarbonImmutable;
 use DomainException;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Cetak dokumen pinjaman (PDF) — referensi alur `sidbm/perguliran/dokumen`,
@@ -375,10 +376,38 @@ final class LoanDocumentService
                 'verified_amount' => (float) ($b->verified_amount ?? 0),
                 'allocated_amount' => (float) ($b->allocated_amount ?? 0),
                 'guarantor' => (string) ($guarantor?->full_name ?? ''),
+                'identity_photo_data' => $this->identityPhotoData($person?->identity_photo_path),
             ];
         }
 
         return $rows;
+    }
+
+    private function identityPhotoData(?string $path): ?string
+    {
+        if ($path === null || $path === '') {
+            return null;
+        }
+
+        $disk = Storage::disk('public');
+
+        if (! $disk->exists($path)) {
+            return null;
+        }
+
+        $contents = $disk->get($path);
+        if ($contents === false || $contents === '') {
+            return null;
+        }
+
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $mimeType = match ($extension) {
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            default => 'image/jpeg',
+        };
+
+        return 'data:'.$mimeType.';base64,'.base64_encode($contents);
     }
 
     /**
