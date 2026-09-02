@@ -3,6 +3,18 @@
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
+## [Unreleased]
+
+### Added
+- **Situs Publik Ber-branding Tenant di Domain Kustom (Fase 1):**
+  - Resolusi host → tenant untuk halaman publik via `PublicSiteResolver` (`app/Tenancy/Services/`) dengan cache berversi (TTL 300 detik, flush O(1) lewat kenaikan versi) — `localhost`/host platform/`SITE_PLATFORM_HOSTS` selalu merender halaman vendor SIDBM.
+  - Middleware `ResolvePublicSite` (alias `public.site`): menghubungkan shard + inisialisasi `TenantContext` untuk host tenant, **tanpa fail keras** — host tak dikenal jatuh lembut ke halaman vendor, bukan 403; context & koneksi dilepas di blok `finally` agar tidak bocor antar-request worker.
+  - Route `/` kini dipegang `PublicSiteController` (`app/Http/Controllers/PublicSite/`): host tenant aktif merender halaman landing `PublicSite/TenantHome` ber-branding `OrganizationProfile` (logo, nama legal/singkat, alamat, kontak, tahun berdiri, CTA "Masuk Sistem" ke `/login`), tenant `suspended` dan host tak dikenal tetap ke halaman vendor, short-circuit desktop (`X-Desktop-Client` / `DESKTOP_MODE`) ke `/login` tetap terjaga.
+  - `Tenant::matchesHost()` di `app/Models/Platform/Tenant.php` — logika pencocokan domain (exact + wildcard `*.domain`) dipindah dari `TenantResolver::candidateMatchesHost()` (dihapus) agar dipakai bersama resolver tenancy & resolver situs publik.
+  - Flush cache host otomatis saat admin mengubah domain/status tenant (`TenantController::update/suspend/activate`).
+  - Konfigurasi baru `config/site.php` (`SITE_PLATFORM_HOSTS`) untuk host platform tambahan di balik load balancer.
+  - Automated feature test `tests/Feature/PublicSite/PublicTenantSiteTest.php` (7 test, 67 asersi): fallback vendor, landing tenant, prioritas nama profil organisasi, tenant suspended, redirect desktop, dan perilaku cache-until-flush.
+
 ## [2026-09-02]
 
 ### Added

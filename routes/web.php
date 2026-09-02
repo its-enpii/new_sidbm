@@ -48,6 +48,7 @@ use App\Http\Controllers\Notifications\NotificationCenterController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Province\ProvinceDashboardController;
 use App\Http\Controllers\Province\ProvinceReportController;
+use App\Http\Controllers\PublicSite\PublicSiteController;
 use App\Http\Controllers\Regency\RegencyDashboardController;
 use App\Http\Controllers\Regency\RegencyReportController;
 use App\Http\Controllers\RegionalCodeController;
@@ -61,25 +62,16 @@ use App\Http\Controllers\Webhooks\TripayWebhookController;
 use App\Http\Controllers\Webhooks\XenditWebhookController;
 use App\Http\Controllers\WhatsappController;
 use App\Tenancy\TenantContext;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 // Public storage fallback route (serves files directly when webserver symlink is bypassed)
 Route::get('/storage/{path}', StorageServeController::class)
     ->where('path', '.*')
     ->name('storage.serve');
 
-Route::get('/', function (Request $request) {
-    if (config('desktop.enabled') || $request->header('X-Desktop-Client') === '1') {
-        return redirect()->route('login');
-    }
-
-    return Inertia::render('Home', [
-        'name' => config('app.name'),
-        'status' => 'ok',
-    ]);
-});
+Route::get('/', [PublicSiteController::class, 'home'])
+    ->middleware('public.site')
+    ->name('home');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
