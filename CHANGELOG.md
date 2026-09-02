@@ -6,19 +6,35 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ## [2026-09-02]
 
 ### Added
-- Endpoint update check desktop dengan manifest versi terbaru, minimum version, download URL, dan status subscription.
-- Automatic updater Electron menggunakan feed GitHub Releases generic, jadwal pemeriksaan non-blokir, IPC progress, dan dialog restart.
-- Version gate `X-App-Version` pada push desktop dan mobile dengan HTTP 426 untuk client di bawah versi minimum.
-- Workflow GitHub Actions untuk build NSIS Windows, artifact installer, dan GitHub Release.
-- Outbox lokal, sinkronisasi dua arah desktop, log konflik, dan indikator jumlah mutasi offline pada Pengaturan.
-- Endpoint pull/push offline mobile (`/api/v1/mobile/sync/collection` dan `/api/v1/mobile/sync/push`) dengan scoping per petugas desa, whitelist mutasi terbatas, idempotensi `mutation_uuid`, audit log, serta pengecualian push sync saat mode offline.
-- `SubscriptionGateService` sebagai satu sumber status blokir langganan, respons blok `subscription` pada `/sync/status`, penangguhan push desktop HTTP 402, dan pemeriksaan langganan pertama pada alur reconnect desktop sebelum push/pull; data outbox lokal tetap aman.
+- **Mekanisme Update Aplikasi Desktop (Electron Auto-Update):**
+  - Endpoint `GET /desktop/update/check` (`UpdateManifestService`) yang mengembalikan versi terbaru, versi minimum yang didukung, URL unduhan, dan status langganan tenant — cek update dan status langganan selesai dalam satu permintaan.
+  - Automatic updater Electron menggunakan feed GitHub Releases (`electron-updater`): pemeriksaan non-blokir saat aplikasi start dan berulang tiap 6 jam, notifikasi progress via IPC, serta dialog "restart untuk memperbarui" yang tidak dapat ditolak saat paksa update.
+  - Version gate `X-App-Version` pada push sync desktop dan mobile: client di bawah versi minimum ditolak dengan HTTP 426 `CLIENT_OUTDATED` tanpa memproses mutasi.
+  - Workflow GitHub Actions `desktop-release.yml`: push tag `desktop-vX.Y.Z` memicu build installer Windows NSIS dan pembuatan GitHub Release otomatis beserta manifest `latest.yml`.
+  - Runbook rilis `docs/DESKTOP_UPDATE_RUNBOOK.md` dan konfigurasi `config/desktop-update.php` (`DESKTOP_LATEST_VERSION`, `DESKTOP_MIN_VERSION`).
+  - Automated feature test `tests/Feature/Desktop/UpdateManifestTest.php` (8 test): manifest & normalisasi versi, force update, blokir langganan, dan 426 pada push client lama.
+- **Sinkronisasi Dua Arah Desktop (Outbox & Push):**
+  - Outbox lokal SQLite yang mencatat seluruh mutasi offline, indikator jumlah mutasi tertunda pada halaman Pengaturan, dan log konflik.
+  - Endpoint push API dengan resolusi konflik hybrid (last-write-wins berbasis `client_updated_at` dengan proteksi status server), sehingga data yang dibuat offline tersinkron aman saat koneksi kembali.
+  - Automated feature test `tests/Feature/Sync/DesktopPushTest.php` (6 test).
+- **Sinkronisasi Offline Mobile (Pull & Push Terkontrol):**
+  - Endpoint pull scoped per petugas desa (`/api/v1/mobile/sync/collection`) dan push whitelist ketat (`/api/v1/mobile/sync/push`) dengan idempotensi `mutation_uuid`, audit log, dan penolakan tabel di luar whitelist.
+  - Pembayaran angsuran mobile melalui jalur `LoanService` yang sama dengan web agar jurnal dan notifikasi WhatsApp tetap terpicu; pengecualian push sync saat mode offline (middleware `BlockOfflineMutations`).
+  - Automated feature test `tests/Feature/Api/MobileSyncApiTest.php` (8 test).
+- **Pengecekan Langganan Pertama Saat Reconnect (`SubscriptionGateService`):**
+  - Satu sumber status blokir langganan untuk desktop, mobile, dan web: begitu perangkat tersambung internet, masa langganan dicek lebih dulu sebelum proses push/pull apapun.
+  - Push desktop ditangguhkan dengan HTTP 402 saat langganan terblokir tagihan (`blocks_access`), respons blok `subscription` pada `/sync/status`, dan data outbox lokal tetap aman hingga langganan aktif kembali.
+  - Automated feature test `tests/Feature/Billing/SubscriptionGateSyncTest.php` (7 test).
 
 ## [2026-09-01]
 
 ### Added
+- **Upload & Render Foto KTP Anggota:**
+  - Upload foto KTP di halaman detail Master Data Anggota (section Dokumen) dengan validasi JPG/PNG/WebP maksimal 4 MB, preview, penggantian/penghapusan aman, dan tampilan NIK.
+  - Kolom `identity_photo_path` pada tabel shard `people` (migrasi `2026_09_03_000001_add_identity_photo_to_people.php`).
+  - Dokumen pinjaman "FC KTP Pemanfaat dan Penjamin" kini menampilkan foto KTP (ter-embed base64, satu pemanfaat/penjamin per halaman) dengan caption nama & NIK, serta placeholder jelas "FOTO KTP BELUM DIUNGGAH" bila foto belum tersedia — sebelumnya dokumen ini selalu kosong.
+  - Automated feature test `tests/Feature/MasterData/MemberIdentityPhotoTest.php` (7 test, 24 assertion): upload, validasi, replace, hapus, permission, dan render PDF dengan/tanpa foto.
 - Fix import `useToast` pada halaman Admin Payment Gateways yang menyebabkan halaman blank total (E2E gagal karena `#app` kosong).
-- Upload foto KTP anggota di halaman detail Master Data Anggota dan render foto tersebut pada dokumen pinjaman "FC KTP", lengkap dengan validasi gambar, penggantian/penghapusan aman, serta placeholder bila foto belum tersedia.
 - Halaman mandiri **WhatsApp Gateway** (`/settings/whatsapp/manage`) untuk mengelola beberapa nomor/instance WhatsApp per tenant.
 - **WhatsApp Hub** satu halaman bertab pada `/settings/whatsapp` untuk Status & Instance, Template Pesan, dan Kirim Tagihan. Halaman ini memakai payload per izin (`settings.manage` atau `messages.send`) tanpa menambah endpoint baru.
 - Tabel tenant `whatsapp_instances` untuk menyimpan nama, status koneksi, nomor, batas harian, status default, dan status aktif setiap instance WhatsApp.
