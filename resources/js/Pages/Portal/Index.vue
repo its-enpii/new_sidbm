@@ -96,11 +96,11 @@ function formatDate(value) {
                 </AppCard>
             </div>
 
-            <AppCard :padded="false">
+            <AppCard>
                 <template #header>
                     <h2 class="font-bold text-primary">Riwayat Pinjaman</h2>
                 </template>
-                <div class="p-6">
+                <div class="lg:px-6 lg:-mx-6">
                     <SmartDataTable
                         :rows="loans.data"
                         :columns="loanColumns"
@@ -128,8 +128,8 @@ function formatDate(value) {
             </AppCard>
 
             <AppModal v-model="detailOpen" :title="`Detail Pinjaman ${selectedLoan?.loan_number || selectedLoan?.id || ''}`" size="full">
-                <div class="space-y-5">
-                    <dl class="grid gap-3 text-sm sm:grid-cols-4">
+                <div class="space-y-6">
+                    <dl class="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
                         <div><dt class="text-on-surface-variant">Pokok</dt><dd class="font-semibold">{{ money(selectedLoan?.principal_amount) }}</dd></div>
                         <div><dt class="text-on-surface-variant">Sisa Pokok</dt><dd class="font-semibold">{{ money((selectedLoan?.principal_due || 0) - (selectedLoan?.principal_paid || 0)) }}</dd></div>
                         <div><dt class="text-on-surface-variant">Sisa Jasa</dt><dd class="font-semibold">{{ money((selectedLoan?.interest_due || 0) - (selectedLoan?.interest_paid || 0)) }}</dd></div>
