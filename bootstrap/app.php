@@ -46,6 +46,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/billing/tripay/callback',
         ]);
 
+        $middleware->api(append: [
+            BlockOfflineMutations::class,
+        ]);
+
         // Logged-in users hitting /login: superadmin -> /admin, province -> /province/dashboard, regency -> /regency/dashboard, tenant -> /dashboard
         $middleware->redirectUsersTo(function (Request $request): string {
             $user = $request->user();

@@ -23,6 +23,9 @@ final class BlockOfflineMutations
         'logout*',
         'desktop/sync*',
         'api/v1/mobile/auth/*',
+        // Mobile offline outbox may be flushed even when the application is in offline mode.
+        'api/v1/mobile/sync/*',
+        'mobile/sync/*',
         'up',
     ];
 
