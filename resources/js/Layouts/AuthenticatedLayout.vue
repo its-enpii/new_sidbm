@@ -337,6 +337,13 @@ const sections = [
         ],
     },
     {
+        label: 'Website',
+        items: [
+            { label: 'Berita', icon: 'article', href: '/website/posts' },
+            { label: 'Halaman', icon: 'description', href: '/website/pages' },
+        ],
+    },
+    {
         label: 'Pengaturan',
         items: [
             { label: 'Pengaturan', icon: 'settings', href: '/settings' },

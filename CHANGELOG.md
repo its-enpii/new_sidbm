@@ -14,6 +14,15 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
   - Flush cache host otomatis saat admin mengubah domain/status tenant (`TenantController::update/suspend/activate`).
   - Konfigurasi baru `config/site.php` (`SITE_PLATFORM_HOSTS`) untuk host platform tambahan di balik load balancer.
   - Automated feature test `tests/Feature/PublicSite/PublicTenantSiteTest.php` (7 test, 67 asersi): fallback vendor, landing tenant, prioritas nama profil organisasi, tenant suspended, redirect desktop, dan perilaku cache-until-flush.
+- **Blog & Halaman Statis Tenant (Fase 2):**
+  - Tabel shard `site_posts` dan `site_pages` (migrasi `2026_09_03_000002_create_site_content_tables.php`) dengan slug unik per tenant, status `draft|published`, soft delete, serta indeks `(tenant_id, status)`; model `SitePost`/`SitePage` (`app/Domain/Website/Models/`) menandai kontrak `ExcludedFromDesktopSync` agar konten situs publik tidak ikut terkirim ke outbox sinkronisasi desktop.
+  - Admin CRUD berita (`/website/posts`) dan halaman (`/website/pages`) dengan editor rich text `AppRichEditor`, upload/hapus gambar sampul (JPG/PNG/WebP maks 2 MB), filter status, pencarian, sort, per-page, soft delete + pulihkan; nama penulis distempel otomatis dari pengguna yang membuat berita.
+  - Slug stabil untuk URL publik: otomatis dari judul (transliterasi ASCII, akhiran `-2`, `-3`, … bila bentrok) saat baris baru, dipertahankan saat edit kecuali penulis mengosongkannya; `published_at` dicap saat pertama tayang dan tidak berubah pada edit berikutnya.
+  - Render publik di domain tenant: `/berita` (indeks paginated 9 per halaman + pencarian judul/ringkasan), `/berita/{slug}` (detail berita), `/p/{slug}` (halaman statis); hanya konten `published` dengan `published_at <= now()` yang tampil, slug tak dikenal jatuh lembut ke landing tenant — bukan 404 — agar branding tetap milik desa.
+  - Halaman `PublicSite/BlogIndex`, `PublicSite/BlogPost`, `PublicSite/StaticPage` dengan styling artikel `.prose-sidbm` (`resources/css/app.css`) dan tombol "Berita" pada landing tenant yang mengarah ke `/berita`.
+  - Permission baru `website.view` / `website.manage` (`config/permissions.php`): nav sidebar "Website" disembunyikan tanpa izin, index/crud dikawal `denyUnless`, dan — perbaikan keamanan — `request_map` kini memetakan kelas FormRequest **konkret** (`SitePostRequest`/`SitePageRequest`), bukan kelas abstrak `SiteContentRequest` yang tidak pernah cocok dengan lookup `static::class` sehingga store/update sebelumnya lolos tanpa cek `website.manage`.
+  - Update `docs/RBAC_MATRIX.md`: baris nav Website, aksi konten, dan status enforcement.
+  - Automated feature test `tests/Feature/Website/WebsiteContentTest.php` (15 test): slug unik & stabil, stamping publish, upload/hapus cover, soft delete + restore, guard permission (kasir 403 termasuk pada store), render publik index/search/detail/fallback, dan eksklusi outbox desktop dengan kontrol positif; ditambah asersi `website.*` pada `tests/Unit/Access/PermissionConfigTest.php`.
 
 ## [2026-09-02]
 

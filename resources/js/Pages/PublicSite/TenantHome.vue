@@ -34,10 +34,16 @@ defineProps({
                     </div>
                 </div>
 
-                <Link href="/login" class="inline-flex min-h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary shadow-md transition hover:bg-primary-deep">
-                    <AppIcon name="login" />
-                    Masuk Sistem
-                </Link>
+                <nav class="flex items-center gap-2">
+                    <Link href="/berita" class="inline-flex min-h-10 items-center gap-2 rounded-full bg-primary-container px-4 text-sm font-semibold text-on-primary-container">
+                        <AppIcon name="article" />
+                        Berita
+                    </Link>
+                    <Link href="/login" class="inline-flex min-h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary shadow-md transition hover:bg-primary-deep">
+                        <AppIcon name="login" />
+                        Masuk Sistem
+                    </Link>
+                </nav>
             </div>
         </header>
 

@@ -28,6 +28,8 @@ Platform `/admin/*` = **superadmin only** (bukan role tenant).
 | Pelaporan | Portofolio / Rencana vs Realisasi | `/lending/reports…` | `loans.view` |
 | Tagihan | Daftar Tagihan SaaS | `/billing/invoices` | `billing.view` |
 | Pengaturan | Pengaturan | `/settings` | `settings.manage` |
+| Website | Berita | `/website/posts` | `website.view` / `website.manage` |
+| Website | Halaman | `/website/pages` | `website.view` / `website.manage` |
 | Widget | Ariel | session + tools | `assistant.use` |
 | Header | Profil | `/profile` | *(self)* |
 | Header | Search | `/search` | any `*.view` held |
@@ -56,6 +58,7 @@ Platform `/admin/*` = **superadmin only** (bukan role tenant).
 | Notifikasi WA | Kirim | `messages.send` |
 | Tagihan tenant | Bayar | `billing.pay` |
 | Settings | Semua simpan | `settings.manage` |
+| Website | Tambah/Edit/Hapus/pulihkan berita & halaman, hapus cover | `website.manage` (lihat = `website.view`) |
 | Assistant tools | per `tool_map` | lihat config |
 
 ## C. Role packs (default)
@@ -75,8 +78,8 @@ Dashboard · Tenant CRUD · Users/role · Repair · Plans · Invoices/void/pay �
 
 | Layer | Status |
 |---|---|
-| FormRequest `request_map` | write kritis (loan/jurnal/member/group/budget save/settings) |
-| Controller `denyUnless` | journals/assets/period/reports/loan reports/assistant session |
+| FormRequest `request_map` | write kritis (loan/jurnal/member/group/budget save/settings/website save) |
+| Controller `denyUnless` | journals/assets/period/reports/loan reports/assistant session/website CRUD |
 | Nav hide by permission | via `auth.permissions` + `nav_map` |
 | GET index members/groups/loans | still mostly auth-only (legacy); nav hides entry |
 | Institutions/villages/billing GET | catalog + nav; controller wire incremental |

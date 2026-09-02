@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Sync\Observers;
 
+use App\Domain\Sync\Contracts\ExcludedFromDesktopSync;
 use App\Models\Tenant\TenantModel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,9 @@ final class DesktopOutboxObserver
 
     private function enqueue(Model $model, string $operation, ?array $payload = null): void
     {
-        if (! $model instanceof TenantModel || DB::connection()->getDriverName() !== 'sqlite') {
+        if (! $model instanceof TenantModel
+            || $model instanceof ExcludedFromDesktopSync
+            || DB::connection()->getDriverName() !== 'sqlite') {
             return;
         }
 

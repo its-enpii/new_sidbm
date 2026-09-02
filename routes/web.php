@@ -60,6 +60,8 @@ use App\Http\Controllers\Tenant\TenantOnboardingImportController;
 use App\Http\Controllers\Webhooks\DuitkuWebhookController;
 use App\Http\Controllers\Webhooks\TripayWebhookController;
 use App\Http\Controllers\Webhooks\XenditWebhookController;
+use App\Http\Controllers\Website\WebsitePageController;
+use App\Http\Controllers\Website\WebsitePostController;
 use App\Http\Controllers\WhatsappController;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Route;
@@ -72,6 +74,18 @@ Route::get('/storage/{path}', StorageServeController::class)
 Route::get('/', [PublicSiteController::class, 'home'])
     ->middleware('public.site')
     ->name('home');
+
+// Public tenant site content (blog & static pages). Rendered only on tenant
+// domains; platform hosts fall back to the vendor home inside the controller.
+Route::get('/berita', [PublicSiteController::class, 'posts'])
+    ->middleware('public.site')
+    ->name('public.posts');
+Route::get('/berita/{slug}', [PublicSiteController::class, 'post'])
+    ->middleware('public.site')
+    ->name('public.post');
+Route::get('/p/{slug}', [PublicSiteController::class, 'page'])
+    ->middleware('public.site')
+    ->name('public.page');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -274,6 +288,26 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
         Route::post('/invoices/{invoice}/checkout/tripay', [TenantInvoiceController::class, 'checkoutTripay'])->name('invoices.checkout.tripay');
         Route::post('/invoices/{invoice}/pay', [TenantInvoiceController::class, 'pay'])->name('invoices.pay');
         Route::post('/invoices/{invoice}/check-status', [TenantInvoiceController::class, 'checkStatus'])->name('invoices.check-status');
+    });
+
+    // Website (public site content: blog & static pages)
+    Route::prefix('website')->name('website.')->group(function (): void {
+        Route::get('/posts', [WebsitePostController::class, 'index'])->name('posts.index');
+        Route::get('/posts/create', [WebsitePostController::class, 'create'])->name('posts.create');
+        Route::post('/posts', [WebsitePostController::class, 'store'])->name('posts.store');
+        Route::get('/posts/{post}/edit', [WebsitePostController::class, 'edit'])->name('posts.edit');
+        Route::put('/posts/{post}', [WebsitePostController::class, 'update'])->name('posts.update');
+        Route::delete('/posts/{post}', [WebsitePostController::class, 'destroy'])->name('posts.destroy');
+        Route::post('/posts/{postId}/restore', [WebsitePostController::class, 'restore'])->whereNumber('postId')->name('posts.restore');
+        Route::delete('/posts/{post}/cover', [WebsitePostController::class, 'removeCover'])->name('posts.cover.destroy');
+
+        Route::get('/pages', [WebsitePageController::class, 'index'])->name('pages.index');
+        Route::get('/pages/create', [WebsitePageController::class, 'create'])->name('pages.create');
+        Route::post('/pages', [WebsitePageController::class, 'store'])->name('pages.store');
+        Route::get('/pages/{page}/edit', [WebsitePageController::class, 'edit'])->name('pages.edit');
+        Route::put('/pages/{page}', [WebsitePageController::class, 'update'])->name('pages.update');
+        Route::delete('/pages/{page}', [WebsitePageController::class, 'destroy'])->name('pages.destroy');
+        Route::post('/pages/{pageId}/restore', [WebsitePageController::class, 'restore'])->whereNumber('pageId')->name('pages.restore');
     });
 
     // Master Data

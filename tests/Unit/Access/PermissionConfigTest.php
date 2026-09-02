@@ -6,6 +6,8 @@ namespace Tests\Unit\Access;
 
 use App\Http\Requests\Accounting\JournalEntryRequest;
 use App\Http\Requests\Accounting\LoanInstallmentJournalRequest;
+use App\Http\Requests\Website\SitePageRequest;
+use App\Http\Requests\Website\SitePostRequest;
 use Tests\TestCase;
 
 final class PermissionConfigTest extends TestCase
@@ -24,6 +26,8 @@ final class PermissionConfigTest extends TestCase
         self::assertContains('billing.view', $perms);
         self::assertContains('institutions.manage', $perms);
         self::assertContains('villages.view', $perms);
+        self::assertContains('website.view', $perms);
+        self::assertContains('website.manage', $perms);
     }
 
     public function test_system_roles_cover_admin_and_kasir(): void
@@ -53,6 +57,8 @@ final class PermissionConfigTest extends TestCase
 
         self::assertSame('journals.create', config('permissions.request_map.'.JournalEntryRequest::class));
         self::assertSame('installments.record', config('permissions.request_map.'.LoanInstallmentJournalRequest::class));
+        self::assertSame('website.manage', config('permissions.request_map.'.SitePostRequest::class));
+        self::assertSame('website.manage', config('permissions.request_map.'.SitePageRequest::class));
         self::assertSame('journals.create', config('permissions.tool_map.create_journal_entry'));
         self::assertSame('assets.view', config('permissions.tool_map.search_assets'));
         self::assertSame('assets.view', config('permissions.nav_map./accounting/assets'));
