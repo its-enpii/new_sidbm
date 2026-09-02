@@ -17,6 +17,7 @@ use App\Domain\Accounting\Services\Reports\GeneralLedgerService;
 use App\Domain\Accounting\Services\Reports\IncomeStatementService;
 use App\Domain\Accounting\Services\Reports\JournalListingService;
 use App\Domain\Accounting\Services\Reports\TrialBalanceService;
+use Carbon\CarbonImmutable;
 use Tests\Concerns\BuildsTenantTestDatabase;
 use Tests\TestCase;
 
@@ -126,6 +127,8 @@ final class AccountingReportsTest extends TestCase
 
     private function seedCoaAndPeriod(): void
     {
+        $accountCreatedAt = CarbonImmutable::parse('2026-07-01')->startOfDay();
+
         FiscalPeriod::query()->create([
             'fiscal_year' => 2026,
             'fiscal_month' => 7,
@@ -137,87 +140,105 @@ final class AccountingReportsTest extends TestCase
         $l1Asset = Account::query()->create([
             'code' => '1.0.00.00', 'name' => 'Aset', 'account_type' => 'asset',
             'normal_balance' => 'D', 'level' => 1, 'is_postable' => false, 'is_active' => true,
+            'created_at' => $accountCreatedAt,
         ]);
         $l2Asset = Account::query()->create([
             'code' => '1.1.00.00', 'name' => 'Aset Lancar', 'account_type' => 'asset',
             'normal_balance' => 'D', 'level' => 2, 'is_postable' => false, 'is_active' => true,
             'parent_row_id' => $l1Asset->row_id,
+            'created_at' => $accountCreatedAt,
         ]);
         $l3Asset = Account::query()->create([
             'code' => '1.1.01.00', 'name' => 'Kas', 'account_type' => 'asset',
             'normal_balance' => 'D', 'level' => 3, 'is_postable' => false, 'is_active' => true,
             'parent_row_id' => $l2Asset->row_id,
+            'created_at' => $accountCreatedAt,
         ]);
         $this->cash = Account::query()->create([
             'code' => '1.1.01.01', 'name' => 'Kas Tunai', 'account_type' => 'asset',
             'normal_balance' => 'D', 'level' => 4, 'is_postable' => true, 'is_active' => true,
             'parent_row_id' => $l3Asset->row_id,
+            'created_at' => $accountCreatedAt,
         ]);
 
         $l1Equity = Account::query()->create([
             'code' => '3.0.00.00', 'name' => 'Modal', 'account_type' => 'equity',
             'normal_balance' => 'C', 'level' => 1, 'is_postable' => false, 'is_active' => true,
+            'created_at' => $accountCreatedAt,
         ]);
         $l2Equity = Account::query()->create([
             'code' => '3.1.00.00', 'name' => 'Modal Disetor', 'account_type' => 'equity',
             'normal_balance' => 'C', 'level' => 2, 'is_postable' => false, 'is_active' => true,
             'parent_row_id' => $l1Equity->row_id,
+            'created_at' => $accountCreatedAt,
+            'created_at' => $accountCreatedAt,
         ]);
         $l3Equity = Account::query()->create([
             'code' => '3.1.01.00', 'name' => 'Modal', 'account_type' => 'equity',
             'normal_balance' => 'C', 'level' => 3, 'is_postable' => false, 'is_active' => true,
             'parent_row_id' => $l2Equity->row_id,
+            'created_at' => $accountCreatedAt,
         ]);
         $this->equity = Account::query()->create([
             'code' => '3.1.01.01', 'name' => 'Modal Pemilik', 'account_type' => 'equity',
             'normal_balance' => 'C', 'level' => 4, 'is_postable' => true, 'is_active' => true,
             'parent_row_id' => $l3Equity->row_id,
+            'created_at' => $accountCreatedAt,
         ]);
 
         $l2Earn = Account::query()->create([
             'code' => '3.2.00.00', 'name' => 'Laba Rugi', 'account_type' => 'equity',
             'normal_balance' => 'C', 'level' => 2, 'is_postable' => false, 'is_active' => true,
             'parent_row_id' => $l1Equity->row_id,
+            'created_at' => $accountCreatedAt,
         ]);
         $l3Earn = Account::query()->create([
             'code' => '3.2.02.00', 'name' => 'Laba Berjalan', 'account_type' => 'equity',
             'normal_balance' => 'C', 'level' => 3, 'is_postable' => false, 'is_active' => true,
             'parent_row_id' => $l2Earn->row_id,
+            'created_at' => $accountCreatedAt,
         ]);
         Account::query()->create([
             'code' => '3.2.02.01', 'name' => 'Laba/Rugi Tahun Berjalan', 'account_type' => 'equity',
             'normal_balance' => 'C', 'level' => 4, 'is_postable' => true, 'is_active' => true,
             'parent_row_id' => $l3Earn->row_id,
+            'created_at' => $accountCreatedAt,
         ]);
 
         $l1Rev = Account::query()->create([
             'code' => '4.0.00.00', 'name' => 'Pendapatan', 'account_type' => 'revenue',
             'normal_balance' => 'C', 'level' => 1, 'is_postable' => false, 'is_active' => true,
+            'created_at' => $accountCreatedAt,
         ]);
         $l2Rev = Account::query()->create([
             'code' => '4.1.00.00', 'name' => 'Pendapatan Usaha', 'account_type' => 'revenue',
             'normal_balance' => 'C', 'level' => 2, 'is_postable' => false, 'is_active' => true,
             'parent_row_id' => $l1Rev->row_id,
+            'created_at' => $accountCreatedAt,
         ]);
         $this->revenue = Account::query()->create([
             'code' => '4.1.01.01', 'name' => 'Pendapatan Jasa', 'account_type' => 'revenue',
             'normal_balance' => 'C', 'level' => 4, 'is_postable' => true, 'is_active' => true,
             'parent_row_id' => $l2Rev->row_id,
+            'created_at' => $accountCreatedAt,
         ]);
 
         $l1Exp = Account::query()->create([
             'code' => '5.0.00.00', 'name' => 'Beban', 'account_type' => 'expense',
             'normal_balance' => 'D', 'level' => 1, 'is_postable' => false, 'is_active' => true,
+            'created_at' => $accountCreatedAt,
         ]);
         $l2Exp = Account::query()->create([
             'code' => '5.1.00.00', 'name' => 'Beban Usaha', 'account_type' => 'expense',
             'normal_balance' => 'D', 'level' => 2, 'is_postable' => false, 'is_active' => true,
             'parent_row_id' => $l1Exp->row_id,
+            'created_at' => $accountCreatedAt,
         ]);
         $this->expense = Account::query()->create([
             'code' => '5.1.01.01', 'name' => 'Beban Operasional', 'account_type' => 'expense',
             'normal_balance' => 'D', 'level' => 4, 'is_postable' => true, 'is_active' => true,
             'parent_row_id' => $l2Exp->row_id,
+            'created_at' => $accountCreatedAt,
         ]);
     }
 

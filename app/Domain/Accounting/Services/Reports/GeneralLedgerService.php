@@ -25,9 +25,30 @@ final readonly class GeneralLedgerService
     public function build(int $year, ?int $month, int $accountRowId, ?string $day = null): array
     {
         $period = $this->balances->resolvePeriod($year, $month);
+        $periodFrom = CarbonImmutable::parse($period['from'])->startOfDay();
+        $periodUntil = CarbonImmutable::parse($period['until_exclusive'])->startOfDay();
+        $mutatedAccountIds = Account::query()
+            ->from('accounts as mutation_accounts')
+            ->join('journal_lines as lines', 'lines.account_row_id', '=', 'mutation_accounts.row_id')
+            ->join('journal_entries as entries', function ($join): void {
+                $join->on('entries.tenant_id', '=', 'lines.tenant_id')
+                    ->on('entries.row_id', '=', 'lines.journal_entry_row_id');
+            })
+            ->where('entries.status', 'posted')
+            ->where('entries.transaction_date', '>=', $periodFrom->toDateString())
+            ->where('entries.transaction_date', '<', $periodUntil->toDateString())
+            ->select('mutation_accounts.row_id');
+
         $account = Account::query()
             ->whereKey($accountRowId)
             ->where('is_postable', true)
+            ->whereDate('created_at', '<=', $periodUntil->toDateString())
+            ->where(function ($q) use ($periodFrom, $mutatedAccountIds): void {
+                $q->where('is_active', true)
+                    ->orWhereNull('deactivated_at')
+                    ->orWhere('deactivated_at', '>=', $periodFrom->toDateString())
+                    ->orWhereIn('row_id', $mutatedAccountIds);
+            })
             ->first(['row_id', 'code', 'name', 'account_type', 'normal_balance']);
 
         if ($account === null) {
@@ -35,8 +56,6 @@ final readonly class GeneralLedgerService
         }
 
         $yearStart = CarbonImmutable::create($year, 1, 1)->startOfDay();
-        $periodFrom = CarbonImmutable::parse($period['from'])->startOfDay();
-        $periodUntil = CarbonImmutable::parse($period['until_exclusive'])->startOfDay();
 
         if (is_string($day) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $day) === 1) {
             $periodFrom = CarbonImmutable::parse($day)->startOfDay();
@@ -131,8 +150,16 @@ final readonly class GeneralLedgerService
 
         $accountOptions = Account::query()
             ->where('is_postable', true)
-            ->where('is_active', true)
             ->where('code', '!=', AccountBalanceQuery::CURRENT_EARNINGS_CODE)
+            ->where(function ($q) use ($periodFrom, $periodUntil, $mutatedAccountIds): void {
+                $q->whereDate('created_at', '<=', $periodUntil->toDateString())
+                    ->where(function ($active) use ($periodFrom): void {
+                        $active->where('is_active', true)
+                            ->orWhereNull('deactivated_at')
+                            ->orWhere('deactivated_at', '>=', $periodFrom->toDateString());
+                    })
+                    ->orWhereIn('row_id', $mutatedAccountIds);
+            })
             ->orderBy('code')
             ->get(['row_id', 'code', 'name'])
             ->map(fn (Account $a) => [

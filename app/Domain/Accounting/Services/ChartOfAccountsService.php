@@ -58,6 +58,8 @@ final class ChartOfAccountsService
             'level' => (int) $a->level,
             'is_postable' => (bool) $a->is_postable,
             'is_active' => (bool) $a->is_active,
+            'created_at' => $a->created_at?->toDateString(),
+            'deactivated_at' => $a->deactivated_at?->toDateString(),
             'parent_row_id' => $a->parent_row_id !== null ? (int) $a->parent_row_id : null,
         ])->all();
 

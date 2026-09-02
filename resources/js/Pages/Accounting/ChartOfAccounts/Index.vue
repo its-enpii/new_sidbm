@@ -110,11 +110,13 @@ watch([type, status], () => {
                                 <th class="px-4 py-3 font-semibold">Saldo normal</th>
                                 <th class="px-4 py-3 font-semibold">Posting</th>
                                 <th class="px-4 py-3 font-semibold">Status</th>
+                                <th class="px-4 py-3 font-semibold">Tgl Ditambah</th>
+                                <th class="px-4 py-3 font-semibold">Tgl Nonaktif</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-if="rows.length === 0">
-                                <td colspan="6" class="px-4 py-10 text-center text-on-surface-variant">
+                                <td colspan="8" class="px-4 py-10 text-center text-on-surface-variant">
                                     Tidak ada akun yang cocok.
                                 </td>
                             </tr>
@@ -147,6 +149,15 @@ watch([type, status], () => {
                                     <AppBadge :tone="row.is_active ? 'success' : 'warning'">
                                         {{ row.is_active ? 'Aktif' : 'Nonaktif' }}
                                     </AppBadge>
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-2.5 font-mono text-xs">
+                                    {{ row.created_at || '—' }}
+                                </td>
+                                <td
+                                    class="whitespace-nowrap px-4 py-2.5 font-mono text-xs"
+                                    :class="row.deactivated_at ? 'text-on-surface-variant' : 'text-outline'"
+                                >
+                                    {{ row.deactivated_at || '—' }}
                                 </td>
                             </tr>
                         </tbody>

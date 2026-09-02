@@ -29,10 +29,30 @@ final class EquityChangeService
         $asOf = CarbonImmutable::parse($period['as_of'])->startOfDay();
         $yearStart = CarbonImmutable::create($year, 1, 1)->startOfDay();
 
+        $equityMutationAccountIds = Account::query()
+            ->from('accounts as equity_mutations')
+            ->join('journal_lines as lines', 'lines.account_row_id', '=', 'equity_mutations.row_id')
+            ->join('journal_entries as entries', function ($join): void {
+                $join->on('entries.tenant_id', '=', 'lines.tenant_id')
+                    ->on('entries.row_id', '=', 'lines.journal_entry_row_id');
+            })
+            ->where('entries.status', 'posted')
+            ->where('entries.transaction_date', '<', $asOf->addDay()->toDateString())
+            ->select('equity_mutations.row_id');
+
         $equityAccounts = Account::query()
             ->where('account_type', 'equity')
             ->where('is_postable', true)
-            ->where('is_active', true)
+            ->where(function ($q) use ($from, $asOf, $equityMutationAccountIds): void {
+                $q->where(function ($relevant) use ($from, $asOf): void {
+                    $relevant->whereDate('created_at', '<=', $asOf->toDateString())
+                        ->where(function ($active) use ($from): void {
+                            $active->where('is_active', true)
+                                ->orWhereNull('deactivated_at')
+                                ->orWhere('deactivated_at', '>=', $from->toDateString());
+                        });
+                })->orWhereIn('row_id', $equityMutationAccountIds);
+            })
             ->orderBy('code')
             ->get(['row_id', 'code', 'name', 'account_type', 'normal_balance']);
 

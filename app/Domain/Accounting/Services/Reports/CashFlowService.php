@@ -38,10 +38,31 @@ final class CashFlowService
         $asOf = CarbonImmutable::parse($period['as_of'])->startOfDay();
         $tenantId = $this->context->id();
 
+        $cashMutationAccountIds = Account::query()
+            ->from('accounts as cash_mutations')
+            ->join('journal_lines as lines', 'lines.account_row_id', '=', 'cash_mutations.row_id')
+            ->join('journal_entries as entries', function ($join): void {
+                $join->on('entries.tenant_id', '=', 'lines.tenant_id')
+                    ->on('entries.row_id', '=', 'lines.journal_entry_row_id');
+            })
+            ->where('entries.status', 'posted')
+            ->where('entries.transaction_date', '>=', $from->toDateString())
+            ->where('entries.transaction_date', '<', $until->toDateString())
+            ->select('cash_mutations.row_id');
+
         $cashAccounts = Account::query()
             ->where('is_postable', true)
-            ->where('is_active', true)
             ->where('code', 'like', self::CASH_PREFIX.'%')
+            ->where(function ($q) use ($from, $until, $cashMutationAccountIds): void {
+                $q->where(function ($relevant) use ($from, $until): void {
+                    $relevant->whereDate('created_at', '<=', $until->toDateString())
+                        ->where(function ($active) use ($from): void {
+                            $active->where('is_active', true)
+                                ->orWhereNull('deactivated_at')
+                                ->orWhere('deactivated_at', '>=', $from->toDateString());
+                        });
+                })->orWhereIn('row_id', $cashMutationAccountIds);
+            })
             ->orderBy('code')
             ->get(['row_id', 'code', 'name', 'account_type', 'normal_balance']);
 

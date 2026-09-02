@@ -13,6 +13,7 @@ use App\Domain\Accounting\Services\JournalPostingService;
 use App\Models\User;
 use App\Tenancy\Middleware\ResolveTenant;
 use App\Tenancy\Services\TenantSequenceService;
+use Carbon\CarbonImmutable;
 use DomainException;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\DB;
@@ -52,6 +53,7 @@ final class PeriodCloseTest extends TestCase
             'status' => 'active',
         ]);
 
+        $accountCreatedAt = CarbonImmutable::parse('2025-01-01')->startOfDay();
         $this->cash = Account::query()->create([
             'code' => '1.1.01',
             'name' => 'Kas',
@@ -60,6 +62,7 @@ final class PeriodCloseTest extends TestCase
             'level' => 3,
             'is_postable' => true,
             'is_active' => true,
+            'created_at' => $accountCreatedAt,
         ]);
         $this->equity = Account::query()->create([
             'code' => '3.1.01',
@@ -69,6 +72,7 @@ final class PeriodCloseTest extends TestCase
             'level' => 3,
             'is_postable' => true,
             'is_active' => true,
+            'created_at' => $accountCreatedAt,
         ]);
         $this->earnings = Account::query()->create([
             'code' => '3.2.02.01',
@@ -78,6 +82,7 @@ final class PeriodCloseTest extends TestCase
             'level' => 4,
             'is_postable' => true,
             'is_active' => true,
+            'created_at' => $accountCreatedAt,
         ]);
         $this->revenue = Account::query()->create([
             'code' => '4.1.01',
@@ -87,6 +92,7 @@ final class PeriodCloseTest extends TestCase
             'level' => 3,
             'is_postable' => true,
             'is_active' => true,
+            'created_at' => $accountCreatedAt,
         ]);
         $this->expense = Account::query()->create([
             'code' => '5.1.01',
@@ -96,6 +102,7 @@ final class PeriodCloseTest extends TestCase
             'level' => 3,
             'is_postable' => true,
             'is_active' => true,
+            'created_at' => $accountCreatedAt,
         ]);
 
         // Opening 2025: kas 1.000.000 / modal 1.000.000 (via sequence — same path as production)

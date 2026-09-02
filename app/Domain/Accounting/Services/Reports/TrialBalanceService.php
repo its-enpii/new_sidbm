@@ -28,6 +28,16 @@ final readonly class TrialBalanceService
     {
         $period = $this->balances->resolvePeriod($year, $month);
         $asOf = CarbonImmutable::parse($period['as_of'])->startOfDay();
+        $mutatedAccountIds = Account::query()
+            ->from('accounts as mutation_accounts')
+            ->join('journal_lines as lines', 'lines.account_row_id', '=', 'mutation_accounts.row_id')
+            ->join('journal_entries as entries', function ($join): void {
+                $join->on('entries.tenant_id', '=', 'lines.tenant_id')
+                    ->on('entries.row_id', '=', 'lines.journal_entry_row_id');
+            })
+            ->where('entries.status', 'posted')
+            ->where('entries.transaction_date', '<', $asOf->addDay()->toDateString())
+            ->select('mutation_accounts.row_id');
 
         $accounts = Account::query()
             ->where('is_postable', true)
@@ -35,6 +45,10 @@ final readonly class TrialBalanceService
                 $q->where('is_active', true)
                     ->orWhereNull('deactivated_at')
                     ->orWhere('deactivated_at', '>', $asOf->toDateString());
+            })
+            ->where(function ($q) use ($asOf, $mutatedAccountIds): void {
+                $q->whereDate('created_at', '<=', $asOf->toDateString())
+                    ->orWhereIn('row_id', $mutatedAccountIds);
             })
             ->orderBy('code')
             ->get(['row_id', 'code', 'name', 'account_type', 'normal_balance', 'level']);
