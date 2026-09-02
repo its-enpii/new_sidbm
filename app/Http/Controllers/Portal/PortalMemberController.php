@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Portal;
 
 use App\Domain\Lending\Models\Loan;
+use App\Domain\Lending\Models\LoanBeneficiary;
 use App\Domain\Membership\Models\GroupMember;
 use App\Domain\Membership\Models\GroupOfficer;
 use App\Domain\Membership\Models\Member;
@@ -99,11 +100,11 @@ final class PortalMemberController
                     ->on('loan_borrowers.loan_row_id', '=', 'loans.row_id');
             })
             ->where('loan_borrowers.member_row_id', $memberRowId)
-            ->with(['installments'])
+            ->with(['installments', 'beneficiaries.member.person:row_id,full_name'])
             ->orderByDesc('loans.disbursed_at')
             ->orderByDesc('loans.row_id')
             ->get()
-            ->map(function (Loan $loan): array {
+            ->map(function (Loan $loan) use ($memberRowId): array {
                 $installments = $loan->installments->map(fn ($installment): array => [
                     'installment_number' => (int) $installment->installment_number,
                     'due_date' => $installment->due_date?->toDateString(),
@@ -141,8 +142,34 @@ final class PortalMemberController
                     'penalty_paid' => (float) $installments->sum('penalty_paid'),
                     'has_arrears' => $hasArrears,
                     'installments' => $installments->values()->all(),
+                    'beneficiaries' => $this->beneficiaryRows($loan, $memberRowId),
                 ];
             });
+    }
+
+    private function beneficiaryRows(Loan $loan, int $memberRowId): array
+    {
+        $beneficiaries = $loan->beneficiaries
+            ->map(fn (LoanBeneficiary $beneficiary): array => [
+                'member_row_id' => (int) $beneficiary->member_row_id,
+                'name' => $beneficiary->member?->person?->full_name ?? '-',
+                'is_self' => (int) $beneficiary->member_row_id === $memberRowId,
+                'allocated_amount' => (int) $beneficiary->member_row_id === $memberRowId
+                    ? (float) $beneficiary->allocated_amount
+                    : null,
+            ])
+            ->values();
+
+        [$selfRows, $otherRows] = $beneficiaries->partition(
+            fn (array $beneficiary): bool => $beneficiary['is_self'],
+        );
+
+        return $selfRows
+            ->merge($otherRows->sortBy(
+                fn (array $beneficiary): string => $beneficiary['name'] ?? '-',
+            ))
+            ->values()
+            ->all();
     }
 
     private function officerRows(int $tenantId, int $memberRowId): Collection

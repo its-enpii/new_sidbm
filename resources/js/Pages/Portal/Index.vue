@@ -154,6 +154,33 @@ function formatDate(value) {
                             </tbody>
                         </table>
                     </div>
+                    <section>
+                        <h3 class="text-sm font-bold uppercase text-on-surface-variant">Daftar Pemanfaat</h3>
+                        <AppEmptyState
+                            v-if="!selectedLoan?.beneficiaries?.length"
+                            icon="group"
+                            title="Tidak ada data pemanfaat"
+                            class="mt-3"
+                        />
+                        <div v-else class="mt-3 overflow-x-auto rounded-xl border border-outline-variant">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-surface-container-low text-xs uppercase text-on-surface-variant">
+                                    <tr><th class="px-4 py-3">Nama</th><th class="px-4 py-3 text-right">Bagian</th></tr>
+                                </thead>
+                                <tbody class="divide-y divide-outline-variant">
+                                    <tr v-for="beneficiary in selectedLoan.beneficiaries" :key="beneficiary.member_row_id">
+                                        <td class="px-4 py-3">
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-semibold">{{ beneficiary.name }}</span>
+                                                <AppBadge v-if="beneficiary.is_self" tone="primary">Anda</AppBadge>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3 text-right">{{ beneficiary.is_self ? money(beneficiary.allocated_amount) : '—' }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
                 </div>
                 <template #footer><AppButton variant="secondary" @click="detailOpen = false">Tutup</AppButton></template>
             </AppModal>

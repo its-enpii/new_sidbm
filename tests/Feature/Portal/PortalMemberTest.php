@@ -6,6 +6,7 @@ namespace Tests\Feature\Portal;
 
 use App\Domain\Access\Services\PermissionChecker;
 use App\Domain\Lending\Models\Loan;
+use App\Domain\Lending\Models\LoanBeneficiary;
 use App\Domain\Lending\Models\LoanBorrower;
 use App\Domain\Lending\Models\LoanInstallment;
 use App\Domain\Membership\Models\Group;
@@ -92,6 +93,68 @@ final class PortalMemberTest extends TestCase
         self::assertMatchesRegularExpression('/&quot;id&quot;:'.((int) $ownLoan->id).',/', (string) $response->getContent());
         self::assertDoesNotMatchRegularExpression('/&quot;id&quot;:'.((int) $otherLoan->id).',/', (string) $response->getContent());
         self::assertDoesNotMatchRegularExpression('/&quot;LN-OTHER&quot;/', (string) $response->getContent());
+    }
+
+    public function test_linked_member_sees_loan_beneficiaries_with_private_amounts(): void
+    {
+        $user = $this->createUser('member_user');
+        $this->assignRole($user, 'anggota');
+        MemberUserLink::query()->create([
+            'user_row_id' => $user->row_id,
+            'member_row_id' => $this->member->row_id,
+        ]);
+
+        $loan = $this->createLoan($this->member, 'LN-BENEFICIARIES', '2026-01-05', 1000000, false);
+        LoanBeneficiary::query()->create([
+            'loan_row_id' => $loan->row_id,
+            'member_row_id' => $this->otherMember->row_id,
+            'allocated_amount' => 600000,
+        ]);
+        LoanBeneficiary::query()->create([
+            'loan_row_id' => $loan->row_id,
+            'member_row_id' => $this->member->row_id,
+            'allocated_amount' => 400000,
+        ]);
+
+        $response = $this->actingAs($user)->get('/portal');
+        $page = $response->viewData('page');
+        $loans = $page['props']['loans']['data'];
+        $beneficiaries = $loans[0]['beneficiaries'];
+
+        $response->assertOk();
+        self::assertSame(
+            [$this->member->row_id, $this->otherMember->row_id],
+            array_column($beneficiaries, 'member_row_id'),
+        );
+        self::assertSame('Portal Anggota', $beneficiaries[0]['name']);
+        self::assertSame('Anggota Lain', $beneficiaries[1]['name']);
+        self::assertTrue($beneficiaries[0]['is_self']);
+        self::assertFalse($beneficiaries[1]['is_self']);
+        self::assertSame(400000.0, $beneficiaries[0]['allocated_amount']);
+        self::assertNull($beneficiaries[1]['allocated_amount']);
+        self::assertArrayNotHasKey('proposed_amount', $beneficiaries[0]);
+        self::assertArrayNotHasKey('verified_amount', $beneficiaries[0]);
+        self::assertArrayNotHasKey('written_off_amount', $beneficiaries[0]);
+        self::assertArrayNotHasKey('written_off_at', $beneficiaries[0]);
+        self::assertArrayNotHasKey('written_off_reason', $beneficiaries[0]);
+    }
+
+    public function test_loan_without_beneficiaries_returns_empty_list(): void
+    {
+        $user = $this->createUser('member_user');
+        $this->assignRole($user, 'anggota');
+        MemberUserLink::query()->create([
+            'user_row_id' => $user->row_id,
+            'member_row_id' => $this->member->row_id,
+        ]);
+        $this->createLoan($this->member, 'LN-NO-BENEFICIARIES', '2026-01-05', 1000000, false);
+
+        $response = $this->actingAs($user)->get('/portal');
+        $page = $response->viewData('page');
+        $loans = $page['props']['loans']['data'];
+
+        $response->assertOk();
+        self::assertSame([], $loans[0]['beneficiaries']);
     }
 
     public function test_active_officer_sees_fellow_group_members(): void
