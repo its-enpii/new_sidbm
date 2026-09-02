@@ -5,11 +5,22 @@ import AppIcon from '@/Components/AppIcon.vue';
 defineProps({
     organization: { type: Object, required: true },
     tenant: { type: Object, required: true },
+    settings: { type: Object, default: () => ({}) },
 });
 </script>
 
 <template>
-    <Head :title="`${organization.name} — Sistem Informasi Dana Bergulir Masyarakat`" />
+    <Head :title="`${organization.name} — Sistem Informasi Dana Bergulir Masyarakat`">
+        <meta head-key="description" name="description" :content="settings.hero_description ?? settings.about_short ?? `Situs resmi ${organization.name} — portal informasi dan pengelolaan dana bergulir masyarakat.`" />
+        <meta head-key="og:title" property="og:title" :content="`${organization.name} — Situs Resmi`" />
+        <meta head-key="og:description" property="og:description" :content="settings.hero_description ?? settings.about_short ?? `Situs resmi ${organization.name} — pengelolaan dana bergulir masyarakat.`" />
+        <meta head-key="og:type" property="og:type" content="website" />
+        <meta head-key="og:url" property="og:url" :content="$page.url" />
+        <meta v-if="organization.logo_url" head-key="og:image" property="og:image" :content="organization.logo_url" />
+        <meta head-key="twitter:card" name="twitter:card" content="summary_large_image" />
+        <meta head-key="twitter:title" name="twitter:title" :content="`${organization.name} — Situs Resmi`" />
+        <meta head-key="twitter:description" name="twitter:description" :content="settings.hero_description ?? settings.about_short ?? `Situs resmi ${organization.name}.`" />
+    </Head>
 
     <div class="flex min-h-screen flex-col bg-surface font-sans text-on-surface antialiased">
         <!-- Top bar: organization identity -->
@@ -39,6 +50,10 @@ defineProps({
                         <AppIcon name="article" />
                         Berita
                     </Link>
+                    <Link href="/kontak" class="inline-flex min-h-10 items-center gap-2 rounded-full bg-primary-container px-4 text-sm font-semibold text-on-primary-container">
+                        <AppIcon name="mail" />
+                        Kontak
+                    </Link>
                     <Link href="/login" class="inline-flex min-h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary shadow-md transition hover:bg-primary-deep">
                         <AppIcon name="login" />
                         Masuk Sistem
@@ -56,7 +71,7 @@ defineProps({
                 <div class="relative mx-auto flex max-w-7xl flex-col items-center gap-6 px-4 py-20 text-center sm:px-6 md:py-28 lg:px-8">
                     <span class="inline-flex items-center gap-2 rounded-full bg-on-primary/10 px-4 py-1.5 text-xs font-bold tracking-widest uppercase text-on-primary-container">
                         <AppIcon name="verified" />
-                        Situs Resmi
+                        {{ settings.hero_tagline ?? 'Situs Resmi' }}
                     </span>
 
                     <h1 class="max-w-3xl text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl md:text-5xl">
@@ -64,9 +79,15 @@ defineProps({
                     </h1>
 
                     <p class="max-w-2xl text-base leading-relaxed text-on-primary-container sm:text-lg">
-                        Portal informasi resmi {{ organization.name }} — pengelolaan dana bergulir masyarakat
-                        yang transparan, akuntabel, dan berorientasi pada kesejahteraan warga.
+                        {{ settings.hero_description ?? `Portal informasi resmi ${organization.name} — pengelolaan dana bergulir masyarakat yang transparan, akuntabel, dan berorientasi pada kesejahteraan warga.` }}
                     </p>
+
+                    <img
+                        v-if="settings.hero_image_url"
+                        :src="settings.hero_image_url"
+                        :alt="`Tampilan ${organization.name}`"
+                        class="mt-2 max-h-80 w-auto max-w-2xl rounded-2xl object-cover shadow-lg"
+                    >
 
                     <div class="mt-2 flex flex-wrap items-center justify-center gap-3">
                         <Link href="/login" class="inline-flex min-h-12 items-center gap-2 rounded-full bg-on-primary px-7 text-sm font-bold text-primary-deep shadow-lg transition hover:bg-primary-fixed">
@@ -88,6 +109,15 @@ defineProps({
             <!-- Contact / information cards -->
             <section class="mx-auto -mt-10 max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
                 <div class="grid gap-4 md:grid-cols-3">
+                    <div v-if="settings.about_short" class="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-6 shadow-md md:col-span-3">
+                        <div class="flex items-center gap-3">
+                            <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-container text-on-primary-container">
+                                <AppIcon name="info" />
+                            </span>
+                            <h2 class="text-sm font-bold uppercase tracking-wider text-on-surface-variant">Tentang Kami</h2>
+                        </div>
+                        <p class="mt-3 text-sm leading-relaxed text-on-surface">{{ settings.about_short }}</p>
+                    </div>
                     <div class="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-6 shadow-md">
                         <div class="flex items-center gap-3">
                             <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-container text-on-primary-container">
@@ -147,11 +177,19 @@ defineProps({
                 <p class="text-sm font-semibold text-on-surface">
                     © {{ new Date().getFullYear() }} {{ organization.legal_name }}
                 </p>
-                <p class="mt-1.5 text-xs text-on-surface-variant">
+                <p v-if="settings.footer_note" class="mt-1.5 text-xs text-on-surface-variant">
+                    {{ settings.footer_note }}
+                </p>
+                <p v-else class="mt-1.5 text-xs text-on-surface-variant">
                     Dikelola dengan
                     <a href="/" class="font-semibold text-primary hover:underline">SIDBM Next</a>
                     — Sistem Informasi Dana Bergulir Masyarakat
                 </p>
+                <div v-if="settings.social?.facebook || settings.social?.instagram || settings.social?.youtube" class="mt-3 flex justify-center gap-2">
+                    <a v-if="settings.social?.facebook" :href="settings.social.facebook" target="_blank" rel="noopener" class="grid size-9 place-items-center rounded-full bg-primary-container text-on-primary-container transition hover:bg-primary hover:text-on-primary" aria-label="Facebook">f</a>
+                    <a v-if="settings.social?.instagram" :href="settings.social.instagram" target="_blank" rel="noopener" class="grid size-9 place-items-center rounded-full bg-primary-container text-on-primary-container transition hover:bg-primary hover:text-on-primary" aria-label="Instagram">◎</a>
+                    <a v-if="settings.social?.youtube" :href="settings.social.youtube" target="_blank" rel="noopener" class="grid size-9 place-items-center rounded-full bg-primary-container text-on-primary-container transition hover:bg-primary hover:text-on-primary" aria-label="YouTube">▶</a>
+                </div>
             </div>
         </footer>
     </div>

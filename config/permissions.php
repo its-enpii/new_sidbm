@@ -35,6 +35,7 @@ use App\Http\Requests\Settings\WhatsappInstanceRequest;
 use App\Http\Requests\Settings\WhatsappRequest;
 use App\Http\Requests\Website\SitePageRequest;
 use App\Http\Requests\Website\SitePostRequest;
+use App\Http\Requests\Website\SiteSettingRequest;
 
 /**
  * Permission catalog + default role packs.
@@ -266,6 +267,7 @@ return [
         OtherInstitutionRequest::class => 'institutions.manage',
         SitePageRequest::class => 'website.manage',
         SitePostRequest::class => 'website.manage',
+        SiteSettingRequest::class => 'website.manage',
         StoreTenantUserRequest::class => 'users.manage',
         UpdateTenantUserRequest::class => 'users.manage',
         TenantRoleRequest::class => 'roles.manage',

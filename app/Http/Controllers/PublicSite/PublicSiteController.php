@@ -5,14 +5,18 @@ declare(strict_types=1);
 namespace App\Http\Controllers\PublicSite;
 
 use App\Domain\Membership\Models\OrganizationProfile;
+use App\Domain\Website\Models\SiteMessage;
 use App\Domain\Website\Models\SitePage;
 use App\Domain\Website\Models\SitePost;
+use App\Domain\Website\Models\SiteSetting;
+use App\Http\Requests\PublicSite\SiteMessageRequest;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 final class PublicSiteController
 {
@@ -168,6 +172,137 @@ final class PublicSiteController
     }
 
     /**
+     * Public contact page for the resolved tenant domain.
+     */
+    public function contact(Request $request): Response|RedirectResponse
+    {
+        if ($this->shouldRedirectToVendor($request)) {
+            return redirect()->route('home');
+        }
+
+        $context = app(TenantContext::class);
+        $site = $this->resolveTenantSite($context);
+
+        if ($site === null) {
+            return Inertia::render('Home', ['name' => config('app.name'), 'status' => 'ok']);
+        }
+
+        return Inertia::render('PublicSite/Contact', [
+            ...$site,
+            'settings' => $this->resolveSettings(),
+        ]);
+    }
+
+    /**
+     * Store a public contact-form submission for the resolved tenant.
+     * Rate-limited at the route level; a hidden honeypot field silently
+     * drops obvious bot submissions.
+     */
+    public function storeMessage(SiteMessageRequest $request): RedirectResponse
+    {
+        $context = app(TenantContext::class);
+
+        if (! $context->isInitialized()) {
+            return redirect()->route('home');
+        }
+
+        $validated = $request->validated();
+
+        // Honeypot: real users never see the "website" field. Pretend success
+        // so bots do not learn they were caught.
+        if (trim((string) ($validated['website'] ?? '')) !== '') {
+            return redirect()->back()->with('success', 'Pesan berhasil dikirim. Terima kasih!');
+        }
+
+        SiteMessage::query()->create([
+            'name' => $validated['name'],
+            'email' => $validated['email'] ?? null,
+            'phone' => $validated['phone'] ?? null,
+            'subject' => $validated['subject'] ?? null,
+            'message' => $validated['message'],
+        ]);
+
+        return redirect()->back()->with('success', 'Pesan berhasil dikirim. Terima kasih!');
+    }
+
+    /**
+     * Sitemap for the resolved tenant domain; platform hosts get an empty
+     * sitemap pointing at the vendor home only.
+     */
+    public function sitemap(Request $request): SymfonyResponse
+    {
+        $context = app(TenantContext::class);
+        $urls = [url('/')];
+
+        if ($context->isInitialized() && $context->tenant()->status !== 'suspended') {
+            // Plain foreach: arrow functions capture $urls by value, so the
+            // appends inside ->each() would be silently discarded.
+            foreach (SitePost::query()->published()->orderByDesc('published_at')
+                ->get(['slug', 'updated_at']) as $post) {
+                $urls[] = route('public.post', $post->slug);
+            }
+
+            foreach (SitePage::query()->published()->orderBy('slug')
+                ->get(['slug', 'updated_at']) as $page) {
+                $urls[] = route('public.page', $page->slug);
+            }
+
+            $urls[] = route('public.posts');
+        }
+
+        return response()
+            ->view('public.sitemap', ['urls' => $urls])
+            ->header('Content-Type', 'application/xml');
+    }
+
+    /**
+     * robots.txt on tenant domains allows crawling of the public site but
+     * never the authenticated app; platform hosts likewise block /website,
+     * /dashboard and friends.
+     */
+    public function robots(Request $request): SymfonyResponse
+    {
+        $lines = [
+            'User-agent: *',
+            'Disallow: /login',
+            'Disallow: /dashboard',
+            'Disallow: /website',
+            'Disallow: /master-data',
+            'Disallow: /lending',
+            'Disallow: /accounting',
+            'Disallow: /settings',
+            'Disallow: /admin',
+            '',
+            'Sitemap: '.route('public.sitemap'),
+        ];
+
+        return response(implode("\n", $lines))->header('Content-Type', 'text/plain');
+    }
+
+    private function resolveSettings(): array
+    {
+        $settings = SiteSetting::query()->first();
+
+        return [
+            'hero_tagline' => $settings?->hero_tagline,
+            'hero_description' => $settings?->hero_description,
+            'hero_image_url' => $settings?->hero_image_path
+                ? Storage::disk('public')->url($settings->hero_image_path)
+                : null,
+            'about_short' => $settings?->about_short,
+            'social' => [
+                'facebook' => $settings?->facebook_url,
+                'instagram' => $settings?->instagram_url,
+                'youtube' => $settings?->youtube_url,
+            ],
+            'contact_phone' => $settings?->contact_phone,
+            'contact_email' => $settings?->contact_email,
+            'contact_address' => $settings?->contact_address,
+            'footer_note' => $settings?->footer_note,
+        ];
+    }
+
+    /**
      * @return array<string, mixed>|null null when no tenant resolved for the host
      */
     private function resolveTenantSite(TenantContext $context): ?array
@@ -203,6 +338,7 @@ final class PublicSiteController
                 'code' => $tenant->code,
                 'is_training_mode' => $tenant->isTraining(),
             ],
+            'settings' => $this->resolveSettings(),
         ];
     }
 

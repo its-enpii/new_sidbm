@@ -60,8 +60,10 @@ use App\Http\Controllers\Tenant\TenantOnboardingImportController;
 use App\Http\Controllers\Webhooks\DuitkuWebhookController;
 use App\Http\Controllers\Webhooks\TripayWebhookController;
 use App\Http\Controllers\Webhooks\XenditWebhookController;
+use App\Http\Controllers\Website\WebsiteMessageController;
 use App\Http\Controllers\Website\WebsitePageController;
 use App\Http\Controllers\Website\WebsitePostController;
+use App\Http\Controllers\Website\WebsiteSettingController;
 use App\Http\Controllers\WhatsappController;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Route;
@@ -86,6 +88,23 @@ Route::get('/berita/{slug}', [PublicSiteController::class, 'post'])
 Route::get('/p/{slug}', [PublicSiteController::class, 'page'])
     ->middleware('public.site')
     ->name('public.page');
+
+// Public contact page + submission (rate-limited; honeypot inside the form).
+Route::get('/kontak', [PublicSiteController::class, 'contact'])
+    ->middleware('public.site')
+    ->name('public.contact');
+Route::post('/kontak', [PublicSiteController::class, 'storeMessage'])
+    ->middleware(['public.site', 'throttle:10,1'])
+    ->name('public.contact.store');
+
+// SEO endpoints: dynamic per-host sitemap & robots (no static files, so the
+// webserver never shadows these routes).
+Route::get('/sitemap.xml', [PublicSiteController::class, 'sitemap'])
+    ->middleware('public.site')
+    ->name('public.sitemap');
+Route::get('/robots.txt', [PublicSiteController::class, 'robots'])
+    ->middleware('public.site')
+    ->name('public.robots');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -308,6 +327,15 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
         Route::put('/pages/{page}', [WebsitePageController::class, 'update'])->name('pages.update');
         Route::delete('/pages/{page}', [WebsitePageController::class, 'destroy'])->name('pages.destroy');
         Route::post('/pages/{pageId}/restore', [WebsitePageController::class, 'restore'])->whereNumber('pageId')->name('pages.restore');
+
+        // Site appearance & contact settings for the tenant's public site
+        Route::get('/settings', [WebsiteSettingController::class, 'edit'])->name('settings.edit');
+        Route::put('/settings', [WebsiteSettingController::class, 'update'])->name('settings.update');
+
+        // Inbox for the public contact form
+        Route::get('/messages', [WebsiteMessageController::class, 'index'])->name('messages.index');
+        Route::post('/messages/{message}/read', [WebsiteMessageController::class, 'markRead'])->name('messages.read');
+        Route::delete('/messages/{message}', [WebsiteMessageController::class, 'destroy'])->name('messages.destroy');
     });
 
     // Master Data

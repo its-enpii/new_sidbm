@@ -10,7 +10,15 @@ const props = defineProps({
 </script>
 
 <template>
-    <Head :title="`${page.title} — ${organization.name}`" />
+    <Head :title="`${page.title} — ${organization.name}`">
+        <meta head-key="description" name="description" :content="page.meta_description ?? `Halaman ${page.title} dari ${organization.name}.`" />
+        <meta head-key="og:title" property="og:title" :content="page.title" />
+        <meta head-key="og:description" property="og:description" :content="page.meta_description ?? `Halaman ${page.title} dari ${organization.name}.`" />
+        <meta head-key="og:type" property="og:type" content="article" />
+        <meta head-key="og:url" property="og:url" :content="$page.url" />
+        <meta head-key="twitter:card" name="twitter:card" content="summary" />
+        <meta head-key="twitter:title" name="twitter:title" :content="page.title" />
+    </Head>
 
     <div class="flex min-h-screen flex-col bg-surface font-sans text-on-surface antialiased">
         <!-- Top bar: organization identity -->
@@ -38,6 +46,10 @@ const props = defineProps({
                     <Link href="/berita" class="inline-flex min-h-10 items-center gap-2 rounded-full bg-primary-container px-4 text-sm font-semibold text-on-primary-container">
                         <AppIcon name="article" />
                         Berita
+                    </Link>
+                    <Link href="/kontak" class="inline-flex min-h-10 items-center gap-2 rounded-full bg-primary-container px-4 text-sm font-semibold text-on-primary-container">
+                        <AppIcon name="mail" />
+                        Kontak
                     </Link>
                     <Link href="/login" class="inline-flex min-h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary shadow-md transition hover:bg-primary-deep">
                         <AppIcon name="login" />

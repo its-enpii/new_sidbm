@@ -30,6 +30,8 @@ Platform `/admin/*` = **superadmin only** (bukan role tenant).
 | Pengaturan | Pengaturan | `/settings` | `settings.manage` |
 | Website | Berita | `/website/posts` | `website.view` / `website.manage` |
 | Website | Halaman | `/website/pages` | `website.view` / `website.manage` |
+| Website | Pengaturan Situs | `/website/settings` | `website.view` / `website.manage` |
+| Website | Pesan Masuk | `/website/messages` | `website.view` / `website.manage` |
 | Widget | Ariel | session + tools | `assistant.use` |
 | Header | Profil | `/profile` | *(self)* |
 | Header | Search | `/search` | any `*.view` held |
@@ -59,6 +61,7 @@ Platform `/admin/*` = **superadmin only** (bukan role tenant).
 | Tagihan tenant | Bayar | `billing.pay` |
 | Settings | Semua simpan | `settings.manage` |
 | Website | Tambah/Edit/Hapus/pulihkan berita & halaman, hapus cover | `website.manage` (lihat = `website.view`) |
+| Website | Simpan pengaturan situs (hero, kontak, sosmed, footer), tandai baca/hapus pesan masuk | `website.manage` (lihat = `website.view`) |
 | Assistant tools | per `tool_map` | lihat config |
 
 ## C. Role packs (default)
