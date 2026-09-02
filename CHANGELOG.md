@@ -32,6 +32,8 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
   - Perbaikan bug sitemap: penambahan URL memakai `->each(fn () => $urls[] = …)` yang menangkap `$urls` by-value sehingga daftar berita/halaman tidak pernah masuk XML; diganti `foreach` eksplisit.
   - Nav sidebar Website bertambah menu **Pengaturan Situs** dan **Pesan Masuk** (otomatis disembunyikan tanpa `website.view` via `nav_map`); `docs/RBAC_MATRIX.md` diperbarui (baris nav + aksi).
   - Automated feature test `tests/Feature/Website/WebsiteSettingsAndMessagesTest.php` (20 test, 151 asersi): render & persist pengaturan termasuk siklus hidup gambar hero (upload/ganti/hapus), guard permission kasir 403 di seluruh endpoint, render kontak di domain tenant dan fallback vendor Home di host platform, persist/validasi/honeypot/rate-limit form kontak, inbox pencarian/tandai-baca/hapus, eksklusi outbox desktop, propagasi settings ke landing tenant, sitemap, dan robots.
+- **Runbook Domain Kustom Tenant (Fase 4):**
+  - `docs/CUSTOM_DOMAIN_RUNBOOK.md` — prosedur operasional DNS & TLS untuk domain kustom tenant: model resolusi host (`ResolvePublicSite` → `PublicSiteResolver` → `TenantContext`), prasyarat, opsi DNS (subdomain platform wildcard vs apex kustom penuh + aturan A/CNAME apex), verifikasi propagasi (`dig` + smoke `curl` per halaman publik), setup lokal Laragon (hosts file), TLS Caddy on-demand (endpoint `ask` anti-abuse) vs nginx + certbot per domain, checklist verifikasi TLS, prosedur operator 7 langkah, rollback, dan tabel troubleshooting.
 
 ## [2026-09-02]
 
