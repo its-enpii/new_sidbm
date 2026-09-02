@@ -8,6 +8,8 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ### Added
 
 - Outbox lokal, sinkronisasi dua arah desktop, log konflik, dan indikator jumlah mutasi offline pada Pengaturan.
+- Endpoint pull/push offline mobile (`/api/v1/mobile/sync/collection` dan `/api/v1/mobile/sync/push`) dengan scoping per petugas desa, whitelist mutasi terbatas, idempotensi `mutation_uuid`, audit log, serta pengecualian push sync saat mode offline.
+- `SubscriptionGateService` sebagai satu sumber status blokir langganan, respons blok `subscription` pada `/sync/status`, penangguhan push desktop HTTP 402, dan pemeriksaan langganan pertama pada alur reconnect desktop sebelum push/pull; data outbox lokal tetap aman.
 
 ## [2026-09-01]
 

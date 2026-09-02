@@ -23,6 +23,18 @@ final class DesktopSyncClientService
      */
     public function syncFromCloud(?string $tenantCode = null, bool $isDelta = false, ?string $since = null): array
     {
+        $subscriptionGate = $this->getSubscriptionGate($tenantCode);
+
+        if (($subscriptionGate['subscription']['blocked'] ?? false) === true) {
+            return [
+                'status' => 'blocked',
+                'blocked' => true,
+                'reason' => $subscriptionGate['subscription']['reason'] ?? null,
+                'message' => $subscriptionGate['subscription']['message'] ?? null,
+                'invoice_number' => $subscriptionGate['subscription']['invoice_number'] ?? null,
+            ];
+        }
+
         $pushResult = $this->outboxService->flushPendingMutations($tenantCode);
         $serverUrl = rtrim((string) config('desktop.server.url', 'https://app.sidbm.id'), '/');
         $apiKey = (string) config('desktop.server.api_key', '');
@@ -98,6 +110,39 @@ final class DesktopSyncClientService
                 'error' => $e->getMessage(),
                 'latency_ms' => round((microtime(true) - $startTime) * 1000, 2),
             ];
+        }
+    }
+
+    /**
+     * Read reconnect status and the server-side subscription gate.
+     *
+     * @return array<string, mixed>
+     */
+    private function getSubscriptionGate(?string $tenantCode = null): array
+    {
+        $serverUrl = rtrim((string) config('desktop.server.url', 'https://app.sidbm.id'), '/');
+        $apiKey = (string) config('desktop.server.api_key', '');
+        $timeout = min(5, (int) config('desktop.server.timeout_seconds', 30));
+
+        try {
+            $request = Http::timeout($timeout)->acceptJson();
+            if ($apiKey !== '') {
+                $request = $request->withToken($apiKey);
+            }
+
+            $endpoint = isset($tenantCode)
+                ? "{$serverUrl}/api/v1/desktop/sync/tenants/{$tenantCode}/status"
+                : "{$serverUrl}/api/v1/desktop/sync/status";
+
+            $response = $request->get($endpoint);
+
+            if (! $response->successful()) {
+                throw new RuntimeException("Subscription gate request failed [HTTP {$response->status()}].");
+            }
+
+            return $response->json();
+        } catch (\Throwable $e) {
+            throw new RuntimeException('Unable to verify subscription status before synchronization: '.$e->getMessage(), previous: $e);
         }
     }
 

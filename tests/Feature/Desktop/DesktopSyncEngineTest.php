@@ -109,6 +109,7 @@ final class DesktopSyncEngineTest extends TestCase
         $snapshot = app(TenantSnapshotService::class)->export($tenant);
 
         Http::fake([
+            'https://app.sidbm.id/api/v1/desktop/sync/tenants/tenant-a/status' => Http::response(['status' => 'success', 'server_time' => now()->toIso8601String(), 'subscription' => ['blocked' => false]], 200),
             'https://app.sidbm.id/api/v1/desktop/sync/tenants/tenant-a/snapshot' => Http::response($snapshot, 200),
         ]);
 
@@ -129,6 +130,7 @@ final class DesktopSyncEngineTest extends TestCase
         $snapshot = app(TenantSnapshotService::class)->export($tenant);
 
         Http::fake([
+            'https://app.sidbm.id/api/v1/desktop/sync/tenants/tenant-a/status' => Http::response(['status' => 'success', 'server_time' => now()->toIso8601String(), 'subscription' => ['blocked' => false]], 200),
             'https://app.sidbm.id/api/v1/desktop/sync/tenants/tenant-a/snapshot' => Http::response($snapshot, 200),
         ]);
 
@@ -146,6 +148,7 @@ final class DesktopSyncEngineTest extends TestCase
         $snapshot = app(TenantSnapshotService::class)->export($tenant);
 
         Http::fake([
+            'https://app.sidbm.id/api/v1/desktop/sync/tenants/tenant-a/status' => Http::response(['status' => 'success', 'server_time' => now()->toIso8601String(), 'subscription' => ['blocked' => false]], 200),
             'https://app.sidbm.id/api/v1/desktop/sync/status' => Http::response(['status' => 'success', 'server_time' => now()->toIso8601String()], 200),
             'https://app.sidbm.id/api/v1/desktop/sync/tenants/tenant-a/snapshot' => Http::response($snapshot, 200),
         ]);

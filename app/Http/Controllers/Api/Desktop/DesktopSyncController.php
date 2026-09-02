@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Desktop;
 
+use App\Domain\Billing\Services\SubscriptionGateService;
 use App\Domain\Sync\Services\DesktopPushApplyService;
 use App\Domain\Sync\Services\TenantSnapshotService;
 use App\Models\Platform\Tenant;
@@ -17,6 +18,7 @@ final class DesktopSyncController
         private readonly TenantSnapshotService $snapshotService,
         private readonly DesktopPushApplyService $pushService,
         private readonly TenantContext $tenantContext,
+        private readonly SubscriptionGateService $subscriptionGate,
     ) {}
 
     /**
@@ -43,6 +45,16 @@ final class DesktopSyncController
         $targetTenant = $this->resolveTenant($request, $tenant);
         if ($targetTenant === null) {
             return $this->tenantNotFoundResponse();
+        }
+
+        $subscriptionGate = $this->subscriptionGate->check((int) $targetTenant->row_id);
+        if ($subscriptionGate['blocked']) {
+            return response()->json([
+                'status' => 'blocked',
+                'code' => 'SUBSCRIPTION_BLOCKED',
+                'message' => $subscriptionGate['message'],
+                'invoice_number' => $subscriptionGate['invoice_number'],
+            ], 402);
         }
 
         $validated = $request->validate([
@@ -105,6 +117,8 @@ final class DesktopSyncController
             return $this->tenantNotFoundResponse();
         }
 
+        $subscriptionGate = $this->subscriptionGate->check((int) $targetTenant->row_id);
+
         return response()->json([
             'status' => 'success',
             'server_time' => now()->toIso8601String(),
@@ -120,6 +134,12 @@ final class DesktopSyncController
                 'regency_name' => $targetTenant->regency_name,
                 'province_code' => $targetTenant->province_code,
                 'shard' => $targetTenant->placement?->shard?->code,
+            ],
+            'subscription' => [
+                'blocked' => $subscriptionGate['blocked'],
+                'reason' => $subscriptionGate['reason'],
+                'invoice_number' => $subscriptionGate['invoice_number'],
+                'message' => $subscriptionGate['message'],
             ],
         ]);
     }

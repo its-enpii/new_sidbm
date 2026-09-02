@@ -31,6 +31,13 @@ Daftarkan shard `local` pada platform sebelum menjalankan command shard. Jalanka
 
 ## Verifikasi wajib sebelum produksi
 
+## Mobile offline sync
+
+- `GET /api/v1/mobile/sync/collection` mengirim `loans`, `installments`, `members`, dan `accounts` yang di-scope per petugas desa. Parameter `?since=ISO8601` bersifat opsional; respons menyediakan `generated_at`/`synced_at` untuk delta berikutnya.
+- `POST /api/v1/mobile/sync/push` menerima format mutasi yang sama dengan desktop push. Whitelist tabel mobile hanya `loan_payments` (`insert`) dan `loans` (`update` terbatas untuk pipeline verifikasi).
+- Pembayaran diteruskan ke `LoanService::recordInstallmentPayment()` agar aturan bisnis, jurnal, dan notifikasi tetap konsisten. `mutation_uuid` memakai mekanisme idempotensi push yang ada, dan konflik status pinjaman dicatat ke `sync_conflicts`.
+- Saat mode offline aktif, endpoint `api/v1/mobile/sync/*` di-whitelist `BlockOfflineMutations`, sedangkan endpoint mutasi mobile lainnya tetap ditolak.
+
 - Import data tenant nyata pada lingkungan rehearsal.
 - Rekonsiliasi jumlah record, legacy ID, debit, kredit, saldo akun, dan saldo pinjaman.
 - Jalankan perbandingan laporan lama dan baru.
