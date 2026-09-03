@@ -28,6 +28,7 @@ use App\Http\Controllers\Admin\TenantImpersonationController as AdminTenantImper
 use App\Http\Controllers\Admin\TenantUserController as AdminTenantUserController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Assets\AssetController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Billing\InvoiceController as TenantInvoiceController;
 use App\Http\Controllers\Budgeting\BudgetController;
@@ -85,6 +86,14 @@ Route::get('/', function (Request $request) {
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.store');
+
+    Route::get('/forgot-password', [ForgotPasswordController::class, 'showRequestForm'])->name('password.request');
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'sendOtp'])->middleware('throttle:5,1')->name('password.otp.send');
+    Route::get('/forgot-password/otp', [ForgotPasswordController::class, 'showOtpForm'])->name('password.otp.form');
+    Route::post('/forgot-password/otp/resend', [ForgotPasswordController::class, 'resendOtp'])->middleware('throttle:5,1')->name('password.otp.resend');
+    Route::post('/forgot-password/verify', [ForgotPasswordController::class, 'verifyOtp'])->middleware('throttle:5,1')->name('password.otp.verify');
+    Route::get('/forgot-password/reset', [ForgotPasswordController::class, 'showResetForm'])->name('password.reset.form');
+    Route::post('/forgot-password/reset', [ForgotPasswordController::class, 'resetPassword'])->middleware('throttle:5,1')->name('password.reset');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])

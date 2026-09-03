@@ -72,17 +72,18 @@ final class ForgotPasswordController
             }
         }
 
-        $sessionData = [
-            'issued_at' => now()->toIso8601String(),
-            'resends' => 0,
-        ];
-
         if ($issuedPhone !== null) {
-            $sessionData['phone'] = $issuedPhone;
-            $sessionData['user_id'] = $user->row_id;
-        }
+            $sessionData = [
+                'issued_at' => now()->toIso8601String(),
+                'resends' => 0,
+                'phone' => $issuedPhone,
+                'user_id' => $user->row_id,
+            ];
 
-        $request->session()->put(self::SESSION_KEY, $sessionData);
+            $request->session()->put(self::SESSION_KEY, $sessionData);
+        } else {
+            $request->session()->forget(self::SESSION_KEY);
+        }
 
         return redirect()
             ->route('password.otp.form')
@@ -182,7 +183,9 @@ final class ForgotPasswordController
             return redirect()->route('password.request');
         }
 
-        return Inertia::render('Auth/ResetPassword');
+        return Inertia::render('Auth/ResetPassword', [
+            'grantToken' => $sessionData['grant_token'],
+        ]);
     }
 
     public function resetPassword(Request $request): RedirectResponse

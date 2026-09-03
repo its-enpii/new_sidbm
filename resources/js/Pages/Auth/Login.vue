@@ -349,6 +349,12 @@ onMounted(() => {
                             {{ form.processing ? 'Memverifikasi Kredensial...' : 'Masuk ke Dashboard' }}
                         </AppButton>
                     </div>
+
+                    <div class="form-anim-item text-center">
+                        <Link :href="route('password.request')" class="text-sm font-bold text-primary hover:underline">
+                            Lupa password?
+                        </Link>
+                    </div>
                 </form>
 
                 <!-- Help Info Card -->
