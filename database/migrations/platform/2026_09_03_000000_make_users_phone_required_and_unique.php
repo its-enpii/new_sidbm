@@ -34,15 +34,37 @@ return new class extends Migration
             ));
         }
 
-        $nullPhoneCount = $schema->getConnection()->table('users')
+        // Backfill pengguna tanpa nomor WhatsApp dengan sentinel unik per baris.
+        //
+        // Sentinel TIDAK bisa menerima OTP: PhoneNormalizer::normalize()
+        // menghasilkan string non-numerik, WhatsAppPasswordOtpService::issueOtp()
+        // dan ForgotPasswordController::sendOtp() menolak format selain
+        // ^628\d{7,12}$, dan UpdateProfileRequest mewajibkan regex
+        // ^(?:\+?62|0)8\d{7,12}$ saat user memperbarui nomornya sendiri.
+        // Nilai deterministik per baris (hash public_id) agar migrasi idempoten,
+        // dan dihitung di PHP agar portabel untuk MySQL maupun SQLite.
+        $usersWithoutPhone = $schema->getConnection()->table('users')
+            ->whereNull('phone')
+            ->orWhere('phone', '')
+            ->get(['row_id', 'public_id']);
+
+        foreach ($usersWithoutPhone as $user) {
+            $schema->getConnection()->table('users')
+                ->where('row_id', $user->row_id)
+                ->update([
+                    'phone' => 'pending-wa-'.substr(md5((string) $user->public_id), 0, 8),
+                ]);
+        }
+
+        $remaining = $schema->getConnection()->table('users')
             ->whereNull('phone')
             ->orWhere('phone', '')
             ->count();
 
-        if ($nullPhoneCount > 0) {
+        if ($remaining > 0) {
             throw new RuntimeException(sprintf(
-                'Cannot require users.phone: %d user(s) have no phone. Backfill a valid WhatsApp number for every user before migrating.',
-                $nullPhoneCount,
+                'Cannot require users.phone: %d user(s) still have no phone after backfill attempt.',
+                $remaining,
             ));
         }
 
