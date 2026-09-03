@@ -33,7 +33,16 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
   - Nav sidebar Website bertambah menu **Pengaturan Situs** dan **Pesan Masuk** (otomatis disembunyikan tanpa `website.view` via `nav_map`); `docs/RBAC_MATRIX.md` diperbarui (baris nav + aksi).
   - Automated feature test `tests/Feature/Website/WebsiteSettingsAndMessagesTest.php` (20 test, 151 asersi): render & persist pengaturan termasuk siklus hidup gambar hero (upload/ganti/hapus), guard permission kasir 403 di seluruh endpoint, render kontak di domain tenant dan fallback vendor Home di host platform, persist/validasi/honeypot/rate-limit form kontak, inbox pencarian/tandai-baca/hapus, eksklusi outbox desktop, propagasi settings ke landing tenant, sitemap, dan robots.
 - **Runbook Domain Kustom Tenant (Fase 4):**
-  - `docs/CUSTOM_DOMAIN_RUNBOOK.md` — prosedur operasional DNS & TLS untuk domain kustom tenant: model resolusi host (`ResolvePublicSite` → `PublicSiteResolver` → `TenantContext`), prasyarat, opsi DNS (subdomain platform wildcard vs apex kustom penuh + aturan A/CNAME apex), verifikasi propagasi (`dig` + smoke `curl` per halaman publik), setup lokal Laragon (hosts file), TLS Caddy on-demand (endpoint `ask` anti-abuse) vs nginx + certbot per domain, checklist verifikasi TLS, prosedur operator 7 langkah, rollback, dan tabel troubleshooting.
+  - `docs/CUSTOM_DOMAIN_RUNBOOK.md` — prosedur operasional DNS & TLS untuk domain kustom tenant: model resolusi host (`ResolvePublicSite` → `PublicSiteResolver` → `TenantContext`), prasyarat, opsi DNS (subdomain platform wildcard vs apex kustom penuh + aturan A/CNAME apex), verifikasi propagasi (`dig` + smoke `curl` per halaman publik), setup lokal Laragon (hosts file), TLS Caddy on-demand (endpoint `ask`  anti-abuse) vs nginx + certbot per domain, checklist verifikasi TLS, prosedur operator 7 langkah, rollback, dan tabel troubleshooting.
+- **Lupa Password via OTP WhatsApp:**
+  - Alur lupa password untuk tamu: minta OTP (`/forgot-password`), verifikasi OTP (`/forgot-password/otp`), dan setel ulang password (`/forgot-password/reset`), ditautkan dari halaman login ("Lupa password?").
+  - OTP 6 digit dikirim melalui WhatsApp gateway per-tenant (instance hasil scan QR di WhatsApp Hub) via `WhatsAppPasswordOtpService`; karena OTP dikirim via WhatsApp, kolom `users.phone` kini **wajib dan unik** (migrasi platform fail-loud bila masih ada user tanpa phone atau phone duplikat).
+  - Rate limiting berlapis: `throttle:5,1` per IP di endpoint POST, maksimal 3 OTP per jam per nomor, jeda kirim ulang 60 detik, dan batas percobaan verifikasi OTP.
+  - Anti-enumeration: identifier yang tidak dikenal atau gateway yang tidak tersedia tetap mendapatkan respons sukses generik yang identik.
+  - Token reset tersimpan ter-hash di tabel platform `password_reset_tokens` (auto-increment, indeks phone/created_at, housekeeping token >1 jam); halaman reset memakai `grant_token` sesi dan OTP terkunci per user.
+  - Normalisasi nomor WhatsApp (`PhoneNormalizer`, format `62xxx`) dipakai konsisten di seluruh alur termasuk validasi profil.
+  - Halaman baru memakai komponen App* (Material Design 3, aman dark mode, responsif) dan `flash` global.
+  - Automated feature test `tests/Feature/Auth/ForgotPasswordTest.php` (7 test, 42 assertion).
 
 ## [2026-09-02]
 

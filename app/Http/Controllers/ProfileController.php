@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Profile\UpdateAccountRequest;
 use App\Http\Requests\Profile\UpdatePhotoRequest;
 use App\Http\Requests\Profile\UpdateProfileRequest;
+use App\Services\PhoneNormalizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -70,7 +71,7 @@ final class ProfileController
             'birth_place' => $data['birth_place'] ?? null,
             'birth_date' => $data['birth_date'] ?? null,
             'address' => $data['address'] ?? null,
-            'phone' => $data['phone'] ?? null,
+            'phone' => app(PhoneNormalizer::class)->normalize((string) $data['phone']),
             'education' => $data['education'] ?? null,
             'appointed_at' => $data['appointed_at'] ?? null,
             'term_end_at' => $data['term_end_at'] ?? null,

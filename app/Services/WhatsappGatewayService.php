@@ -472,18 +472,7 @@ final class WhatsappGatewayService
      */
     public function normalizePhone(string $phone): string
     {
-        $digits = preg_replace('/\D+/', '', $phone) ?? '';
-        if ($digits === '') {
-            return '';
-        }
-        if (str_starts_with($digits, '0')) {
-            $digits = '62'.substr($digits, 1);
-        }
-        if (str_starts_with($digits, '8') && strlen($digits) >= 9 && strlen($digits) <= 13) {
-            $digits = '62'.$digits;
-        }
-
-        return $digits;
+        return app(PhoneNormalizer::class)->normalize($phone);
     }
 
     private function updateInstanceStatusIfTracked(string $instanceName, string $status): void

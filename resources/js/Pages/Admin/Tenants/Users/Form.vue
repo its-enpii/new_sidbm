@@ -18,6 +18,7 @@ const form = useForm({
     name: props.user?.name || '',
     username: props.user?.username || '',
     email: props.user?.email || '',
+    phone: props.user?.phone || '',
     password: '',
     password_confirmation: '',
     status: props.user?.status || 'active',
@@ -53,6 +54,7 @@ function submit() {
                     <AppInput v-model="form.name" label="Nama" required :error="form.errors.name" />
                     <AppInput v-model="form.username" label="Username" required :error="form.errors.username" />
                     <AppInput v-model="form.email" label="Email" type="email" :error="form.errors.email" />
+                    <AppInput v-model="form.phone" label="Nomor HP (WhatsApp)" icon="phone" type="tel" inputmode="tel" autocomplete="tel" required :error="form.errors.phone" />
                     <AppInput v-model="form.password" :label="editing ? 'Password baru (opsional)' : 'Password'" type="password" :required="!editing" :error="form.errors.password" />
                     <AppInput v-model="form.password_confirmation" label="Konfirmasi password" type="password" :required="!editing || !!form.password" />
                     <SmartSelect v-model="form.status" label="Status" :options="statusOptions" required :error="form.errors.status" />
