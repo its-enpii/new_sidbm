@@ -3,7 +3,7 @@
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
-## [Unreleased]
+## [2026-09-03]
 
 ### Added
 - **Situs Publik Ber-branding Tenant di Domain Kustom (Fase 1):**
