@@ -25,7 +25,7 @@ final class UpdateAccountRequest extends FormRequest
                 'string',
                 'max:100',
                 'alpha_dash',
-                Rule::unique('users', 'username')->connection('platform')->ignore($userId, 'row_id'),
+                Rule::unique('users', 'username')->ignore($userId, 'row_id'),
             ],
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'password_confirmation' => ['required_with:password'],
