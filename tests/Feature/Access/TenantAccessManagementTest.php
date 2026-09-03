@@ -59,6 +59,7 @@ final class TenantAccessManagementTest extends TestCase
             'name' => 'Staf Baru',
             'username' => 'staf_baru',
             'email' => 'staf_baru@example.test',
+            'phone' => '081200000001',
             'password' => 'secret12345',
             'password_confirmation' => 'secret12345',
             'status' => 'active',
@@ -112,6 +113,7 @@ final class TenantAccessManagementTest extends TestCase
             'name' => 'Updated User Name',
             'username' => 'testuser_edit_updated',
             'email' => 'updated_email@example.test',
+            'phone' => '081200000002',
             'status' => 'suspended',
             'role' => 'role_b',
         ]);

@@ -69,6 +69,7 @@ final class TenantProvisionAndRoleTest extends TestCase
                 'name' => 'Kasir Satu',
                 'username' => $user->username,
                 'email' => $user->email,
+                'phone' => '081300000001',
                 'status' => 'active',
                 'role' => 'kasir',
             ])
