@@ -51,10 +51,10 @@ final class UpdateAccountRequestTest extends TestCase
 
     public function test_user_cannot_use_username_taken_by_another_user(): void
     {
-        $user = $this->createTenantMember([], 'first_account');
+        $user = $this->createTenantMember();
         $otherUser = $this->createTenantMember([
             'username' => 'duplicate_username',
-        ], 'second_account');
+        ]);
 
         $response = $this->actingAs($user)->put(route('profile.account.update'), [
             'username' => $otherUser->username,
@@ -85,34 +85,47 @@ final class UpdateAccountRequestTest extends TestCase
     {
         $tenantDb = (string) config('database.connections.tenant.database');
 
-        $shard = DatabaseShard::query()->create([
-            'public_id' => (string) Str::ulid(),
-            'code' => $fixtureCode,
-            'name' => 'Local Shard',
-            'driver' => (string) config('database.connections.tenant.driver', 'mysql'),
-            'host' => (string) config('database.connections.tenant.host', '127.0.0.1'),
-            'port' => (int) config('database.connections.tenant.port', 3306),
-            'database_name' => $tenantDb,
-            'credential_reference' => str_ends_with($tenantDb, '_test') ? 'test' : 'local',
-            'placement_type' => 'shared',
-            'status' => 'active',
-        ]);
+        $shard = DatabaseShard::query()->firstWhere('code', $fixtureCode);
+        $fixtureWasCreated = $shard === null;
 
-        $tenant = Tenant::query()->create([
-            'public_id' => (string) Str::ulid(),
-            'code' => $fixtureCode,
-            'name' => 'Local Tenant',
-            'status' => 'active',
-            'timezone' => 'Asia/Jakarta',
-            'metadata' => ['domains' => ['localhost']],
-        ]);
+        if ($shard === null) {
+            $shard = DatabaseShard::query()->create([
+                'public_id' => (string) Str::ulid(),
+                'code' => $fixtureCode,
+                'name' => 'Local Shard',
+                'driver' => (string) config('database.connections.tenant.driver', 'mysql'),
+                'host' => (string) config('database.connections.tenant.host', '127.0.0.1'),
+                'port' => (int) config('database.connections.tenant.port', 3306),
+                'database_name' => $tenantDb,
+                'credential_reference' => str_ends_with($tenantDb, '_test') ? 'test' : 'local',
+                'placement_type' => 'shared',
+                'status' => 'active',
+            ]);
+        }
 
-        $placement = TenantPlacement::query()->create([
-            'tenant_id' => $tenant->row_id,
-            'shard_id' => $shard->row_id,
-            'status' => 'active',
-            'placed_at' => now(),
-        ]);
+        $tenant = Tenant::query()->firstWhere('code', $fixtureCode);
+
+        if ($tenant === null) {
+            $tenant = Tenant::query()->create([
+                'public_id' => (string) Str::ulid(),
+                'code' => $fixtureCode,
+                'name' => 'Local Tenant',
+                'status' => 'active',
+                'timezone' => 'Asia/Jakarta',
+                'metadata' => ['domains' => ['localhost']],
+            ]);
+        }
+
+        $placement = TenantPlacement::query()->firstWhere('tenant_id', $tenant->row_id);
+
+        if ($placement === null) {
+            $placement = TenantPlacement::query()->create([
+                'tenant_id' => $tenant->row_id,
+                'shard_id' => $shard->row_id,
+                'status' => 'active',
+                'placed_at' => now(),
+            ]);
+        }
 
         $user = User::query()->create(array_merge([
             'public_id' => (string) Str::ulid(),
@@ -131,12 +144,14 @@ final class UpdateAccountRequestTest extends TestCase
             'joined_at' => now(),
         ]);
 
-        Artisan::call('migrate:fresh', [
-            '--database' => 'tenant',
-            '--path' => 'database/migrations/shard',
-            '--force' => true,
-        ]);
-        Artisan::call('tenancy:sync-registry', ['--shard' => $fixtureCode]);
+        if ($fixtureWasCreated) {
+            Artisan::call('migrate:fresh', [
+                '--database' => 'tenant',
+                '--path' => 'database/migrations/shard',
+                '--force' => true,
+            ]);
+            Artisan::call('tenancy:sync-registry', ['--shard' => $fixtureCode]);
+        }
 
         config(['tenancy.local_tenant' => $fixtureCode]);
         app(TenantContext::class)->initialize($tenant, $placement, $shard);
