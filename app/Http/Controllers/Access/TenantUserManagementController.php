@@ -14,6 +14,7 @@ use App\Http\Requests\Access\UpdateTenantUserRequest;
 use App\Models\Platform\TenantMembership;
 use App\Models\Tenant\OrganizationUnit;
 use App\Models\User;
+use App\Services\PhoneNormalizer;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -122,6 +123,7 @@ final class TenantUserManagementController
                 'tenant_id' => $tenant->row_id,
                 'name' => $data['name'],
                 'email' => $data['email'] ?? null,
+                'phone' => (new PhoneNormalizer)->normalize((string) $data['phone']),
                 'username' => $data['username'],
                 'password' => Hash::make($data['password']),
                 'status' => $data['status'] ?? 'active',
@@ -189,6 +191,7 @@ final class TenantUserManagementController
             $user->forceFill([
                 'name' => $data['name'],
                 'email' => $data['email'] ?? null,
+                'phone' => $this->normalizePhone($data['phone']),
                 'username' => $data['username'],
                 'status' => $data['status'],
                 'appointed_at' => $data['appointed_at'] ?? null,
@@ -332,5 +335,10 @@ final class TenantUserManagementController
     private function assertBelongs(User $user): void
     {
         abort_unless((int) $user->tenant_id === $this->tenantContext->id(), 404);
+    }
+
+    private function normalizePhone(string $phone): string
+    {
+        return app(PhoneNormalizer::class)->normalize($phone);
     }
 }

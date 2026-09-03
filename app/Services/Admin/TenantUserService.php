@@ -9,6 +9,7 @@ use App\Domain\Access\Services\PermissionChecker;
 use App\Models\Platform\Tenant;
 use App\Models\Platform\TenantMembership;
 use App\Models\User;
+use App\Services\PhoneNormalizer;
 use App\Tenancy\Services\TenantWorkbench;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -31,6 +32,7 @@ final readonly class TenantUserService
                 'tenant_id' => $tenant->row_id,
                 'name' => $data['name'],
                 'email' => $data['email'] ?? null,
+                'phone' => app(PhoneNormalizer::class)->normalize((string) ($data['phone'] ?? '')),
                 'username' => $data['username'],
                 'password' => Hash::make($data['password']),
                 'status' => $data['status'] ?? 'active',
@@ -61,6 +63,7 @@ final readonly class TenantUserService
             $user->forceFill([
                 'name' => $data['name'],
                 'email' => $data['email'] ?? null,
+                'phone' => app(PhoneNormalizer::class)->normalize((string) ($data['phone'] ?? '')),
                 'username' => $data['username'],
                 'status' => $data['status'],
                 'is_village_user' => $isVillage,

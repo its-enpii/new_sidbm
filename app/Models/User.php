@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Models\Platform\Tenant;
 use App\Models\Platform\TenantMembership;
+use App\Services\PhoneNormalizer;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -43,6 +44,11 @@ final class User extends Authenticatable
             'term_end_at' => 'date',
             'notifications_read' => 'array',
         ];
+    }
+
+    public function normalizePhone(): string
+    {
+        return app(PhoneNormalizer::class)->normalize((string) $this->phone);
     }
 
     public function isRegencyUser(): bool

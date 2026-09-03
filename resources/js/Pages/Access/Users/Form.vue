@@ -22,6 +22,7 @@ const form = useForm({
     name: props.user?.name || '',
     username: props.user?.username || '',
     email: props.user?.email || '',
+    phone: props.user?.phone || '',
     password: '',
     password_confirmation: '',
     status: props.user?.status || 'active',
@@ -105,6 +106,9 @@ function submit() {
                         <AppInput v-model="form.username" label="Username Login" placeholder="Contoh: budi_s" required :error="form.errors.username" />
                         <div class="sm:col-span-2">
                             <AppInput v-model="form.email" label="Alamat Email (Opsional)" placeholder="Contoh: budi@contoh.id" type="email" :error="form.errors.email" />
+                        </div>
+                        <div class="sm:col-span-2">
+                            <AppInput v-model="form.phone" label="Nomor HP (WhatsApp)" icon="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="08xxxxxxxxxx" required :error="form.errors.phone" />
                         </div>
 
                         <div v-if="showMemberSelect" class="border-t border-outline-variant pt-4">

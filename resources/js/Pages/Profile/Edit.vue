@@ -200,9 +200,12 @@ async function destroyPhoto() {
                                 />
                                 <AppInput
                                     v-model="personalForm.phone"
-                                    label="Nomor Telepon/WA"
+                                    label="Nomor HP (WhatsApp)"
                                     icon="phone"
                                     type="tel"
+                                    inputmode="tel"
+                                    autocomplete="tel"
+                                    required
                                     :error="personalForm.errors.phone"
                                 />
                             </div>
