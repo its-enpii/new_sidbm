@@ -49,6 +49,7 @@ use App\Http\Controllers\Portal\PortalMemberController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Province\ProvinceDashboardController;
 use App\Http\Controllers\Province\ProvinceReportController;
+use App\Http\Controllers\PublicSite\PublicSiteController;
 use App\Http\Controllers\Regency\RegencyDashboardController;
 use App\Http\Controllers\Regency\RegencyReportController;
 use App\Http\Controllers\RegionalCodeController;
@@ -60,27 +61,51 @@ use App\Http\Controllers\Tenant\TenantOnboardingImportController;
 use App\Http\Controllers\Webhooks\DuitkuWebhookController;
 use App\Http\Controllers\Webhooks\TripayWebhookController;
 use App\Http\Controllers\Webhooks\XenditWebhookController;
+use App\Http\Controllers\Website\WebsiteMessageController;
+use App\Http\Controllers\Website\WebsitePageController;
+use App\Http\Controllers\Website\WebsitePostController;
+use App\Http\Controllers\Website\WebsiteSettingController;
 use App\Http\Controllers\WhatsappController;
 use App\Tenancy\TenantContext;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 // Public storage fallback route (serves files directly when webserver symlink is bypassed)
 Route::get('/storage/{path}', StorageServeController::class)
     ->where('path', '.*')
     ->name('storage.serve');
 
-Route::get('/', function (Request $request) {
-    if (config('desktop.enabled') || $request->header('X-Desktop-Client') === '1') {
-        return redirect()->route('login');
-    }
+Route::get('/', [PublicSiteController::class, 'home'])
+    ->middleware('public.site')
+    ->name('home');
 
-    return Inertia::render('Home', [
-        'name' => config('app.name'),
-        'status' => 'ok',
-    ]);
-});
+// Public tenant site content (blog & static pages). Rendered only on tenant
+// domains; platform hosts fall back to the vendor home inside the controller.
+Route::get('/berita', [PublicSiteController::class, 'posts'])
+    ->middleware('public.site')
+    ->name('public.posts');
+Route::get('/berita/{slug}', [PublicSiteController::class, 'post'])
+    ->middleware('public.site')
+    ->name('public.post');
+Route::get('/p/{slug}', [PublicSiteController::class, 'page'])
+    ->middleware('public.site')
+    ->name('public.page');
+
+// Public contact page + submission (rate-limited; honeypot inside the form).
+Route::get('/kontak', [PublicSiteController::class, 'contact'])
+    ->middleware('public.site')
+    ->name('public.contact');
+Route::post('/kontak', [PublicSiteController::class, 'storeMessage'])
+    ->middleware(['public.site', 'throttle:10,1'])
+    ->name('public.contact.store');
+
+// SEO endpoints: dynamic per-host sitemap & robots (no static files, so the
+// webserver never shadows these routes).
+Route::get('/sitemap.xml', [PublicSiteController::class, 'sitemap'])
+    ->middleware('public.site')
+    ->name('public.sitemap');
+Route::get('/robots.txt', [PublicSiteController::class, 'robots'])
+    ->middleware('public.site')
+    ->name('public.robots');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -290,6 +315,35 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
         Route::post('/invoices/{invoice}/checkout/tripay', [TenantInvoiceController::class, 'checkoutTripay'])->name('invoices.checkout.tripay');
         Route::post('/invoices/{invoice}/pay', [TenantInvoiceController::class, 'pay'])->name('invoices.pay');
         Route::post('/invoices/{invoice}/check-status', [TenantInvoiceController::class, 'checkStatus'])->name('invoices.check-status');
+    });
+
+    // Website (public site content: blog & static pages)
+    Route::prefix('website')->name('website.')->group(function (): void {
+        Route::get('/posts', [WebsitePostController::class, 'index'])->name('posts.index');
+        Route::get('/posts/create', [WebsitePostController::class, 'create'])->name('posts.create');
+        Route::post('/posts', [WebsitePostController::class, 'store'])->name('posts.store');
+        Route::get('/posts/{post}/edit', [WebsitePostController::class, 'edit'])->name('posts.edit');
+        Route::put('/posts/{post}', [WebsitePostController::class, 'update'])->name('posts.update');
+        Route::delete('/posts/{post}', [WebsitePostController::class, 'destroy'])->name('posts.destroy');
+        Route::post('/posts/{postId}/restore', [WebsitePostController::class, 'restore'])->whereNumber('postId')->name('posts.restore');
+        Route::delete('/posts/{post}/cover', [WebsitePostController::class, 'removeCover'])->name('posts.cover.destroy');
+
+        Route::get('/pages', [WebsitePageController::class, 'index'])->name('pages.index');
+        Route::get('/pages/create', [WebsitePageController::class, 'create'])->name('pages.create');
+        Route::post('/pages', [WebsitePageController::class, 'store'])->name('pages.store');
+        Route::get('/pages/{page}/edit', [WebsitePageController::class, 'edit'])->name('pages.edit');
+        Route::put('/pages/{page}', [WebsitePageController::class, 'update'])->name('pages.update');
+        Route::delete('/pages/{page}', [WebsitePageController::class, 'destroy'])->name('pages.destroy');
+        Route::post('/pages/{pageId}/restore', [WebsitePageController::class, 'restore'])->whereNumber('pageId')->name('pages.restore');
+
+        // Site appearance & contact settings for the tenant's public site
+        Route::get('/settings', [WebsiteSettingController::class, 'edit'])->name('settings.edit');
+        Route::put('/settings', [WebsiteSettingController::class, 'update'])->name('settings.update');
+
+        // Inbox for the public contact form
+        Route::get('/messages', [WebsiteMessageController::class, 'index'])->name('messages.index');
+        Route::post('/messages/{message}/read', [WebsiteMessageController::class, 'markRead'])->name('messages.read');
+        Route::delete('/messages/{message}', [WebsiteMessageController::class, 'destroy'])->name('messages.destroy');
     });
 
     // Master Data

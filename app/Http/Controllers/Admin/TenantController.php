@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\Admin\AuditLogger;
 use App\Services\Billing\SubscriptionService;
 use App\Services\TenantRegistrationService;
+use App\Tenancy\Services\PublicSiteResolver;
 use App\Tenancy\Services\TenantRegistrySynchronizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -183,6 +184,9 @@ final class TenantController
             ['name' => $data['name'], 'district_code' => $newDistrict, 'map_latitude' => $newLat, 'map_longitude' => $newLng, 'map_zoom' => $newZoom, 'status' => $data['status'], 'timezone' => $data['timezone'] ?? $tenant->timezone],
         );
 
+        $domainsChanged = $metadata['domains'] !== (is_array($tenant->metadata) ? ($tenant->metadata['domains'] ?? []) : []);
+        $statusChanged = $data['status'] !== $tenant->status;
+
         $tenant->forceFill([
             'name' => $data['name'],
             'district_code' => $newDistrict,
@@ -194,6 +198,10 @@ final class TenantController
             'suspended_at' => $data['status'] === 'suspended' ? ($tenant->suspended_at ?? now()) : null,
             'metadata' => $metadata,
         ])->save();
+
+        if ($domainsChanged || $statusChanged) {
+            app(PublicSiteResolver::class)->flush();
+        }
 
         app(AuditLogger::class)->record(
             'tenant.update',
@@ -225,6 +233,8 @@ final class TenantController
     {
         $tenant->forceFill(['status' => 'suspended', 'suspended_at' => now()])->save();
 
+        app(PublicSiteResolver::class)->flush();
+
         $audit->record('tenant.suspend', $tenant, Tenant::class, $tenant->row_id, "Tenant [{$tenant->code}] ditangguhkan.");
 
         return back()->with('success', 'Tenant ditangguhkan.');
@@ -233,6 +243,8 @@ final class TenantController
     public function activate(Tenant $tenant, AuditLogger $audit): RedirectResponse
     {
         $tenant->forceFill(['status' => 'active', 'suspended_at' => null])->save();
+
+        app(PublicSiteResolver::class)->flush();
 
         $audit->record('tenant.activate', $tenant, Tenant::class, $tenant->row_id, "Tenant [{$tenant->code}] diaktifkan kembali.");
 

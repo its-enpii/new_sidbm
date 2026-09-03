@@ -3,6 +3,38 @@
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
+## [Unreleased]
+
+### Added
+- **Situs Publik Ber-branding Tenant di Domain Kustom (Fase 1):**
+  - Resolusi host → tenant untuk halaman publik via `PublicSiteResolver` (`app/Tenancy/Services/`) dengan cache berversi (TTL 300 detik, flush O(1) lewat kenaikan versi) — `localhost`/host platform/`SITE_PLATFORM_HOSTS` selalu merender halaman vendor SIDBM.
+  - Middleware `ResolvePublicSite` (alias `public.site`): menghubungkan shard + inisialisasi `TenantContext` untuk host tenant, **tanpa fail keras** — host tak dikenal jatuh lembut ke halaman vendor, bukan 403; context & koneksi dilepas di blok `finally` agar tidak bocor antar-request worker.
+  - Route `/` kini dipegang `PublicSiteController` (`app/Http/Controllers/PublicSite/`): host tenant aktif merender halaman landing `PublicSite/TenantHome` ber-branding `OrganizationProfile` (logo, nama legal/singkat, alamat, kontak, tahun berdiri, CTA "Masuk Sistem" ke `/login`), tenant `suspended` dan host tak dikenal tetap ke halaman vendor, short-circuit desktop (`X-Desktop-Client` / `DESKTOP_MODE`) ke `/login` tetap terjaga.
+  - `Tenant::matchesHost()` di `app/Models/Platform/Tenant.php` — logika pencocokan domain (exact + wildcard `*.domain`) dipindah dari `TenantResolver::candidateMatchesHost()` (dihapus) agar dipakai bersama resolver tenancy & resolver situs publik.
+  - Flush cache host otomatis saat admin mengubah domain/status tenant (`TenantController::update/suspend/activate`).
+  - Konfigurasi baru `config/site.php` (`SITE_PLATFORM_HOSTS`) untuk host platform tambahan di balik load balancer.
+  - Automated feature test `tests/Feature/PublicSite/PublicTenantSiteTest.php` (7 test, 67 asersi): fallback vendor, landing tenant, prioritas nama profil organisasi, tenant suspended, redirect desktop, dan perilaku cache-until-flush.
+- **Blog & Halaman Statis Tenant (Fase 2):**
+  - Tabel shard `site_posts` dan `site_pages` (migrasi `2026_09_03_000002_create_site_content_tables.php`) dengan slug unik per tenant, status `draft|published`, soft delete, serta indeks `(tenant_id, status)`; model `SitePost`/`SitePage` (`app/Domain/Website/Models/`) menandai kontrak `ExcludedFromDesktopSync` agar konten situs publik tidak ikut terkirim ke outbox sinkronisasi desktop.
+  - Admin CRUD berita (`/website/posts`) dan halaman (`/website/pages`) dengan editor rich text `AppRichEditor`, upload/hapus gambar sampul (JPG/PNG/WebP maks 2 MB), filter status, pencarian, sort, per-page, soft delete + pulihkan; nama penulis distempel otomatis dari pengguna yang membuat berita.
+  - Slug stabil untuk URL publik: otomatis dari judul (transliterasi ASCII, akhiran `-2`, `-3`, … bila bentrok) saat baris baru, dipertahankan saat edit kecuali penulis mengosongkannya; `published_at` dicap saat pertama tayang dan tidak berubah pada edit berikutnya.
+  - Render publik di domain tenant: `/berita` (indeks paginated 9 per halaman + pencarian judul/ringkasan), `/berita/{slug}` (detail berita), `/p/{slug}` (halaman statis); hanya konten `published` dengan `published_at <= now()` yang tampil, slug tak dikenal jatuh lembut ke landing tenant — bukan 404 — agar branding tetap milik desa.
+  - Halaman `PublicSite/BlogIndex`, `PublicSite/BlogPost`, `PublicSite/StaticPage` dengan styling artikel `.prose-sidbm` (`resources/css/app.css`) dan tombol "Berita" pada landing tenant yang mengarah ke `/berita`.
+  - Permission baru `website.view` / `website.manage` (`config/permissions.php`): nav sidebar "Website" disembunyikan tanpa izin, index/crud dikawal `denyUnless`, dan — perbaikan keamanan — `request_map` kini memetakan kelas FormRequest **konkret** (`SitePostRequest`/`SitePageRequest`), bukan kelas abstrak `SiteContentRequest` yang tidak pernah cocok dengan lookup `static::class` sehingga store/update sebelumnya lolos tanpa cek `website.manage`.
+  - Update `docs/RBAC_MATRIX.md`: baris nav Website, aksi konten, dan status enforcement.
+  - Automated feature test `tests/Feature/Website/WebsiteContentTest.php` (15 test): slug unik & stabil, stamping publish, upload/hapus cover, soft delete + restore, guard permission (kasir 403 termasuk pada store), render publik index/search/detail/fallback, dan eksklusi outbox desktop dengan kontrol positif; ditambah asersi `website.*` pada `tests/Unit/Access/PermissionConfigTest.php`.
+- **Pengaturan Situs, Form Kontak & SEO (Fase 3):**
+  - Tabel shard `site_settings` (satu baris per tenant, unique `tenant_id`) dan `site_messages` (indeks `(tenant_id, read_at)`, migrasi `2026_09_03_000003_create_site_settings_and_messages.php`); model `SiteSetting`/`SiteMessage` (`app/Domain/Website/Models/`) menandai kontrak `ExcludedFromDesktopSync`.
+  - Halaman admin **Pengaturan Situs** (`/website/settings`): tagline & deskripsi hero, upload/ganti/hapus gambar hero (JPG/PNG/WebP maks 2 MB, file lama otomatis dihapus), deskripsi "tentang", tautan sosial media, kontak (telepon/email/alamat), dan catatan footer; write dikawal `request_map` → `website.manage` (`SiteSettingRequest`), lihat `website.view`.
+  - Form kontak publik **/kontak** di domain tenant: rate limit `throttle:10,1` di level route, honeypot field `website` tersembunyi CSS (bot dikaburi sukses palsu tanpa menyimpan apa pun), validasi nama/pesan wajib; pesan tersimpan per tenant dan admin membacanya di **Pesan Masuk** (`/website/messages`) dengan pencarian, badge jumlah belum dibaca, tandai sudah dibaca, dan hapus (`website.manage`).
+  - Payload `settings` kini menyebar ke seluruh halaman publik via `PublicSiteController::resolveTenantSite()` — landing tenant menampilkan tagline/hero/about/footer dari pengaturan, bukan nilai kosong.
+  - SEO halaman publik: meta Open Graph + Twitter Card (title/description/type/url, `og:image` + `article:published_time` untuk berita) di semua 5 halaman `PublicSite/*`, plus `GET /sitemap.xml` (home, /berita, daftar berita & halaman published) dan `GET /robots.txt` (blokir /login, /dashboard, /website, /master-data, dll; tautan sitemap) — keduanya tetap melayani host platform tanpa konteks tenant.
+  - Perbaikan bug sitemap: penambahan URL memakai `->each(fn () => $urls[] = …)` yang menangkap `$urls` by-value sehingga daftar berita/halaman tidak pernah masuk XML; diganti `foreach` eksplisit.
+  - Nav sidebar Website bertambah menu **Pengaturan Situs** dan **Pesan Masuk** (otomatis disembunyikan tanpa `website.view` via `nav_map`); `docs/RBAC_MATRIX.md` diperbarui (baris nav + aksi).
+  - Automated feature test `tests/Feature/Website/WebsiteSettingsAndMessagesTest.php` (20 test, 151 asersi): render & persist pengaturan termasuk siklus hidup gambar hero (upload/ganti/hapus), guard permission kasir 403 di seluruh endpoint, render kontak di domain tenant dan fallback vendor Home di host platform, persist/validasi/honeypot/rate-limit form kontak, inbox pencarian/tandai-baca/hapus, eksklusi outbox desktop, propagasi settings ke landing tenant, sitemap, dan robots.
+- **Runbook Domain Kustom Tenant (Fase 4):**
+  - `docs/CUSTOM_DOMAIN_RUNBOOK.md` — prosedur operasional DNS & TLS untuk domain kustom tenant: model resolusi host (`ResolvePublicSite` → `PublicSiteResolver` → `TenantContext`), prasyarat, opsi DNS (subdomain platform wildcard vs apex kustom penuh + aturan A/CNAME apex), verifikasi propagasi (`dig` + smoke `curl` per halaman publik), setup lokal Laragon (hosts file), TLS Caddy on-demand (endpoint `ask` anti-abuse) vs nginx + certbot per domain, checklist verifikasi TLS, prosedur operator 7 langkah, rollback, dan tabel troubleshooting.
+
 ## [2026-09-02]
 
 ### Added

@@ -30,7 +30,7 @@ final class TenantResolver
         $tenant = Tenant::query()->with(['placement.shard'])
             ->whereIn('status', ['active', 'read_only'])
             ->get()
-            ->first(fn (Tenant $candidate): bool => $this->candidateMatchesHost($candidate, $normalizedHost));
+            ->first(fn (Tenant $candidate): bool => $candidate->matchesHost($normalizedHost));
 
         // host.docker.internal: tool callbacks from orchestrator container -> host SIDBM
         $localTenant = (string) config('tenancy.local_tenant', '');
@@ -96,30 +96,5 @@ final class TenantResolver
         }
 
         return $tenant;
-    }
-
-    private function candidateMatchesHost(Tenant $tenant, string $host): bool
-    {
-        $metadata = is_array($tenant->metadata) ? $tenant->metadata : [];
-        $domains = $metadata['domains'] ?? ($metadata['domain'] ?? []);
-        $domains = is_array($domains) ? $domains : [$domains];
-
-        foreach ($domains as $pattern) {
-            $pattern = strtolower(trim((string) $pattern));
-            if ($pattern === '') {
-                continue;
-            }
-            if ($pattern === $host) {
-                return true;
-            }
-            if (str_starts_with($pattern, '*.')) {
-                $suffix = substr($pattern, 1);
-                if (str_ends_with($host, $suffix) && $host !== ltrim($suffix, '.')) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 }

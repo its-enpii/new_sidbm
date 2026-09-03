@@ -33,6 +33,9 @@ use App\Http\Requests\Settings\SignatureImageUploadRequest;
 use App\Http\Requests\Settings\SignaturesRequest;
 use App\Http\Requests\Settings\WhatsappInstanceRequest;
 use App\Http\Requests\Settings\WhatsappRequest;
+use App\Http\Requests\Website\SitePageRequest;
+use App\Http\Requests\Website\SitePostRequest;
+use App\Http\Requests\Website\SiteSettingRequest;
 
 /**
  * Permission catalog + default role packs.
@@ -56,6 +59,9 @@ return [
         'villages.manage',
         'institutions.view',
         'institutions.manage',
+        // Public website content (blog & static pages)
+        'website.view',
+        'website.manage',
         // Lending
         'loans.view',
         'loans.propose',
@@ -228,6 +234,7 @@ return [
         '/billing/invoices' => 'billing.view',
         '/access/users' => 'users.view',
         '/access/roles' => 'roles.view',
+        '/website' => 'website.view',
         '/settings' => 'settings.manage',
         '/regency' => 'regency.view_reports',
         '/province' => 'province.view_reports',
@@ -267,6 +274,9 @@ return [
         AssetRequest::class => 'assets.manage',
         VillageRequest::class => 'villages.manage',
         OtherInstitutionRequest::class => 'institutions.manage',
+        SitePageRequest::class => 'website.manage',
+        SitePostRequest::class => 'website.manage',
+        SiteSettingRequest::class => 'website.manage',
         StoreTenantUserRequest::class => 'users.manage',
         UpdateTenantUserRequest::class => 'users.manage',
         TenantRoleRequest::class => 'roles.manage',

@@ -68,4 +68,33 @@ final class Tenant extends PlatformModel
             ->whereIn('status', ['active', 'trialing', 'past_due'])
             ->latestOfMany('row_id');
     }
+
+    /**
+     * Whether this tenant claims the given host through its metadata domain
+     * list — exact match, or a `*.example.com` wildcard subdomain pattern.
+     */
+    public function matchesHost(string $host): bool
+    {
+        $metadata = is_array($this->metadata) ? $this->metadata : [];
+        $domains = $metadata['domains'] ?? ($metadata['domain'] ?? []);
+        $domains = is_array($domains) ? $domains : [$domains];
+
+        foreach ($domains as $pattern) {
+            $pattern = strtolower(trim((string) $pattern));
+            if ($pattern === '') {
+                continue;
+            }
+            if ($pattern === $host) {
+                return true;
+            }
+            if (str_starts_with($pattern, '*.')) {
+                $suffix = substr($pattern, 1);
+                if (str_ends_with($host, $suffix) && $host !== ltrim($suffix, '.')) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }
