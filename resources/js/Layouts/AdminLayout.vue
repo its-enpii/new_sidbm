@@ -23,6 +23,7 @@ const navigation = [
     { label: 'Log Audit', icon: 'history', href: '/admin/audit-logs' },
     { label: 'Pengguna Platform', icon: 'group', href: '/admin/users' },
     { label: 'Shard & Cutover', icon: 'storage', href: '/admin/shards' },
+    { label: 'WhatsApp', icon: 'chat', href: '/admin/whatsapp' },
     { label: 'Platform Settings', icon: 'tune', href: '/admin/settings' },
     { label: 'Payment Gateway', icon: 'payments', href: '/admin/payment-gateways' },
     { label: 'AI Assistant', icon: 'smart_toy', href: '/admin/ai-assistant' },

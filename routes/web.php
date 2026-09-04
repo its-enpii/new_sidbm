@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\MigrationController as AdminMigrationController;
 use App\Http\Controllers\Admin\PaymentGatewayController;
 use App\Http\Controllers\Admin\PlanController as AdminPlanController;
 use App\Http\Controllers\Admin\PlatformSettingController;
+use App\Http\Controllers\Admin\PlatformWhatsappController;
 use App\Http\Controllers\Admin\RevenueController as AdminRevenueController;
 use App\Http\Controllers\Admin\ShardController;
 use App\Http\Controllers\Admin\TenantController as AdminTenantController;
@@ -194,6 +195,16 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
 
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
     Route::get('/shards', [ShardController::class, 'index'])->name('shards.index');
+
+    Route::get('/whatsapp', [PlatformWhatsappController::class, 'index'])->name('whatsapp.index');
+    Route::post('/whatsapp', [PlatformWhatsappController::class, 'store'])->name('whatsapp.store');
+    Route::put('/whatsapp/{instance}', [PlatformWhatsappController::class, 'update'])->name('whatsapp.update');
+    Route::delete('/whatsapp/{instance}', [PlatformWhatsappController::class, 'destroy'])->name('whatsapp.destroy');
+    Route::post('/whatsapp/{instance}/create-session', [PlatformWhatsappController::class, 'createSession'])->name('whatsapp.create-session');
+    Route::get('/whatsapp/{instance}/state', [PlatformWhatsappController::class, 'state'])->name('whatsapp.state');
+    Route::delete('/whatsapp/{instance}/delete-session', [PlatformWhatsappController::class, 'deleteSession'])->name('whatsapp.delete-session');
+    Route::post('/whatsapp/{instance}/test', [PlatformWhatsappController::class, 'test'])->name('whatsapp.test');
+    Route::post('/whatsapp/{instance}/set-default', [PlatformWhatsappController::class, 'setDefault'])->name('whatsapp.set-default');
 
     Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
     Route::post('/users/{user}/toggle-status', [UserManagementController::class, 'toggleStatus'])->name('users.toggle-status');
