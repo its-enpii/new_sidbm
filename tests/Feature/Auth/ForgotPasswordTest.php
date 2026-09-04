@@ -7,12 +7,15 @@ namespace Tests\Feature\Auth;
 use App\Models\Platform\DatabaseShard;
 use App\Models\Platform\Tenant;
 use App\Models\Platform\TenantPlacement;
+use App\Models\Platform\WhatsappPlatformInstance;
 use App\Models\User;
 use App\Services\PhoneNormalizer;
+use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -47,6 +50,103 @@ final class ForgotPasswordTest extends TestCase
             ->assertSessionHas('info');
 
         $this->get(route('password.otp.form'))->assertRedirect(route('password.request'));
+    }
+
+    public function test_otp_is_sent_through_platform_instance_without_tenant_context(): void
+    {
+        $user = $this->createTenantUser();
+        WhatsappPlatformInstance::query()->create([
+            'name' => 'OTP Platform',
+            'instance_name' => 'platform-wa-otp',
+            'status' => 'open',
+            'is_default' => true,
+            'is_active' => true,
+        ]);
+
+        config()->set('services.wa_gateway.base_url', 'https://wa-gateway.test');
+        config()->set('services.wa_gateway.api_key', 'test-api-key');
+
+        Http::fake([
+            'https://wa-gateway.test/send-message' => Http::response(['success' => true]),
+        ]);
+
+        $this->post(route('password.otp.send'), ['identifier' => $user->username])
+            ->assertRedirect(route('password.otp.form'));
+
+        $this->assertFalse(app(TenantContext::class)->isInitialized());
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://wa-gateway.test/send-message'
+            && $request['instance'] === 'platform-wa-otp'
+            && $request['number'] === '6281234567890'
+            && str_contains((string) $request['text'], 'Kode reset password SIDBM'));
+
+        $this->assertDatabaseHas('password_reset_tokens', [
+            'user_row_id' => $user->row_id,
+            'phone' => '6281234567890',
+        ], 'platform');
+    }
+
+    public function test_otp_falls_back_to_tenant_gateway_when_platform_is_empty(): void
+    {
+        $user = $this->createTenantUser();
+
+        config()->set('services.wa_gateway.base_url', 'https://wa-gateway.test');
+        config()->set('services.wa_gateway.api_key', 'tenant-api-key');
+
+        Artisan::call('migrate:fresh', [
+            '--database' => 'tenant',
+            '--path' => 'database/migrations/shard',
+            '--force' => true,
+        ]);
+
+        DB::connection('tenant')->table('tenant_registry')->insert([
+            'id' => $user->tenant_id,
+            'public_id' => (string) Str::ulid(),
+            'code' => 'tenant-'.Str::lower(Str::random(8)),
+            'name' => 'Test Tenant',
+            'status' => 'active',
+            'synced_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::connection('tenant')->table('tenant_settings')->insert([
+            'tenant_id' => $user->tenant_id,
+            'key' => 'whatsapp.is_enabled',
+            'value' => '1',
+            'value_type' => 'bool',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::connection('tenant')->table('whatsapp_instances')->insert([
+            'tenant_id' => $user->tenant_id,
+            'id' => 1,
+            'name' => 'Tenant WA',
+            'instance_name' => 'tenant-wa-otp',
+            'status' => 'open',
+            'is_default' => 1,
+            'is_active' => 1,
+            'daily_limit' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Http::fake([
+            'https://wa-gateway.test/send-message' => Http::response(['success' => true]),
+        ]);
+
+        $this->post(route('password.otp.send'), ['identifier' => $user->username])
+            ->assertRedirect(route('password.otp.form'));
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://wa-gateway.test/send-message'
+            && $request['instance'] === 'tenant-wa-otp'
+            && $request['number'] === '6281234567890');
+
+        $this->assertDatabaseHas('password_reset_tokens', [
+            'user_row_id' => $user->row_id,
+            'phone' => '6281234567890',
+        ], 'platform');
     }
 
     public function test_send_otp_with_unknown_identifier_has_same_response(): void

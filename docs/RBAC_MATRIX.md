@@ -36,6 +36,7 @@ Platform `/admin/*` = **superadmin only** (bukan role tenant).
 | Header | Profil | `/profile` | *(self)* |
 | Header | Search | `/search` | any `*.view` held |
 | Platform | Panel Admin | `/admin` | superadmin |
+| Platform | WhatsApp | `/admin/whatsapp` | superadmin |
 
 ## B. Tombol aksi → permission
 
@@ -75,7 +76,7 @@ Platform `/admin/*` = **superadmin only** (bukan role tenant).
 
 ## D. Admin platform (bukan role tenant)
 
-Dashboard · Tenant CRUD · Users/role · Repair · Plans · Invoices/void/pay · Regional API → **superadmin**.
+Dashboard · Tenant CRUD · Users/role · Repair · Plans · Invoices/void/pay · Regional API · WhatsApp platform → **superadmin**.
 
 ## E. Enforcement status
 

@@ -6,6 +6,7 @@ namespace App\Services\Auth;
 
 use App\Models\User;
 use App\Services\PhoneNormalizer;
+use App\Services\PlatformWhatsappGatewayService;
 use App\Services\WhatsappGatewayService;
 use App\Tenancy\Services\ShardConnectionManager;
 use App\Tenancy\TenantContext;
@@ -26,6 +27,7 @@ final readonly class WhatsAppPasswordOtpService
         private TenantResolver $tenantResolver,
         private ShardConnectionManager $shardConnections,
         private WhatsappGatewayService $gateway,
+        private PlatformWhatsappGatewayService $platformGateway,
     ) {}
 
     /**
@@ -35,7 +37,7 @@ final readonly class WhatsAppPasswordOtpService
     {
         $phone = app(PhoneNormalizer::class)->normalize((string) $user->phone);
 
-        if ($phone === '' || ! $this->hasValidIndonesianFormat($phone) || $user->tenant_id === null) {
+        if ($phone === '' || ! $this->hasValidIndonesianFormat($phone)) {
             return ['success' => false, 'phone' => null];
         }
 
@@ -51,7 +53,7 @@ final readonly class WhatsAppPasswordOtpService
         $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $this->issueToken($user, $phone, $otp);
 
-        if (! $this->sendWhatsApp($phone, $otp, (int) $user->tenant_id)) {
+        if (! $this->sendWhatsApp($phone, $otp, $user->tenant_id === null ? null : (int) $user->tenant_id)) {
             DB::connection($this->platformConnection())->table('password_reset_tokens')
                 ->where('phone', $phone)
                 ->delete();
@@ -122,15 +124,49 @@ final readonly class WhatsAppPasswordOtpService
         return $phone;
     }
 
-    private function sendWhatsApp(string $phone, string $otp, int $tenantId): bool
+    private function sendWhatsApp(string $phone, string $otp, ?int $tenantId): bool
     {
-        return (bool) $this->runWithTenantContext($tenantId, function () use ($phone, $otp): bool {
-            $result = $this->gateway->sendText($phone, "Kode reset password SIDBM Anda adalah {$otp}. Berlaku 10 menit. Jangan bagikan kode ini.");
+        $message = "Kode reset password SIDBM Anda adalah {$otp}. Berlaku 10 menit. Jangan bagikan kode ini.";
+
+        $platformResult = $this->platformGateway->sendText($phone, $message);
+        if ($platformResult['success']) {
+            Log::info('WhatsApp password OTP sent', [
+                'phone_masked' => $this->maskPhone($phone),
+                'source' => 'platform',
+            ]);
+
+            return true;
+        }
+
+        Log::warning('WhatsApp password OTP platform send failed', [
+            'phone_masked' => $this->maskPhone($phone),
+            'source' => 'platform',
+            'reason' => $platformResult['message'],
+        ]);
+
+        if ($tenantId === null) {
+            Log::warning('WhatsApp password OTP not sent', [
+                'phone_masked' => $this->maskPhone($phone),
+                'source' => 'platform',
+                'reason' => 'Superadmin hanya dapat menggunakan instance WhatsApp platform.',
+            ]);
+
+            return false;
+        }
+
+        return (bool) $this->runWithTenantContext($tenantId, function () use ($phone, $message): bool {
+            $result = $this->gateway->sendText($phone, $message);
 
             if (! $result['success']) {
                 Log::warning('WhatsApp password OTP not sent', [
                     'phone_masked' => $this->maskPhone($phone),
+                    'source' => 'tenant',
                     'reason' => $result['message'],
+                ]);
+            } else {
+                Log::info('WhatsApp password OTP sent', [
+                    'phone_masked' => $this->maskPhone($phone),
+                    'source' => 'tenant',
                 ]);
             }
 

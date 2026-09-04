@@ -6,6 +6,12 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ## [2026-09-03]
 
 ### Added
+- **Panel WhatsApp Platform untuk Superadmin & OTP Lupa Password:**
+  - Tabel platform `whatsapp_platform_instances` dan model `WhatsappPlatformInstance` untuk nomor WhatsApp system-level yang tidak bergantung pada instance tenant.
+  - Service `PlatformWhatsappGatewayService` dengan kontrak HTTP gateway yang sama (`create-instance`, `instance-state`, `delete-instance`, `send-message`) serta resolusi instance default/aktif untuk OTP platform.
+  - Panel `/admin/whatsapp`: daftar instance, tambah/edit, QR + polling status, hapus session, uji kirim, dan set default; item navigasi "WhatsApp" ditambahkan pada layout superadmin.
+  - OTP lupa password kini mencoba instance platform terlebih dahulu, lalu fallback ke instance tenant; akun tanpa `tenant_id` (superadmin) hanya menggunakan instance platform agar tidak ada NPE pada resolver tenant.
+  - Automated feature test `tests/Feature/Admin/PlatformWhatsappTest.php` serta skenario fallback OTP pada `tests/Feature/Auth/ForgotPasswordTest.php`.
 - **Situs Publik Ber-branding Tenant di Domain Kustom (Fase 1):**
   - Resolusi host → tenant untuk halaman publik via `PublicSiteResolver` (`app/Tenancy/Services/`) dengan cache berversi (TTL 300 detik, flush O(1) lewat kenaikan versi) — `localhost`/host platform/`SITE_PLATFORM_HOSTS` selalu merender halaman vendor SIDBM.
   - Middleware `ResolvePublicSite` (alias `public.site`): menghubungkan shard + inisialisasi `TenantContext` untuk host tenant, **tanpa fail keras** — host tak dikenal jatuh lembut ke halaman vendor, bukan 403; context & koneksi dilepas di blok `finally` agar tidak bocor antar-request worker.
