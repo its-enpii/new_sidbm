@@ -136,5 +136,36 @@ final class DesktopSyncApiTest extends TestCase
             ->getJson('/api/v1/desktop/sync/tenants/tenant-a/status');
         $headerResponse->assertOk()
             ->assertJsonPath('status', 'success');
+
+        // Authenticated request with custom header X-API-Key should pass
+        $xApiKeyResponse = $this->withHeader('X-API-Key', 'test-desktop-secret-token')
+            ->getJson('/api/v1/desktop/sync/tenants/tenant-a/status');
+        $xApiKeyResponse->assertOk()
+            ->assertJsonPath('status', 'success');
+    }
+
+    public function test_rejects_query_parameter_api_token(): void
+    {
+        Config::set('services.desktop.api_key', 'test-desktop-secret-token');
+
+        $queryApiKeyResponse = $this->getJson('/api/v1/desktop/sync/tenants/tenant-a/status?api_key=test-desktop-secret-token');
+        $queryApiKeyResponse->assertStatus(401)
+            ->assertJsonPath('status', 'error');
+
+        $queryDesktopKeyResponse = $this->getJson('/api/v1/desktop/sync/tenants/tenant-a/status?desktop_key=test-desktop-secret-token');
+        $queryDesktopKeyResponse->assertStatus(401)
+            ->assertJsonPath('status', 'error');
+    }
+
+    public function test_requires_desktop_sync_api_key_in_production_environment(): void
+    {
+        Config::set('services.desktop.api_key', '');
+        $this->app['env'] = 'production';
+
+        $response = $this->getJson('/api/v1/desktop/sync/tenants/tenant-a/status');
+
+        $response->assertStatus(401)
+            ->assertJsonPath('status', 'error')
+            ->assertJsonPath('message', 'Unauthorized. DESKTOP_SYNC_API_KEY must be configured in production.');
     }
 }

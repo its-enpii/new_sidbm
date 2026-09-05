@@ -3,6 +3,23 @@
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
+## [2026-09-04]
+
+### Added
+- **Pengerasan Lokasi SQLite Desktop & Migrasi Otomatis userData:**
+  - `electron/main.cjs` kini secara default mengarahkan database SQLite lokal ke `app.getPath('userData')/database/database.sqlite` (bukan direktori instalasi) agar file database tidak terhapus saat uninstall/reinstall aplikasi.
+  - Startup handler di Electron secara otomatis mendeteksi dan menyalin database lama dari path legacy (`<appDir>/database/database.sqlite`) ke lokasi baru di `userData` jika file target belum ada.
+  - Template `.env.desktop.example` diperbarui dengan panduan pengosongan `DESKTOP_SQLITE_PATH` agar lokasi dikelola otomatis oleh runtime Electron.
+- **Cadangan Otomatis SQLite Pre-Update di Electron:**
+  - `electron/main.cjs` membuat file backup SQLite (`<nama>.bak-YYYYMMDD-HHmmss`) di direktori `backups/` sebelum `autoUpdater.quitAndInstall()` dieksekusi.
+  - Rotasi cadangan otomatis mempertahankan maksimal 3 file backup terbaru dan membersihkan file backup yang lebih lama.
+
+### Changed
+- **Pengerasan Keamanan Token Desktop Sync API (`VerifyDesktopApiToken`):**
+  - Menghapus penerimaan token autentikasi melalui query parameter (`?api_key=` dan `?desktop_key=`) guna mencegah pencatatan kredensial pada server access logs maupun proxy. Token kini wajib dikirim melalui header `Authorization: Bearer` atau `X-Desktop-Key` / `X-API-Key`.
+  - Mengubah fallback middleware: jika `services.desktop.api_key` kosong di environment `production`, request otomatis ditolak (HTTP 401) dengan pesan bahwa `DESKTOP_SYNC_API_KEY` wajib dikonfigurasi.
+  - Memperbarui automated feature test `tests/Feature/Api/DesktopSyncApiTest.php` untuk mencakup penolakan query parameter dan kewajiban konfigurasi API key di environment produksi.
+
 ## [2026-09-03]
 
 ### Added

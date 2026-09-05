@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Menu, ipcMain, shell, dialog, Notification, session } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const http = require('http');
 const { autoUpdater } = require('electron-updater');
 
@@ -21,6 +22,90 @@ const DEFAULT_CONFIG = {
 // Set App User Model ID for Windows Action Center Notifications
 if (process.platform === 'win32') {
     app.setAppUserModelId('com.enpiistudio.sidbm.desktop');
+}
+
+
+function initializeSqlitePath() {
+    if (!process.env.DESKTOP_SQLITE_PATH) {
+        const userDataDir = app.getPath('userData');
+        const dbDir = path.join(userDataDir, 'database');
+        const targetSqlitePath = path.join(dbDir, 'database.sqlite');
+
+        if (!fs.existsSync(dbDir)) {
+            fs.mkdirSync(dbDir, { recursive: true });
+        }
+
+        const legacyLocations = [
+            path.join(app.getAppPath(), 'database', 'database.sqlite'),
+            path.resolve(__dirname, '../database/database.sqlite'),
+        ];
+
+        if (!fs.existsSync(targetSqlitePath)) {
+            for (const legacyPath of legacyLocations) {
+                if (fs.existsSync(legacyPath)) {
+                    try {
+                        fs.copyFileSync(legacyPath, targetSqlitePath);
+                        console.info(`[sqlite] Migrated legacy database from ${legacyPath} to ${targetSqlitePath}`);
+                        break;
+                    } catch (err) {
+                        console.error(`[sqlite] Failed to migrate legacy database from ${legacyPath}:`, err);
+                    }
+                }
+            }
+        }
+
+        process.env.DESKTOP_SQLITE_PATH = targetSqlitePath;
+    }
+}
+
+function backupSqliteBeforeUpdate() {
+    try {
+        const sqlitePath = process.env.DESKTOP_SQLITE_PATH;
+        if (!sqlitePath || !fs.existsSync(sqlitePath)) {
+            console.warn('[backup] SQLite database file not found for pre-update backup:', sqlitePath);
+            return;
+        }
+
+        const backupDir = path.join(path.dirname(sqlitePath), 'backups');
+        if (!fs.existsSync(backupDir)) {
+            fs.mkdirSync(backupDir, { recursive: true });
+        }
+
+        const filename = path.basename(sqlitePath);
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+        const backupFileName = `${filename}.bak-${timestamp}`;
+        const backupPath = path.join(backupDir, backupFileName);
+
+        fs.copyFileSync(sqlitePath, backupPath);
+        console.info(`[backup] Pre-update SQLite backup created at ${backupPath}`);
+
+        const files = fs.readdirSync(backupDir)
+            .filter((file) => file.startsWith(`${filename}.bak-`))
+            .map((file) => {
+                const fullPath = path.join(backupDir, file);
+                return {
+                    path: fullPath,
+                    mtime: fs.statSync(fullPath).mtimeMs,
+                };
+            })
+            .sort((a, b) => b.mtime - a.mtime);
+
+        if (files.length > 3) {
+            const toDelete = files.slice(3);
+            for (const item of toDelete) {
+                try {
+                    fs.unlinkSync(item.path);
+                    console.info(`[backup] Pruned older backup: ${item.path}`);
+                } catch (err) {
+                    console.error(`[backup] Failed to prune backup ${item.path}:`, err);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('[backup] Failed to create pre-update SQLite backup:', error);
+    }
 }
 
 function createWindow() {
@@ -136,6 +221,7 @@ function requireRestartAfterUpdate(force = false) {
 
     dialog.showMessageBox(mainWindow, options).then(({ response }) => {
         if (response === 0) {
+            backupSqliteBeforeUpdate();
             autoUpdater.quitAndInstall();
         }
     }).catch(() => {});
@@ -255,6 +341,7 @@ ipcMain.handle('desktop:check-connectivity', async (_, urlToCheck) => {
 });
 
 app.whenReady().then(() => {
+    initializeSqlitePath();
     createWindow();
     initializeAutoUpdater();
 

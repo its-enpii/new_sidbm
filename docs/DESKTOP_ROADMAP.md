@@ -64,9 +64,9 @@ Dokumen ini memetakan rancangan arsitektur, strategi sinkronisasi data, pembagia
   - Implementasi `app/Http/Controllers/Api/Desktop/DesktopSyncController.php`.
   - Endpoint: `GET /api/v1/desktop/sync/tenants/{tenant}/status`, `GET /api/v1/desktop/sync/tenants/{tenant}/snapshot`, `GET /api/v1/desktop/sync/tenants/{tenant}/delta`.
 - [x] **1.3. Middleware Keamanan Desktop API Token**
-  - Middleware `app/Http/Middleware/VerifyDesktopApiToken.php` (`desktop.auth`) memvalidasi Bearer Token / Header `X-Desktop-Key`.
+  - Middleware `app/Http/Middleware/VerifyDesktopApiToken.php` (`desktop.auth`) memvalidasi Bearer Token / Header `X-Desktop-Key` / `X-API-Key`.
 - [x] **1.4. Pengujian Automated Backend**
-  - Feature test `Tests\Feature\Api\DesktopSyncApiTest` (6 tests passed 100%).
+  - Feature test `Tests\Feature\Api\DesktopSyncApiTest` (8 tests passed 100%).
 
 ---
 
@@ -78,22 +78,19 @@ Dokumen ini memetakan rancangan arsitektur, strategi sinkronisasi data, pembagia
   - Service provider `app/Providers/DesktopAppServiceProvider.php` (auto-create SQLite database, session file driver, queue sync).
 - [x] **2.2. Command Artisan Inisialisasi Desktop**
   - `php artisan desktop:init` (`app/Console/Commands/DesktopInitCommand.php`): otomatis membuat file SQLite dan menjalankan 27 migrasi shard tenant.
-  - `php artisan desktop:status` (`app/Console/Commands/DesktopStatusCommand.php`): cek status koneksi, ukuran database SQLite, dan sinkronisasi terakhir.
-- [x] **2.3. Electron Scaffold & IPC Bridge**
-  - File `electron/main.cjs` dan `electron/preload.cjs`.
-  - Context bridge `window.desktopAPI` (status koneksi, minimize/maximize/close, notifikasi native OS, navigasi internal).
-- [x] **2.4. Pengujian Automated Backend**
-  - Feature test `Tests\Feature\Desktop\DesktopFoundationTest` (4 tests passed 100%).
+  - `php artisan desktop:status` (`app/Console/Commands/DesktopStatusCommand.php`): cek status koneksi database SQLite lokal dan ringkasan data.
+- [x] **2.3. Pengujian Automated Backend**
+  - Feature test `Tests\Feature\Desktop\DesktopFoundationTest` (5 tests passed 100%).
 
 ---
 
-### FASE 3: Desktop Sync Engine (Client Pull & Ingestion)
-> Tujuan: Desktop client dapat mengunduh snapshot dari server dan menyimpannya ke database SQLite lokal.
+### FASE 3: Desktop Sync Engine & Local SQLite Ingestion
+> Tujuan: Memproses snapshot dari cloud server dan mengimpornya ke database SQLite lokal secara transaksional.
 
-- [x] **3.1. Service Ingestion Snapshot SQLite**
+- [x] **3.1. Ingestion Engine Service**
   - Implementasi `app/Domain/Sync/Services/DesktopSnapshotIngestionService.php`.
-  - Menulis data 43 tabel ke SQLite lokal dalam transaksi atomic per 100 baris dengan verifikasi checksum SHA256.
-- [x] **3.2. Service Client Sinkronisasi**
+  - Membaca snapshot data, memvalidasi SHA256 checksum, dan melakukan *upsert* aman ke tabel SQLite lokal dalam transaksi database.
+- [x] **3.2. Sync Client Service**
   - Implementasi `app/Domain/Sync/Services/DesktopSyncClientService.php`.
   - Menghubungi endpoint server cloud, mengunduh data snapshot/delta, mengukur latensi ping server.
 - [x] **3.3. Command & Controller Sync Client**
@@ -130,8 +127,8 @@ Dokumen ini memetakan rancangan arsitektur, strategi sinkronisasi data, pembagia
 
 ---
 
-### FASE 5: Build, Packaging, & Distribusi Windows (.exe)
-> Tujuan: Menghasilkan file installer desktop yang siap dipasang oleh pengguna tenant.
+### FASE 5: Build, Packaging, Distribusi Windows & Pengerasan SQLite
+> Tujuan: Menghasilkan file installer desktop yang siap dipasang oleh pengguna tenant dengan perlindungan data lokal dan keamanan token sinkronisasi.
 
 - [ ] **5.1. Build Script & Assets Packaging**
   - Optimasi build frontend (`npm run build`).
@@ -140,6 +137,10 @@ Dokumen ini memetakan rancangan arsitektur, strategi sinkronisasi data, pembagia
   - Konfigurasi electron-builder untuk Windows installer.
   - Pengujian instalasi di mesin Windows bersih.
 - [ ] **5.3. Pengujian Skenario Lengkap (Online -> Putus Internet -> Buka Laporan -> Online Kembali)**.
+- [x] **5.4. Pengerasan Lokasi SQLite, Pre-Update Backup & Proteksi Token Sync**
+  - Pemindahan default database SQLite ke `app.getPath('userData')/database/database.sqlite` beserta migrasi otomatis file legacy saat startup.
+  - Backup otomatis file SQLite aktif (`<nama>.bak-YYYYMMDD-HHmmss`) sebelum `quitAndInstall()` dijalankan oleh auto-updater dengan retensi maksimal 3 cadangan terbaru.
+  - Pengerasan middleware `VerifyDesktopApiToken`: token via query parameter dihapus (`api_key`/`desktop_key`), mewajibkan header Bearer / `X-Desktop-Key` / `X-API-Key`, serta penolakan wajib (401) di environment `production` bila `DESKTOP_SYNC_API_KEY` tidak dikonfigurasi.
 
 ---
 
@@ -155,3 +156,4 @@ Dokumen ini memetakan rancangan arsitektur, strategi sinkronisasi data, pembagia
 | 2026-08-21 | UI/UX | Custom Frameless Titlebar & Auto-Logout on Close | Selesai | DesktopTitleBar.vue, frameless window Electron, online/offline badge, kontrol window, auto-logout saat close |
 | 2026-08-21 | Notifikasi | Native OS Push Notifications & Atribusi "oleh {siapa}" | Selesai | NotificationCenterController actor attribution, NotificationDropdown chip & auto-push, DesktopTitleBar sync actor, 6 tests PHPUnit |
 | 2026-08-21 | UI/UX | Splash Screen & Exit Goodbye Screen Animation | Selesai | DesktopSplashScreen.vue animasi pembuka "Selamat Datang" & penutup "Sampai Jumpa" saat auto-logout |
+| 2026-09-04 | Fase 5 | Pengerasan SQLite, Backup Pre-Update, Token Hardening | Selesai | Lokasi SQLite di userData, auto-backup pre-update (max 3), token produksi wajib, query param token dihapus, 8 tests passed |

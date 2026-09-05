@@ -21,8 +21,17 @@ final class VerifyDesktopApiToken
 
         $configuredKey = (string) config('services.desktop.api_key', '');
 
-        // If no API key is set in configuration, allow in non-production or if user authenticated
+        // If no API key is set in configuration:
+        // - In production: reject all (401) with a clear message that DESKTOP_SYNC_API_KEY is required.
+        // - In non-production: allow requests (dev/testing fallback or authenticated user).
         if ($configuredKey === '') {
+            if (app()->isProduction()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Unauthorized. DESKTOP_SYNC_API_KEY must be configured in production.',
+                ], 401);
+            }
+
             return $next($request);
         }
 
@@ -54,11 +63,6 @@ final class VerifyDesktopApiToken
         $headerKey = (string) ($request->header('X-Desktop-Key') ?? $request->header('X-API-Key') ?? '');
         if ($headerKey !== '') {
             return trim($headerKey);
-        }
-
-        $queryKey = (string) ($request->query('api_key') ?? $request->query('desktop_key') ?? '');
-        if ($queryKey !== '') {
-            return trim($queryKey);
         }
 
         return '';

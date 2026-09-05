@@ -20,7 +20,7 @@ return [
     | Local SQLite Database Path
     |--------------------------------------------------------------------------
     */
-    'sqlite_database' => env('DESKTOP_SQLITE_PATH', database_path('database.sqlite')),
+    'sqlite_database' => env('DESKTOP_SQLITE_PATH') ?: database_path('database.sqlite'),
 
     /*
     |--------------------------------------------------------------------------
