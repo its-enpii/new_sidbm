@@ -486,6 +486,8 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
         Route::get('/kolek-desa/pdf', [LoanReportController::class, 'kolekDesaPdf'])->name('kolek-desa.pdf');
         Route::get('/cadangan-penghapusan', [LoanReportController::class, 'cadanganPenghapusan'])->name('cadangan-penghapusan');
         Route::get('/cadangan-penghapusan/pdf', [LoanReportController::class, 'cadanganPenghapusanPdf'])->name('cadangan-penghapusan.pdf');
+        Route::get('/billing-notice', [LoanReportController::class, 'billingNotice'])->name('billing-notice');
+        Route::get('/billing-notice/pdf', [LoanReportController::class, 'billingNoticePdf'])->name('billing-notice.pdf');
     });
 
     // Accounting
@@ -584,6 +586,7 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
             Route::get('/annual-pack/ba-pergantian/pdf', [ReportController::class, 'annualBaPergantianPdf'])->name('annual-pack.ba-pergantian.pdf');
             Route::get('/annual-pack/mou/pdf', [ReportController::class, 'annualMouPdf'])->name('annual-pack.mou.pdf');
             Route::get('/bundle/pdf', [ReportController::class, 'bundlePdf'])->name('bundle.pdf');
+            Route::get('/bundle/xlsx', [ReportController::class, 'bundleXlsx'])->name('bundle-xlsx');
         });
     });
 

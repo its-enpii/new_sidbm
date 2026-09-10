@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Lending;
 
+use App\Domain\Lending\Models\Loan;
 use App\Domain\Membership\Models\Member;
 use App\Enums\Frequency;
 use App\Http\Requests\Concerns\AuthorizesPermission;
@@ -21,6 +22,14 @@ final class LoanApproveRequest extends FormRequest
         $tenantId = app(TenantContext::class)->id();
 
         return [
+            'loan_number' => [
+                'nullable',
+                'string',
+                'max:80',
+                Rule::unique(Loan::class, 'loan_number')
+                    ->where(fn ($query) => $query->where('tenant_id', $tenantId))
+                    ->ignore($this->route('loan')?->row_id, 'row_id'),
+            ],
             'approved_at' => ['required', 'date', 'before_or_equal:today'],
             'planned_disbursed_at' => ['required', 'date', 'after_or_equal:approved_at'],
             'allocated_principal' => ['required', 'numeric', 'min:0'],
@@ -40,6 +49,7 @@ final class LoanApproveRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'loan_number' => 'nomor SPK / perjanjian kredit',
             'approved_at' => 'tanggal penetapan',
             'planned_disbursed_at' => 'rencana tanggal pencairan',
             'allocated_principal' => 'plafon alokasi kelompok',

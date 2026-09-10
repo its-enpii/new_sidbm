@@ -6,9 +6,12 @@ namespace App\Http\Controllers\Lending;
 
 use App\Domain\Access\Services\PermissionChecker;
 use App\Domain\Lending\Services\Reports\CollectibilityReportService;
+use App\Domain\Lending\Services\Reports\LoanBillingNoticeReportService;
 use App\Domain\Lending\Services\Reports\LoanPortfolioReportService;
 use App\Domain\Lending\Services\Reports\LoanScheduleVsActualService;
 use App\Domain\Lending\Services\Reports\LppReportService;
+use App\Domain\Membership\Models\Group;
+use App\Models\Tenant\OrganizationUnit;
 use App\Models\User;
 use App\Support\ReportPdf;
 use Illuminate\Http\Request;
@@ -25,6 +28,7 @@ final class LoanReportController
         private readonly LoanScheduleVsActualService $scheduleVsActual,
         private readonly LppReportService $lpp,
         private readonly CollectibilityReportService $collectibility,
+        private readonly LoanBillingNoticeReportService $billingNoticeService,
         private readonly ReportPdf $pdf,
     ) {}
 
@@ -183,6 +187,68 @@ final class LoanReportController
             $data,
             sprintf('cadangan-penghapusan-ckpn-%04d-%02d.pdf', $year, $month),
             'landscape',
+        );
+    }
+
+    public function billingNotice(Request $request): InertiaResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->yearMonth($request);
+        $villageRowId = $request->filled('village_row_id') ? (int) $request->query('village_row_id') : null;
+        $groupRowId = $request->filled('group_row_id') ? (int) $request->query('group_row_id') : null;
+        $onlyDue = $request->query('only_due', '1') !== '0' && $request->query('only_due') !== 'false';
+
+        $data = $this->billingNoticeService->build($year, $month, $villageRowId, $groupRowId, $onlyDue);
+
+        $villages = OrganizationUnit::query()
+            ->villages()
+            ->active()
+            ->orderBy('name')
+            ->get(['row_id', 'name'])
+            ->map(fn ($v): array => ['value' => (string) $v->row_id, 'label' => (string) $v->name])
+            ->values()
+            ->all();
+
+        $groups = Group::query()
+            ->orderBy('name')
+            ->get(['row_id', 'name', 'organization_unit_row_id'])
+            ->map(fn ($g): array => [
+                'value' => (string) $g->row_id,
+                'label' => (string) $g->name,
+                'village_row_id' => $g->organization_unit_row_id,
+            ])
+            ->values()
+            ->all();
+
+        return Inertia::render('Lending/Reports/BillingNotice', [
+            ...$data,
+            'villages' => $villages,
+            'groupsList' => $groups,
+            'filters' => [
+                'year' => $year,
+                'month' => $month,
+                'village_row_id' => $villageRowId ? (string) $villageRowId : null,
+                'group_row_id' => $groupRowId ? (string) $groupRowId : null,
+                'only_due' => $onlyDue,
+            ],
+        ]);
+    }
+
+    public function billingNoticePdf(Request $request): Response|StreamedResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->yearMonth($request);
+        $villageRowId = $request->filled('village_row_id') ? (int) $request->query('village_row_id') : null;
+        $groupRowId = $request->filled('group_row_id') ? (int) $request->query('group_row_id') : null;
+        $onlyDue = $request->query('only_due', '1') !== '0' && $request->query('only_due') !== 'false';
+
+        $data = $this->billingNoticeService->build($year, $month, $villageRowId, $groupRowId, $onlyDue);
+
+        return $this->pdf->stream(
+            'reports.pdf.loan_billing_notice',
+            $data,
+            sprintf('surat-tagihan-%04d-%02d.pdf', $year, $month),
+            'portrait',
         );
     }
 

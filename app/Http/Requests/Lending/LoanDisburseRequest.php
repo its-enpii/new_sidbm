@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Lending;
 
 use App\Domain\Accounting\Models\Account;
+use App\Domain\Lending\Models\Loan;
 use App\Http\Requests\Concerns\AuthorizesPermission;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
@@ -19,6 +20,14 @@ final class LoanDisburseRequest extends FormRequest
         $tenantId = app(TenantContext::class)->id();
 
         return [
+            'loan_number' => [
+                'nullable',
+                'string',
+                'max:80',
+                Rule::unique(Loan::class, 'loan_number')
+                    ->where(fn ($query) => $query->where('tenant_id', $tenantId))
+                    ->ignore($this->route('loan')?->row_id, 'row_id'),
+            ],
             'disbursed_at' => ['required', 'date', 'before_or_equal:today'],
             'disbursement_account_row_id' => ['required', 'integer', Rule::exists(Account::class, 'row_id')->where(fn ($query) => $query->where('tenant_id', $tenantId)->where('is_active', true))],
             'disbursement_notes' => ['nullable', 'string', 'max:5000'],
@@ -28,6 +37,7 @@ final class LoanDisburseRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'loan_number' => 'nomor SPK / perjanjian kredit',
             'disbursed_at' => 'tanggal cair',
             'disbursement_account_row_id' => 'sumber dana',
             'disbursement_notes' => 'catatan pencairan',

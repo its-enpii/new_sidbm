@@ -259,6 +259,7 @@ const approveForm = useForm({
     approved_at: props.today,
     planned_disbursed_at: props.loan.funded_at ?? props.today,
     allocated_principal: Number(props.loan.proposed_amount ?? props.loan.principal_amount ?? 0),
+    loan_number: props.loan.loan_number === '—' ? '' : (props.loan.loan_number ?? ''),
     term_months: Number(lastVerifiedHistory?.term_months ?? props.loan.term_months ?? 0),
     service_rate_total: Number(lastVerifiedHistory?.service_rate_total ?? props.loan.service_rate_total ?? props.loan.service_rate ?? 0),
     principal_frequency: lastVerifiedHistory?.principal_frequency ?? props.loan.principal_frequency ?? 'monthly',
@@ -272,6 +273,7 @@ const approveForm = useForm({
 const disburseForm = useForm({
     disbursed_at: props.today,
     disbursement_account_row_id: props.loan.disbursement_account_row_id ?? '',
+    loan_number: props.loan.loan_number === '—' ? '' : (props.loan.loan_number ?? ''),
     disbursement_notes: props.loan.disbursement_notes ?? '',
 });
 
@@ -784,6 +786,10 @@ function setAllocatedAmount(memberRowId, value) {
                     <p class="text-sm text-on-surface-variant">Diajukan {{ formatDate(loan.proposed_at) }}.</p>
                 </template>
                 <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div>
+                        <dt class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Nomor SPK</dt>
+                        <dd class="text-sm font-semibold text-primary">{{ loan.loan_number || '—' }}</dd>
+                    </div>
                     <div>
                         <dt class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Produk</dt>
                         <dd class="text-sm font-semibold text-primary">{{ loan.product?.name }} · {{ loan.product?.code }}</dd>
@@ -1332,6 +1338,9 @@ function setAllocatedAmount(memberRowId, value) {
                         <AppDatePicker v-model="approveForm.planned_disbursed_at" label="Rencana Tanggal Cair" :min="approveForm.approved_at" :error="approveForm.errors.planned_disbursed_at" required />
                         <AppCurrencyInput v-model="approveForm.allocated_principal" @update:model-value="approveTotalTouched = true" label="Plafon Alokasi Kelompok" icon="payments" :min="0" :max="loan.proposed_amount ?? loan.principal_amount" required :error="approveForm.errors.allocated_principal" />
                     </div>
+                    <div class="grid gap-4 sm:grid-cols-1">
+                        <AppInput v-model="approveForm.loan_number" label="Nomor SPK / Perjanjian Kredit" icon="tag" placeholder="Otomatis terisi jika dikosongkan" :error="approveForm.errors.loan_number" />
+                    </div>
                     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <AppInput v-model="approveForm.term_months" label="Jangka Waktu Disetujui (bulan)" icon="schedule" type="number" min="1" max="120" required :error="approveForm.errors.term_months" />
                         <AppCurrencyInput v-model="approveForm.service_rate_total" label="Pros Jasa Total Disetujui (%)" icon="percent" :min="0" :max="100" required :error="approveForm.errors.service_rate_total" />
@@ -1358,9 +1367,10 @@ function setAllocatedAmount(memberRowId, value) {
                     <p class="text-sm text-on-surface-variant">Catat tanggal dan akun sumber dana saat pinjaman dicairkan.</p>
                 </template>
                 <form class="space-y-5" @submit.prevent="submitDisburse">
-                    <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid gap-4 sm:grid-cols-3">
                         <AppDatePicker v-model="disburseForm.disbursed_at" label="Tanggal Cair" :max="today" :error="disburseForm.errors.disbursed_at" required />
                         <SmartSelect v-model="disburseForm.disbursement_account_row_id" :options="disbursementAccounts" label="Akun Sumber Dana" placeholder="Pilih akun kas/bank" :error="disburseForm.errors.disbursement_account_row_id" required />
+                        <AppInput v-model="disburseForm.loan_number" label="Nomor SPK / Perjanjian Kredit" icon="tag" placeholder="Otomatis terisi jika dikosongkan" :error="disburseForm.errors.loan_number" />
                     </div>
                     <AppTextarea v-model="disburseForm.disbursement_notes" label="Catatan Pencairan (opsional)" :error="disburseForm.errors.disbursement_notes" placeholder="Referensi transfer, nomor slip, dll." />
                     <div class="flex flex-wrap items-center justify-between gap-3">

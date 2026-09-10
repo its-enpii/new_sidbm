@@ -12,6 +12,7 @@ use App\Domain\Accounting\Services\Reports\BalanceSheetService;
 use App\Domain\Accounting\Services\Reports\CalkService;
 use App\Domain\Accounting\Services\Reports\CashFlowService;
 use App\Domain\Accounting\Services\Reports\EquityChangeService;
+use App\Domain\Accounting\Services\Reports\ExcelBundleService;
 use App\Domain\Accounting\Services\Reports\FinancialHealthService;
 use App\Domain\Accounting\Services\Reports\GeneralLedgerService;
 use App\Domain\Accounting\Services\Reports\IncomeStatementService;
@@ -50,6 +51,7 @@ final class ReportController
         private readonly AssetReportService $assetReportService,
         private readonly AnnualReportPackService $annualReportPack,
         private readonly ReportBundleService $reportBundle,
+        private readonly ExcelBundleService $excelBundle,
         private readonly ReportPdf $pdf,
         private readonly ReportExcel $excel,
     ) {}
@@ -473,6 +475,22 @@ final class ReportController
             }
 
             return $this->reportBundle->download($year, $month);
+        } catch (DomainException|Throwable $exception) {
+            abort(422, $exception->getMessage());
+        }
+    }
+
+    public function bundleXlsx(Request $request): BinaryFileResponse|StreamedResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->period($request, defaultMonth: 12);
+
+        try {
+            if ($month === null) {
+                throw new DomainException('Periode bundle wajib memilih bulan.');
+            }
+
+            return $this->excelBundle->download($year, $month);
         } catch (DomainException|Throwable $exception) {
             abort(422, $exception->getMessage());
         }

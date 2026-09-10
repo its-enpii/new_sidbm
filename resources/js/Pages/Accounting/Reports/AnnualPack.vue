@@ -3,6 +3,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
+import AppIcon from '../../../Components/AppIcon.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
 
@@ -79,35 +80,57 @@ const docs = computed(() => [
             <AppCard class="p-4">
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-xs font-medium text-on-surface-variant mb-1">Tahun Buku</label>
-                        <SmartSelect v-model="selectedYear" :options="yearOptions" @update:model-value="apply" />
+                        <SmartSelect v-model="selectedYear" label="Tahun Buku" :options="yearOptions" @update:model-value="apply" />
                     </div>
                 </div>
             </AppCard>
 
-            <AppCard class="p-4">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <AppCard class="p-5 flex flex-col justify-between">
                     <div>
-                        <h2 class="text-sm font-bold text-on-surface">Download Bundle Laporan</h2>
-                        <p class="mt-1 text-xs text-on-surface-variant">
-                            Satu file ZIP berisi 8 laporan keuangan + Buku Besar per akun + 4 dokumen LPJ untuk periode terpilih.
+                        <div class="flex items-center gap-2">
+                            <AppIcon name="folder_zip" class="text-primary text-xl" />
+                            <h2 class="text-sm font-bold text-on-surface">Download Bundle Laporan (ZIP)</h2>
+                        </div>
+                        <p class="mt-2 text-xs text-on-surface-variant">
+                            Satu file ZIP berisi 8 laporan keuangan PDF + Buku Besar per akun + 4 dokumen LPJ untuk periode terpilih.
                         </p>
                     </div>
-                    <a :href="`/accounting/reports/bundle/pdf?year=${selectedYear.value}&month=12`" class="sm:shrink-0">
-                        <AppButton variant="primary">
-                            <span class="material-symbols-outlined mr-1 text-sm">folder_zip</span>
-                            Download Bundle Laporan (ZIP)
-                        </AppButton>
-                    </a>
-                </div>
-            </AppCard>
+                    <div class="mt-4 pt-3 border-t border-outline-variant/20 flex justify-end">
+                        <a :href="`/accounting/reports/bundle/pdf?year=${selectedYear.value}&month=12`">
+                            <AppButton variant="primary" size="compact" icon="folder_zip">
+                                Unduh Bundle ZIP
+                            </AppButton>
+                        </a>
+                    </div>
+                </AppCard>
+
+                <AppCard class="p-5 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <AppIcon name="table_view" class="text-primary text-xl" />
+                            <h2 class="text-sm font-bold text-on-surface">Ekspor Excel (Auditor)</h2>
+                        </div>
+                        <p class="mt-2 text-xs text-on-surface-variant">
+                            Satu file Excel (.xlsx) multi-sheet: Ringkasan, Neraca, Laba Rugi, Arus Kas, Neraca Saldo, Buku Besar, dan Portofolio Piutang.
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-outline-variant/20 flex justify-end">
+                        <a :href="`/accounting/reports/bundle/xlsx?year=${selectedYear.value}&month=12`">
+                            <AppButton variant="secondary" size="compact" icon="table_view">
+                                Unduh Excel Auditor (.xlsx)
+                            </AppButton>
+                        </a>
+                    </div>
+                </AppCard>
+            </div>
 
             <!-- Document Cards Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <AppCard v-for="doc in docs" :key="doc.title" class="p-5 flex flex-col justify-between hover:shadow-md transition">
                     <div class="flex items-start gap-3">
                         <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                            <span class="material-symbols-outlined text-xl">{{ doc.icon }}</span>
+                            <AppIcon :name="doc.icon" class="text-xl" />
                         </div>
                         <div>
                             <h3 class="font-bold text-sm text-on-surface">{{ doc.title }}</h3>
@@ -116,8 +139,7 @@ const docs = computed(() => [
                     </div>
                     <div class="mt-4 pt-3 border-t border-outline-variant/20 flex justify-end">
                         <a :href="doc.href" target="_blank">
-                            <AppButton size="sm" variant="outline">
-                                <span class="material-symbols-outlined mr-1 text-sm">picture_as_pdf</span>
+                            <AppButton size="compact" variant="outline" icon="picture_as_pdf">
                                 Unduh / Cetak PDF
                             </AppButton>
                         </a>

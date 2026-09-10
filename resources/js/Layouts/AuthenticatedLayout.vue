@@ -310,6 +310,7 @@ const sections = [
                     { label: 'Ringkasan Laporan', href: '/accounting/reports', exact: true },
                     { label: 'Portofolio Pinjaman', href: '/lending/reports/portfolio' },
                     { label: 'Rencana vs Realisasi', href: '/lending/reports/schedule-vs-actual' },
+                    { label: 'Surat Tagihan Pinjaman', href: '/lending/reports/billing-notice' },
                     { label: 'Jurnal Transaksi', href: '/accounting/reports/journals' },
                     { label: 'Neraca Saldo', href: '/accounting/reports/trial-balance' },
                     { label: 'Neraca', href: '/accounting/reports/balance-sheet' },

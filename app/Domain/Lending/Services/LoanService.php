@@ -22,6 +22,7 @@ use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use DomainException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 final class LoanService
@@ -98,6 +99,7 @@ final class LoanService
         private readonly JournalPostingService $journalPosting,
         private readonly TenantContext $tenantContext,
         private readonly LoanTrackingService $tracking,
+        private readonly LoanNumberGenerator $loanNumberGenerator,
     ) {}
 
     public function createProposal(array $data, int $userId): Loan
@@ -418,7 +420,7 @@ final class LoanService
             $principalGraceMonths = $this->optionalInteger($data, 'principal_grace_months', (int) ($verification?->principal_grace_months ?? $loan->principal_grace_months));
             $interestGraceMonths = $this->optionalInteger($data, 'interest_grace_months', (int) ($verification?->interest_grace_months ?? $loan->interest_grace_months));
 
-            $loan->update([
+            $approveUpdates = [
                 'approved_at' => $data['approved_at'],
                 'funded_at' => $data['planned_disbursed_at'],
                 'principal_amount' => $totalAllocated,
@@ -429,7 +431,12 @@ final class LoanService
                 'principal_grace_months' => $principalGraceMonths,
                 'interest_grace_months' => $interestGraceMonths,
                 'status' => 'waiting',
-            ]);
+            ];
+            if (isset($data['loan_number']) && trim((string) $data['loan_number']) !== '') {
+                $approveUpdates['loan_number'] = trim((string) $data['loan_number']);
+            }
+
+            $loan->update($approveUpdates);
 
             $this->regenerateInstallmentSchedule($loan, $totalAllocated);
 
@@ -461,7 +468,27 @@ final class LoanService
             $fromStatus = $loan->status;
             $totalAllocated = (float) $loan->beneficiaries()->sum('allocated_amount');
 
+            $manualNumber = isset($data['loan_number']) ? trim((string) $data['loan_number']) : null;
+            if ($manualNumber !== null && $manualNumber !== '') {
+                $duplicate = Loan::on('tenant')
+                    ->where('tenant_id', $this->tenantContext->id())
+                    ->where('loan_number', $manualNumber)
+                    ->where('row_id', '!=', $loan->row_id)
+                    ->exists();
+                if ($duplicate) {
+                    throw ValidationException::withMessages([
+                        'loan_number' => 'Nomor SPK sudah digunakan untuk pinjaman lain.',
+                    ]);
+                }
+                $loanNumber = $manualNumber;
+            } elseif (! empty($loan->loan_number)) {
+                $loanNumber = $loan->loan_number;
+            } else {
+                $loanNumber = $this->loanNumberGenerator->next($loan, (string) $data['disbursed_at']);
+            }
+
             $loan->update([
+                'loan_number' => $loanNumber,
                 'disbursed_at' => $data['disbursed_at'],
                 'disbursement_account_row_id' => (int) $data['disbursement_account_row_id'],
                 'disbursement_notes' => $data['disbursement_notes'] ?? null,
