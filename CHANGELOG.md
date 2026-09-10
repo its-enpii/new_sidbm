@@ -12,6 +12,18 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
   - Buku Besar dalam bundle dibuat **satu PDF per akun postable aktif** (`buku-besar-{kode}-{Y}-{m}.pdf`, label manifest `Buku Besar {kode} · {nama}`) — memperbaiki implementasi awal yang memanggil `GeneralLedgerService::build()` tanpa argumen akun wajib (fatal saat runtime).
   - Akun tanpa mutasi (saldo awal tahun nol, debit/kredit periode nol, tanpa baris jurnal) dilewati agar ZIP tidak berisi puluhan PDF kosong; jumlahnya dilaporkan pada `README-bundle.txt` ("Akun tanpa mutasi dilewati: N").
   - Manifest dinamis, `set_time_limit(0)` untuk bundle besar, ZIP otomatis dihapus setelah terkirim (`deleteFileAfterSend`); test `ReportBundleTest` (2 test, 13 asersi) memverifikasi isi ZIP, skip akun tanpa mutasi, dan penamaan file buku besar.
+- **Ekspor Excel Bundel Auditor Multi-Sheet:**
+  - Route `GET /accounting/reports/bundle/xlsx` (`ReportController::bundleXlsx`, permission `reports.view`) + `ExcelBundleService` berbasis `openspout/openspout` (streaming).
+  - Satu file `bundle-auditor-{tenant}-{Y}-{m}.xlsx` berisi 7 sheet: Ringkasan, Neraca, Laba Rugi, Arus Kas, Neraca Saldo, Buku Besar per akun, dan Piutang (portofolio + kolektibilitas) — data diambil dari service laporan PDF existing, bukan query duplikat; angka ditulis sebagai sel numerik.
+  - Kartu "Ekspor Excel (Auditor)" di `AnnualPack.vue`; test `ExcelBundleTest` memverifikasi unduhan dan isi sheet.
+- **Surat Tagihan Pinjaman (PDF):**
+  - Route `GET /lending/reports/billing-notice` (+ `/pdf`) pada `LoanReportController` + `LoanBillingNoticeReportService`.
+  - Filter periode (tahun/bulan), desa, kelompok, dan opsi "hanya jatuh tempo"; daftar per kelompok berisi nomor SPK, anggota, angsuran ke-, tanggal jatuh tempo, pokok/jasa/denda, total, nomor HP, status; plus ringkasan jumlah anggota & total tagihan.
+  - View `reports.pdf.loan_billing_notice` dengan kop tenant + tanda tangan (SignatureImageService); pengiriman WhatsApp tetap lewat alur by-click WhatsApp Hub yang sudah ada (tanpa scheduler).
+- **Nomor SPK / Perjanjian Kredit — Fallback Generator:**
+  - Field input `loan_number` pada form Penetapan Alokasi (`LoanApproveRequest`: `nullable|string|max:80` + rule unik per tenant yang mengabaikan pinjaman itu sendiri) — nomor manual dari petugas selalu dihormati.
+  - `LoanNumberGenerator` atomik dipanggil di `LoanService::disburse()` **hanya bila nomor kosong**: format `{seq}/SPK/{kode-kecamatan}/{MM}/{YYYY}` (seq per bulan, kode kecamatan dari `district_code` tenant, fallback `000`), dengan pemeriksaan keunikan + retry hingga 5x.
+  - Nomor SPK tampil pada detail pinjaman (`Show.vue`); test `LoanNumberFallbackTest` (4 test) mengunci perilaku fallback, penghormatan input manual, dan penolakan duplikat.
 
 ### Changed
 - **Pemilihan Tenant Legacy Disederhanakan (Migrasi):**
