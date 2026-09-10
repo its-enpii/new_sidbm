@@ -3,6 +3,28 @@
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
+## [2026-09-10]
+
+### Added
+- **Download Bundle Laporan (ZIP) — Laporan Keuangan + Buku Besar per Akun + Dokumen LPJ:**
+  - Route `GET /accounting/reports/bundle/pdf` (`ReportController::bundlePdf`, kawal permission laporan, default bulan Desember) beserta kartu "Download Bundle Laporan (ZIP)" pada halaman `AnnualPack.vue`.
+  - `ReportBundleService` menggabungkan satu ZIP `bundle-laporan-{tenant}-{Y}-{m}.pdf.zip`: 7 laporan keuangan (Neraca, Laba Rugi, Arus Kas, Perubahan Ekuitas, CALK, Neraca Saldo, Jurnal Transaksi) + Buku Besar per akun + 4 dokumen LPJ (Cover, Surat Pengantar, Berita Acara, MoU).
+  - Buku Besar dalam bundle dibuat **satu PDF per akun postable aktif** (`buku-besar-{kode}-{Y}-{m}.pdf`, label manifest `Buku Besar {kode} · {nama}`) — memperbaiki implementasi awal yang memanggil `GeneralLedgerService::build()` tanpa argumen akun wajib (fatal saat runtime).
+  - Akun tanpa mutasi (saldo awal tahun nol, debit/kredit periode nol, tanpa baris jurnal) dilewati agar ZIP tidak berisi puluhan PDF kosong; jumlahnya dilaporkan pada `README-bundle.txt` ("Akun tanpa mutasi dilewati: N").
+  - Manifest dinamis, `set_time_limit(0)` untuk bundle besar, ZIP otomatis dihapus setelah terkirim (`deleteFileAfterSend`); test `ReportBundleTest` (2 test, 13 asersi) memverifikasi isi ZIP, skip akun tanpa mutasi, dan penamaan file buku besar.
+
+### Changed
+- **Pemilihan Tenant Legacy Disederhanakan (Migrasi):**
+  - Admin hanya memilih tenant legacy (dari `kecamatan`: `nama_kec` + `kd_kec`) tanpa pairing manual: suffix server-side dari `legacy_id`, tenant Next dicocokkan otomatis via `district_code == kd_kec`, tenant otomatis di-provision bila belum ada; expert mode mempertahankan alur pairing lama.
+  - Endpoint `GET /admin/migration/legacy-tenants` (cache 5 menit) + test `MigrationFlowTest`.
+
+### Fixed
+- **Perbaikan UX Batch Halaman Website:**
+  - `app.js`: menghapus override `route()` naive (pengganti titik→slash) yang menimpa helper Ziggy — akar error "route password/request could not be found" dan "GET not supported for website/messages/index".
+  - Sidebar: posisi scroll kini dipulihkan saat navigasi antar halaman Inertia.
+  - Form Posts/Pages: raw input diganti komponen `AppTextarea`, `AppFileUpload`, `AppDatePicker` (component-first, `new_sidbm` tidak mengimpor `@its-enpii/ui`).
+  - `Messages/Index.vue` & `Settings/Form.vue`: paritas layout dengan halaman dashboard standar.
+
 ## [2026-09-08]
 
 ### Added
