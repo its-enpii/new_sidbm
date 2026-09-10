@@ -85,6 +85,23 @@ const docs = computed(() => [
                 </div>
             </AppCard>
 
+            <AppCard class="p-4">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 class="text-sm font-bold text-on-surface">Download Bundle Laporan</h2>
+                        <p class="mt-1 text-xs text-on-surface-variant">
+                            Satu file ZIP berisi 8 laporan keuangan + Buku Besar per akun + 4 dokumen LPJ untuk periode terpilih.
+                        </p>
+                    </div>
+                    <a :href="`/accounting/reports/bundle/pdf?year=${selectedYear.value}&month=12`" class="sm:shrink-0">
+                        <AppButton variant="primary">
+                            <span class="material-symbols-outlined mr-1 text-sm">folder_zip</span>
+                            Download Bundle Laporan (ZIP)
+                        </AppButton>
+                    </a>
+                </div>
+            </AppCard>
+
             <!-- Document Cards Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <AppCard v-for="doc in docs" :key="doc.title" class="p-5 flex flex-col justify-between hover:shadow-md transition">

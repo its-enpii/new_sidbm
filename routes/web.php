@@ -583,6 +583,7 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
             Route::get('/annual-pack/surat-pengantar/pdf', [ReportController::class, 'annualSuratPengantarPdf'])->name('annual-pack.surat-pengantar.pdf');
             Route::get('/annual-pack/ba-pergantian/pdf', [ReportController::class, 'annualBaPergantianPdf'])->name('annual-pack.ba-pergantian.pdf');
             Route::get('/annual-pack/mou/pdf', [ReportController::class, 'annualMouPdf'])->name('annual-pack.mou.pdf');
+            Route::get('/bundle/pdf', [ReportController::class, 'bundlePdf'])->name('bundle.pdf');
         });
     });
 
