@@ -4,11 +4,20 @@ import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import AppIcon from '../../../Components/AppIcon.vue';
+import SmartDataTable from '../../../Components/SmartDataTable.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
 
 const props = defineProps({
     roles: { type: Array, required: true },
 });
+
+const columns = [
+    { key: 'name', label: 'Nama Role' },
+    { key: 'code', label: 'Kode' },
+    { key: 'type', label: 'Tipe' },
+    { key: 'user_count', label: 'Pengguna', class: 'text-center' },
+    { key: 'permissions_count', label: 'Hak Akses Aktif', class: 'text-center' },
+];
 
 function confirmDelete(role) {
     if (role.is_system || role.is_locked) return;
@@ -38,64 +47,57 @@ function confirmDelete(role) {
             </header>
 
             <AppCard :padded="false">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-surface-container-low text-xs uppercase tracking-wider text-on-surface-variant">
-                            <tr>
-                                <th class="px-6 py-3.5">Nama Role</th>
-                                <th class="px-6 py-3.5">Kode</th>
-                                <th class="px-6 py-3.5">Tipe</th>
-                                <th class="px-6 py-3.5 text-center">Pengguna</th>
-                                <th class="px-6 py-3.5 text-center">Hak Akses Aktif</th>
-                                <th class="px-6 py-3.5 text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-outline-variant">
-                            <tr v-for="role in roles" :key="role.row_id" class="transition-colors hover:bg-surface-container-lowest">
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center gap-2">
-                                        <AppIcon v-if="role.is_locked" name="lock" class="text-sm text-primary" />
-                                        <span class="font-bold text-primary">{{ role.name }}</span>
-                                    </div>
-                                    <p v-if="role.description" class="mt-0.5 text-xs text-on-surface-variant">{{ role.description }}</p>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <code class="rounded bg-surface-container px-2 py-0.5 text-xs font-mono">{{ role.code }}</code>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <AppBadge v-if="role.is_locked" tone="primary">Terkunci (Admin)</AppBadge>
-                                    <AppBadge v-else-if="role.is_system" tone="neutral">Bawaan Sistem</AppBadge>
-                                    <AppBadge v-else tone="info">Kustom</AppBadge>
-                                </td>
-                                <td class="px-6 py-4 text-center font-medium">
-                                    <span class="inline-flex size-7 items-center justify-center rounded-full bg-surface-container text-xs font-semibold">
-                                        {{ role.user_count }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-center">
-                                    <span v-if="role.is_locked" class="font-semibold text-primary text-xs">Semua Akses (*)</span>
-                                    <span v-else class="text-xs font-medium text-on-surface-variant">{{ role.permissions_count }} izin</span>
-                                </td>
-                                <td class="px-6 py-4 text-right">
-                                    <div class="flex items-center justify-end gap-1">
-                                        <Link :href="`/access/roles/${role.row_id}/edit`">
-                                            <AppButton variant="ghost" size="compact" icon="edit" tooltip="Lihat / Edit Hak Akses" />
-                                        </Link>
-                                        <AppButton
-                                            v-if="!role.is_system && !role.is_locked"
-                                            variant="ghost"
-                                            size="compact"
-                                            icon="delete"
-                                            tone="error"
-                                            tooltip="Hapus Role"
-                                            :disabled="role.user_count > 0"
-                                            @click="confirmDelete(role)"
-                                        />
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="p-4">
+                    <SmartDataTable
+                        :rows="roles"
+                        :columns="columns"
+                        :pagination="{ current_page: 1, last_page: 1, from: 1, to: roles.length, total: roles.length }"
+                        url="/access/roles"
+                        search-placeholder="Cari role..."
+                        search-label="Cari role"
+                        empty-title="Belum ada role"
+                        empty-description="Buat role kustom untuk mengelompokkan hak akses staf."
+                    >
+                        <template #cell-name="{ row }">
+                            <div class="flex items-center gap-2">
+                                <AppIcon v-if="row.is_locked" name="lock" class="text-sm text-primary" />
+                                <span class="font-bold text-primary">{{ row.name }}</span>
+                            </div>
+                            <p v-if="row.description" class="mt-0.5 text-xs text-on-surface-variant">{{ row.description }}</p>
+                        </template>
+                        <template #cell-code="{ row }">
+                            <code class="rounded bg-surface-container px-2 py-0.5 text-xs font-mono">{{ row.code }}</code>
+                        </template>
+                        <template #cell-type="{ row }">
+                            <AppBadge v-if="row.is_locked" tone="primary">Terkunci (Admin)</AppBadge>
+                            <AppBadge v-else-if="row.is_system" tone="neutral">Bawaan Sistem</AppBadge>
+                            <AppBadge v-else tone="info">Kustom</AppBadge>
+                        </template>
+                        <template #cell-user_count="{ row }">
+                            <span class="inline-flex size-7 items-center justify-center rounded-full bg-surface-container text-xs font-semibold">{{ row.user_count }}</span>
+                        </template>
+                        <template #cell-permissions_count="{ row }">
+                            <span v-if="row.is_locked" class="text-xs font-semibold text-primary">Semua Akses (*)</span>
+                            <span v-else class="text-xs font-medium text-on-surface-variant">{{ row.permissions_count }} izin</span>
+                        </template>
+                        <template #actions="{ row }">
+                            <div class="flex items-center justify-end gap-1">
+                                <Link :href="`/access/roles/${row.row_id}/edit`">
+                                    <AppButton variant="ghost" size="compact" icon="edit" tooltip="Lihat / Edit Hak Akses" />
+                                </Link>
+                                <AppButton
+                                    v-if="!row.is_system && !row.is_locked"
+                                    variant="ghost"
+                                    size="compact"
+                                    icon="delete"
+                                    tone="error"
+                                    tooltip="Hapus Role"
+                                    :disabled="row.user_count > 0"
+                                    @click="confirmDelete(row)"
+                                />
+                            </div>
+                        </template>
+                    </SmartDataTable>
                 </div>
             </AppCard>
         </div>

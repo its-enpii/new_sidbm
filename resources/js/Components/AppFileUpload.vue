@@ -7,6 +7,7 @@ const model = defineModel({ type: [File, Array], default: null });
 const props = defineProps({
     id: { type: String, default: null },
     label: { type: String, required: true },
+    hideLabel: { type: Boolean, default: false },
     accept: { type: String, default: null },
     hint: { type: String, default: null },
     error: { type: String, default: null },
@@ -25,7 +26,7 @@ function onChange(event) {
 
 <template>
     <div class="space-y-2">
-        <label :for="inputId" class="ml-1 block text-sm font-bold uppercase tracking-wider text-primary">{{ label }}</label>
+        <label :for="inputId" :class="hideLabel ? 'sr-only' : 'ml-1 block text-sm font-bold uppercase tracking-wider text-primary'">{{ label }}</label>
         <input
             :id="inputId"
             type="file"

@@ -331,14 +331,12 @@ function submitResetTraining() {
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
-                    <label class="hidden items-center gap-2 text-xs text-primary sm:flex">
-                        <input
-                            v-model="includeReversalPairs"
-                            type="checkbox"
-                            class="size-4 rounded border-outline-variant accent-primary"
-                        />
-                        <span>Hapus juga jurnal pembalik terkait</span>
-                    </label>
+                    <AppCheckbox
+                        v-model="includeReversalPairs"
+                        variant="inline"
+                        class="hidden text-xs sm:inline-flex"
+                        label="Hapus juga jurnal pembalik terkait"
+                    />
                     <AppButton
                         type="button"
                         variant="ghost"
@@ -480,14 +478,11 @@ function submitResetTraining() {
                         </p>
                     </div>
 
-                    <label class="flex items-center gap-2 text-sm text-primary">
-                        <input
-                            v-model="includeReversalPairs"
-                            type="checkbox"
-                            class="size-4 rounded border-outline-variant accent-primary"
-                        />
-                        <span>Hapus juga jurnal pembalik (reversal) terkait secara otomatis</span>
-                    </label>
+                    <AppCheckbox
+                        v-model="includeReversalPairs"
+                        variant="inline"
+                        label="Hapus juga jurnal pembalik (reversal) terkait secara otomatis"
+                    />
 
                     <div class="flex justify-end gap-2">
                         <AppButton type="button" variant="secondary" @click="purgeModalOpen = false">Batal</AppButton>
@@ -553,19 +548,18 @@ function submitResetTraining() {
                     </div>
 
                     <div class="rounded-xl bg-surface-container-low p-4 space-y-3">
-                        <label class="flex items-start gap-3 text-sm font-medium text-primary cursor-pointer">
-                            <input
-                                v-model="endTrainingForm.purge_data"
-                                type="checkbox"
-                                class="mt-0.5 size-4 rounded border-outline-variant accent-primary"
-                            />
+                        <AppCheckbox
+                            v-model="endTrainingForm.purge_data"
+                            variant="inline"
+                            class="items-start"
+                        >
                             <div>
                                 <p class="font-bold">Bersihkan {{ stats.training_transactions_count }} transaksi pelatihan sekarang</p>
                                 <p class="text-xs text-on-surface-variant">
                                     Centang untuk memulai masa live dengan buku besar yang bersih dari transaksi coba-coba saat latihan.
                                 </p>
                             </div>
-                        </label>
+                        </AppCheckbox>
                     </div>
 
                     <div class="flex justify-end gap-2">

@@ -7,6 +7,7 @@ import AppCard from '../../Components/AppCard.vue';
 import AppDatePicker from '../../Components/AppDatePicker.vue';
 import AppInput from '../../Components/AppInput.vue';
 import SmartSelect from '../../Components/SmartSelect.vue';
+import SmartDataTable from '../../Components/SmartDataTable.vue';
 import AuthenticatedLayout from '../../Layouts/AuthenticatedLayout.vue';
 import { useCan } from '../../composables/useCan';
 
@@ -49,6 +50,15 @@ function formatMoney(v) {
 const categoryOptions = [
     { value: '', label: 'Semua kategori' },
     ...props.categories.map((c) => ({ value: String(c.value), label: c.label })),
+];
+
+const columns = [
+    { key: 'asset_code', label: 'Kode' },
+    { key: 'name', label: 'Nama' },
+    { key: 'purchased_at', label: 'Tgl beli' },
+    { key: 'acquisition', label: 'Perolehan', class: 'text-right' },
+    { key: 'book_value', label: 'Nilai buku', class: 'text-right' },
+    { key: 'status_label', label: 'Status' },
 ];
 
 function apply(page = 1) {
@@ -123,86 +133,52 @@ watch([status, category, asOf], () => {
             </AppCard>
 
             <AppCard :padded="false">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-sm">
-                        <thead class="bg-surface-container-low text-left text-xs uppercase tracking-wide text-on-surface-variant">
-                            <tr>
-                                <th class="px-4 py-3 font-semibold">Kode</th>
-                                <th class="px-4 py-3 font-semibold">Nama</th>
-                                <th class="px-4 py-3 font-semibold">Tgl beli</th>
-                                <th class="px-4 py-3 font-semibold text-right">Perolehan</th>
-                                <th class="px-4 py-3 font-semibold text-right">Nilai buku</th>
-                                <th class="px-4 py-3 font-semibold">Status</th>
-                                <th class="px-4 py-3 font-semibold text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-if="!assets.data?.length">
-                                <td colspan="7" class="px-4 py-10 text-center text-on-surface-variant">
-                                    Belum ada inventaris. Catat di
-                                    <Link href="/accounting/journal-entries/create?type=pembelian_aset_peralatan" class="font-semibold text-primary hover:underline">Jurnal Umum</Link>
-                                    — pilih jenis Pembelian Aset ….
-                                </td>
-                            </tr>
-                            <tr
-                                v-for="row in assets.data"
-                                :key="row.row_id"
-                                class="border-t border-outline-variant/20"
-                            >
-                                <td class="whitespace-nowrap px-4 py-2.5 font-mono text-xs">{{ row.asset_code || '—' }}</td>
-                                <td class="px-4 py-2.5">
-                                    <Link :href="`/accounting/assets/${row.row_id}`" class="font-semibold text-primary hover:underline">
-                                        {{ row.name }}
-                                    </Link>
-                                    <span v-if="row.category" class="block text-xs text-on-surface-variant">{{ row.category.name }}</span>
-                                </td>
-                                <td class="whitespace-nowrap px-4 py-2.5">{{ row.purchased_at || '—' }}</td>
-                                <td class="whitespace-nowrap px-4 py-2.5 text-right">{{ formatMoney(row.acquisition) }}</td>
-                                <td class="whitespace-nowrap px-4 py-2.5 text-right">{{ formatMoney(row.book_value) }}</td>
-                                <td class="px-4 py-2.5">
-                                    <AppBadge :tone="row.status === 'good' ? 'success' : row.status === 'damaged' ? 'warning' : 'neutral'">
-                                        {{ row.status_label }}
-                                    </AppBadge>
-                                </td>
-                                <td class="px-4 py-2.5">
-                                    <div class="flex justify-end gap-1">
-                                        <Link :href="`/accounting/assets/${row.row_id}`">
-                                            <AppButton variant="ghost" size="compact" icon="visibility">Detail</AppButton>
-                                        </Link>
-                                        <Link v-if="can('assets.manage')" :href="`/accounting/assets/${row.row_id}/edit`">
-                                            <AppButton variant="ghost" size="compact" icon="edit">Edit</AppButton>
-                                        </Link>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div
-                    v-if="assets.last_page > 1"
-                    class="flex items-center justify-between border-t border-outline-variant/20 px-4 py-3 text-sm"
-                >
-                    <p class="text-on-surface-variant">
-                        Halaman {{ assets.current_page }} / {{ assets.last_page }} · {{ assets.total }} item
-                    </p>
-                    <div class="flex gap-2">
-                        <AppButton
-                            variant="ghost"
-                            size="compact"
-                            :disabled="assets.current_page <= 1"
-                            @click="apply(assets.current_page - 1)"
-                        >
-                            Prev
-                        </AppButton>
-                        <AppButton
-                            variant="ghost"
-                            size="compact"
-                            :disabled="assets.current_page >= assets.last_page"
-                            @click="apply(assets.current_page + 1)"
-                        >
-                            Next
-                        </AppButton>
-                    </div>
+                <div class="p-4">
+                    <SmartDataTable
+                        :rows="assets.data || []"
+                        :columns="columns"
+                        :pagination="assets"
+                        url="/accounting/assets"
+                        :search="q"
+                        search-placeholder="Cari kode atau nama..."
+                        search-label="Cari inventaris"
+                        empty-title="Belum ada inventaris"
+                        empty-description="Catat pembelian aset melalui Jurnal Umum — pilih jenis Pembelian Aset."
+                    >
+                        <template #cell-asset_code="{ row }">
+                            <span class="whitespace-nowrap font-mono text-xs">{{ row.asset_code || '—' }}</span>
+                        </template>
+                        <template #cell-name="{ row }">
+                            <Link :href="`/accounting/assets/${row.row_id}`" class="font-semibold text-primary hover:underline">
+                                {{ row.name }}
+                            </Link>
+                            <span v-if="row.category" class="block text-xs text-on-surface-variant">{{ row.category.name }}</span>
+                        </template>
+                        <template #cell-purchased_at="{ row }">
+                            {{ row.purchased_at || '—' }}
+                        </template>
+                        <template #cell-acquisition="{ row }">
+                            {{ formatMoney(row.acquisition) }}
+                        </template>
+                        <template #cell-book_value="{ row }">
+                            {{ formatMoney(row.book_value) }}
+                        </template>
+                        <template #cell-status_label="{ row }">
+                            <AppBadge :tone="row.status === 'good' ? 'success' : row.status === 'damaged' ? 'warning' : 'neutral'">
+                                {{ row.status_label }}
+                            </AppBadge>
+                        </template>
+                        <template #actions="{ row }">
+                            <div class="flex justify-end gap-1">
+                                <Link :href="`/accounting/assets/${row.row_id}`">
+                                    <AppButton variant="ghost" size="compact" icon="visibility">Detail</AppButton>
+                                </Link>
+                                <Link v-if="can('assets.manage')" :href="`/accounting/assets/${row.row_id}/edit`">
+                                    <AppButton variant="ghost" size="compact" icon="edit">Edit</AppButton>
+                                </Link>
+                            </div>
+                        </template>
+                    </SmartDataTable>
                 </div>
             </AppCard>
         </div>

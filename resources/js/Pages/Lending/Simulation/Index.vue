@@ -6,6 +6,7 @@ import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import AppCurrencyInput from '../../../Components/AppCurrencyInput.vue';
 import AppDatePicker from '../../../Components/AppDatePicker.vue';
+import AppFilterPill from '../../../Components/AppFilterPill.vue';
 import AppIcon from '../../../Components/AppIcon.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
@@ -39,6 +40,24 @@ const form = reactive({
 });
 
 const copied = ref(false);
+
+const quickPrincipalOptions = [5000000, 10000000, 15000000, 20000000, 25000000, 50000000].map((amount) => ({
+    value: amount,
+    label: amount >= 1000000 ? `${amount / 1000000} Jt` : money(amount),
+}));
+const quickTermOptions = [6, 10, 12, 18, 24, 36].map((months) => ({
+    value: months,
+    label: `${months} Bulan`,
+}));
+const methodPillOptions = computed(() => props.methodOptions.map((method) => ({
+    value: method.value,
+    label: method.label,
+    icon: method.value === 'flat' ? 'horizontal_rule' : method.value === 'declining' ? 'trending_down' : 'balance',
+})));
+const rateUnitOptions = [
+    { value: 'monthly', label: '% / Bulan' },
+    { value: 'annual', label: '% / Tahun' },
+];
 
 const productOptions = computed(() => [
     { value: '', label: 'Kustom / Input Manual' },
@@ -471,18 +490,14 @@ Est. Angsuran/Bln: ${money(s.estimated_monthly)}`;
                                     :step="500000"
                                     required
                                 />
-                                <div class="mt-2 flex flex-wrap gap-1.5">
-                                    <button
-                                        v-for="amt in [5000000, 10000000, 15000000, 20000000, 25000000, 50000000]"
-                                        :key="amt"
-                                        type="button"
-                                        class="rounded-lg px-2 py-1 text-xs font-medium transition-colors"
-                                        :class="form.principal_amount == amt ? 'bg-primary text-on-primary font-semibold' : 'bg-surface-container-high text-on-surface hover:bg-surface-container-highest'"
-                                        @click="form.principal_amount = amt"
-                                    >
-                                        {{ amt >= 1000000 ? (amt / 1000000) + ' Jt' : money(amt) }}
-                                    </button>
-                                </div>
+                                <AppFilterPill
+                                    v-model="form.principal_amount"
+                                    class="mt-2"
+                                    variant="solid"
+                                    size="compact"
+                                    aria-label="Pilih nominal cepat"
+                                    :items="quickPrincipalOptions"
+                                />
                             </div>
 
                             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -509,18 +524,14 @@ Est. Angsuran/Bln: ${money(s.estimated_monthly)}`;
                                     icon="calendar_month"
                                     required
                                 />
-                                <div class="mt-2 flex flex-wrap gap-1.5">
-                                    <button
-                                        v-for="t in [6, 10, 12, 18, 24, 36]"
-                                        :key="t"
-                                        type="button"
-                                        class="rounded-lg px-2.5 py-1 text-xs font-medium transition-colors"
-                                        :class="form.term_months == t ? 'bg-primary text-on-primary font-semibold' : 'bg-surface-container-high text-on-surface hover:bg-surface-container-highest'"
-                                        @click="form.term_months = t"
-                                    >
-                                        {{ t }} Bulan
-                                    </button>
-                                </div>
+                                <AppFilterPill
+                                    v-model="form.term_months"
+                                    class="mt-2"
+                                    variant="solid"
+                                    size="compact"
+                                    aria-label="Pilih tenor cepat"
+                                    :items="quickTermOptions"
+                                />
                             </div>
 
                             <!-- Tanggal Mulai -->
@@ -539,24 +550,12 @@ Est. Angsuran/Bln: ${money(s.estimated_monthly)}`;
                                 <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
                                     Sistem Perhitungan Bunga
                                 </label>
-                                <div class="grid grid-cols-3 gap-2">
-                                    <button
-                                        v-for="m in methodOptions"
-                                        :key="m.value"
-                                        type="button"
-                                        class="flex flex-col items-center justify-center rounded-xl p-2.5 text-center transition-all border"
-                                        :class="form.installment_method === m.value
-                                            ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
-                                            : 'border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-outline hover:text-on-surface'"
-                                        @click="form.installment_method = m.value"
-                                    >
-                                        <AppIcon
-                                            :name="m.value === 'flat' ? 'horizontal_rule' : m.value === 'declining' ? 'trending_down' : 'balance'"
-                                            class="mb-1 text-lg"
-                                        />
-                                        <span class="text-xs font-semibold leading-tight">{{ m.label }}</span>
-                                    </button>
-                                </div>
+                                <AppFilterPill
+                                    v-model="form.installment_method"
+                                    variant="outline"
+                                    aria-label="Sistem perhitungan bunga"
+                                    :items="methodPillOptions"
+                                />
                                 <p class="mt-2 text-xs text-on-surface-variant italic">
                                     {{ methodOptions.find((m) => m.value === form.installment_method)?.description }}
                                 </p>
@@ -568,24 +567,14 @@ Est. Angsuran/Bln: ${money(s.estimated_monthly)}`;
                                     <label class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
                                         Suku Bunga / Jasa
                                     </label>
-                                    <div class="inline-flex rounded-lg bg-surface-container p-0.5 text-xs font-medium">
-                                        <button
-                                            type="button"
-                                            class="rounded-md px-2 py-0.5 transition-colors"
-                                            :class="form.rate_unit === 'monthly' ? 'bg-primary text-on-primary shadow-xs font-bold' : 'text-on-surface-variant hover:text-on-surface'"
-                                            @click="setRateUnit('monthly')"
-                                        >
-                                            % / Bulan
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="rounded-md px-2 py-0.5 transition-colors"
-                                            :class="form.rate_unit === 'annual' ? 'bg-primary text-on-primary shadow-xs font-bold' : 'text-on-surface-variant hover:text-on-surface'"
-                                            @click="setRateUnit('annual')"
-                                        >
-                                            % / Tahun
-                                        </button>
-                                    </div>
+                                    <AppFilterPill
+                                        :model-value="form.rate_unit"
+                                        variant="segment"
+                                        size="compact"
+                                        aria-label="Satuan suku bunga"
+                                        :items="rateUnitOptions"
+                                        @update:model-value="setRateUnit"
+                                    />
                                 </div>
 
                                 <AppInput

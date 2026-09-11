@@ -1095,11 +1095,13 @@ onBeforeUnmount(() => {
                     </div>
 
                     <form class="mt-3 flex items-end gap-2" @submit.prevent="sendChat">
-                        <textarea
+                        <AppTextarea
                             v-model="chatInput"
+                            label="Pertanyaan"
+                            hide-label
                             rows="2"
                             placeholder="Tulis pertanyaan…"
-                            class="min-h-12 max-h-32 flex-1 resize-none rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm leading-5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
+                            class="flex-1 min-h-12 max-h-32 [&>textarea]:max-h-32 [&>textarea]:min-h-12 [&>textarea]:resize-none"
                             :disabled="chatBusy"
                             @keydown.enter.exact.prevent="sendChat"
                         />
@@ -1296,6 +1298,4 @@ onBeforeUnmount(() => {
 .fade-enter-active, .fade-leave-active { transition: opacity 200ms ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>
-
-
 

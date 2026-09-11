@@ -7,8 +7,10 @@ import AppButton from '../../Components/AppButton.vue';
 import AppBadge from '../../Components/AppBadge.vue';
 import AppCurrencyInput from '../../Components/AppCurrencyInput.vue';
 import AppDatePicker from '../../Components/AppDatePicker.vue';
+import AppFileUpload from '../../Components/AppFileUpload.vue';
 import AppInput from '../../Components/AppInput.vue';
 import AppIconButton from '../../Components/AppIconButton.vue';
+import AppIcon from '../../Components/AppIcon.vue';
 import AppTabs from '../../Components/AppTabs.vue';
 import SmartSelect from '../../Components/SmartSelect.vue';
 import { useMoney } from '../../composables/useMoney';
@@ -393,17 +395,15 @@ const uploadLoans = () => {
                         <p class="text-xs text-on-surface-variant">
                             Upload file CSV berisi daftar anggota lengkap (NIK, Nama, Jenis Kelamin, Alamat, Desa, Phone).
                         </p>
-                        <div>
-                            <input
-                                type="file"
-                                accept=".csv"
-                                @change="e => memberFileForm.file = e.target.files[0]"
-                                class="block w-full text-xs text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary-container file:text-primary hover:file:bg-primary-fixed"
-                            />
-                        </div>
+                        <AppFileUpload
+                            v-model="memberFileForm.file"
+                            label="File CSV Anggota"
+                            accept=".csv"
+                        />
                         <div class="flex justify-between items-center pt-2">
                             <a :href="`${baseUrl}/onboarding/templates/anggota`" class="text-xs text-secondary hover:underline font-semibold">
-                                ?? Download Template CSV Anggota
+                                <AppIcon name="download" class="text-base" />
+                                Download Template CSV Anggota
                             </a>
                             <AppButton type="submit" variant="primary" size="sm" :disabled="!memberFileForm.file || memberFileForm.processing">
                                 Upload & Impor Anggota
@@ -421,17 +421,14 @@ const uploadLoans = () => {
                         <p class="text-xs text-on-surface-variant">
                             Upload file CSV daftar kelompok usaha/masyarakat (Nama Kelompok, Desa, Alamat, Telepon).
                         </p>
-                        <div>
-                            <input
-                                type="file"
-                                accept=".csv"
-                                @change="e => groupFileForm.file = e.target.files[0]"
-                                class="block w-full text-xs text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary-container file:text-primary hover:file:bg-primary-fixed"
-                            />
-                        </div>
+                        <AppFileUpload
+                            v-model="groupFileForm.file"
+                            label="File CSV Kelompok"
+                            accept=".csv"
+                        />
                         <div class="flex justify-between items-center pt-2">
                             <a :href="`${baseUrl}/onboarding/templates/kelompok`" class="text-xs text-secondary hover:underline font-semibold">
-                                ?? Download Template CSV Kelompok
+                                Download Template CSV Kelompok
                             </a>
                             <AppButton type="submit" variant="primary" size="sm" :disabled="!groupFileForm.file || groupFileForm.processing">
                                 Upload & Impor Kelompok
@@ -462,15 +459,11 @@ const uploadLoans = () => {
                         </div>
 
                         <form @submit.prevent="uploadLoans" class="space-y-4 pt-2">
-                            <div>
-                                <label class="block text-xs font-semibold text-on-surface mb-1">Pilih File CSV Pinjaman Aktif & Angsuran:</label>
-                                <input
-                                    type="file"
-                                    accept=".csv"
-                                    @change="e => loanFileForm.file = e.target.files[0]"
-                                    class="block w-full text-xs text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary-container file:text-primary hover:file:bg-primary-fixed"
-                                />
-                            </div>
+                            <AppFileUpload
+                                v-model="loanFileForm.file"
+                                label="File CSV Pinjaman Aktif & Angsuran"
+                                accept=".csv"
+                            />
                             <div class="flex justify-between items-center pt-2">
                                 <a :href="`${baseUrl}/onboarding/templates/pinjaman-aktif`" class="text-xs text-secondary hover:underline font-semibold">
                                     ?? Download Format Template CSV Pinjaman Aktif (.csv)
@@ -776,5 +769,4 @@ const uploadLoans = () => {
         </div>
     </AuthenticatedLayout>
 </template>
-
 

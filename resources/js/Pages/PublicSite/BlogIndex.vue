@@ -1,6 +1,9 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import AppButton from '@/Components/AppButton.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import AppInput from '@/Components/AppInput.vue';
 
 const props = defineProps({
     organization: { type: Object, required: true },
@@ -8,6 +11,8 @@ const props = defineProps({
     posts: { type: Object, required: true },
     search: { type: String, default: '' },
 });
+
+const searchQuery = ref(props.search);
 
 function formatDateTime(value) {
     if (!value) return '';
@@ -82,17 +87,15 @@ function formatDateTime(value) {
                     <form class="mt-6 flex max-w-xl gap-2" @submit.prevent>
                         <div class="relative flex-1">
                             <AppIcon name="search" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
-                            <input
+                            <AppInput
                                 type="search"
-                                name="q"
-                                :value="search"
+                                v-model="searchQuery"
                                 placeholder="Cari berita…"
-                                class="w-full rounded-full border border-outline-variant bg-surface-container-lowest py-2.5 pl-10 pr-4 text-sm text-on-surface placeholder:text-on-surface-variant/70 focus:border-primary focus:outline-none"
-                            >
+                            />
                         </div>
-                        <button type="submit" class="inline-flex min-h-11 items-center rounded-full bg-primary px-6 text-sm font-semibold text-on-primary shadow-md transition hover:bg-primary-deep">
+                        <AppButton type="submit" class="rounded-full shadow-md" icon="search" aria-label="Cari berita">
                             Cari
-                        </button>
+                        </AppButton>
                     </form>
                 </div>
             </section>

@@ -9,6 +9,7 @@ const props = defineProps({
     id: { type: String, default: null },
     label: { type: String, required: true },
     icon: { type: String, default: null },
+    hideLabel: { type: Boolean, default: false },
     error: { type: String, default: null },
     hint: { type: String, default: null },
     placeholder: { type: String, default: null },
@@ -20,7 +21,7 @@ const inputId = props.id || useId();
 
 <template>
     <div class="space-y-2">
-        <label :for="inputId" class="ml-1 block text-sm font-bold uppercase tracking-wider text-primary">{{ label }}</label>
+        <label :for="inputId" :class="hideLabel ? 'sr-only' : 'ml-1 block text-sm font-bold uppercase tracking-wider text-primary'">{{ label }}</label>
         <div class="relative">
             <AppIcon v-if="icon" :name="icon" class="pointer-events-none absolute left-4 top-4 text-xl text-outline" />
             <textarea

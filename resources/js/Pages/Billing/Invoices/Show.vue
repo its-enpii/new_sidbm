@@ -9,6 +9,7 @@ import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
 import AppRadioGroup from '../../../Components/AppRadioGroup.vue';
 import { useCan } from '../../../composables/useCan';
 import { useMoney } from '../../../composables/useMoney';
+import SmartDataTable from '../../../Components/SmartDataTable.vue';
 
 const { can } = useCan();
 const { money } = useMoney();
@@ -114,6 +115,14 @@ function methodLabel(payment) {
     if (payment.payment_name) return payment.payment_name;
     return 'Online (Tripay)';
 }
+
+const paymentColumns = [
+    { key: 'method', label: 'Metode' },
+    { key: 'status', label: 'Status' },
+    { key: 'amount', label: 'Nominal' },
+    { key: 'reference', label: 'Referensi / Kode Bayar' },
+    { key: 'paid_at', label: 'Waktu' },
+];
 </script>
 
 <template>
@@ -340,12 +349,12 @@ function methodLabel(payment) {
                                     <p class="text-xs text-on-surface-variant">Semua Mobile Banking & E-Wallet (BCA, Mandiri, BRI, GoPay, Dana, dll.)</p>
                                 </div>
                             </div>
-                            <input
-                                type="radio"
-                                name="channel"
-                                :value="ch.code"
-                                :checked="selectedMethod === ch.code"
-                                class="size-4 text-primary focus:ring-primary"
+                            <AppRadioGroup
+                                v-model="selectedMethod"
+                                name="channel-qris"
+                                label="Kanal QRIS"
+                                hide-label
+                                :options="[{ value: ch.code, label: ch.name }]"
                             />
                         </div>
                     </div>
@@ -368,12 +377,12 @@ function methodLabel(payment) {
                                     <p class="text-[10px] text-on-surface-variant">Verifikasi Otomatis</p>
                                 </div>
                             </div>
-                            <input
-                                type="radio"
-                                name="channel"
-                                :value="ch.code"
-                                :checked="selectedMethod === ch.code"
-                                class="size-4 text-primary focus:ring-primary"
+                            <AppRadioGroup
+                                v-model="selectedMethod"
+                                name="channel-va"
+                                label="Kanal Virtual Account"
+                                hide-label
+                                :options="[{ value: ch.code, label: ch.name }]"
                             />
                         </div>
                     </div>
@@ -409,35 +418,34 @@ function methodLabel(payment) {
                 <div class="border-b border-outline-variant px-6 py-4">
                     <h2 class="font-bold text-primary">Riwayat Transaksi Pembayaran</h2>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-surface-container-low text-xs uppercase text-on-surface-variant">
-                            <tr>
-                                <th class="px-6 py-3">Metode</th>
-                                <th class="px-6 py-3">Status</th>
-                                <th class="px-6 py-3">Nominal</th>
-                                <th class="px-6 py-3">Referensi / Kode Bayar</th>
-                                <th class="px-6 py-3">Waktu</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-outline-variant">
-                            <tr v-for="payment in payments" :key="payment.row_id" class="hover:bg-surface-container-low/40">
-                                <td class="px-6 py-3 font-semibold text-primary">{{ methodLabel(payment) }}</td>
-                                <td class="px-6 py-3">
-                                    <AppBadge :tone="tone(payment.status)">{{ statusLabel(payment.status) }}</AppBadge>
-                                </td>
-                                <td class="px-6 py-3 font-bold">{{ money(payment.amount, invoice.currency) }}</td>
-                                <td class="px-6 py-3 font-mono text-xs">
-                                    <span v-if="payment.pay_code" class="font-bold text-primary">{{ payment.pay_code }}</span>
-                                    <span v-else>{{ payment.reference || payment.tripay_reference || '—' }}</span>
-                                </td>
-                                <td class="px-6 py-3 text-on-surface-variant text-xs">{{ payment.paid_at || '—' }}</td>
-                            </tr>
-                            <tr v-if="!payments.length">
-                                <td colspan="5" class="px-6 py-8 text-center text-on-surface-variant">Belum ada catatan pembayaran.</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="p-4">
+                    <SmartDataTable
+                        :rows="payments"
+                        :columns="paymentColumns"
+                        :pagination="{ current_page: 1, last_page: 1, from: 1, to: payments.length, total: payments.length }"
+                        url="/billing/invoices"
+                        search-placeholder="Cari pembayaran..."
+                        search-label="Cari pembayaran"
+                        empty-title="Belum ada catatan pembayaran"
+                        empty-description="Riwayat transaksi pembayaran akan muncul di sini."
+                    >
+                        <template #cell-method="{ row }">
+                            <span class="font-semibold text-primary">{{ methodLabel(row) }}</span>
+                        </template>
+                        <template #cell-status="{ row }">
+                            <AppBadge :tone="tone(row.status)">{{ statusLabel(row.status) }}</AppBadge>
+                        </template>
+                        <template #cell-amount="{ row }">
+                            <span class="font-bold">{{ money(row.amount, invoice.currency) }}</span>
+                        </template>
+                        <template #cell-reference="{ row }">
+                            <span v-if="row.pay_code" class="font-mono text-xs font-bold text-primary">{{ row.pay_code }}</span>
+                            <span v-else class="font-mono text-xs">{{ row.reference || row.tripay_reference || '—' }}</span>
+                        </template>
+                        <template #cell-paid_at="{ row }">
+                            <span class="text-xs text-on-surface-variant">{{ row.paid_at || '—' }}</span>
+                        </template>
+                    </SmartDataTable>
                 </div>
             </AppCard>
         </div>

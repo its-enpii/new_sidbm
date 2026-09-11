@@ -5,6 +5,8 @@ import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import AppEmptyState from '../../../Components/AppEmptyState.vue';
+import AppInput from '../../../Components/AppInput.vue';
+import SmartDataTable from '../../../Components/SmartDataTable.vue';
 import AppModal from '../../../Components/AppModal.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
 import { useCan } from '../../../composables/useCan';
@@ -24,6 +26,13 @@ const canManage = computed(() => can('website.manage'));
 const q = ref(props.search);
 const detail = ref(null);
 const showDetail = ref(false);
+
+const columns = [
+    { key: 'name', label: 'Pengirim' },
+    { key: 'subject', label: 'Subjek' },
+    { key: 'is_read', label: 'Status' },
+    { key: 'created_at', label: 'Tanggal' },
+];
 
 function applySearch() {
     router.get(route('website.messages.index'), { q: q.value || undefined }, { preserveState: true, preserveScroll: true });
@@ -71,56 +80,57 @@ function markRead(row) {
                 <div class="p-6">
                     <div class="flex flex-wrap items-center gap-3">
                         <div class="flex min-w-[16rem] flex-1 items-center gap-2">
-                            <input v-model="q" type="search" placeholder="Cari nama / subjek / isi..." class="w-full rounded-xl border border-outline-variant bg-surface px-3.5 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" @keydown.enter="applySearch" />
+                            <AppInput
+                                v-model="q"
+                                type="search"
+                                label="Cari pesan"
+                                hide-label
+                                placeholder="Cari nama / subjek / isi..."
+                                @keydown.enter="applySearch"
+                            />
                             <AppButton variant="secondary" size="compact" icon="search" @click="applySearch">Cari</AppButton>
                         </div>
                     </div>
 
-                    <div v-if="messages.data.length === 0" class="py-8">
+                    <div v-if="messages.data.length" class="mt-5 overflow-x-auto">
+                        <SmartDataTable
+                            :rows="messages.data || []"
+                            :columns="columns"
+                            :pagination="messages"
+                            url="/website/messages"
+                            :search="q"
+                            search-placeholder="Cari nama / subjek / isi..."
+                            search-label="Cari pesan"
+                            empty-title="Belum ada pesan"
+                            empty-description="Pesan dari halaman kontak publik akan tampil di sini."
+                        >
+                            <template #cell-name="{ row }">
+                                <p class="font-semibold text-primary">{{ row.name }}</p>
+                                <p v-if="row.email || row.phone" class="text-xs text-on-surface-variant">{{ [row.email, row.phone].filter(Boolean).join(' · ') }}</p>
+                            </template>
+                            <template #cell-subject="{ row }">
+                                <p class="max-w-[20rem] truncate font-medium">{{ row.subject || '—' }}</p>
+                                <p class="max-w-[20rem] truncate text-xs text-on-surface-variant">{{ row.message }}</p>
+                            </template>
+                            <template #cell-is_read="{ row }">
+                                <AppBadge :tone="row.is_read ? 'neutral' : 'warning'">{{ row.is_read ? 'Sudah dibaca' : 'Baru' }}</AppBadge>
+                            </template>
+                            <template #cell-created_at="{ row }">
+                                <span class="text-xs text-on-surface-variant">{{ row.created_at ? new Date(row.created_at).toLocaleString('id-ID') : '—' }}</span>
+                            </template>
+                            <template #actions="{ row }">
+                                <div class="flex justify-end gap-1.5">
+                                    <AppButton variant="outline" size="compact" icon="visibility" @click="openDetail(row)">Lihat</AppButton>
+                                    <AppButton v-if="!row.is_read && canManage" variant="secondary" size="compact" icon="mark_email_read" @click="markRead(row)">Tandai dibaca</AppButton>
+                                    <AppButton v-if="canManage" variant="danger" size="compact" icon="delete" @click="remove(row)">Hapus</AppButton>
+                                </div>
+                            </template>
+                        </SmartDataTable>
+                    </div>
+                    <div v-else class="py-8">
                         <AppEmptyState icon="inbox" title="Belum ada pesan" description="Pesan dari halaman kontak publik akan tampil di sini." />
                     </div>
-
-                    <div v-else class="mt-5 overflow-x-auto">
-                            <table class="w-full text-left text-sm">
-                        <thead class="border-b border-outline-variant text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                            <tr>
-                                <th class="px-3 py-2">Pengirim</th>
-                                <th class="px-3 py-2">Subjek</th>
-                                <th class="px-3 py-2">Status</th>
-                                <th class="px-3 py-2">Tanggal</th>
-                                <th class="px-3 py-2 text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-outline-variant/60">
-                            <tr v-for="row in messages.data" :key="row.row_id" class="hover:bg-surface-container-low/60" :class="!row.is_read && 'bg-warning-container/20'">
-                                <td class="px-3 py-3">
-                                    <p class="font-semibold text-primary">{{ row.name }}</p>
-                                    <p v-if="row.email || row.phone" class="text-xs text-on-surface-variant">{{ [row.email, row.phone].filter(Boolean).join(' · ') }}</p>
-                                </td>
-                                <td class="px-3 py-3">
-                                    <p class="max-w-[20rem] truncate font-medium">{{ row.subject || '—' }}</p>
-                                    <p class="max-w-[20rem] truncate text-xs text-on-surface-variant">{{ row.message }}</p>
-                                </td>
-                                <td class="px-3 py-3">
-                                    <AppBadge :tone="row.is_read ? 'neutral' : 'warning'">{{ row.is_read ? 'Sudah dibaca' : 'Baru' }}</AppBadge>
-                                </td>
-                                <td class="px-3 py-3 text-xs text-on-surface-variant">{{ row.created_at ? new Date(row.created_at).toLocaleString('id-ID') : '—' }}</td>
-                                <td class="px-3 py-3">
-                                    <div class="flex justify-end gap-1.5">
-                                        <AppButton variant="outline" size="compact" icon="visibility" @click="openDetail(row)">Lihat</AppButton>
-                                        <AppButton v-if="!row.is_read && canManage" variant="secondary" size="compact" icon="mark_email_read" @click="markRead(row)">Tandai dibaca</AppButton>
-                                        <AppButton v-if="canManage" variant="danger" size="compact" icon="delete" @click="remove(row)">Hapus</AppButton>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                        </table>
-                    </div>
-
-                    <div v-if="messages.links?.length > 3" class="mt-4 flex flex-wrap gap-1.5">
-                        <Link v-for="link in messages.links" :key="link.label" :href="link.url ?? '#'" :class="['rounded-lg px-3 py-1.5 text-sm', link.active ? 'bg-primary text-on-primary' : 'border border-outline-variant hover:bg-surface-container-low', !link.url && 'pointer-events-none opacity-40']" v-html="link.label" />
-                    </div>
-                    </div>
+                </div>
                 </AppCard>
 
             <AppModal v-model="showDetail" :title="detail ? `Pesan dari ${detail.name}` : 'Detail pesan'" size="md">

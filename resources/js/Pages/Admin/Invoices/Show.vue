@@ -10,6 +10,7 @@ import AppIcon from '../../../Components/AppIcon.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import AppTextarea from '../../../Components/AppTextarea.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import SmartDataTable from '../../../Components/SmartDataTable.vue';
 
 const props = defineProps({
     invoice: { type: Object, required: true },
@@ -68,6 +69,14 @@ async function voidInvoice() {
     if (!await confirmAction({ title: 'Batalkan Invoice', message: 'Batalkan invoice ini? Tindakan ini tidak dapat dibatalkan.' })) return;
     voidForm.post(`/admin/invoices/${props.invoice.row_id}/void`, { preserveScroll: true });
 }
+
+const paymentColumns = [
+    { key: 'paid_at', label: 'Tanggal' },
+    { key: 'method', label: 'Metode' },
+    { key: 'amount', label: 'Nominal' },
+    { key: 'status', label: 'Status' },
+    { key: 'reference', label: 'Referensi' },
+];
 </script>
 
 <template>
@@ -169,28 +178,30 @@ async function voidInvoice() {
             <!-- Payments List -->
             <AppCard v-if="payments.length" class="space-y-4">
                 <h2 class="font-bold text-primary">Riwayat Pembayaran</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="border-b border-outline-variant text-xs uppercase text-on-surface-variant">
-                            <tr>
-                                <th class="py-2.5">Tanggal</th>
-                                <th class="py-2.5">Metode</th>
-                                <th class="py-2.5">Nominal</th>
-                                <th class="py-2.5">Status</th>
-                                <th class="py-2.5">Referensi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-outline-variant/60">
-                            <tr v-for="p in payments" :key="p.row_id">
-                                <td class="py-2.5">{{ p.paid_at || '—' }}</td>
-                                <td class="py-2.5 font-semibold text-primary">{{ p.method }}</td>
-                                <td class="py-2.5 font-bold">{{ money(p.amount) }}</td>
-                                <td class="py-2.5"><AppBadge :tone="tone(p.status)">{{ p.status }}</AppBadge></td>
-                                <td class="py-2.5 text-xs text-on-surface-variant">{{ p.reference || p.tripay_reference || '—' }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                <SmartDataTable
+                    :rows="payments"
+                    :columns="paymentColumns"
+                    :pagination="{ current_page: 1, last_page: 1, from: 1, to: payments.length, total: payments.length }"
+                    url="/admin/invoices"
+                    search-placeholder="Cari pembayaran..."
+                    search-label="Cari pembayaran"
+                    empty-title="Belum ada pembayaran"
+                    empty-description="Pembayaran akan muncul setelah invoice diproses."
+                >
+                    <template #cell-paid_at="{ row }">{{ row.paid_at || '—' }}</template>
+                    <template #cell-method="{ row }">
+                        <span class="font-semibold text-primary">{{ row.method }}</span>
+                    </template>
+                    <template #cell-amount="{ row }">
+                        <span class="font-bold">{{ money(row.amount) }}</span>
+                    </template>
+                    <template #cell-status="{ row }">
+                        <AppBadge :tone="tone(row.status)">{{ row.status }}</AppBadge>
+                    </template>
+                    <template #cell-reference="{ row }">
+                        <span class="text-xs text-on-surface-variant">{{ row.reference || row.tripay_reference || '—' }}</span>
+                    </template>
+                </SmartDataTable>
             </AppCard>
         </div>
     </AdminLayout>

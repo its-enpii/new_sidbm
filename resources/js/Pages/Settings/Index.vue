@@ -7,6 +7,7 @@ import AppBadge from '../../Components/AppBadge.vue';
 import AppButton from '../../Components/AppButton.vue';
 import AppCard from '../../Components/AppCard.vue';
 import AppDatePicker from '../../Components/AppDatePicker.vue';
+import AppFileUpload from '../../Components/AppFileUpload.vue';
 import AppIcon from '../../Components/AppIcon.vue';
 import AppInput from '../../Components/AppInput.vue';
 import AppSwitch from '../../Components/AppSwitch.vue';
@@ -217,6 +218,7 @@ function submitSignatures() {
 const showSignaturePad = ref(false);
 const signatureImagePad = ref(null);
 const signatureImageForm = useForm({ report_key: '', image: '' });
+const signatureImageFile = ref(null);
 const signatureDeleteForm = useForm({ report_key: '' });
 
 const currentSignatureImageUrl = computed(() => props.signatureImages?.[signatureReportKey.value] ?? null);
@@ -278,6 +280,25 @@ async function handleUploadSignatureImage(event) {
 
     event.target.value = '';
 }
+
+function handleSignatureImageFile(file) {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        signatureImageForm.report_key = signatureReportKey.value;
+        signatureImageForm.image = String(reader.result ?? '');
+        signatureImageForm.post('/settings/signatures/image', {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => signatureImageForm.reset(),
+        });
+    };
+    reader.readAsDataURL(file);
+    signatureImageFile.value = null;
+}
+
+watch(signatureImageFile, handleSignatureImageFile);
 
 function applySignatureStarter() {
     currentSignatureHtml.value = `<table style="width:100%"><tbody><tr><td style="width:33%;text-align:center"><p>Mengetahui,</p><p><br><br><br></p><p><strong>( ........................ )</strong></p></td><td style="width:33%;text-align:center"><p>Dibuat oleh,</p><p><br><br><br></p><p><strong>( ........................ )</strong></p></td><td style="width:33%;text-align:center"><p>Bendahara,</p><p><br><br><br></p><p><strong>( ........................ )</strong></p></td></tr></tbody></table>`;
@@ -445,13 +466,13 @@ function applySignatureStarter() {
                                     >
                                         Gambar Tanda Tangan
                                     </AppButton>
-                                    <label>
-                                        <input
-                                            type="file"
-                                            accept="image/png,image/jpeg,image/webp"
-                                            class="sr-only"
-                                            @change="handleUploadSignatureImage"
-                                        />
+                                    <AppFileUpload
+                                        v-model="signatureImageFile"
+                                        label="Gambar Tanda Tangan"
+                                        hide-label
+                                        accept="image/png,image/jpeg,image/webp"
+                                    />
+                                    <label class="hidden">
                                         <AppButton
                                             variant="secondary"
                                             size="compact"

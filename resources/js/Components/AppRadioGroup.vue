@@ -10,6 +10,7 @@ const props = defineProps({
     error: { type: String, default: null },
     required: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
+    hideLabel: { type: Boolean, default: false },
 });
 
 const inputId = props.id || useId();
@@ -17,7 +18,7 @@ const inputId = props.id || useId();
 
 <template>
     <fieldset :disabled="disabled" class="space-y-2">
-        <legend class="ml-1 text-sm font-bold uppercase tracking-wider text-primary">{{ label }}</legend>
+        <legend :class="hideLabel ? 'sr-only' : 'ml-1 text-sm font-bold uppercase tracking-wider text-primary'">{{ label }}</legend>
         <div class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-xl border bg-surface-container-lowest" :class="error ? 'border-error' : 'border-outline-variant'">
             <label v-for="(option, index) in options" :key="option.value" class="relative min-w-0" :class="index && 'border-l border-outline-variant'">
                 <input

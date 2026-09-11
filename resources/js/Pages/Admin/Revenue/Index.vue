@@ -7,6 +7,7 @@ import AppCard from '../../../Components/AppCard.vue';
 import AppIcon from '../../../Components/AppIcon.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
+import SmartDataTable from '../../../Components/SmartDataTable.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useMoney } from '../../../composables/useMoney.js';
 
@@ -41,6 +42,15 @@ const perPageOptions = [
     { value: '15', label: '15 per halaman' },
     { value: '30', label: '30 per halaman' },
     { value: '50', label: '50 per halaman' },
+];
+
+const columns = [
+    { key: 'name', label: 'Tenant / BUMDesma' },
+    { key: 'plan', label: 'Paket & Tarif' },
+    { key: 'latest_invoice', label: 'Tagihan Terakhir', class: 'text-right' },
+    { key: 'due_info', label: 'Jatuh Tempo' },
+    { key: 'payment_status_label', label: 'Status Pembayaran' },
+    { key: 'lifetime_paid', label: 'Total Terbayar', class: 'text-right' },
 ];
 
 function applyFilters(page = 1) {
@@ -165,154 +175,86 @@ watch([status, planId, perPage], () => {
 
             <!-- Main Table: Per-Tenant Billing Monitor -->
             <AppCard :padded="false">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="border-b border-outline-variant bg-surface-container-low text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                            <tr>
-                                <th class="px-6 py-4">Tenant / BUMDesma</th>
-                                <th class="px-4 py-4">Paket &amp; Tarif</th>
-                                <th class="px-4 py-4 text-right">Tagihan Terakhir</th>
-                                <th class="px-4 py-4">Jatuh Tempo</th>
-                                <th class="px-4 py-4">Status Pembayaran</th>
-                                <th class="px-4 py-4 text-right">Total Terbayar</th>
-                                <th class="px-6 py-4 text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-outline-variant/30">
-                            <tr
-                                v-for="tenant in tenants.data"
-                                :key="tenant.row_id"
-                                class="transition-colors hover:bg-surface-container-low/40"
-                            >
-                                <!-- Tenant Info -->
-                                <td class="px-6 py-4">
-                                    <div class="min-w-0">
-                                        <Link :href="`/admin/tenants/${tenant.row_id}`" class="font-bold text-primary hover:underline block truncate">
-                                            {{ tenant.name }}
-                                        </Link>
-                                        <div class="mt-0.5 flex items-center gap-2 text-xs text-on-surface-variant">
-                                            <span>{{ tenant.code }}</span>
-                                            <span v-if="tenant.district_code">· kec. {{ tenant.district_code }}</span>
-                                            <AppBadge :tone="tenant.tenant_status === 'active' ? 'success' : 'error'" size="sm">
-                                                {{ tenant.tenant_status === 'active' ? 'Aktif' : 'Suspended' }}
-                                            </AppBadge>
-                                        </div>
-                                    </div>
-                                </td>
-
-                                <!-- Plan Info -->
-                                <td class="px-4 py-4 whitespace-nowrap">
-                                    <div v-if="tenant.plan">
-                                        <p class="font-semibold text-primary">{{ tenant.plan.name }}</p>
-                                        <p class="text-xs text-on-surface-variant">
-                                            {{ money(tenant.plan.price_amount, tenant.plan.currency) }} / {{ tenant.plan.billing_period }}
-                                        </p>
-                                    </div>
-                                    <span v-else class="text-xs text-on-surface-variant italic">Belum Ada Paket</span>
-                                </td>
-
-                                <!-- Latest Invoice Amount -->
-                                <td class="px-4 py-4 text-right whitespace-nowrap">
-                                    <div v-if="tenant.latest_invoice">
-                                        <p class="font-bold text-primary tabular-nums">
-                                            {{ money(tenant.latest_invoice.amount, tenant.latest_invoice.currency) }}
-                                        </p>
-                                        <Link
-                                            :href="`/admin/invoices/${tenant.latest_invoice.row_id}`"
-                                            class="text-xs text-on-surface-variant hover:text-primary hover:underline block truncate max-w-[140px] ml-auto font-mono"
-                                        >
-                                            {{ tenant.latest_invoice.number }}
-                                        </Link>
-                                    </div>
-                                    <span v-else class="text-xs text-on-surface-variant italic">—</span>
-                                </td>
-
-                                <!-- Due Date & Info -->
-                                <td class="px-4 py-4 whitespace-nowrap">
-                                    <div v-if="tenant.latest_invoice">
-                                        <p class="font-medium text-on-surface text-xs">
-                                            {{ tenant.latest_invoice.due_at || '—' }}
-                                        </p>
-                                        <p
-                                            class="text-[11px] font-semibold mt-0.5"
-                                            :class="tenant.payment_status === 'overdue' ? 'text-error' : tenant.payment_status === 'paid' ? 'text-secondary' : 'text-on-surface-variant'"
-                                        >
-                                            {{ tenant.due_info }}
-                                        </p>
-                                    </div>
-                                    <span v-else-if="tenant.due_info" class="text-xs text-info font-medium">{{ tenant.due_info }}</span>
-                                    <span v-else class="text-xs text-on-surface-variant italic">—</span>
-                                </td>
-
-                                <!-- Payment Status Badge -->
-                                <td class="px-4 py-4 whitespace-nowrap">
-                                    <AppBadge :tone="tenant.payment_status_tone">
-                                        {{ tenant.payment_status_label }}
+                <div class="p-4">
+                    <SmartDataTable
+                        :rows="tenants.data || []"
+                        :columns="columns"
+                        :pagination="tenants"
+                        url="/admin/revenue"
+                        :search="search"
+                        search-placeholder="Ketik nama tenant atau no invoice..."
+                        search-label="Cari tenant / invoice"
+                        empty-title="Tidak ada data tenant"
+                        empty-description="Tidak ada data tenant yang cocok dengan filter."
+                    >
+                        <template #cell-name="{ row }">
+                            <div class="min-w-0">
+                                <Link :href="`/admin/tenants/${row.row_id}`" class="block truncate font-bold text-primary hover:underline">
+                                    {{ row.name }}
+                                </Link>
+                                <div class="mt-0.5 flex items-center gap-2 text-xs text-on-surface-variant">
+                                    <span>{{ row.code }}</span>
+                                    <span v-if="row.district_code">· kec. {{ row.district_code }}</span>
+                                    <AppBadge :tone="row.tenant_status === 'active' ? 'success' : 'error'" size="sm">
+                                        {{ row.tenant_status === 'active' ? 'Aktif' : 'Suspended' }}
                                     </AppBadge>
-                                </td>
-
-                                <!-- Lifetime Paid -->
-                                <td class="px-4 py-4 text-right whitespace-nowrap">
-                                    <span class="font-semibold text-secondary tabular-nums text-xs">
-                                        {{ money(tenant.lifetime_paid) }}
-                                    </span>
-                                </td>
-
-                                <!-- Actions -->
-                                <td class="px-6 py-4 text-right whitespace-nowrap">
-                                    <div class="flex items-center justify-end gap-1.5">
-                                        <Link
-                                            v-if="tenant.latest_invoice"
-                                            :href="`/admin/invoices/${tenant.latest_invoice.row_id}`"
-                                        >
-                                            <AppButton variant="ghost" size="compact" icon="receipt">Invoice</AppButton>
-                                        </Link>
-                                        <Link :href="`/admin/invoices/create?tenant_id=${tenant.row_id}`">
-                                            <AppButton variant="secondary" size="compact" icon="add">Tagih</AppButton>
-                                        </Link>
-                                        <Link :href="`/admin/tenants/${tenant.row_id}`">
-                                            <AppButton variant="ghost" size="compact" icon="visibility">Detail</AppButton>
-                                        </Link>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <tr v-if="!tenants.data || tenants.data.length === 0">
-                                <td colspan="7" class="px-6 py-12 text-center text-on-surface-variant">
-                                    <AppIcon name="inbox" class="mx-auto text-4xl text-outline mb-2 block" />
-                                    <p class="font-semibold">Tidak ada data tenant yang cocok dengan filter.</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Pagination -->
-                <div
-                    v-if="tenants.last_page > 1"
-                    class="flex items-center justify-between border-t border-outline-variant px-6 py-4 text-sm"
-                >
-                    <p class="text-on-surface-variant">
-                        Menampilkan {{ tenants.from || 0 }} - {{ tenants.to || 0 }} dari {{ tenants.total }} tenant
-                    </p>
-                    <div class="flex gap-2">
-                        <AppButton
-                            variant="ghost"
-                            size="compact"
-                            :disabled="tenants.current_page <= 1"
-                            @click="applyFilters(tenants.current_page - 1)"
-                        >
-                            Sebelumnya
-                        </AppButton>
-                        <AppButton
-                            variant="ghost"
-                            size="compact"
-                            :disabled="tenants.current_page >= tenants.last_page"
-                            @click="applyFilters(tenants.current_page + 1)"
-                        >
-                            Selanjutnya
-                        </AppButton>
-                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <template #cell-plan="{ row }">
+                            <div v-if="row.plan" class="whitespace-nowrap">
+                                <p class="font-semibold text-primary">{{ row.plan.name }}</p>
+                                <p class="text-xs text-on-surface-variant">
+                                    {{ money(row.plan.price_amount, row.plan.currency) }} / {{ row.plan.billing_period }}
+                                </p>
+                            </div>
+                            <span v-else class="text-xs italic text-on-surface-variant">Belum Ada Paket</span>
+                        </template>
+                        <template #cell-latest_invoice="{ row }">
+                            <div v-if="row.latest_invoice" class="whitespace-nowrap text-right">
+                                <p class="font-bold tabular-nums text-primary">{{ money(row.latest_invoice.amount, row.latest_invoice.currency) }}</p>
+                                <Link
+                                    :href="`/admin/invoices/${row.latest_invoice.row_id}`"
+                                    class="ml-auto block max-w-[140px] truncate font-mono text-xs text-on-surface-variant hover:text-primary hover:underline"
+                                >
+                                    {{ row.latest_invoice.number }}
+                                </Link>
+                            </div>
+                            <span v-else class="text-xs italic text-on-surface-variant">—</span>
+                        </template>
+                        <template #cell-due_info="{ row }">
+                            <div v-if="row.latest_invoice" class="whitespace-nowrap">
+                                <p class="text-xs font-medium text-on-surface">{{ row.latest_invoice.due_at || '—' }}</p>
+                                <p
+                                    class="mt-0.5 text-[11px] font-semibold"
+                                    :class="row.payment_status === 'overdue' ? 'text-error' : row.payment_status === 'paid' ? 'text-secondary' : 'text-on-surface-variant'"
+                                >
+                                    {{ row.due_info }}
+                                </p>
+                            </div>
+                            <span v-else-if="row.due_info" class="text-xs font-medium text-info">{{ row.due_info }}</span>
+                            <span v-else class="text-xs italic text-on-surface-variant">—</span>
+                        </template>
+                        <template #cell-payment_status_label="{ row }">
+                            <AppBadge :tone="row.payment_status_tone">{{ row.payment_status_label }}</AppBadge>
+                        </template>
+                        <template #cell-lifetime_paid="{ row }">
+                            <span class="whitespace-nowrap text-xs font-semibold tabular-nums text-secondary">{{ money(row.lifetime_paid) }}</span>
+                        </template>
+                        <template #actions="{ row }">
+                            <div class="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                                <Link v-if="row.latest_invoice" :href="`/admin/invoices/${row.latest_invoice.row_id}`">
+                                    <AppButton variant="ghost" size="compact" icon="receipt">Invoice</AppButton>
+                                </Link>
+                                <Link :href="`/admin/invoices/create?tenant_id=${row.row_id}`">
+                                    <AppButton variant="secondary" size="compact" icon="add">Tagih</AppButton>
+                                </Link>
+                                <Link :href="`/admin/tenants/${row.row_id}`">
+                                    <AppButton variant="ghost" size="compact" icon="visibility">Detail</AppButton>
+                                </Link>
+                            </div>
+                        </template>
+                    </SmartDataTable>
                 </div>
             </AppCard>
         </div>

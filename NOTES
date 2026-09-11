@@ -1,0 +1,57 @@
+# Component-First Refactor Notes
+
+## Fase A
+### Files
+- Components: AppFileUpload, AppRadioGroup, AppTextarea
+- Pages: Access/Roles/Form, Lending/Simulation/Index, Onboarding/ImportWizard, Admin/Tenants/DataPurifier/Index, Admin/Invoices/Create, Admin/AiAssistant/Index, Billing/Invoices/Show, Website/Messages/Index, Website/Settings/Form, PublicSite/BlogIndex, PublicSite/Contact, Settings/Index
+
+### Verification
+- `npm run build`: exit 0
+- `php artisan test tests/Feature/ChangelogTest.php`: 3 passed (28 assertions)
+- `vendor/bin/pint --test --dirty`: passed
+
+### Grep evidence
+```
+$ grep -rEn "<input|<textarea|<button|<details|<select" resources/js/Pages/ --include=*.vue | grep -v 'type="hidden"'
+resources/js/Pages/MasterData/Members/Show.vue:224: <input type="file" ... class="sr-only" ...>
+resources/js/Pages/PublicSite/Contact.vue:118: <input id="website" ... type="text" tabindex="-1" ...>
+resources/js/Pages/Settings/Index.vue:428: <input type="file" ... class="sr-only" ...>
+resources/js/Pages/Admin/AiAssistant/Index.vue:974: <input type="file" class="hidden" ...>
+resources/js/Pages/Admin/AuditLogs/Index.vue:138: <details ...>
+resources/js/Pages/Home.vue:404: <button ...>
+resources/js/Pages/Home.vue:689: <button ...>
+resources/js/Pages/Profile/Edit.vue:333: <input type="file" ... class="sr-only" ...>
+```
+
+### Component decisions
+- `AppFilterPill` dipakai untuk chips nominal/tenor, metode bunga, dan switcher satuan rate karena hanya butuh pilihan tunggal dan sudah menyediakan opsi aktif/ikon/segmen.
+- `AppRadioGroup` dipakai untuk kanal pembayaran; labelnya dapat disembunyikan agar kartu custom tetap terlihat, sedangkan radio native tetap accessible di dalam `AppRadioGroup`.
+- `AppFileUpload` dipakai untuk tiga upload CSV dan unggah gambar tanda tangan; empat file-trigger tombol tetap dipertahankan sesuai allowlist.
+- Menambah prop `hideLabel` kecil pada `AppRadioGroup`, `AppTextarea`, dan `AppFileUpload` agar label tetap accessible tanpa mengubah visual kartu/form.
+
+## Fase B
+### Files
+- Pages: Access/Roles/Index, Accounting/Journals/Index, Assets/Index, Admin/Revenue/Index, Website/Messages/Index, Admin/Invoices/Show, Billing/Invoices/Show
+- Pages: Home (raw interactive buttons were detected by the final Phase A gate and converted to AppIconButton/AppAccordion)
+
+### Verification
+- `npm run build`: exit 0
+- `php artisan test tests/Feature/ChangelogTest.php`: 3 passed (28 assertions)
+- `vendor/bin/pint --test --dirty`: passed
+
+### Grep evidence
+```
+$ grep -rEn "<input|<textarea|<button|<details|<select" resources/js/Pages/ --include=*.vue | grep -v 'type="hidden"'
+resources/js/Pages/Settings/Index.vue:428:                                    <input type="file" accept="image/png,image/jpeg,image/webp" class="sr-only" @change="onLogoChange" />
+resources/js/Pages/PublicSite/Contact.vue:118:                                <input id="website" v-model="form.website" type="text" tabindex="-1" autocomplete="off" />
+resources/js/Pages/Admin/AuditLogs/Index.vue:138:                            <details v-if="row.properties && Object.keys(row.properties).length" class="mt-0.5 text-xs">
+resources/js/Pages/Profile/Edit.vue:333:                                    <input type="file" accept="image/png,image/jpeg,image/webp" class="sr-only" @change="onPhotoChange" />
+resources/js/Pages/MasterData/Members/Show.vue:224:                                <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" @change="onIdentityPhotoChange" />
+resources/js/Pages/Admin/AiAssistant/Index.vue:974:                                <input type="file" class="hidden" accept=".pdf,.docx,.md,.markdown,.html,.htm,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html" @change="onUploadFile">
+```
+
+### Component decisions
+- `SmartDataTable` dipakai penuh untuk 7 target tabel CRUD/list; kolom khusus dan aksi dirender lewat slot bawaan `#cell-*` dan `#actions`, tanpa mengubah `SmartDataTable`.
+- Jurnal tetap bisa memakai bulk-select karena kolom pilih menjadi kolom dinamis dan checkbox dirender via slot `#cell-selected`.
+- Pagination/search bawaan `SmartDataTable` dipakai untuk tabel ber-pagination; tabel array lokal memakai pagination stub satu halaman agar tidak mengubah endpoint.
+- Raw button di Home ditemukan saat gate Fase A dan dikonversi ke `AppIconButton` serta `AppAccordion` tanpa membuat komponen baru.

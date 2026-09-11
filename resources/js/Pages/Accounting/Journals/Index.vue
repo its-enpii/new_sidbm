@@ -10,6 +10,7 @@ import AppInput from '../../../Components/AppInput.vue';
 import AppModal from '../../../Components/AppModal.vue';
 import AppTextarea from '../../../Components/AppTextarea.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
+import SmartDataTable from '../../../Components/SmartDataTable.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
 import { useCan } from '../../../composables/useCan';
 
@@ -30,6 +31,16 @@ const to = ref(props.filters.to);
 const q = ref(props.filters.q || '');
 const source = ref(props.filters.source || 'all');
 const syncing = ref(false);
+
+const columns = computed(() => [
+    ...(allowReverse.value ? [{ key: 'selected', label: 'Pilih', class: 'text-center' }] : []),
+    { key: 'journal_number', label: 'No / ID' },
+    { key: 'transaction_date', label: 'Tanggal' },
+    { key: 'source_type', label: 'Sumber' },
+    { key: 'description', label: 'Uraian' },
+    { key: 'amount', label: 'Nominal', class: 'text-right' },
+    { key: 'status', label: 'Status', class: 'text-center' },
+]);
 
 // Multi-select state
 const selectedRowIds = ref([]);
@@ -256,150 +267,99 @@ function submitBulkReverse() {
             </div>
 
             <AppCard :padded="false">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="border-b border-outline-variant bg-surface-container-low text-on-surface-variant">
-                            <tr>
-                                <th v-if="allowReverse" class="w-10 px-3 py-3 text-center">
-                                    <AppCheckbox
-                                        :model-value="allSelected"
-                                        :indeterminate="isIndeterminate"
-                                        :disabled="reversableRowsOnPage.length === 0"
-                                        aria-label="Pilih semua di halaman ini"
-                                        @update:model-value="toggleSelectAll"
-                                    />
-                                </th>
-                                <th class="whitespace-nowrap px-4 py-3 font-semibold">No / ID</th>
-                                <th class="whitespace-nowrap px-4 py-3 font-semibold">Tanggal</th>
-                                <th class="whitespace-nowrap px-4 py-3 font-semibold">Sumber</th>
-                                <th class="px-4 py-3 font-semibold">Uraian</th>
-                                <th class="whitespace-nowrap px-4 py-3 text-right font-semibold">Nominal</th>
-                                <th class="whitespace-nowrap px-4 py-3 text-center font-semibold">Status</th>
-                                <th class="whitespace-nowrap px-4 py-3 text-right font-semibold">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-outline-variant">
-                            <tr v-if="rows.length === 0">
-                                <td :colspan="allowReverse ? 8 : 7" class="px-4 py-12 text-center text-on-surface-variant">
-                                    Tidak ada transaksi jurnal untuk periode ini.
-                                </td>
-                            </tr>
-                            <tr
-                                v-for="row in rows"
-                                :key="row.row_id"
-                                class="transition-colors hover:bg-surface-container-low/40"
-                                :class="selectedRowIds.includes(row.row_id) ? 'bg-primary-container/10' : ''"
-                            >
-                                <td v-if="allowReverse" class="w-10 px-3 py-3 text-center">
-                                    <AppCheckbox
-                                        v-if="row.can_reverse"
-                                        v-model="selectedRowIds"
-                                        :value="row.row_id"
-                                        :aria-label="`Pilih jurnal #${row.id}`"
-                                    />
-                                    <span v-else class="text-xs text-outline">—</span>
-                                </td>
-                                <td class="whitespace-nowrap px-4 py-3 align-top font-mono text-xs">
-                                    <span class="font-bold text-primary">{{ row.journal_number }}</span>
-                                    <span class="block text-[11px] text-on-surface-variant">#{{ row.id }}</span>
-                                </td>
-                                <td class="whitespace-nowrap px-4 py-3 align-top text-xs text-on-surface-variant">
-                                    {{ formatDate(row.transaction_date) }}
-                                </td>
-                                <td class="whitespace-nowrap px-4 py-3 align-top text-xs">
-                                    <span class="font-medium text-primary">{{ sourceLabel(row.source_type) }}</span>
-                                </td>
-                                <td class="px-4 py-3 align-top">
-                                    <p class="font-medium text-primary">{{ row.description || '—' }}</p>
-                                    <p v-if="row.is_reversal && row.source_row_id" class="mt-0.5 text-xs text-on-surface-variant">
-                                        Pembalik dari jurnal <span class="font-semibold text-primary">#{{ row.source_row_id }}</span>
-                                    </p>
-                                    <p v-else-if="row.already_reversed && row.reversal" class="mt-0.5 text-xs text-error">
-                                        Telah dibatalkan oleh jurnal <span class="font-semibold">#{{ row.reversal.id }}</span>
-                                    </p>
-                                </td>
-                                <td class="whitespace-nowrap px-4 py-3 text-right align-top font-mono text-sm font-semibold text-primary">
-                                    {{ formatMoney(row.amount) }}
-                                </td>
-                                <td class="whitespace-nowrap px-4 py-3 text-center align-top">
-                                    <AppBadge v-if="row.is_reversal" tone="warning">Reversal</AppBadge>
-                                    <AppBadge v-else-if="row.already_reversed" tone="error">Reversed</AppBadge>
-                                    <AppBadge v-else tone="success">Posted</AppBadge>
-                                </td>
-                                <td class="whitespace-nowrap px-4 py-3 text-right align-top">
-                                    <div class="inline-flex items-center gap-1">
-                                        <a
-                                            v-if="row.receipt_url"
-                                            :href="row.receipt_url"
-                                            target="_blank"
-                                            rel="noopener"
-                                            class="rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/10"
-                                            title="Cetak Kuitansi Angsuran"
-                                        >
-                                            Kuitansi
-                                        </a>
-                                        <a
-                                            v-if="!row.receipt_url && row.cash_evidence_url"
-                                            :href="row.cash_evidence_url"
-                                            target="_blank"
-                                            rel="noopener"
-                                            class="rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/10"
-                                            :title="`Cetak ${cashEvidenceLabel(row.cash_evidence_kind)}`"
-                                        >
-                                            {{ cashEvidenceLabel(row.cash_evidence_kind) }}
-                                        </a>
-                                        <a
-                                            v-if="allowReverse && row.can_edit"
-                                            :href="`/accounting/journals/${row.row_id}/edit`"
-                                            class="rounded-lg px-2 py-1 text-xs font-semibold text-warning hover:bg-warning/10"
-                                            title="Koreksi jurnal (reverse + buat baru)"
-                                        >
-                                            Edit
-                                        </a>
-                                        <AppButton
-                                            v-if="allowReverse && row.can_reverse"
-                                            type="button"
-                                            variant="ghost"
-                                            size="compact"
-                                            icon="undo"
-                                            class="!min-h-0 !px-2 !text-error"
-                                            title="Hapus / batalkan transaksi lewat jurnal pembalik"
-                                            @click="openReverse(row)"
-                                        >
-                                            Hapus
-                                        </AppButton>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div
-                    v-if="pagination.last_page > 1"
-                    class="flex items-center justify-between border-t border-outline-variant px-4 py-3 text-sm"
-                >
-                    <p class="text-on-surface-variant">
-                        {{ pagination.total }} jurnal · hlm {{ pagination.page }}/{{ pagination.last_page }}
-                    </p>
-                    <div class="flex gap-2">
-                        <AppButton
-                            size="compact"
-                            variant="secondary"
-                            :disabled="pagination.page <= 1"
-                            @click="apply(pagination.page - 1)"
-                        >
-                            Prev
-                        </AppButton>
-                        <AppButton
-                            size="compact"
-                            variant="secondary"
-                            :disabled="pagination.page >= pagination.last_page"
-                            @click="apply(pagination.page + 1)"
-                        >
-                            Next
-                        </AppButton>
-                    </div>
+                <div class="p-4">
+                    <SmartDataTable
+                        :rows="rows"
+                        :columns="columns"
+                        :pagination="pagination"
+                        url="/accounting/journals"
+                        :search="q"
+                        search-placeholder="Cari jurnal..."
+                        search-label="Cari jurnal"
+                        empty-title="Tidak ada transaksi jurnal"
+                        empty-description="Tidak ada transaksi jurnal untuk periode ini."
+                    >
+                        <template #cell-selected="{ row }">
+                            <AppCheckbox
+                                v-if="row.can_reverse"
+                                v-model="selectedRowIds"
+                                :value="row.row_id"
+                                :aria-label="`Pilih jurnal #${row.id}`"
+                            />
+                            <span v-else class="text-xs text-outline">—</span>
+                        </template>
+                        <template #cell-journal_number="{ row }">
+                            <span class="font-bold text-primary">{{ row.journal_number }}</span>
+                            <span class="block text-[11px] text-on-surface-variant">#{{ row.id }}</span>
+                        </template>
+                        <template #cell-transaction_date="{ row }">
+                            <span class="text-xs text-on-surface-variant">{{ formatDate(row.transaction_date) }}</span>
+                        </template>
+                        <template #cell-source_type="{ row }">
+                            <span class="text-xs font-medium text-primary">{{ sourceLabel(row.source_type) }}</span>
+                        </template>
+                        <template #cell-description="{ row }">
+                            <p class="font-medium text-primary">{{ row.description || '—' }}</p>
+                            <p v-if="row.is_reversal && row.source_row_id" class="mt-0.5 text-xs text-on-surface-variant">
+                                Pembalik dari jurnal <span class="font-semibold text-primary">#{{ row.source_row_id }}</span>
+                            </p>
+                            <p v-else-if="row.already_reversed && row.reversal" class="mt-0.5 text-xs text-error">
+                                Telah dibatalkan oleh jurnal <span class="font-semibold">#{{ row.reversal.id }}</span>
+                            </p>
+                        </template>
+                        <template #cell-amount="{ row }">
+                            <span class="font-mono text-sm font-semibold text-primary">{{ formatMoney(row.amount) }}</span>
+                        </template>
+                        <template #cell-status="{ row }">
+                            <AppBadge v-if="row.is_reversal" tone="warning">Reversal</AppBadge>
+                            <AppBadge v-else-if="row.already_reversed" tone="error">Reversed</AppBadge>
+                            <AppBadge v-else tone="success">Posted</AppBadge>
+                        </template>
+                        <template #actions="{ row }">
+                            <div class="inline-flex items-center gap-1">
+                                <a
+                                    v-if="row.receipt_url"
+                                    :href="row.receipt_url"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/10"
+                                    title="Cetak Kuitansi Angsuran"
+                                >
+                                    Kuitansi
+                                </a>
+                                <a
+                                    v-if="!row.receipt_url && row.cash_evidence_url"
+                                    :href="row.cash_evidence_url"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/10"
+                                    :title="`Cetak ${cashEvidenceLabel(row.cash_evidence_kind)}`"
+                                >
+                                    {{ cashEvidenceLabel(row.cash_evidence_kind) }}
+                                </a>
+                                <a
+                                    v-if="allowReverse && row.can_edit"
+                                    :href="`/accounting/journals/${row.row_id}/edit`"
+                                    class="rounded-lg px-2 py-1 text-xs font-semibold text-warning hover:bg-warning/10"
+                                    title="Koreksi jurnal (reverse + buat baru)"
+                                >
+                                    Edit
+                                </a>
+                                <AppButton
+                                    v-if="allowReverse && row.can_reverse"
+                                    type="button"
+                                    variant="ghost"
+                                    size="compact"
+                                    icon="undo"
+                                    class="!min-h-0 !px-2 !text-error"
+                                    title="Hapus / batalkan transaksi lewat jurnal pembalik"
+                                    @click="openReverse(row)"
+                                >
+                                    Hapus
+                                </AppButton>
+                            </div>
+                        </template>
+                    </SmartDataTable>
                 </div>
             </AppCard>
 
