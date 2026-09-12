@@ -6,6 +6,13 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ## [2026-09-11]
 
 ### Added
+- **Otentikasi Single Sign-On (SSO) Receiver dari Holding Portal:**
+  - Route endpoint penerima `GET /auth/holding` (`HoldingSsoController`, route `auth.holding`, terproteksi middleware `web` dan `throttle:10,1`) sesuai spesifikasi `docs/SSO-CONTRACT.md`.
+  - Mekanisme one-time consumption: membaca parameter query `token`, mengambil dan langsung menghapus payload dari cache platform (`sso:{sha256(token)}`) berdurasi 60 detik sehingga token tidak dapat digunakan ulang.
+  - Validasi keamanan HMAC SHA-256: memeriksa signature payload menggunakan konfigurasi `services.holding_sso.secret` (`HOLDING_SSO_SECRET`).
+  - Resolusi tenant dinamis melalui `sub_tenant_code` payload, pengikatan koneksi database shard dan inisialisasi context tenant via `ShardConnectionManager`.
+  - Sinkronisasi pengguna otomatis: pembuatan/pembaruan data pengguna di tabel `users` platform dan relasi `tenant_memberships`, pemetaan peran aman (`tenant_owner` holding dipetakan menjadi role `admin` tenant; penolakan eskalasi peran `superadmin`), regenerasi session, dan pengalihan langsung ke dashboard operasional.
+  - Test komprehensif `HoldingSsoTest` (7 test, 37 asersi) mencakup validasi siklus hidup token, penolakan token kadaluwarsa/bekas pakai, verifikasi signature, serta pengamanan peran pengguna.
 - **Penguatan SEO & Bot-Friendly HTML Fallback (Situs Publik):**
   - **Bot-Friendly HTML Fallback (`ServeBotFriendlyHtml`):** Middleware mendeteksi crawler search engine dan bot preview sosial (Googlebot, Bingbot, WhatsApp, Telegram, Facebook, Twitterbot, dll.) pada route publik dan menyajikan tampilan HTML server-rendered lengkap dengan isi artikel, halaman statis, dan ringkasan tenant tanpa bergantung pada eksekusi JavaScript sisi klien (SPA client-side tetap disajikan untuk browser normal).
   - **Sitemap Dinamis dengan Metadata Lengkap:** Endpoint `/sitemap.xml` kini menyertakan elemen `<lastmod>` (ISO8601 berbasis pembaruan konten), `<changefreq>`, dan `<priority>` untuk halaman beranda, artikel berita, dan halaman informasi.
