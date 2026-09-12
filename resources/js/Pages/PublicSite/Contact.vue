@@ -1,5 +1,5 @@
 <script setup>
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import AppButton from '../../Components/AppButton.vue';
 import AppInput from '../../Components/AppInput.vue';
@@ -164,6 +164,11 @@ const social = computed(() => props.settings?.social ?? {});
         <footer class="border-t border-outline-variant py-6 text-center text-xs text-on-surface-variant">
             <p v-if="settings.footer_note">{{ settings.footer_note }}</p>
             <p v-else>© {{ new Date().getFullYear() }} {{ orgName }}</p>
+            <p class="mt-1.5">
+                <Link href="/privacy" class="font-semibold text-primary hover:underline">Kebijakan Privasi</Link>
+                <span class="px-1.5 text-outline">&bull;</span>
+                <Link href="/terms" class="font-semibold text-primary hover:underline">Syarat Layanan</Link>
+            </p>
         </footer>
     </div>
 </template>

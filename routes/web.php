@@ -101,6 +101,16 @@ Route::post('/kontak', [PublicSiteController::class, 'storeMessage'])
     ->middleware(['public.site', 'throttle:10,1'])
     ->name('public.contact.store');
 
+// Legal documents. Served on platform hosts and tenant domains alike, because
+// the footer of both surfaces links here and crawlers must find one canonical
+// copy per host.
+Route::get('/terms', [PublicSiteController::class, 'terms'])
+    ->middleware(['public.site', 'bot.html'])
+    ->name('public.terms');
+Route::get('/privacy', [PublicSiteController::class, 'privacy'])
+    ->middleware(['public.site', 'bot.html'])
+    ->name('public.privacy');
+
 // SEO endpoints: dynamic per-host sitemap & robots (no static files, so the
 // webserver never shadows these routes).
 Route::get('/sitemap.xml', [PublicSiteController::class, 'sitemap'])

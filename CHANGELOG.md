@@ -3,6 +3,18 @@
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
+## [2026-09-12]
+
+### Added
+- **Halaman Syarat Layanan (Terms of Service) dan Kebijakan Privasi (Privacy Policy):**
+  - Endpoint publik `GET /terms` (`public.terms`) dan `GET /privacy` (`public.privacy`) dengan middleware `public.site` dan `bot.html` (`PublicSiteController::terms` dan `PublicSiteController::privacy`).
+  - Layanan dokumen legal `LegalDocumentService` yang menyusun naskah hukum komprehensif, terstruktur, dan relevan dengan tata kelola keuangan BUMDesma/LKD (pengelolaan data keuangan nasabah, kerahasiaan pinjaman, pembukuan SAK Entitas Privat, isolasi multi-tenant, pemrosesan data menurut UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi, serta masuk terpadu SSO).
+  - Tampilan antarmuka component-first `LegalPage.vue` dengan dukungan navigasi silang tab antar dokumen, tombol kembali ke beranda, daftar isi interaktif per seksi hukum, metadata SEO lengkap (canonical URL absolut dan schema.org `WebPage` JSON-LD), serta kompatibilitas mode gelap.
+  - Bot-friendly server-rendered fallback (`public.bot.terms` dan `public.bot.privacy`) yang menyajikan pasal-pasal hukum secara utuh bagi crawler mesin pencari (Googlebot, Bingbot, dll.) tanpa bergantung pada eksekusi JavaScript.
+  - Integrasi tautan footer resmi pada beranda platform (`Home.vue`) dan seluruh footer situs publik tenant (`TenantHome`, `BlogIndex`, `BlogPost`, `StaticPage`, `Contact`).
+  - Penambahan URL `/terms` dan `/privacy` pada peta situs dinamis `/sitemap.xml`.
+  - Feature test komprehensif `LegalPagesTest` (9 test, 137 asersi) menguji aksesibilitas halaman via Inertia, kelengkapan seksi hukum, sajian bot-friendly untuk crawler, serta keberadaan URL pada sitemap.
+
 ## [2026-09-11]
 
 ### Added

@@ -189,6 +189,11 @@ const canonicalUrl = computed(() => `${usePage().props.meta.canonical_base}/`);
                     <a href="/" class="font-semibold text-primary hover:underline">SIDBM Next</a>
                     — Sistem Informasi Dana Bergulir Masyarakat
                 </p>
+                <p class="mt-1.5 text-xs text-on-surface-variant">
+                    <Link href="/privacy" class="font-semibold text-primary hover:underline">Kebijakan Privasi</Link>
+                    <span class="px-1.5 text-outline">&bull;</span>
+                    <Link href="/terms" class="font-semibold text-primary hover:underline">Syarat Layanan</Link>
+                </p>
                 <div v-if="settings.social?.facebook || settings.social?.instagram || settings.social?.youtube" class="mt-3 flex justify-center gap-2">
                     <a v-if="settings.social?.facebook" :href="settings.social.facebook" target="_blank" rel="noopener" class="grid size-9 place-items-center rounded-full bg-primary-container text-on-primary-container transition hover:bg-primary hover:text-on-primary" aria-label="Facebook">f</a>
                     <a v-if="settings.social?.instagram" :href="settings.social.instagram" target="_blank" rel="noopener" class="grid size-9 place-items-center rounded-full bg-primary-container text-on-primary-container transition hover:bg-primary hover:text-on-primary" aria-label="Instagram">◎</a>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Domain\Website\Services\LegalDocumentService;
 use App\Domain\Website\Services\PublicSiteContentService;
 use Closure;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ final readonly class ServeBotFriendlyHtml
 
     public function __construct(
         private PublicSiteContentService $content,
+        private LegalDocumentService $legal,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -28,6 +30,8 @@ final readonly class ServeBotFriendlyHtml
             '/' => $site === null ? $this->vendorHomeView() : $this->tenantHomeView($site),
             'berita' => $site === null ? $this->vendorHomeView() : $this->blogIndexView($site, $request),
             'kontak' => $site === null ? $this->vendorHomeView() : $this->contactView($site),
+            'terms' => $this->legalView(LegalDocumentService::TERMS, $site),
+            'privacy' => $this->legalView(LegalDocumentService::PRIVACY, $site),
             default => null,
         };
 
@@ -100,6 +104,25 @@ final readonly class ServeBotFriendlyHtml
             'data' => [
                 'site' => $site,
                 'settings' => $this->content->settings(),
+            ],
+        ];
+    }
+
+    /**
+     * Legal documents are host-agnostic: crawlers on the platform host get the
+     * same full text as those on a tenant domain (only branding differs).
+     *
+     * @param  array<string, mixed>|null  $site
+     * @return array{name: string, data: array<string, mixed>}
+     */
+    private function legalView(string $type, ?array $site): array
+    {
+        return [
+            'name' => 'public.bot.'.$type,
+            'data' => [
+                'document' => $this->legal->document($type, $site),
+                'legalDocuments' => $this->legal->navigation(),
+                'site' => $site,
             ],
         ];
     }

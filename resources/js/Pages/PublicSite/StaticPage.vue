@@ -1,5 +1,6 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 
 const props = defineProps({
@@ -89,6 +90,11 @@ const canonicalUrl = computed(() => `${usePage().props.meta.canonical_base}/p/${
                     Dikelola dengan
                     <a href="/" class="font-semibold text-primary hover:underline">SIDBM Next</a>
                     — Sistem Informasi Dana Bergulir Masyarakat
+                </p>
+                <p class="mt-1.5 text-xs text-on-surface-variant">
+                    <Link href="/privacy" class="font-semibold text-primary hover:underline">Kebijakan Privasi</Link>
+                    <span class="px-1.5 text-outline">&bull;</span>
+                    <Link href="/terms" class="font-semibold text-primary hover:underline">Syarat Layanan</Link>
                 </p>
             </div>
         </footer>

@@ -175,6 +175,17 @@ final readonly class PublicSiteContentService
             'priority' => '1.0',
         ]];
 
+        // Legal documents exist on every host (platform and tenant alike), so
+        // they are advertised before the tenant gate below.
+        foreach ([route('public.terms'), route('public.privacy')] as $legalUrl) {
+            $urls[] = [
+                'loc' => $legalUrl,
+                'lastmod' => LegalDocumentService::LAST_UPDATED,
+                'changefreq' => 'yearly',
+                'priority' => '0.4',
+            ];
+        }
+
         if (! $this->context->isInitialized() || $this->context->tenant()->status === 'suspended') {
             return $urls;
         }

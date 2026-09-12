@@ -732,9 +732,9 @@ onUnmounted(() => {
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p>&copy; 2026 SIDBM Next &mdash; BUMDesma & LKD Financial Information System.</p>
                 <div class="flex items-center gap-4">
-                    <a href="#" class="hover:text-primary transition-colors">Kebijakan Privasi</a>
+                    <Link href="/privacy" class="hover:text-primary transition-colors">Kebijakan Privasi</Link>
                     <span>&bull;</span>
-                    <a href="#" class="hover:text-primary transition-colors">Syarat Layanan</a>
+                    <Link href="/terms" class="hover:text-primary transition-colors">Syarat Layanan</Link>
                     <span>&bull;</span>
                     <Link href="/login" class="hover:text-primary transition-colors font-bold">Portal Login</Link>
                 </div>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\PublicSite;
 
 use App\Domain\Website\Models\SiteMessage;
+use App\Domain\Website\Services\LegalDocumentService;
 use App\Domain\Website\Services\PublicSiteContentService;
 use App\Http\Requests\PublicSite\SiteMessageRequest;
 use App\Tenancy\TenantContext;
@@ -18,6 +19,7 @@ final class PublicSiteController
 {
     public function __construct(
         private readonly PublicSiteContentService $content,
+        private readonly LegalDocumentService $legal,
     ) {}
 
     /**
@@ -220,6 +222,94 @@ final class PublicSiteController
         return Inertia::render('PublicSite/Contact', [
             ...$site,
             'settings' => $this->content->settings(),
+        ]);
+    }
+
+    /**
+     * Terms of service. Unlike the tenant-only blog and page routes, legal
+     * documents must answer on every host: the platform footer links here too,
+     * and each surface keeps a single canonical copy per host.
+     */
+    public function terms(Request $request): Response|RedirectResponse
+    {
+        return $this->legalPage($request, LegalDocumentService::TERMS);
+    }
+
+    /**
+     * Privacy policy.
+     */
+    public function privacy(Request $request): Response|RedirectResponse
+    {
+        return $this->legalPage($request, LegalDocumentService::PRIVACY);
+    }
+
+    /**
+     * @param  LegalDocumentService::TERMS|LegalDocumentService::PRIVACY  $type
+     */
+    private function legalPage(Request $request, string $type): Response|RedirectResponse
+    {
+        if ($this->shouldRedirectToVendor($request)) {
+            return redirect()->route('home');
+        }
+
+        $context = app(TenantContext::class);
+
+        // ResolvePublicSite clears the context in its finally block, so the
+        // tenant branding has to be gathered while still inside it.
+        $site = $this->content->tenantSite();
+        $document = $this->legal->document($type, $site);
+        $this->shareLegalMeta($request, $document, $site);
+
+        return Inertia::render('PublicSite/LegalPage', [
+            'document' => $document,
+            'legalDocuments' => $this->legal->navigation(),
+            ...($site ?? []),
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $document
+     * @param  array<string, mixed>|null  $site
+     */
+    private function shareLegalMeta(Request $request, array $document, ?array $site): void
+    {
+        $base = $request->getSchemeAndHttpHost();
+        $url = $base.$document['path'];
+        $home = $base.'/';
+
+        $this->shareMeta($request, path: $document['path'], jsonLd: [
+            [
+                '@context' => 'https://schema.org',
+                '@type' => 'WebPage',
+                'name' => $document['title'],
+                'description' => $document['description'],
+                'url' => $url,
+                'inLanguage' => 'id-ID',
+                'dateModified' => $document['last_updated'],
+                'publisher' => [
+                    '@type' => 'Organization',
+                    'name' => $document['publisher'],
+                    'url' => $home,
+                ],
+            ],
+            [
+                '@context' => 'https://schema.org',
+                '@type' => 'BreadcrumbList',
+                'itemListElement' => [
+                    [
+                        '@type' => 'ListItem',
+                        'position' => 1,
+                        'name' => 'Beranda',
+                        'item' => $home,
+                    ],
+                    [
+                        '@type' => 'ListItem',
+                        'position' => 2,
+                        'name' => $document['title'],
+                        'item' => $url,
+                    ],
+                ],
+            ],
         ]);
     }
 
