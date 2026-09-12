@@ -77,24 +77,24 @@ Route::get('/storage/{path}', StorageServeController::class)
     ->name('storage.serve');
 
 Route::get('/', [PublicSiteController::class, 'home'])
-    ->middleware('public.site')
+    ->middleware(['public.site', 'bot.html'])
     ->name('home');
 
 // Public tenant site content (blog & static pages). Rendered only on tenant
 // domains; platform hosts fall back to the vendor home inside the controller.
 Route::get('/berita', [PublicSiteController::class, 'posts'])
-    ->middleware('public.site')
+    ->middleware(['public.site', 'bot.html'])
     ->name('public.posts');
 Route::get('/berita/{slug}', [PublicSiteController::class, 'post'])
-    ->middleware('public.site')
+    ->middleware(['public.site', 'bot.html'])
     ->name('public.post');
 Route::get('/p/{slug}', [PublicSiteController::class, 'page'])
-    ->middleware('public.site')
+    ->middleware(['public.site', 'bot.html'])
     ->name('public.page');
 
 // Public contact page + submission (rate-limited; honeypot inside the form).
 Route::get('/kontak', [PublicSiteController::class, 'contact'])
-    ->middleware('public.site')
+    ->middleware(['public.site', 'bot.html'])
     ->name('public.contact');
 Route::post('/kontak', [PublicSiteController::class, 'storeMessage'])
     ->middleware(['public.site', 'throttle:10,1'])

@@ -11,6 +11,7 @@ use App\Http\Middleware\EnsureSuperadmin;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ResolveAssistantActor;
 use App\Http\Middleware\ResolvePublicSite;
+use App\Http\Middleware\ServeBotFriendlyHtml;
 use App\Http\Middleware\VerifyDesktopApiToken;
 use App\Http\Middleware\VerifyHoldingApiToken;
 use App\Http\Middleware\VerifyOrchestratorSignature;
@@ -74,6 +75,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'tenant' => ResolveTenant::class,
             'public.site' => ResolvePublicSite::class,
+            'bot.html' => ServeBotFriendlyHtml::class,
             'superadmin' => EnsureSuperadmin::class,
             'regency' => EnsureRegencySupervisor::class,
             'regency.user' => EnsureRegencySupervisor::class,
