@@ -88,6 +88,9 @@ final class HandleInertiaRequests extends Middleware
                 'impersonator_name' => $request->session()?->get('impersonator_name'),
             ],
             'flash' => $this->resolveFlash($request),
+            'meta' => [
+                'canonical_base' => $request->getSchemeAndHttpHost(),
+            ],
             'logoPath' => $this->resolveLogoPath(),
             'assistant' => $this->resolveAssistant($request),
             'tenant' => $this->resolveTenantInfo(),

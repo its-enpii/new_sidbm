@@ -8,6 +8,8 @@ const props = defineProps({
     post: { type: Object, required: true },
 });
 
+const canonicalUrl = computed(() => `${usePage().props.meta.canonical_base}/berita/${props.post.slug}`);
+
 function formatDateTime(value) {
     if (!value) return '';
     return new Date(value).toLocaleDateString('id-ID', { dateStyle: 'long' });
@@ -16,11 +18,12 @@ function formatDateTime(value) {
 
 <template>
     <Head :title="`${post.title} — ${organization.name}`">
+        <link head-key="canonical" rel="canonical" :href="canonicalUrl" />
         <meta head-key="description" name="description" :content="post.meta_description ?? post.excerpt ?? `Berita dari ${organization.name}.`" />
         <meta head-key="og:title" property="og:title" :content="post.title" />
         <meta head-key="og:description" property="og:description" :content="post.meta_description ?? post.excerpt ?? `Berita dari ${organization.name}.`" />
         <meta head-key="og:type" property="og:type" content="article" />
-        <meta head-key="og:url" property="og:url" :content="$page.url" />
+        <meta head-key="og:url" property="og:url" :content="canonicalUrl" />
         <meta v-if="post.cover_image_url" head-key="og:image" property="og:image" :content="post.cover_image_url" />
         <meta v-if="post.published_at" head-key="article:published_time" property="article:published_time" :content="post.published_at" />
         <meta head-key="twitter:card" name="twitter:card" content="summary_large_image" />

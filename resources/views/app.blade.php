@@ -12,6 +12,14 @@
     <link rel="apple-touch-icon" href="/build/assets/icon-192.png">
     
     <title inertia>{{ config('app.name', 'SIDBM Next') }}</title>
+    @php
+        $publicSiteMeta = config('inertia.public_site', []);
+    @endphp
+    @if (is_array($publicSiteMeta) && isset($publicSiteMeta['path']))
+        @foreach (($publicSiteMeta['json_ld'] ?? []) as $jsonLd)
+            <script type="application/ld+json" data-public-page="{{ $publicSiteMeta['path'] }}">{{ $jsonLd }}</script>
+        @endforeach
+    @endif
     <script>
         (function () {
             try {

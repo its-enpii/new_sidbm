@@ -7,15 +7,18 @@ const props = defineProps({
     tenant: { type: Object, required: true },
     page: { type: Object, required: true },
 });
+
+const canonicalUrl = computed(() => `${usePage().props.meta.canonical_base}/p/${props.page.slug}`);
 </script>
 
 <template>
     <Head :title="`${page.title} — ${organization.name}`">
+        <link head-key="canonical" rel="canonical" :href="canonicalUrl" />
         <meta head-key="description" name="description" :content="page.meta_description ?? `Halaman ${page.title} dari ${organization.name}.`" />
         <meta head-key="og:title" property="og:title" :content="page.title" />
         <meta head-key="og:description" property="og:description" :content="page.meta_description ?? `Halaman ${page.title} dari ${organization.name}.`" />
         <meta head-key="og:type" property="og:type" content="article" />
-        <meta head-key="og:url" property="og:url" :content="$page.url" />
+        <meta head-key="og:url" property="og:url" :content="canonicalUrl" />
         <meta head-key="twitter:card" name="twitter:card" content="summary" />
         <meta head-key="twitter:title" name="twitter:title" :content="page.title" />
     </Head>

@@ -1,6 +1,6 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import AppButton from '@/Components/AppButton.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import AppInput from '@/Components/AppInput.vue';
@@ -13,6 +13,8 @@ const props = defineProps({
 });
 
 const searchQuery = ref(props.search);
+const page = usePage();
+const canonicalUrl = computed(() => `${page.props.meta.canonical_base}${page.url}`);
 
 function formatDateTime(value) {
     if (!value) return '';
@@ -22,11 +24,12 @@ function formatDateTime(value) {
 
 <template>
     <Head :title="`Berita — ${organization.name}`">
+        <link head-key="canonical" rel="canonical" :href="canonicalUrl" />
         <meta head-key="description" name="description" :content="`Berita terbaru dari ${organization.name} — informasi kegiatan dan pengumuman.`" />
         <meta head-key="og:title" property="og:title" :content="`Berita — ${organization.name}`" />
         <meta head-key="og:description" property="og:description" :content="`Berita terbaru dari ${organization.name}.`" />
         <meta head-key="og:type" property="og:type" content="website" />
-        <meta head-key="og:url" property="og:url" :content="$page.url" />
+        <meta head-key="og:url" property="og:url" :content="canonicalUrl" />
         <meta head-key="twitter:card" name="twitter:card" content="summary" />
         <meta head-key="twitter:title" name="twitter:title" :content="`Berita — ${organization.name}`" />
     </Head>

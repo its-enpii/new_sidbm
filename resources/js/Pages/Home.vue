@@ -362,7 +362,17 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <Head title="SIDBM Next - Sistem Informasi Dana Bergulir Masyarakat" />
+    <Head title="SIDBM Next - Sistem Informasi Dana Bergulir Masyarakat">
+        <link head-key="canonical" rel="canonical" :href="`${$page.props.meta.canonical_base}/`" />
+        <meta head-key="description" name="description" content="Solusi terintegrasi untuk pengelolaan pinjaman bergulir, pembukuan akuntansi standar SAK Entitas Privat, penerbitan kuitansi WhatsApp, dan pelaporan konsolidasi Pemerintah Kabupaten secara real-time." />
+        <meta head-key="og:title" property="og:title" content="SIDBM Next — Transformasi Digital Keuangan BUMDesma & LKD Indonesia" />
+        <meta head-key="og:description" property="og:description" content="Solusi terintegrasi untuk pengelolaan pinjaman bergulir, pembukuan akuntansi standar SAK Entitas Privat, penerbitan kuitansi WhatsApp, dan pelaporan konsolidasi Pemerintah Kabupaten secara real-time." />
+        <meta head-key="og:type" property="og:type" content="website" />
+        <meta head-key="og:url" property="og:url" :content="`${$page.props.meta.canonical_base}/`" />
+        <meta head-key="twitter:card" name="twitter:card" content="summary" />
+        <meta head-key="twitter:title" name="twitter:title" content="SIDBM Next — Transformasi Digital Keuangan BUMDesma & LKD Indonesia" />
+        <meta head-key="twitter:description" name="twitter:description" content="Solusi terintegrasi untuk pengelolaan pinjaman bergulir, pembukuan akuntansi standar SAK Entitas Privat, penerbitan kuitansi WhatsApp, dan pelaporan konsolidasi Pemerintah Kabupaten secara real-time." />
+    </Head>
 
     <div class="min-h-screen bg-surface font-sans text-on-surface antialiased scroll-smooth selection:bg-primary selection:text-on-primary">
         <!-- Top Banner -->

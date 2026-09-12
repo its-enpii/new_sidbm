@@ -12,6 +12,7 @@ const props = defineProps({
 });
 
 const page = usePage();
+const canonicalUrl = computed(() => `${page.props.meta.canonical_base}/kontak`);
 const flashSuccess = computed(() => page.props.flash?.success ?? null);
 const flashError = computed(() => page.props.flash?.error ?? null);
 
@@ -40,11 +41,12 @@ const social = computed(() => props.settings?.social ?? {});
 
 <template>
     <Head :title="`Kontak — ${orgName}`">
+        <link head-key="canonical" rel="canonical" :href="canonicalUrl" />
         <meta head-key="description" name="description" :content="`Hubungi ${orgName} — alamat, telepon, dan formulir pesan.`" />
         <meta head-key="og:title" property="og:title" :content="`Kontak — ${orgName}`" />
         <meta head-key="og:description" property="og:description" :content="`Hubungi ${orgName} — alamat, telepon, dan formulir pesan.`" />
         <meta head-key="og:type" property="og:type" content="website" />
-        <meta head-key="og:url" property="og:url" :content="$page.url" />
+        <meta head-key="og:url" property="og:url" :content="canonicalUrl" />
     </Head>
 
     <div class="min-h-screen bg-surface">

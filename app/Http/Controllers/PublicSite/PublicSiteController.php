@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\PublicSite;
 
-use App\Domain\Membership\Models\OrganizationProfile;
 use App\Domain\Website\Models\SiteMessage;
-use App\Domain\Website\Models\SitePage;
-use App\Domain\Website\Models\SitePost;
-use App\Domain\Website\Models\SiteSetting;
+use App\Domain\Website\Services\PublicSiteContentService;
 use App\Http\Requests\PublicSite\SiteMessageRequest;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 final class PublicSiteController
 {
+    public function __construct(
+        private readonly PublicSiteContentService $content,
+    ) {}
+
     /**
      * Public entry point. On a platform host (or an unknown host) this renders
      * the SIDBM marketing page; on a tenant's custom domain it renders the
@@ -36,7 +36,22 @@ final class PublicSiteController
 
         // ResolvePublicSite clears the context in its finally block, so the
         // landing data is gathered here while the request is still inside it.
-        $site = $this->resolveTenantSite($context);
+        $site = $this->content->tenantSite();
+        $this->shareMeta($request, path: '/', jsonLd: $site === null ? [] : [
+            [
+                '@context' => 'https://schema.org',
+                '@type' => 'Organization',
+                'name' => $site['organization']['name'],
+                'logo' => $site['organization']['logo_url'],
+                'url' => $request->getSchemeAndHttpHost().'/',
+            ],
+            [
+                '@context' => 'https://schema.org',
+                '@type' => 'WebSite',
+                'name' => $site['organization']['name'],
+                'url' => $request->getSchemeAndHttpHost().'/',
+            ],
+        ]);
 
         if ($site === null) {
             return Inertia::render('Home', [
@@ -59,35 +74,16 @@ final class PublicSiteController
         }
 
         $context = app(TenantContext::class);
-        $site = $this->resolveTenantSite($context);
+        $site = $this->content->tenantSite();
 
         if ($site === null) {
             return Inertia::render('Home', ['name' => config('app.name'), 'status' => 'ok']);
         }
 
         $search = trim((string) $request->query('q', ''));
+        $this->shareBlogIndexMeta($request, $site);
 
-        $posts = SitePost::query()
-            ->published()
-            ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q
-                ->where('title', 'like', "%{$search}%")
-                ->orWhere('excerpt', 'like', "%{$search}%")))
-            ->orderByDesc('published_at')
-            ->paginate(9)
-            ->withQueryString()
-            ->through(fn (SitePost $post): array => [
-                'slug' => $post->slug,
-                'title' => $post->title,
-                'excerpt' => $post->excerpt,
-                'cover_image_url' => $post->cover_image_path !== null ? Storage::disk('public')->url($post->cover_image_path) : null,
-                'published_at' => $post->published_at?->toIso8601String(),
-            ]);
-
-        return Inertia::render('PublicSite/BlogIndex', [
-            ...$site,
-            'posts' => $posts,
-            'search' => $search,
-        ]);
+        return Inertia::render('PublicSite/BlogIndex', [...$site, ...$this->content->posts($search)]);
     }
 
     /**
@@ -100,34 +96,40 @@ final class PublicSiteController
         }
 
         $context = app(TenantContext::class);
-        $site = $this->resolveTenantSite($context);
+        $site = $this->content->tenantSite();
 
         if ($site === null) {
             return Inertia::render('Home', ['name' => config('app.name'), 'status' => 'ok']);
         }
 
-        $post = SitePost::query()->published()->where('slug', $slug)->first();
+        $post = $this->content->post($slug);
 
         if ($post === null) {
+            $this->shareBlogIndexMeta($request, $site);
+
             return Inertia::render('PublicSite/BlogIndex', [
                 ...$site,
-                'posts' => SitePost::query()->published()->orderByDesc('published_at')->paginate(9),
-                'search' => '',
+                ...$this->content->posts(''),
             ]);
         }
 
+        $this->shareMeta($request, path: '/berita/'.$post->slug, jsonLd: [
+            [
+                '@context' => 'https://schema.org',
+                '@type' => 'NewsArticle',
+                'headline' => $post->title,
+                'datePublished' => $post->published_at?->toIso8601String(),
+                'image' => $this->content->postData($post)['cover_image_url'],
+                'author' => [
+                    '@type' => 'Organization',
+                    'name' => $site['organization']['name'],
+                ],
+            ],
+        ]);
+
         return Inertia::render('PublicSite/BlogPost', [
             ...$site,
-            'post' => [
-                'slug' => $post->slug,
-                'title' => $post->title,
-                'excerpt' => $post->excerpt,
-                'content' => $post->content,
-                'cover_image_url' => $post->cover_image_path !== null ? Storage::disk('public')->url($post->cover_image_path) : null,
-                'published_at' => $post->published_at?->toIso8601String(),
-                'author_name' => $post->author_name,
-                'meta_description' => $post->meta_description,
-            ],
+            'post' => $this->content->postData($post),
         ]);
     }
 
@@ -141,13 +143,15 @@ final class PublicSiteController
         }
 
         $context = app(TenantContext::class);
-        $site = $this->resolveTenantSite($context);
+        $site = $this->content->tenantSite();
 
         if ($site === null) {
             return Inertia::render('Home', ['name' => config('app.name'), 'status' => 'ok']);
         }
 
-        $page = SitePage::query()->published()->where('slug', $slug)->first();
+        $page = $this->content->page($slug);
+
+        $this->shareMeta($request, path: $page !== null ? '/p/'.$page->slug : '/');
 
         if ($page === null) {
             // Unknown slugs stay on the tenant's own branding; the vendor page
@@ -157,11 +161,37 @@ final class PublicSiteController
 
         return Inertia::render('PublicSite/StaticPage', [
             ...$site,
-            'page' => [
-                'slug' => $page->slug,
-                'title' => $page->title,
-                'content' => $page->content,
-                'meta_description' => $page->meta_description,
+            'page' => $this->content->pageData($page),
+        ]);
+    }
+
+    private function shareBlogIndexMeta(Request $request, array $site): void
+    {
+        $base = $request->getSchemeAndHttpHost();
+        $this->shareMeta($request, path: '/berita', jsonLd: [
+            [
+                '@context' => 'https://schema.org',
+                '@type' => 'CollectionPage',
+                'name' => 'Berita — '.$site['organization']['name'],
+                'url' => $base.'/berita',
+            ],
+            [
+                '@context' => 'https://schema.org',
+                '@type' => 'BreadcrumbList',
+                'itemListElement' => [
+                    [
+                        '@type' => 'ListItem',
+                        'position' => 1,
+                        'name' => $site['organization']['name'],
+                        'item' => $base.'/',
+                    ],
+                    [
+                        '@type' => 'ListItem',
+                        'position' => 2,
+                        'name' => 'Berita',
+                        'item' => $base.'/berita',
+                    ],
+                ],
             ],
         ]);
     }
@@ -181,7 +211,7 @@ final class PublicSiteController
         }
 
         $context = app(TenantContext::class);
-        $site = $this->resolveTenantSite($context);
+        $site = $this->content->tenantSite();
 
         if ($site === null) {
             return Inertia::render('Home', ['name' => config('app.name'), 'status' => 'ok']);
@@ -189,7 +219,24 @@ final class PublicSiteController
 
         return Inertia::render('PublicSite/Contact', [
             ...$site,
-            'settings' => $this->resolveSettings(),
+            'settings' => $this->content->settings(),
+        ]);
+    }
+
+    /**
+     * JSON-LD is injected by app.blade.php so crawlers receive structured data
+     * without waiting for client-side JavaScript.
+     *
+     * @param  array<string, mixed>  $jsonLd
+     */
+    private function shareMeta(Request $request, string $path, array $jsonLd = []): void
+    {
+        config()->set('inertia.public_site', [
+            'path' => $path,
+            'json_ld' => array_map(
+                static fn (array $schema): string => json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                $jsonLd,
+            ),
         ]);
     }
 
@@ -232,23 +279,7 @@ final class PublicSiteController
     public function sitemap(Request $request): SymfonyResponse
     {
         $context = app(TenantContext::class);
-        $urls = [url('/')];
-
-        if ($context->isInitialized() && $context->tenant()->status !== 'suspended') {
-            // Plain foreach: arrow functions capture $urls by value, so the
-            // appends inside ->each() would be silently discarded.
-            foreach (SitePost::query()->published()->orderByDesc('published_at')
-                ->get(['slug', 'updated_at']) as $post) {
-                $urls[] = route('public.post', $post->slug);
-            }
-
-            foreach (SitePage::query()->published()->orderBy('slug')
-                ->get(['slug', 'updated_at']) as $page) {
-                $urls[] = route('public.page', $page->slug);
-            }
-
-            $urls[] = route('public.posts');
-        }
+        $urls = $this->content->sitemapUrls();
 
         return response()
             ->view('public.sitemap', ['urls' => $urls])
@@ -277,83 +308,5 @@ final class PublicSiteController
         ];
 
         return response(implode("\n", $lines))->header('Content-Type', 'text/plain');
-    }
-
-    private function resolveSettings(): array
-    {
-        $settings = SiteSetting::query()->first();
-
-        return [
-            'hero_tagline' => $settings?->hero_tagline,
-            'hero_description' => $settings?->hero_description,
-            'hero_image_url' => $settings?->hero_image_path
-                ? Storage::disk('public')->url($settings->hero_image_path)
-                : null,
-            'about_short' => $settings?->about_short,
-            'social' => [
-                'facebook' => $settings?->facebook_url,
-                'instagram' => $settings?->instagram_url,
-                'youtube' => $settings?->youtube_url,
-            ],
-            'contact_phone' => $settings?->contact_phone,
-            'contact_email' => $settings?->contact_email,
-            'contact_address' => $settings?->contact_address,
-            'footer_note' => $settings?->footer_note,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>|null null when no tenant resolved for the host
-     */
-    private function resolveTenantSite(TenantContext $context): ?array
-    {
-        if (! $context->isInitialized()) {
-            return null;
-        }
-
-        $tenant = $context->tenant();
-
-        if ($tenant->status === 'suspended') {
-            return null;
-        }
-
-        $profile = OrganizationProfile::query()->first();
-
-        $displayName = $profile?->displayName() ?: (string) $tenant->name;
-
-        return [
-            'organization' => [
-                'name' => $displayName,
-                'legal_name' => $profile?->legal_name ?: (string) $tenant->name,
-                'address' => $this->composeAddress($profile),
-                'phone' => $profile?->phone,
-                'email' => $profile?->email,
-                'website' => $profile?->website,
-                'logo_url' => $profile?->logo_url,
-                'operational_start_year' => $profile?->operational_start_date?->year,
-                'district_name' => $profile?->district_name,
-                'regency_name' => $profile?->regency_name,
-            ],
-            'tenant' => [
-                'code' => $tenant->code,
-                'is_training_mode' => $tenant->isTraining(),
-            ],
-            'settings' => $this->resolveSettings(),
-        ];
-    }
-
-    private function composeAddress(?OrganizationProfile $profile): ?string
-    {
-        if ($profile === null) {
-            return null;
-        }
-
-        $parts = array_filter([
-            $profile->address,
-            $profile->district_name,
-            $profile->regency_name,
-        ], fn (?string $part): bool => is_string($part) && trim($part) !== '');
-
-        return $parts === [] ? null : implode(', ', $parts);
     }
 }

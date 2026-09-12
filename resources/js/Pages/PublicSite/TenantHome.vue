@@ -1,5 +1,6 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
+import { computed, usePage } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 
 defineProps({
@@ -7,15 +8,18 @@ defineProps({
     tenant: { type: Object, required: true },
     settings: { type: Object, default: () => ({}) },
 });
+
+const canonicalUrl = computed(() => `${usePage().props.meta.canonical_base}/`);
 </script>
 
 <template>
     <Head :title="`${organization.name} — Sistem Informasi Dana Bergulir Masyarakat`">
+        <link head-key="canonical" rel="canonical" :href="canonicalUrl" />
         <meta head-key="description" name="description" :content="settings.hero_description ?? settings.about_short ?? `Situs resmi ${organization.name} — portal informasi dan pengelolaan dana bergulir masyarakat.`" />
         <meta head-key="og:title" property="og:title" :content="`${organization.name} — Situs Resmi`" />
         <meta head-key="og:description" property="og:description" :content="settings.hero_description ?? settings.about_short ?? `Situs resmi ${organization.name} — pengelolaan dana bergulir masyarakat.`" />
         <meta head-key="og:type" property="og:type" content="website" />
-        <meta head-key="og:url" property="og:url" :content="$page.url" />
+        <meta head-key="og:url" property="og:url" :content="canonicalUrl" />
         <meta v-if="organization.logo_url" head-key="og:image" property="og:image" :content="organization.logo_url" />
         <meta head-key="twitter:card" name="twitter:card" content="summary_large_image" />
         <meta head-key="twitter:title" name="twitter:title" :content="`${organization.name} — Situs Resmi`" />
