@@ -1,4 +1,5 @@
 <script setup>
+import { useCan } from '../../composables/useCan';
 import { useConfirm } from '../../composables/useConfirm';
 import { useToast } from '../../composables/useToast';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
@@ -29,6 +30,7 @@ const props = defineProps({
     offline: { type: Object, default: () => ({ is_enabled: false, user_id: null, users: [] }) },
 });
 
+const { can } = useCan();
 const page = usePage();
 const route = computed(() => page.url);
 const flash = computed(() => page.props.flash?.success);
@@ -344,7 +346,7 @@ function applySignatureStarter() {
                                 <AppDatePicker v-model="identityForm.operational_start_date" label="Tanggal Operasional Mulai" :error="identityForm.errors.operational_start_date" />
                             </div>
                             <div class="flex justify-end gap-2 border-t border-outline-variant pt-4">
-                                <AppButton type="submit" :loading="identityForm.processing" :disabled="identityForm.processing" icon="save">Simpan Identitas</AppButton>
+                                <AppButton v-if="can('settings.manage')" type="submit" :loading="identityForm.processing" :disabled="identityForm.processing" icon="save">Simpan Identitas</AppButton>
                             </div>
                         </form>
                     </AppCard>
@@ -366,8 +368,8 @@ function applySignatureStarter() {
                             </div>
                         </div>
                         <div class="mt-5 flex justify-end gap-2 border-t border-outline-variant pt-4">
-                            <AppButton type="button" variant="outline" :loading="syncLoading" :disabled="syncLoading || !lendingForm.products.length" icon="sync" @click="syncRounding">Sinkronkan ke Pinjaman</AppButton>
-                            <AppButton type="button" :loading="lendingForm.processing" :disabled="lendingForm.processing || !lendingForm.products.length" icon="save" @click="submitLending">Simpan Sistem Pinjaman</AppButton>
+                            <AppButton v-if="can('settings.manage')" type="button" variant="outline" :loading="syncLoading" :disabled="syncLoading || !lendingForm.products.length" icon="sync" @click="syncRounding">Sinkronkan ke Pinjaman</AppButton>
+                            <AppButton v-if="can('settings.manage')" type="button" :loading="lendingForm.processing" :disabled="lendingForm.processing || !lendingForm.products.length" icon="save" @click="submitLending">Simpan Sistem Pinjaman</AppButton>
                         </div>
                     </AppCard>
 
@@ -403,7 +405,7 @@ function applySignatureStarter() {
                             <p v-if="offlineForm.errors.user_id" class="text-sm text-error">{{ offlineForm.errors.user_id }}</p>
                             <p v-if="offlineForm.errors.is_enabled" class="text-sm text-error">{{ offlineForm.errors.is_enabled }}</p>
                             <div class="flex justify-end border-t border-outline-variant pt-4">
-                                <AppButton type="submit" icon="save" :loading="offlineForm.processing" :disabled="offlineForm.processing">
+                                <AppButton v-if="can('settings.manage')" type="submit" icon="save" :loading="offlineForm.processing" :disabled="offlineForm.processing">
                                     Simpan Pengaturan Offline
                                 </AppButton>
                             </div>
@@ -432,8 +434,8 @@ function applySignatureStarter() {
                                 </label>
                                 <p v-if="logoForm.errors.logo" class="text-sm text-error">{{ logoForm.errors.logo }}</p>
                                 <div class="flex justify-end gap-2 border-t border-outline-variant pt-4">
-                                    <AppButton v-if="props.logoUrl" type="button" variant="danger" icon="delete" :loading="logoForm.processing" @click="destroyLogo">Hapus Logo</AppButton>
-                                    <AppButton type="submit" :loading="logoForm.processing" :disabled="!logoForm.logo || logoForm.processing" icon="upload">Unggah Logo</AppButton>
+                                    <AppButton v-if="can('settings.manage') && props.logoUrl" type="button" variant="danger" icon="delete" :loading="logoForm.processing" @click="destroyLogo">Hapus Logo</AppButton>
+                                    <AppButton v-if="can('settings.manage')" type="submit" :loading="logoForm.processing" :disabled="!logoForm.logo || logoForm.processing" icon="upload">Unggah Logo</AppButton>
                                 </div>
                             </form>
                         </div>
@@ -458,6 +460,7 @@ function applySignatureStarter() {
                                 <h3 class="text-base font-bold text-primary">Tanda Tangan Digital</h3>
                                 <div class="flex flex-wrap items-center gap-2">
                                     <AppButton
+                                        v-if="can('settings.manage')"
                                         type="button"
                                         variant="secondary"
                                         size="compact"
@@ -467,12 +470,13 @@ function applySignatureStarter() {
                                         Gambar Tanda Tangan
                                     </AppButton>
                                     <AppFileUpload
+                                        v-if="can('settings.manage')"
                                         v-model="signatureImageFile"
                                         label="Gambar Tanda Tangan"
                                         hide-label
                                         accept="image/png,image/jpeg,image/webp"
                                     />
-                                    <label class="hidden">
+                                    <label v-if="can('settings.manage')" class="hidden">
                                         <AppButton
                                             variant="secondary"
                                             size="compact"
@@ -483,7 +487,7 @@ function applySignatureStarter() {
                                         </AppButton>
                                     </label>
                                     <AppButton
-                                        v-if="currentSignatureImageUrl"
+                                        v-if="can('settings.manage') && currentSignatureImageUrl"
                                         type="button"
                                         variant="danger"
                                         size="compact"
@@ -540,6 +544,7 @@ function applySignatureStarter() {
                             </p>
                             <div class="flex justify-end border-t border-outline-variant pt-4">
                                 <AppButton
+                                    v-if="can('settings.manage')"
                                     type="submit"
                                     icon="save"
                                     :loading="signatureForm.processing"

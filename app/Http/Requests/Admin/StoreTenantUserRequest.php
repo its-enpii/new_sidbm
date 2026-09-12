@@ -31,7 +31,7 @@ final class StoreTenantUserRequest extends FormRequest
             'phone' => ['required', 'string', 'max:20', 'regex:/^(?:\+?62|0)8\d{7,12}$/', Rule::unique('users', 'phone')],
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
             'status' => ['required', Rule::in(['active', 'suspended', 'inactive'])],
-            'role' => ['nullable', 'string', Rule::in(array_keys(config('permissions.roles', [])))],
+            'role' => ['nullable', 'string', 'max:50'],
             'is_village_user' => ['nullable', 'boolean'],
             'village_row_id' => ['nullable', 'integer'],
         ];

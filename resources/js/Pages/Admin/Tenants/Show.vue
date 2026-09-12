@@ -123,6 +123,7 @@ async function autoLogin(domain = null, userId = null) {
                     </AppButton>
                     <Link :href="`/admin/tenants/${tenant.row_id}/edit`"><AppButton variant="secondary" icon="edit">Edit</AppButton></Link>
                     <Link :href="`/admin/tenants/${tenant.row_id}/users`"><AppButton variant="secondary" icon="group">Users</AppButton></Link>
+                    <Link :href="`/admin/tenants/${tenant.row_id}/roles`"><AppButton variant="secondary" icon="shield_person">Roles</AppButton></Link>
                     <Link :href="`/admin/tenants/${tenant.row_id}/onboarding/import`"><AppButton variant="secondary" icon="account_balance_wallet">Onboarding / Saldo Awal</AppButton></Link>
                     <Link :href="`/admin/tenants/${tenant.row_id}/data-purifier`"><AppButton variant="secondary" icon="cleaning_services">Data Purifier</AppButton></Link>
                     <Link :href="`/admin/invoices/create?tenant_id=${tenant.row_id}`"><AppButton variant="secondary" icon="receipt_long">Buat Invoice</AppButton></Link>

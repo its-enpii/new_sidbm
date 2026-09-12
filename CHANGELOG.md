@@ -6,6 +6,12 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ## [2026-09-12]
 
 ### Added
+- **RBAC Level Tombol (Action-Level) & Manajemen Role Tenant dari Panel Superadmin:**
+  - **RBAC Level Tombol Frontend:** Seluruh tombol aksi pada halaman `Access/Users/Index.vue` (`v-if="can('users.manage')"`), `Access/Roles/Index.vue` (`v-if="can('roles.manage')"`), dan tombol-tombol simpan konfigurasi di `Settings/Index.vue` (`v-if="can('settings.manage')"`) kini terproteksi reaktif menggunakan composable `useCan()`.
+  - **Katalog Izin Terpusat (`PermissionCatalogService`):** Sentralisasi matriks hak akses tenant lintas modul (Master Data, Pinjaman, Akuntansi, Operasional & Pengaturan) yang dipakai konsisten oleh antarmuka tenant maupun panel platform Superadmin.
+  - **Modul Pengelolaan Role Tenant dari Superadmin (`Admin\TenantRoleController`):** Rute resource `/admin/tenants/{tenant}/roles` memungkinkan Superadmin melihat daftar role, membuat role kustom, menyesuaikan izin, serta menghapus role kustom langsung di database shard tenant via `TenantWorkbench` tanpa perlu login atau impersonasi ke situs tenant.
+  - **Sinkronisasi Role Shard pada Form Pengguna Superadmin:** Form pembuatan dan pengeditan pengguna tenant di `/admin/tenants/{tenant}/users` kini mengambil pilihan peran aktual dari database shard tenant bersangkutan (termasuk role kustom hasil kreasi tenant/superadmin).
+  - Feature test komprehensif `TenantRoleManagementTest` (10 test, 74 asersi) memvalidasi otorisasi superadmin, pembuatan/pembaruan/penghapusan role kustom shard, proteksi role sistem, dan filter pencarian peran.
 - **Halaman Syarat Layanan (Terms of Service) dan Kebijakan Privasi (Privacy Policy):**
   - Endpoint publik `GET /terms` (`public.terms`) dan `GET /privacy` (`public.privacy`) dengan middleware `public.site` dan `bot.html` (`PublicSiteController::terms` dan `PublicSiteController::privacy`).
   - Layanan dokumen legal `LegalDocumentService` yang menyusun naskah hukum komprehensif, terstruktur, dan relevan dengan tata kelola keuangan BUMDesma/LKD (pengelolaan data keuangan nasabah, kerahasiaan pinjaman, pembukuan SAK Entitas Privat, isolasi multi-tenant, pemrosesan data menurut UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi, serta masuk terpadu SSO).

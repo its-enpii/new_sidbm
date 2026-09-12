@@ -9,6 +9,9 @@ import AppInput from '../../../Components/AppInput.vue';
 import AppModal from '../../../Components/AppModal.vue';
 import SmartDataTable from '../../../Components/SmartDataTable.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     users: { type: Object, required: true },
@@ -74,7 +77,7 @@ function confirmDelete(user) {
                     <Link href="/access/roles">
                         <AppButton variant="secondary" icon="shield_person">Kelola Role</AppButton>
                     </Link>
-                    <Link href="/access/users/create">
+                    <Link v-if="can('users.manage')" href="/access/users/create">
                         <AppButton icon="person_add">Tambah Pengguna</AppButton>
                     </Link>
                 </div>
@@ -130,7 +133,7 @@ function confirmDelete(user) {
                         </template>
 
                         <template #actions="{ row }">
-                            <div class="flex items-center justify-end gap-1">
+                            <div v-if="can('users.manage')" class="flex items-center justify-end gap-1">
                                 <AppButton variant="ghost" size="compact" icon="key" tooltip="Reset Password" @click="openResetModal(row)" />
                                 <Link :href="`/access/users/${row.row_id}/edit`">
                                     <AppButton variant="ghost" size="compact" icon="edit" tooltip="Edit Pengguna" />

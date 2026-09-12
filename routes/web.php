@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\ShardController;
 use App\Http\Controllers\Admin\TenantController as AdminTenantController;
 use App\Http\Controllers\Admin\TenantDataPurifierController;
 use App\Http\Controllers\Admin\TenantImpersonationController as AdminTenantImpersonationController;
+use App\Http\Controllers\Admin\TenantRoleController as AdminTenantRoleController;
 use App\Http\Controllers\Admin\TenantUserController as AdminTenantUserController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Assets\AssetController;
@@ -184,6 +185,13 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::post('/tenants/{tenant}/impersonate', [AdminTenantImpersonationController::class, 'impersonate'])->name('tenants.impersonate');
     Route::post('/tenants/{tenant}/repair', [AdminTenantController::class, 'repair'])->name('tenants.repair');
     Route::post('/tenants/{tenant}/subscription', [AdminTenantController::class, 'assignSubscription'])->name('tenants.subscription');
+
+    Route::get('/tenants/{tenant}/roles', [AdminTenantRoleController::class, 'index'])->name('tenants.roles.index');
+    Route::get('/tenants/{tenant}/roles/create', [AdminTenantRoleController::class, 'create'])->name('tenants.roles.create');
+    Route::post('/tenants/{tenant}/roles', [AdminTenantRoleController::class, 'store'])->name('tenants.roles.store');
+    Route::get('/tenants/{tenant}/roles/{roleId}/edit', [AdminTenantRoleController::class, 'edit'])->name('tenants.roles.edit');
+    Route::put('/tenants/{tenant}/roles/{roleId}', [AdminTenantRoleController::class, 'update'])->name('tenants.roles.update');
+    Route::delete('/tenants/{tenant}/roles/{roleId}', [AdminTenantRoleController::class, 'destroy'])->name('tenants.roles.destroy');
 
     Route::get('/tenants/{tenant}/users', [AdminTenantUserController::class, 'index'])->name('tenants.users.index');
     Route::get('/tenants/{tenant}/users/create', [AdminTenantUserController::class, 'create'])->name('tenants.users.create');

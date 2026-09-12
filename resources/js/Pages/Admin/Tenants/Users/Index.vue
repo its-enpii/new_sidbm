@@ -70,7 +70,12 @@ const columns = [
                     <h1 class="mt-3 text-2xl font-bold text-primary">Pengguna Tenant</h1>
                     <p class="mt-1 text-on-surface-variant">{{ tenant.code }}</p>
                 </div>
-                <Link :href="`/admin/tenants/${tenant.row_id}/users/create`"><AppButton icon="person_add">Tambah User</AppButton></Link>
+                <div class="flex flex-wrap items-center gap-2">
+                    <Link :href="`/admin/tenants/${tenant.row_id}/roles`">
+                        <AppButton variant="secondary" icon="shield_person">Kelola Role Tenant</AppButton>
+                    </Link>
+                    <Link :href="`/admin/tenants/${tenant.row_id}/users/create`"><AppButton icon="person_add">Tambah User</AppButton></Link>
+                </div>
             </header>
 
             <AppCard :padded="false">

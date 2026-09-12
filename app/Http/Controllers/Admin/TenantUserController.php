@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Access\Models\Role;
+use App\Domain\Access\Services\PermissionChecker;
 use App\Http\Requests\Admin\StoreTenantUserRequest;
 use App\Http\Requests\Admin\UpdateTenantUserRequest;
 use App\Models\Platform\Tenant;
@@ -20,6 +22,10 @@ use Inertia\Response;
 
 final class TenantUserController
 {
+    public function __construct(
+        private readonly PermissionChecker $permissions,
+    ) {}
+
     public function index(Request $request, Tenant $tenant, TenantUserService $users): Response
     {
         $search = trim((string) $request->query('search', ''));
@@ -72,7 +78,7 @@ final class TenantUserController
         return Inertia::render('Admin/Tenants/Users/Form', [
             'tenant' => $tenant->only(['row_id', 'code', 'name']),
             'user' => null,
-            'roleOptions' => $this->roleOptions(),
+            'roleOptions' => $this->roleOptions($tenant, $workbench),
             'villageOptions' => $villages->map(fn ($v) => ['value' => (int) $v->row_id, 'label' => "{$v->code} - {$v->name}"])->all(),
         ]);
     }
@@ -104,7 +110,7 @@ final class TenantUserController
                 ...$user->only(['row_id', 'name', 'username', 'email', 'status', 'is_village_user', 'village_row_id']),
                 'role' => $roles[0] ?? null,
             ],
-            'roleOptions' => $this->roleOptions(),
+            'roleOptions' => $this->roleOptions($tenant, $workbench),
             'villageOptions' => $villages->map(fn ($v) => ['value' => (int) $v->row_id, 'label' => "{$v->code} - {$v->name}"])->all(),
         ]);
     }
@@ -146,16 +152,36 @@ final class TenantUserController
         return back()->with('success', 'Password direset.');
     }
 
-    /** @return list<array{value: string, label: string}> */
-    private function roleOptions(): array
+    /**
+     * Role options come from the tenant shard so custom roles are assignable too.
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    private function roleOptions(Tenant $tenant, TenantWorkbench $workbench): array
     {
+        /** @var list<Role> $roles */
+        $roles = $workbench->run($tenant, function () use ($tenant): array {
+            $this->permissions->ensureSystemRoles();
+
+            return Role::query()
+                ->where('tenant_id', (int) $tenant->row_id)
+                ->orderByDesc('is_system')
+                ->orderBy('name')
+                ->get(['row_id', 'code', 'name', 'is_system'])
+                ->all();
+        });
+
         $options = [
             ['value' => '', 'label' => 'Tanpa role (akses penuh legacy)'],
         ];
-        foreach (config('permissions.roles', []) as $code => $def) {
+        foreach ($roles as $role) {
+            $suffix = $role->code === 'admin'
+                ? ' (Full Access)'
+                : ($role->is_system ? ' (Sistem)' : ' (Kustom)');
+
             $options[] = [
-                'value' => (string) $code,
-                'label' => (string) ($def['name'] ?? $code),
+                'value' => (string) $role->code,
+                'label' => (string) $role->name.$suffix,
             ];
         }
 
