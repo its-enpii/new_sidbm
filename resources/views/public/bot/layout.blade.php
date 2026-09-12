@@ -11,6 +11,7 @@
     <meta property="og:url" content="@yield('canonical')">
     <meta name="twitter:card" content="@yield('twitter_card', 'summary')">
     <meta name="robots" content="@yield('robots', 'index, follow')">
+    @yield('json_ld')
 </head>
 <body>
     <main>

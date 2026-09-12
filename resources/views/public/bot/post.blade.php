@@ -11,6 +11,22 @@
 @section('canonical', $canonical)
 @section('twitter_card', 'summary_large_image')
 
+@section('json_ld')
+    <script type="application/ld+json">
+        {!! json_encode([
+            '@context' => 'https://schema.org',
+            '@type' => 'NewsArticle',
+            'headline' => $post['title'],
+            'datePublished' => $post['published_at'],
+            'image' => $post['cover_image_url'] ? [$post['cover_image_url']] : [],
+            'author' => [
+                '@type' => 'Organization',
+                'name' => $organization['name'],
+            ],
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+    </script>
+@endsection
+
 @section('content')
     <article>
         <h1>{{ $post['title'] }}</h1>

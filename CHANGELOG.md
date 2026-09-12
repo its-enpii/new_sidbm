@@ -3,6 +3,16 @@
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
+## [2026-09-11]
+
+### Added
+- **Penguatan SEO & Bot-Friendly HTML Fallback (Situs Publik):**
+  - **Bot-Friendly HTML Fallback (`ServeBotFriendlyHtml`):** Middleware mendeteksi crawler search engine dan bot preview sosial (Googlebot, Bingbot, WhatsApp, Telegram, Facebook, Twitterbot, dll.) pada route publik dan menyajikan tampilan HTML server-rendered lengkap dengan isi artikel, halaman statis, dan ringkasan tenant tanpa bergantung pada eksekusi JavaScript sisi klien (SPA client-side tetap disajikan untuk browser normal).
+  - **Sitemap Dinamis dengan Metadata Lengkap:** Endpoint `/sitemap.xml` kini menyertakan elemen `<lastmod>` (ISO8601 berbasis pembaruan konten), `<changefreq>`, dan `<priority>` untuk halaman beranda, artikel berita, dan halaman informasi.
+  - **Structured Data JSON-LD (Schema.org):** Injeksi skema terstruktur di sisi server untuk `Organization` dan `WebSite` pada beranda tenant serta `NewsArticle` pada detail artikel berita.
+  - **Penguatan Meta Tag & Canonical URL:** URL kanonikal mutlak (`rel="canonical"`) dan meta tag OpenGraph/Twitter card pada seluruh halaman publik (`Home`, `TenantHome`, `BlogIndex`, `BlogPost`, `StaticPage`, `Contact`).
+  - Test komprehensif `SeoBotHtmlTest` (4 test, 15 asersi) memverifikasi penyajian HTML ramah bot, konten SPA untuk browser biasa, format sitemap, dan ketersediaan tag JSON-LD.
+
 ## [2026-09-10]
 
 ### Added
