@@ -12,6 +12,26 @@
 @section('canonical', url('/'))
 @section('twitter_card', 'summary_large_image')
 
+@section('json_ld')
+    <script type="application/ld+json">
+        {!! json_encode([
+            '@context' => 'https://schema.org',
+            '@type' => 'Organization',
+            'name' => $site['organization']['name'],
+            'logo' => $site['organization']['logo_url'],
+            'url' => url('/'),
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+    </script>
+    <script type="application/ld+json">
+        {!! json_encode([
+            '@context' => 'https://schema.org',
+            '@type' => 'WebSite',
+            'name' => $site['organization']['name'],
+            'url' => url('/'),
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+    </script>
+@endsection
+
 @section('content')
     <h1>{{ $settings['hero_tagline'] ?? 'Situs Resmi' }}</h1>
     <p>{{ $organization['legal_name'] }}</p>

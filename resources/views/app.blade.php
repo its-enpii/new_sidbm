@@ -16,9 +16,9 @@
         $publicSiteMeta = config('inertia.public_site', []);
     @endphp
     @if (is_array($publicSiteMeta) && is_array($publicSiteMeta['json_ld'] ?? null) && $publicSiteMeta['json_ld'] !== [])
-        <script type="application/ld+json" data-public-page="{{ $publicSiteMeta['path'] }}">
-            @php echo json_encode($publicSiteMeta['json_ld'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); @endphp
-        </script>
+        @foreach ($publicSiteMeta['json_ld'] as $jsonLd)
+            <script type="application/ld+json" data-public-page="{{ $publicSiteMeta['path'] }}">{!! $jsonLd !!}</script>
+        @endforeach
     @endif
     <script>
         (function () {
