@@ -4,6 +4,9 @@ import { router } from '@inertiajs/vue3';
 import AppButton from './AppButton.vue';
 import AppIcon from './AppIcon.vue';
 import AppDatePicker from './AppDatePicker.vue';
+import { useCan } from '../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     year: { type: [Number, String], required: true },
@@ -145,7 +148,7 @@ function toMonthValue(year, month) {
         <div class="flex shrink-0 items-end gap-2">
             <AppButton type="button" class="!min-h-14 h-14 px-5" @click="apply">Tampilkan</AppButton>
             <a
-                v-if="pdfUrl"
+                v-if="pdfUrl && can('reports.view')"
                 :href="pdfHref()"
                 target="_blank"
                 rel="noopener"
@@ -154,7 +157,7 @@ function toMonthValue(year, month) {
                 PDF
             </a>
             <a
-                v-if="excelUrl"
+                v-if="excelUrl && can('reports.view')"
                 :href="excelHref()"
                 class="inline-flex h-14 min-h-14 items-center gap-1.5 rounded-xl border border-outline-variant px-4 text-sm font-semibold text-primary hover:bg-surface-container-low"
             >

@@ -7,6 +7,9 @@ import AppCheckbox from '../../../Components/AppCheckbox.vue';
 import AppDatePicker from '../../../Components/AppDatePicker.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     year: { type: Number, required: true },
@@ -106,7 +109,7 @@ const pdfHref = computed(() => {
                         Daftar tagihan angsuran per kelompok &amp; pemanfaat periode {{ period.period_label }}
                     </p>
                 </div>
-                <a :href="pdfHref" target="_blank" rel="noopener">
+                <a v-if="can('loans.view')" :href="pdfHref" target="_blank" rel="noopener">
                     <AppButton variant="secondary" icon="picture_as_pdf" size="compact">Cetak PDF</AppButton>
                 </a>
             </div>

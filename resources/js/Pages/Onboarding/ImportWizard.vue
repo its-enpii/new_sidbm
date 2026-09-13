@@ -466,7 +466,7 @@ const uploadLoans = () => {
                             />
                             <div class="flex justify-between items-center pt-2">
                                 <a :href="`${baseUrl}/onboarding/templates/pinjaman-aktif`" class="text-xs text-secondary hover:underline font-semibold">
-                                    ?? Download Format Template CSV Pinjaman Aktif (.csv)
+                                    Download Format Template CSV Pinjaman Aktif (.csv)
                                 </a>
                                 <AppButton type="submit" variant="primary" size="sm" :disabled="!loanFileForm.file || loanFileForm.processing">
                                     Upload & Impor Pinjaman Aktif

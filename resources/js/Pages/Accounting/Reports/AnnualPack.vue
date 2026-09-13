@@ -6,6 +6,9 @@ import AppCard from '../../../Components/AppCard.vue';
 import AppIcon from '../../../Components/AppIcon.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     year: { type: Number, required: true },
@@ -96,7 +99,7 @@ const docs = computed(() => [
                             Satu file ZIP berisi 8 laporan keuangan PDF + Buku Besar per akun + 4 dokumen LPJ untuk periode terpilih.
                         </p>
                     </div>
-                    <div class="mt-4 pt-3 border-t border-outline-variant/20 flex justify-end">
+                    <div v-if="can('reports.view')" class="mt-4 pt-3 border-t border-outline-variant/20 flex justify-end">
                         <a :href="`/accounting/reports/bundle/pdf?year=${selectedYear.value}&month=12`">
                             <AppButton variant="primary" size="compact" icon="folder_zip">
                                 Unduh Bundle ZIP
@@ -115,7 +118,7 @@ const docs = computed(() => [
                             Satu file Excel (.xlsx) multi-sheet: Ringkasan, Neraca, Laba Rugi, Arus Kas, Neraca Saldo, Buku Besar, dan Portofolio Piutang.
                         </p>
                     </div>
-                    <div class="mt-4 pt-3 border-t border-outline-variant/20 flex justify-end">
+                    <div v-if="can('reports.view')" class="mt-4 pt-3 border-t border-outline-variant/20 flex justify-end">
                         <a :href="`/accounting/reports/bundle/xlsx?year=${selectedYear.value}&month=12`">
                             <AppButton variant="secondary" size="compact" icon="table_view">
                                 Unduh Excel Auditor (.xlsx)
@@ -137,7 +140,7 @@ const docs = computed(() => [
                             <p class="text-xs text-on-surface-variant mt-1">{{ doc.desc }}</p>
                         </div>
                     </div>
-                    <div class="mt-4 pt-3 border-t border-outline-variant/20 flex justify-end">
+                    <div v-if="can('reports.view')" class="mt-4 pt-3 border-t border-outline-variant/20 flex justify-end">
                         <a :href="doc.href" target="_blank">
                             <AppButton size="compact" variant="outline" icon="picture_as_pdf">
                                 Unduh / Cetak PDF

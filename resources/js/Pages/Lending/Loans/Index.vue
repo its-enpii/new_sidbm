@@ -141,7 +141,7 @@ const emptyMessages = {
                     <AppButton variant="secondary" :icon="view === 'kanban' ? 'table_chart' : 'view_kanban'" @click="switchView(view === 'kanban' ? 'table' : 'kanban')">
                         {{ view === 'kanban' ? 'Tampilan Tabel' : 'Tampilan Kanban' }}
                     </AppButton>
-                    <AppButton variant="secondary" icon="print" @click="openPdfModal">Cetak PDF</AppButton>
+                    <AppButton v-if="can('loans.view')" variant="secondary" icon="print" @click="openPdfModal">Cetak PDF</AppButton>
                     <Link v-if="can('loans.propose')" href="/lending/loans/create"><AppButton icon="add">Register Proposal</AppButton></Link>
                 </div>
             </header>

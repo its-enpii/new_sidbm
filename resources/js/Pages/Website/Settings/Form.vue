@@ -7,11 +7,14 @@ import AppFileUpload from '../../../Components/AppFileUpload.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import AppTextarea from '../../../Components/AppTextarea.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
 
 const props = defineProps({
     settings: { type: Object, required: true },
     heroImageUrl: { type: String, default: null },
 });
+
+const { can } = useCan();
 
 const form = useForm({
     hero_tagline: props.settings.hero_tagline ?? '',
@@ -87,7 +90,7 @@ function submit() {
                         />
                         <div v-if="heroImageUrl && !form.remove_hero_image" class="flex items-center gap-4">
                             <img :src="heroImageUrl" alt="Gambar hero saat ini" class="h-24 w-40 rounded-xl border border-outline-variant object-cover">
-                            <AppButton variant="secondary" size="compact" type="button" @click="form.remove_hero_image = true">
+                            <AppButton v-if="can('website.manage')" variant="secondary" size="compact" type="button" @click="form.remove_hero_image = true">
                                 Hapus gambar
                             </AppButton>
                         </div>
@@ -177,7 +180,7 @@ function submit() {
                 </AppCard>
 
                     <div class="flex justify-end">
-                        <AppButton type="submit" icon="save" :loading="form.processing">
+                        <AppButton v-if="can('website.manage')" type="submit" icon="save" :loading="form.processing">
                             Simpan Pengaturan
                         </AppButton>
                     </div>

@@ -571,6 +571,7 @@ async function submitAllocation() {
                                         <h3 class="text-sm font-bold text-primary">Laba ditahan</h3>
                                     </div>
                                     <AppButton
+                                        v-if="allowClose"
                                         type="button"
                                         variant="ghost"
                                         size="compact"
@@ -615,6 +616,7 @@ async function submitAllocation() {
                                 </p>
                             </div>
                             <AppButton
+                                v-if="allowClose"
                                 type="submit"
                                 variant="primary"
                                 :loading="allocForm.processing"

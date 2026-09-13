@@ -6,6 +6,9 @@ import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     year: { type: Number, required: true },
@@ -82,7 +85,7 @@ const pdfUrl = computed(() => {
                     </p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <a :href="pdfUrl" target="_blank" class="inline-flex">
+                    <a v-if="can('reports.view')" :href="pdfUrl" target="_blank" class="inline-flex">
                         <AppButton variant="outline">
                             <span class="material-symbols-outlined mr-1.5 text-base">picture_as_pdf</span>
                             Cetak PDF

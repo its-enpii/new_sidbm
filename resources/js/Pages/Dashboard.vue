@@ -9,6 +9,7 @@ import AppIcon from '../Components/AppIcon.vue';
 import AppModal from '../Components/AppModal.vue';
 import TrendBarChart from '../Components/TrendBarChart.vue';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../composables/useCan';
 
 const props = defineProps({
     unitName: { type: String, default: null },
@@ -127,12 +128,16 @@ function dateForRow(row) {
     return row.disbursed_at ?? row.funded_at ?? row.verified_at ?? row.proposed_at ?? null;
 }
 
+const { can } = useCan();
+
 const quickActions = [
-    { label: 'Register Proposal', href: '/lending/loans/create', icon: 'assignment_add' },
-    { label: 'Jurnal Angsuran', href: '/accounting/journal-entries/installment', icon: 'payments' },
-    { label: 'Jurnal Umum', href: '/accounting/journal-entries/create', icon: 'receipt_long' },
-    { label: 'E-Budgeting', href: '/budgeting', icon: 'account_balance_wallet' },
+    { label: 'Register Proposal', href: '/lending/loans/create', icon: 'assignment_add', permission: 'loans.propose' },
+    { label: 'Jurnal Angsuran', href: '/accounting/journal-entries/installment', icon: 'payments', permission: 'installments.record' },
+    { label: 'Jurnal Umum', href: '/accounting/journal-entries/create', icon: 'receipt_long', permission: 'journals.create' },
+    { label: 'E-Budgeting', href: '/budgeting', icon: 'account_balance_wallet', permission: 'budgeting.view' },
 ];
+
+const visibleQuickActions = computed(() => quickActions.filter((action) => can(action.permission)));
 
 const sourceLabel = {
     loan: 'Pinjaman',
@@ -158,7 +163,7 @@ const sourceLabel = {
                     </p>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <Link v-for="action in quickActions" :key="action.href" :href="action.href">
+                    <Link v-for="action in visibleQuickActions" :key="action.href" :href="action.href">
                         <AppButton variant="secondary" size="compact" :icon="action.icon">{{ action.label }}</AppButton>
                     </Link>
                 </div>
@@ -235,7 +240,7 @@ const sourceLabel = {
                             <h2 class="text-lg font-bold text-primary">Jurnal Terbaru</h2>
                             <p class="text-sm text-on-surface-variant">Posted, {{ recent_journals.length }} entri terakhir</p>
                         </div>
-                        <Link href="/accounting/journal-entries/create">
+                        <Link v-if="can('journals.create')" href="/accounting/journal-entries/create">
                             <AppButton variant="ghost" size="compact">Buat jurnal</AppButton>
                         </Link>
                     </header>
@@ -310,7 +315,7 @@ const sourceLabel = {
                     </div>
 
                     <div class="shrink-0 border-t border-outline-variant px-6 py-4">
-                        <Link href="/accounting/journal-entries/installment" class="block">
+                        <Link v-if="can('installments.record')" href="/accounting/journal-entries/installment" class="block">
                             <AppButton variant="secondary" class="w-full" icon="payments">Catat angsuran</AppButton>
                         </Link>
                     </div>
@@ -396,7 +401,7 @@ const sourceLabel = {
             </div>
 
             <template #footer>
-                <Link v-if="pipeline_modal_key" :href="`/lending/loans?tab=${pipeline_modal_key}`">
+                <Link v-if="pipeline_modal_key && can('loans.view')" :href="`/lending/loans?tab=${pipeline_modal_key}`">
                     <AppButton variant="secondary" icon="open_in_new">Lihat semua di Tahapan Perguliran</AppButton>
                 </Link>
                 <AppButton variant="primary" @click="closePipeline">Tutup</AppButton>

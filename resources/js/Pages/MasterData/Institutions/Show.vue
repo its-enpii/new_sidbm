@@ -5,6 +5,7 @@ import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import LoanHistoryTable from '../../../Components/LoanHistoryTable.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
 
 defineProps({
     institution: { type: Object, required: true },
@@ -12,6 +13,8 @@ defineProps({
     summary: { type: Object, required: true },
     loan_note: { type: String, default: null },
 });
+
+const { can } = useCan();
 </script>
 
 <template>
@@ -34,7 +37,7 @@ defineProps({
                         <span v-if="institution.village?.name"> · {{ institution.village.name }}</span>
                     </p>
                 </div>
-                <Link :href="`/master-data/institutions/${institution.row_id}/edit`">
+                <Link v-if="can('institutions.manage')" :href="`/master-data/institutions/${institution.row_id}/edit`">
                     <AppButton variant="secondary" icon="edit" size="compact">Edit</AppButton>
                 </Link>
             </header>

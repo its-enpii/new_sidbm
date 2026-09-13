@@ -6,6 +6,9 @@ import AppCard from '../../../Components/AppCard.vue';
 import AppDatePicker from '../../../Components/AppDatePicker.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     year: { type: Number, required: true },
@@ -81,7 +84,7 @@ const pdfHref = computed(() => {
                         Angsuran jatuh tempo {{ period.period_label }} · due vs paid di jadwal
                     </p>
                 </div>
-                <a :href="pdfHref" target="_blank" rel="noopener">
+                <a v-if="can('loans.view')" :href="pdfHref" target="_blank" rel="noopener">
                     <AppButton variant="secondary" icon="picture_as_pdf" size="compact">PDF</AppButton>
                 </a>
             </div>

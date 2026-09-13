@@ -63,7 +63,7 @@ function save() {
                         {{ period.period_label }} · ringkasan otomatis + catatan lembaga
                     </p>
                 </div>
-                <a :href="pdfHref" target="_blank" rel="noopener">
+                <a v-if="can('reports.view')" :href="pdfHref" target="_blank" rel="noopener">
                     <AppButton variant="secondary" icon="picture_as_pdf" size="compact">PDF</AppButton>
                 </a>
             </div>

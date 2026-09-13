@@ -220,7 +220,10 @@ const genderLabels = { male: 'Laki-laki', female: 'Perempuan', L: 'Laki-laki', P
                         </div>
 
                         <form class="space-y-3" @submit.prevent>
-                            <label class="block cursor-pointer rounded-lg border-2 border-dashed border-outline-variant bg-surface-container-lowest p-4 text-center transition-colors hover:border-primary hover:bg-surface-container-low">
+                            <label
+                                v-if="can('members.manage')"
+                                class="block cursor-pointer rounded-lg border-2 border-dashed border-outline-variant bg-surface-container-lowest p-4 text-center transition-colors hover:border-primary hover:bg-surface-container-low"
+                            >
                                 <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" @change="onIdentityPhotoChange" />
                                 <AppIcon name="upload" class="text-xl text-on-surface-variant" />
                                 <p class="mt-1 text-sm font-semibold text-primary">Ganti foto KTP</p>
@@ -234,7 +237,7 @@ const genderLabels = { male: 'Laki-laki', female: 'Perempuan', L: 'Laki-laki', P
 
                             <div class="flex justify-end border-t border-outline-variant pt-3">
                                 <AppButton
-                                    v-if="member.identity_photo_path"
+                                    v-if="can('members.manage') && member.identity_photo_path"
                                     type="button"
                                     variant="danger"
                                     size="compact"

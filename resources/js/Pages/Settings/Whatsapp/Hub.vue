@@ -439,7 +439,7 @@ const sourceLabel = {
 
             <template v-if="activeTab === 'instances'">
                 <div class="flex justify-end">
-                    <AppButton type="button" icon="add" :disabled="!props.global.configured" @click="openCreate">Tambah Instance</AppButton>
+                    <AppButton v-if="can('settings.manage')" type="button" icon="add" :disabled="!props.global.configured" @click="openCreate">Tambah Instance</AppButton>
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-3">
@@ -501,7 +501,7 @@ const sourceLabel = {
                                     </div>
                                 </td>
                                 <td class="px-4 py-4">
-                                    <div class="flex justify-end gap-2">
+                                    <div v-if="can('settings.manage')" class="flex justify-end gap-2">
                                         <AppButton size="compact" variant="secondary" icon="qr_code_scanner" :loading="loadingAction === instance.row_id" :disabled="!props.global.configured" @click="createSession(instance)">Buat QR</AppButton>
                                         <AppButton size="compact" variant="ghost" icon="delete" :loading="loadingAction === instance.row_id" :disabled="!props.global.configured" @click="deleteSession(instance)">Hapus Sesi</AppButton>
                                         <AppButton size="compact" variant="ghost" icon="visibility" @click="openQr(instance)">Status</AppButton>
@@ -548,7 +548,7 @@ const sourceLabel = {
                     </div>
 
                     <div class="flex justify-end border-t border-outline-variant pt-4">
-                        <AppButton type="submit" icon="save" :loading="globalForm.processing">Simpan Pengaturan</AppButton>
+                        <AppButton v-if="can('settings.manage')" type="submit" icon="save" :loading="globalForm.processing">Simpan Pengaturan</AppButton>
                     </div>
                 </form>
             </AppCard>

@@ -146,7 +146,7 @@ const paymentColumns = [
                     </p>
                 </div>
 
-                <div v-if="invoice.is_open && active_payment" class="flex flex-wrap gap-2">
+                <div v-if="invoice.is_open && active_payment && can('billing.pay')" class="flex flex-wrap gap-2">
                     <AppButton
                         variant="secondary"
                         icon="refresh"
@@ -389,6 +389,7 @@ const paymentColumns = [
 
                     <div class="pt-2">
                         <AppButton
+                            v-if="can('billing.pay')"
                             class="w-full sm:w-auto"
                             icon="payments"
                             :loading="payForm.processing"

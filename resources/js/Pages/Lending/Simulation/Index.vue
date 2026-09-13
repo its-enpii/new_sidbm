@@ -12,6 +12,9 @@ import AppInput from '../../../Components/AppInput.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import { useMoney } from '../../../composables/useMoney';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     products: { type: Array, default: () => [] },
@@ -446,6 +449,7 @@ Est. Angsuran/Bln: ${money(s.estimated_monthly)}`;
                         {{ copied ? 'Tersalin!' : 'Salin Ringkasan' }}
                     </AppButton>
                     <AppButton
+                        v-if="can('loans.view')"
                         icon="picture_as_pdf"
                         variant="primary"
                         size="sm"

@@ -717,8 +717,8 @@ function setAllocatedAmount(memberRowId, value) {
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
                     <AppBadge :tone="statusMeta.tone">{{ statusMeta.label }}</AppBadge>
-                    <AppButton type="button" variant="secondary" icon="history" size="compact" @click="auditHistoryModalOpen = true">Riwayat &amp; Audit Parameter</AppButton>
-                    <a v-if="card_url" :href="card_url" target="_blank" rel="noopener">
+                    <AppButton v-if="can('loans.view')" type="button" variant="secondary" icon="history" size="compact" @click="auditHistoryModalOpen = true">Riwayat &amp; Audit Parameter</AppButton>
+                    <a v-if="card_url && can('loans.view')" :href="card_url" target="_blank" rel="noopener">
                         <AppButton type="button" variant="secondary" icon="credit_card" size="compact">Kartu Angsuran</AppButton>
                     </a>
                     <AppButton v-if="canCompleteAction" variant="success" icon="task_alt" @click="openCompleteModal">Validasi Lunas</AppButton>
@@ -858,7 +858,7 @@ function setAllocatedAmount(memberRowId, value) {
                             required
                         />
                     </div>
-                    <div class="flex justify-end">
+                    <div v-if="canCommitteeSave" class="flex justify-end">
                         <AppButton
                             type="button"
                             icon="save"

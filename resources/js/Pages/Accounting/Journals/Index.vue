@@ -255,6 +255,7 @@ function submitBulkReverse() {
                         Batal Pilih
                     </AppButton>
                     <AppButton
+                        v-if="allowReverse"
                         type="button"
                         variant="danger"
                         size="compact"
@@ -338,7 +339,7 @@ function submitBulkReverse() {
                                     {{ cashEvidenceLabel(row.cash_evidence_kind) }}
                                 </a>
                                 <a
-                                    v-if="allowReverse && row.can_edit"
+                                    v-if="can('journals.create') && allowReverse && row.can_edit"
                                     :href="`/accounting/journals/${row.row_id}/edit`"
                                     class="rounded-lg px-2 py-1 text-xs font-semibold text-warning hover:bg-warning/10"
                                     title="Koreksi jurnal (reverse + buat baru)"

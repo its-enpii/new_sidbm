@@ -7,6 +7,9 @@ import AppCard from '../../../Components/AppCard.vue';
 import AppDatePicker from '../../../Components/AppDatePicker.vue';
 import AppFilterPill from '../../../Components/AppFilterPill.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
+
+const { can } = useCan();
 
 const props = defineProps({
     as_of: { type: String, required: true },
@@ -114,7 +117,7 @@ const villageSections = computed(() => {
                     <h1 class="mt-1 text-2xl font-bold text-primary">Portofolio Pinjaman</h1>
                     <p class="text-sm text-on-surface-variant">{{ period.period_label }}</p>
                 </div>
-                <a :href="pdfHref" target="_blank" rel="noopener">
+                <a v-if="can('loans.view')" :href="pdfHref" target="_blank" rel="noopener">
                     <AppButton variant="secondary" icon="picture_as_pdf" size="compact">PDF</AppButton>
                 </a>
             </div>
