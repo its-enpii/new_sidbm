@@ -41,7 +41,7 @@ final class HoldingSsoController extends Controller
         ShardConnectionManager $connections,
     ): RedirectResponse {
         $token = (string) $request->query('token', '');
-        $payload = $token === '' ? null : Cache::pull('sso:'.hash('sha256', $token));
+        $payload = $token === '' ? null : Cache::store('sso')->pull('sso:'.hash('sha256', $token));
 
         if (! is_array($payload) || ! $this->isValidPayload($payload) || $this->expiresAt($payload) <= now()->timestamp) {
             return $this->redirectFailed($request);

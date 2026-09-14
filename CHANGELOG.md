@@ -3,6 +3,16 @@
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
+## [2026-09-14]
+
+### Added
+- **SSO Receiver pada Shared Cache Store `sso`:** Sesi "Buka Aplikasi" dari holding kini membaca token pada cache store khusus `sso`, bukan store default aplikasi (`docs/SSO-CONTRACT.md`, bagian *Shared SSO Cache*).
+  - Store `sso` (`config/cache.php`) dan connection redis `sso` (`config/database.php`) di-backing redis pusat milik holding; seluruh koordinat env-driven (`SSO_REDIS_HOST`, `SSO_REDIS_PORT`, `SSO_REDIS_PASSWORD`, `SSO_REDIS_DB`, `SSO_CACHE_REDIS_CONNECTION`) sehingga satu build dipakai pada deployment server sama maupun server berbeda tanpa perubahan kode.
+  - Kedua prefix (`cache.stores.sso.prefix`, `database.redis.sso.prefix`) sengaja kosong agar kunci Redis persis `sso:{sha256(token)}` dan dapat dibaca lintas aplikasi; `REDIS_PREFIX`/`CACHE_PREFIX` aplikasi tidak boleh menempel pada store ini.
+  - `HoldingSsoController` berubah dari `Cache::pull()` menjadi `Cache::store('sso')->pull()` — satu-satunya perubahan logika; validasi payload, verifikasi signature HMAC, pemetaan role, dan tenant-binding melalui `TenantResolver` tidak disentuh, konsumsi tetap sekali pakai.
+  - Client redis aplikasi sudah `predis` (`REDIS_CLIENT`); connection `sso` membawa penanda `SSO_REDIS_CLIENT` agar niatnya eksplisit. Tidak ada perubahan `docker-compose.yml`: stack SIDBM Next tidak berjalan, dan bus hanya dibaca dari environment.
+  - Test: `HoldingSsoTest` men-seed token via `Cache::store('sso')->put()` dan menambah penjaga bahwa token di store default **tidak** dikonsumsi; suite baru `SsoSharedCacheStoreTest` (6 test) memverifikasi bentuk store, prefix kosong, nilai yang bersumber dari environment, dan larangan koordinat hardcoded di kode; `SsoSharedCacheBusTest` (2 test) membuktikan kunci kontrak benar-benar terbaca di bus redis holding dan melewatkan dirinya (skip) sendiri saat bus belum terjangkau atau belum diautentikasi.
+
 ## [2026-09-13]
 
 ### Added

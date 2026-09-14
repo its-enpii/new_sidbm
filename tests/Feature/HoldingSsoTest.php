@@ -26,6 +26,7 @@ final class HoldingSsoTest extends TestCase
         parent::setUp();
         $this->withoutMiddleware(PreventRequestForgery::class);
         config(['services.holding_sso.secret' => null]);
+        $this->useInMemorySsoStore();
         Cache::flush();
 
         $this->prepareSqliteDatabase('platform');
@@ -66,7 +67,7 @@ final class HoldingSsoTest extends TestCase
         $tenant = $this->createTenant();
         $token = Str::random(64);
         $payload = $this->payload($tenant);
-        Cache::put('sso:'.hash('sha256', $token), $payload, 60);
+        Cache::store('sso')->put('sso:'.hash('sha256', $token), $payload, 60);
 
         $this->get('/auth/holding?token='.$token)
             ->assertRedirect(route('dashboard'));
@@ -79,7 +80,24 @@ final class HoldingSsoTest extends TestCase
             'status' => 'active',
         ]);
         $this->assertTrue(Auth::check());
-        $this->assertNull(Cache::get('sso:'.hash('sha256', $token)));
+        $this->assertNull(Cache::store('sso')->get('sso:'.hash('sha256', $token)));
+        $this->assertNull(Cache::get('sso:'.hash('sha256', $token)), 'The token must never reach the default store.');
+    }
+
+    public function test_token_stored_in_the_default_store_is_not_consumed(): void
+    {
+        $tenant = $this->createTenant();
+        $token = Str::random(64);
+        $cacheKey = 'sso:'.hash('sha256', $token);
+        Cache::put($cacheKey, $this->payload($tenant), 60);
+
+        $this->get('/auth/holding?token='.$token)
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('error');
+
+        $this->assertGuest();
+        $this->assertDatabaseCount('users', 0);
+        $this->assertNotNull(Cache::get($cacheKey), 'Reading the default store instead of the shared sso store is the bug this guards.');
     }
 
     public function test_second_use_redirects_to_login_without_session(): void
@@ -87,7 +105,7 @@ final class HoldingSsoTest extends TestCase
         $tenant = $this->createTenant();
         $token = Str::random(64);
         $payload = $this->payload($tenant);
-        Cache::put('sso:'.hash('sha256', $token), $payload, 60);
+        Cache::store('sso')->put('sso:'.hash('sha256', $token), $payload, 60);
 
         $this->get('/auth/holding?token='.$token)->assertRedirect(route('dashboard'));
         Auth::forgetGuards();
@@ -105,7 +123,7 @@ final class HoldingSsoTest extends TestCase
         $tenant = $this->createTenant();
         $token = Str::random(64);
         $payload = $this->payload($tenant, ['exp' => now()->subMinute()->timestamp]);
-        Cache::put('sso:'.hash('sha256', $token), $payload, 60);
+        Cache::store('sso')->put('sso:'.hash('sha256', $token), $payload, 60);
 
         $this->get('/auth/holding?token='.$token)
             ->assertRedirect(route('login'))
@@ -121,7 +139,7 @@ final class HoldingSsoTest extends TestCase
         $tenant = $this->createTenant();
         $token = Str::random(64);
         $payload = $this->payload($tenant, ['signature' => 'invalid-signature']);
-        Cache::put('sso:'.hash('sha256', $token), $payload, 60);
+        Cache::store('sso')->put('sso:'.hash('sha256', $token), $payload, 60);
 
         $this->get('/auth/holding?token='.$token)
             ->assertRedirect(route('login'))
@@ -137,7 +155,7 @@ final class HoldingSsoTest extends TestCase
         $tenant = $this->createTenant();
         $token = Str::random(64);
         $payload = $this->payload($tenant);
-        Cache::put('sso:'.hash('sha256', $token), $payload, 60);
+        Cache::store('sso')->put('sso:'.hash('sha256', $token), $payload, 60);
 
         $this->get('/auth/holding?token='.$token)
             ->assertRedirect(route('login'))
@@ -152,7 +170,7 @@ final class HoldingSsoTest extends TestCase
         $this->createTenant();
         $token = Str::random(64);
         $payload = $this->payload(null, ['sub_tenant_code' => 'missing']);
-        Cache::put('sso:'.hash('sha256', $token), $payload, 60);
+        Cache::store('sso')->put('sso:'.hash('sha256', $token), $payload, 60);
 
         $this->get('/auth/holding?token='.$token)
             ->assertRedirect(route('login'))
@@ -167,7 +185,7 @@ final class HoldingSsoTest extends TestCase
         $tenant = $this->createTenant();
         $token = Str::random(64);
         $payload = $this->payload($tenant, ['role' => 'superadmin']);
-        Cache::put('sso:'.hash('sha256', $token), $payload, 60);
+        Cache::store('sso')->put('sso:'.hash('sha256', $token), $payload, 60);
 
         $this->get('/auth/holding?token='.$token)
             ->assertRedirect(route('login'))
