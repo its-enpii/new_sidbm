@@ -8,6 +8,7 @@ import AppInput from '../../Components/AppInput.vue';
 import AppTextarea from '../../Components/AppTextarea.vue';
 import SmartSelect from '../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../composables/useCan';
 
 const props = defineProps({
     asset: { type: Object, required: true },
@@ -15,6 +16,8 @@ const props = defineProps({
     status_options: { type: Array, required: true },
     units: { type: Array, required: true },
 });
+
+const { can } = useCan();
 
 const form = useForm({
     name: props.asset?.name || '',
@@ -111,7 +114,7 @@ function submit() {
                         <Link :href="`/accounting/assets/${asset.row_id}`">
                             <AppButton variant="ghost" type="button">Batal</AppButton>
                         </Link>
-                        <AppButton type="submit" :loading="form.processing" icon="save">Simpan</AppButton>
+                        <AppButton v-if="can('assets.manage')" type="submit" :loading="form.processing" icon="save">Simpan</AppButton>
                     </div>
                 </form>
             </AppCard>

@@ -7,10 +7,13 @@ import AppInput from '../../../Components/AppInput.vue';
 import AppRichEditor from '../../../Components/AppRichEditor.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
 
 const props = defineProps({
     page: { type: Object, default: null },
 });
+
+const { can } = useCan();
 
 const editing = Boolean(props.page);
 const form = useForm({
@@ -93,7 +96,7 @@ function submit() {
 
                     <div class="flex justify-end gap-3 border-t border-outline-variant pt-5">
                         <Link :href="path"><AppButton variant="secondary">Batal</AppButton></Link>
-                        <AppButton type="submit" :loading="form.processing" icon="save">Simpan</AppButton>
+                        <AppButton v-if="can('website.manage')" type="submit" :loading="form.processing" icon="save">Simpan</AppButton>
                     </div>
                 </form>
             </AppCard>

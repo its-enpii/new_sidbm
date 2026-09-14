@@ -8,11 +8,14 @@ import AppCheckbox from '../../../Components/AppCheckbox.vue';
 import AppIcon from '../../../Components/AppIcon.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
 
 const props = defineProps({
     role: { type: Object, default: null },
     permissionGroups: { type: Array, required: true },
 });
+
+const { can } = useCan();
 
 const editing = Boolean(props.role);
 const isLocked = Boolean(props.role?.is_locked);
@@ -206,7 +209,7 @@ function submit() {
                     <Link href="/access/roles">
                         <AppButton variant="secondary" type="button">Batal</AppButton>
                     </Link>
-                    <AppButton type="submit" :loading="form.processing" icon="save">
+                    <AppButton v-if="can('roles.manage')" type="submit" :loading="form.processing" icon="save">
                         {{ editing ? 'Simpan Perubahan Hak Akses' : 'Buat Role' }}
                     </AppButton>
                 </div>

@@ -11,6 +11,7 @@ import AppInput from '../../../Components/AppInput.vue';
 import AppTextarea from '../../../Components/AppTextarea.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
 
 const page = usePage();
 
@@ -22,6 +23,8 @@ const props = defineProps({
     accountOptions: { type: Array, required: true },
     prefill: { type: Object, required: true },
 });
+
+const { can } = useCan();
 
 const path = `/accounting/journals/${props.originalEntry.row_id}`;
 
@@ -271,7 +274,7 @@ function transactionTypeLabel(value) {
 
                     <div class="flex justify-end gap-3 border-t border-outline-variant pt-4">
                         <AppButton variant="secondary" type="button" @click="cancel">Batal</AppButton>
-                        <AppButton type="submit" variant="warning" :loading="form.processing" :disabled="form.processing" icon="edit">
+                        <AppButton v-if="can('journals.create')" type="submit" variant="warning" :loading="form.processing" :disabled="form.processing" icon="edit">
                             Simpan Koreksi
                         </AppButton>
                     </div>

@@ -6,8 +6,10 @@ import AppCard from '../../../Components/AppCard.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
 
 const props = defineProps({ village: { type: Object, required: true }, villageNamings: { type: Array, required: true } });
+const { can } = useCan();
 const path = '/master-data/villages';
 const form = useForm({
     address: props.village.address || '',
@@ -89,7 +91,7 @@ function submit() {
 
                     <div class="flex justify-end gap-3">
                         <Link :href="path"><AppButton variant="secondary">Batal</AppButton></Link>
-                        <AppButton type="submit" :loading="form.processing" icon="save">Simpan</AppButton>
+                        <AppButton v-if="can('villages.manage')" type="submit" :loading="form.processing" icon="save">Simpan</AppButton>
                     </div>
                 </form>
             </AppCard>

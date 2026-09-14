@@ -9,12 +9,15 @@ import AppIcon from '../../../Components/AppIcon.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
 
 const props = defineProps({
     user: { type: Object, default: null },
     roleOptions: { type: Array, default: () => [] },
     villageOptions: { type: Array, default: () => [] },
 });
+
+const { can } = useCan();
 
 const editing = !!props.user;
 
@@ -188,7 +191,7 @@ function submit() {
                     <Link href="/access/users">
                         <AppButton variant="secondary" type="button">Batal</AppButton>
                     </Link>
-                    <AppButton type="submit" :loading="form.processing" icon="save">
+                    <AppButton v-if="can('users.manage')" type="submit" :loading="form.processing" icon="save">
                         {{ editing ? 'Simpan Perubahan' : 'Buat Pengguna' }}
                     </AppButton>
                 </div>

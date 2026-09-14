@@ -11,6 +11,7 @@ import AppModal from '../../../Components/AppModal.vue';
 import AppTextarea from '../../../Components/AppTextarea.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
 
 const props = defineProps({
     loanOptions: { type: Array, required: true },
@@ -19,6 +20,8 @@ const props = defineProps({
     peminjamOptions: { type: Array, required: true },
     today: { type: String, required: true },
 });
+
+const { can } = useCan();
 
 const page = usePage();
 const pagePath = '/accounting/journal-entries/installment';
@@ -413,7 +416,7 @@ function balanceAllocationRemainder(field) {
                         </div>
                         <div class="flex gap-2">
                             <a :href="pagePath"><AppButton variant="secondary" type="button">Reset</AppButton></a>
-                            <AppButton type="submit" :loading="form.processing" :disabled="form.processing" icon="save">Catat Jurnal Angsuran</AppButton>
+                            <AppButton v-if="can('installments.record')" type="submit" :loading="form.processing" :disabled="form.processing" icon="save">Catat Jurnal Angsuran</AppButton>
                         </div>
                     </div>
                 </form>

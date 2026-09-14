@@ -14,6 +14,7 @@ import AppTextarea from '../../../Components/AppTextarea.vue';
 import AppRadioGroup from '../../../Components/AppRadioGroup.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
 
 const props = defineProps({
     transactionTypes: { type: Array, required: true },
@@ -24,6 +25,8 @@ const props = defineProps({
     history: { type: Object, default: null },
     presetType: { type: String, default: null },
 });
+
+const { can } = useCan();
 
 const page = usePage();
 const pagePath = '/accounting/journal-entries/create';
@@ -364,7 +367,7 @@ function openHistoryModal() {
 
                     <div class="flex justify-end gap-3 border-t border-outline-variant pt-4">
                         <a :href="pagePath"><AppButton variant="secondary" type="button">Reset</AppButton></a>
-                        <AppButton type="submit" :loading="form.processing" :disabled="form.processing" icon="save">Catat Jurnal</AppButton>
+                        <AppButton v-if="can('journals.create')" type="submit" :loading="form.processing" :disabled="form.processing" icon="save">Catat Jurnal</AppButton>
                     </div>
                 </form>
             </AppCard>

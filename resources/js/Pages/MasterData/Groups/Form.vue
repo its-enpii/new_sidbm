@@ -10,6 +10,7 @@ import AppRadioGroup from '../../../Components/AppRadioGroup.vue';
 import AppSwitch from '../../../Components/AppSwitch.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
 
 const props = defineProps({
     group: { type: Object, default: null },
@@ -19,6 +20,9 @@ const props = defineProps({
     groupLevels: { type: Array, required: true },
     groupFunctions: { type: Array, required: true },
 });
+
+const { can } = useCan();
+
 const editing = Boolean(props.group);
 const path = '/master-data/groups';
 const today = localIsoDate();
@@ -210,7 +214,7 @@ searchMembers();
                         </div>
                     </section>
 
-                    <div class="flex justify-end gap-3"><Link :href="path"><AppButton variant="secondary">Batal</AppButton></Link><AppButton type="submit" :loading="form.processing" icon="save">Simpan</AppButton></div>
+                    <div class="flex justify-end gap-3"><Link :href="path"><AppButton variant="secondary">Batal</AppButton></Link><AppButton v-if="can('groups.manage')" type="submit" :loading="form.processing" icon="save">Simpan</AppButton></div>
                 </form>
             </AppCard>
         </div>
@@ -228,7 +232,7 @@ searchMembers();
             </form>
             <template #footer>
                 <AppButton variant="secondary" :disabled="quickSaving" @click="quickModalOpen = false">Batal</AppButton>
-                <AppButton type="submit" form="quick-member-form" icon="person_add" :loading="quickSaving">Daftarkan</AppButton>
+                <AppButton v-if="can('members.manage')" type="submit" form="quick-member-form" icon="person_add" :loading="quickSaving">Daftarkan</AppButton>
             </template>
         </AppModal>
     </AuthenticatedLayout>

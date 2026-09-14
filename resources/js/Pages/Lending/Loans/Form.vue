@@ -9,12 +9,15 @@ import AppCurrencyInput from '../../../Components/AppCurrencyInput.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
 
 const props = defineProps({
     products: { type: Array, required: true },
     groups: { type: Array, required: true },
     committee_members: { type: Array, required: true },
 });
+
+const { can } = useCan();
 
 const path = '/lending/loans';
 const today = (() => {
@@ -401,7 +404,7 @@ function addBeneficiary() {
 
                     <div class="flex justify-end gap-3 border-t border-outline-variant pt-4">
                         <Link :href="path"><AppButton variant="secondary">Batal</AppButton></Link>
-                        <AppButton type="submit" :loading="form.processing" :disabled="form.processing" icon="save">Simpan Proposal</AppButton>
+                        <AppButton v-if="can('loans.propose')" type="submit" :loading="form.processing" :disabled="form.processing" icon="save">Simpan Proposal</AppButton>
                     </div>
                 </form>
             </AppCard>

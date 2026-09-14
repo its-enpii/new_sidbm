@@ -9,8 +9,10 @@ import AppRadioGroup from '../../../Components/AppRadioGroup.vue';
 import AppSwitch from '../../../Components/AppSwitch.vue';
 import SmartSelect from '../../../Components/SmartSelect.vue';
 import AuthenticatedLayout from '../../../Layouts/AuthenticatedLayout.vue';
+import { useCan } from '../../../composables/useCan';
 
 const props = defineProps({ member: { type: Object, default: null }, villages: { type: Array, required: true } });
+const { can } = useCan();
 const path = '/master-data/members';
 const today = localIsoDate();
 const defaultBirthDate = (() => {
@@ -182,7 +184,7 @@ function submit() {
 
                     <div class="flex justify-end gap-3">
                         <Link :href="path"><AppButton variant="secondary">Batal</AppButton></Link>
-                        <AppButton type="submit" :loading="form.processing || lookupLoading" :disabled="lookupLoading" icon="save">Simpan</AppButton>
+                        <AppButton v-if="can('members.manage')" type="submit" :loading="form.processing || lookupLoading" :disabled="lookupLoading" icon="save">Simpan</AppButton>
                     </div>
                 </form>
             </AppCard>

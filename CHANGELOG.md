@@ -3,6 +3,16 @@
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
+## [2026-09-13]
+
+### Added
+- **RBAC Level Tombol Batch 3 — Pagar Izin Submit di Form:** Proteksi `useCan()` (`v-if="can('...')"`) pada tombol simpan di 13 form tenant yang belum dipagari (server-side sudah terproteksi via `request_map` FormRequest; lapisan ini menyembunyikan tombol tanpa izin):
+  - `Access/Roles/Form.vue` → `roles.manage`; `Access/Users/Form.vue` → `users.manage`.
+  - `Accounting/JournalEntries/Create.vue` & `Edit.vue` → `journals.create`; `Installment.vue` → `installments.record`.
+  - `Assets/Form.vue` → `assets.manage`; `Lending/Loans/Form.vue` (Simpan Proposal) → `loans.propose`.
+  - `MasterData/Members/Form.vue` → `members.manage`; `Groups/Form.vue` (Simpan + quick-member Daftarkan) → `groups.manage`/`members.manage`; `Institutions/Form.vue` → `institutions.manage`; `Villages/Form.vue` → `villages.manage`.
+  - `Website/Posts/Form.vue` & `Pages/Form.vue` → `website.manage`.
+
 ## [2026-09-12]
 
 ### Added
