@@ -18,4 +18,15 @@ return [
      * Toggle the floating chat widget globally.
      */
     'widget_enabled' => filter_var(env('ASSISTANT_WIDGET_ENABLED', true), FILTER_VALIDATE_BOOL),
+
+    /**
+     * Izinkan rute native enpii/assistant (tanpa prefix: /chat, /persona,
+     * /confirmations/*, /messages/*, /conversations/*) tetap terdaftar.
+     *
+     * Default false: host me-mount berkas rute yang sama di /assistant/* memakai
+     * middleware auth + tenant + subscription.active + feature:ai, sehingga salinan
+     * tanpa prefix hanya membuka LLM dan endpoint konfirmasi aksi untuk request
+     * anonim. Jangan aktifkan kembali tanpa konsumen eksternal yang sah.
+     */
+    'register_native_routes' => filter_var(env('ASSISTANT_REGISTER_NATIVE_ROUTES', false), FILTER_VALIDATE_BOOL),
 ];

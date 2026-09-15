@@ -395,3 +395,34 @@ real-time.
   bergantung pada SSO internal Enpii.
 - Simpan repository ini terpisah dari repo-repo Enpii Studio yang sudah
   ada, dengan lisensi/kepemilikan yang jelas sejak awal.
+
+---
+
+## 7. Gerbang Fitur Per-Tenant (Feature Gating)
+
+Fitur asisten AI ("Ariel", RAG, tool execution) merupakan fitur berbayar berstatus gated. Platform menyediakan kontrol sakelar fitur tri-state yang dikendalikan penuh oleh Superadmin platform.
+
+### 7.1 Hierarki Keputusan Akses AI
+Akses fitur AI dievaluasi oleh `App\Domain\Features\Services\FeatureAccessService` dengan hierarki prioritas:
+1. **Master Platform Kill-Switch:** `platform_settings['ai.enabled']` (default: `true`). Jika bernilai `false`, AI nonaktif untuk seluruh tenant di platform tanpa kecuali.
+2. **Override Eksplisit Tenant:** Kolom platform DB `tenants.ai_enabled` (nullable boolean):
+   - `1` (true) = Dipaksa aktif oleh superadmin.
+   - `0` (false) = Dipaksa nonaktif oleh superadmin (menang atas mode training maupun plan).
+3. **Default Saat NULL (Fase Pra-Penagihan):** Warisi default berbasis `tenant->is_training_mode`:
+   - Tenant mode pelatihan (`is_training_mode = 1`) -> **Aktif**.
+   - Tenant produksi / non-training -> **Nonaktif** (fail-closed).
+   - Hook penagihan add-on masa depan disediakan melalui method private `planDefault()` pada `FeatureAccessService`.
+4. **Tenant Null / Tidak Ditemukan:** Fail-closed -> **Nonaktif**.
+
+### 7.2 Titik Penegakan (Enforcement)
+- **Middleware Server-Side:** Middleware `EnsureFeatureEnabled` (alias `feature:ai`) melindungi rute chat/persona/konfirmasi di `vendor/enpii/assistant/routes/api.php` serta route callback tool server-to-server di `routes/api.php` (`assistant/tools`). Request ditolak dengan HTTP 403 status `feature_disabled`.
+- **Inertia Shared Props:** `HandleInertiaRequests::resolveAssistant()` membagikan state `{enabled, public_url, gated, feature}`.
+  - `enabled`: bernilai `true` hanya jika gate AI aktif **DAN** user memiliki permission `assistant.use`.
+  - `gated`: bernilai `true` jika gate AI nonaktif tetapi user memiliki izin `assistant.use` (kondisi pemicu banner CTA).
+- **Frontend CTA & Permintaan Langganan:**
+  - Layout `AuthenticatedLayout.vue` me-mount komponen `AiAccessNotice.vue` yang muncul jika `gated === true` dan user memiliki izin `settings.manage`.
+  - Tombol "Ajukan Langganan" mengirim `POST /assistant/access-request` yang memicu notifikasi `AiAccessRequestNotification` ke administrator tenant dengan rate-limit harian.
+- **Panel Superadmin:**
+  - Halaman `/admin/features` (`Admin/Features/Index.vue`) untuk sakelar global platform, quick-select status AI per tenant, dan bulk action.
+  - Form edit tenant `/admin/tenants/{tenant}/edit` untuk mengatur status fitur AI individual.
+  - Audit logging tercatat pada tabel `audit_logs` untuk setiap perubahan sakelar.

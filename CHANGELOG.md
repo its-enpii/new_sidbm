@@ -6,6 +6,18 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 ## [2026-09-14]
 
 ### Added
+- **Sakelar Fitur AI Per-Tenant (Superadmin & Gating):**
+  - Kolom platform `tenants.ai_enabled` (tri-state boolean nullable: `NULL` warisi default, `1` paksa aktif, `0` paksa nonaktif) dan model method `Tenant::aiEnabledExplicit()`.
+  - Service terpusat `FeatureAccessService` (`app/Domain/Features/Services/FeatureAccessService.php`) dengan hierarki resolusi fail-closed: master kill-switch `platform_settings['ai.enabled']` -> explicit tenant override `tenants.ai_enabled` -> training default `is_training_mode` (`planDefault()` hook untuk penagihan add-on masa depan).
+  - Middleware `EnsureFeatureEnabled` (`app/Http/Middleware/EnsureFeatureEnabled.php`) dengan alias `'feature'` di `bootstrap/app.php`, diterapkan pada seluruh API assistant (`vendor/enpii/assistant/routes/api.php` dan `routes/api.php` callback `assistant/tools`).
+  - Inertia shared props `page.props.assistant = {enabled, public_url, gated, feature}` pada `HandleInertiaRequests` untuk mengontrol visibilitas widget AI dan banner CTA.
+  - Halaman Superadmin `/admin/features` (`resources/js/Pages/Admin/Features/Index.vue`) untuk sakelar global platform, tabel status per-tenant dengan quick toggle `SmartSelect`, dan aksi massal (bulk on/off/inherit).
+  - Integrasi blok "Fitur AI" pada `Admin/Tenants/Edit.vue`, audit logging menyeluruh via `AuditLogger`, dan warning banner di `Admin/AiAssistant/Index.vue` saat global kill-switch OFF.
+  - Alur permintaan langganan tenant-facing via `POST /assistant/access-request` dengan proteksi rate limit harian dan notifikasi internal ke seluruh admin tenant (`AiAccessRequestNotification`).
+
+### Fixed
+  - **Penutupan Rute Native `enpii/assistant`:** `AssistantNativeRouteGuard` membersihkan sembilan rute tanpa prefix (`/chat`, `/persona`, `/confirmations/*`, `/messages/*`, `/conversations/*`) yang di-autoload oleh package `enpii/assistant` tanpa middleware. Host me-mount rute tersebut di `/assistant/*` berpagar middleware `auth`, `tenant`, `subscription.active`, dan `feature:ai` sehingga rute LLM tidak dapat diakses tanpa autentikasi dan otorisasi.
+  - Banner CTA `AiAccessNotice.vue` pada `AuthenticatedLayout.vue` untuk tenant yang terkena gate AI (`gated: true`) khusus bagi user berizin `settings.manage`.
 - **SSO Receiver pada Shared Cache Store `sso`:** Sesi "Buka Aplikasi" dari holding kini membaca token pada cache store khusus `sso`, bukan store default aplikasi (`docs/SSO-CONTRACT.md`, bagian *Shared SSO Cache*).
   - Store `sso` (`config/cache.php`) dan connection redis `sso` (`config/database.php`) di-backing redis pusat milik holding; seluruh koordinat env-driven (`SSO_REDIS_HOST`, `SSO_REDIS_PORT`, `SSO_REDIS_PASSWORD`, `SSO_REDIS_DB`, `SSO_CACHE_REDIS_CONNECTION`) sehingga satu build dipakai pada deployment server sama maupun server berbeda tanpa perubahan kode.
   - Kedua prefix (`cache.stores.sso.prefix`, `database.redis.sso.prefix`) sengaja kosong agar kunci Redis persis `sso:{sha256(token)}` dan dapat dibaca lintas aplikasi; `REDIS_PREFIX`/`CACHE_PREFIX` aplikasi tidak boleh menempel pada store ini.

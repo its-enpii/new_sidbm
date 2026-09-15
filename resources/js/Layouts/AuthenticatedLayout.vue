@@ -8,6 +8,7 @@ import AppModal from '../Components/AppModal.vue';
 import AppConfirmDialog from '../Components/AppConfirmDialog.vue';
 import AppToast from '../Components/AppToast.vue';
 import AssistantWidget from '../Components/AssistantWidget.vue';
+import AiAccessNotice from '../Components/AssistantComponents/AiAccessNotice.vue';
 import ThemeMenu from '../Components/ThemeMenu.vue';
 import NotificationDropdown from '../Components/NotificationDropdown.vue';
 import KeyboardShortcutsModal from '../Components/KeyboardShortcutsModal.vue';
@@ -596,6 +597,7 @@ function logout() {
                     </p>
                 </div>
             </div>
+            <AiAccessNotice />
             <Transition name="page" mode="out-in" appear>
                 <div :key="currentPath" class="min-w-0 flex-1">
                     <slot />

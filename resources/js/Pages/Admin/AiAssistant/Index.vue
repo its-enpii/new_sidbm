@@ -1,5 +1,5 @@
 <script setup>
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
@@ -30,6 +30,7 @@ const props = defineProps({
     personas: { type: Array, default: () => [] },
     tools: { type: Array, default: () => [] },
     stats: { type: Object, default: () => ({}) },
+    global_ai_enabled: { type: Boolean, default: true },
 });
 
 const page = usePage();
@@ -798,6 +799,31 @@ onBeforeUnmount(() => {
                 </div>
             </header>
 
+            <!-- Global AI Disabled Warning Banner -->
+            <AppCard v-if="!global_ai_enabled" class="border-error-container bg-error-container/20">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex items-center gap-3">
+                        <AppIcon name="warning" tone="error" container-size="9" container-shape="pill" />
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <p class="text-sm font-bold text-primary">Kunci global AI sedang OFF</p>
+                                <AppBadge tone="error">Nonaktif</AppBadge>
+                            </div>
+                            <p class="mt-0.5 text-xs text-on-surface-variant">
+                                Master kill-switch platform sedang nonaktif. Layanan asisten AI mati untuk seluruh tenant.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex shrink-0 items-center">
+                        <Link href="/admin/features">
+                            <AppButton variant="primary" size="compact" icon="toggle_on">
+                                Kelola Sakelar Fitur
+                            </AppButton>
+                        </Link>
+                    </div>
+                </div>
+            </AppCard>
+
             <!-- Flash success -->
             <AppCard v-if="flash">
                 <div class="flex items-center gap-3">
@@ -1085,9 +1111,9 @@ onBeforeUnmount(() => {
                         <div v-if="chatTyping" class="flex justify-start" :aria-label="chatTypingLabel">
                             <div class="flex max-w-[85%] items-center gap-2 rounded-2xl rounded-bl-sm border border-outline-variant bg-surface-container-lowest px-3 py-2">
                                 <span class="flex items-center gap-1">
-                                    <span class="inline-block size-1.5 animate-bounce rounded-full bg-on-surface/40" style="animation-delay:0s" />
-                                    <span class="inline-block size-1.5 animate-bounce rounded-full bg-on-surface/40" style="animation-delay:0.15s" />
-                                    <span class="inline-block size-1.5 animate-bounce rounded-full bg-on-surface/40" style="animation-delay:0.3s" />
+                                    <span class="inline-block size-1.5 animate-bounce rounded-full bg-on-surface/40 [animation-delay:0s]" />
+                                    <span class="inline-block size-1.5 animate-bounce rounded-full bg-on-surface/40 [animation-delay:150ms]" />
+                                    <span class="inline-block size-1.5 animate-bounce rounded-full bg-on-surface/40 [animation-delay:300ms]" />
                                 </span>
                                 <span class="text-xs text-on-surface-variant">{{ chatTypingLabel }}</span>
                             </div>

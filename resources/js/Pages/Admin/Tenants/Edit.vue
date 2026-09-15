@@ -21,6 +21,7 @@ const form = useForm({
     name: props.tenant.name,
     status: props.tenant.status,
     timezone: props.tenant.timezone || 'Asia/Jakarta',
+    ai_enabled: props.tenant.ai_enabled || 'inherit',
     province_code: initialProvince,
     regency_code: initialRegency,
     district_code: props.tenant.district_code || '',
@@ -37,6 +38,12 @@ const provinces = ref([]);
 const regencies = ref([]);
 const districts = ref([]);
 const loading = ref(false);
+
+const aiStatusOptions = [
+    { value: 'inherit', label: 'Warisi default' },
+    { value: 'on', label: 'Aktif' },
+    { value: 'off', label: 'Nonaktif' },
+];
 
 const statusOptions = [
     { value: 'active', label: 'Aktif' },
@@ -214,6 +221,21 @@ function submit() {
                             <SmartSelect v-model="form.province_code" label="Provinsi" :options="provinces.map((item) => ({ value: item.code, label: item.name }))" placeholder="Pilih provinsi" :error="form.errors.province_code" :loading="loading" searchable />
                             <SmartSelect v-model="form.regency_code" label="Kabupaten/Kota" :options="regencies.map((item) => ({ value: item.code, label: item.name }))" placeholder="Pilih kabupaten/kota" :error="form.errors.regency_code" :disabled="!form.province_code" :loading="loading" searchable />
                             <SmartSelect v-model="form.district_code" label="Kecamatan" :options="districts.map((item) => ({ value: item.code, label: item.name }))" placeholder="Pilih kecamatan" :error="form.errors.district_code" :disabled="!form.regency_code" :loading="loading" searchable />
+                        </div>
+                    </div>
+
+                    <!-- Fitur AI Section -->
+                    <div class="border-t border-outline-variant pt-5">
+                        <h2 class="font-semibold text-primary">Fitur AI</h2>
+                        <p class="text-xs text-on-surface-variant mb-4">Tentukan status aktivasi fitur asisten AI Ariel untuk tenant ini.</p>
+                        <div class="max-w-md">
+                            <SmartSelect
+                                v-model="form.ai_enabled"
+                                label="Status fitur AI"
+                                :options="aiStatusOptions"
+                                :error="form.errors.ai_enabled"
+                                hint="Warisi default akan mengaktifkan AI untuk tenant mode training, dan menonaktifkan untuk non-training."
+                            />
                         </div>
                     </div>
 

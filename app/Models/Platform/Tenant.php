@@ -16,6 +16,7 @@ final class Tenant extends PlatformModel
             'is_training_mode' => 'boolean',
             'training_started_at' => 'datetime',
             'training_ended_at' => 'datetime',
+            'ai_enabled' => 'boolean',
             'provisioned_at' => 'datetime',
             'suspended_at' => 'datetime',
             'map_latitude' => 'float',
@@ -32,6 +33,15 @@ final class Tenant extends PlatformModel
     public function hasCompletedTraining(): bool
     {
         return $this->training_ended_at !== null && ! $this->isTraining();
+    }
+
+    public function aiEnabledExplicit(): ?bool
+    {
+        if ($this->ai_enabled === null) {
+            return null;
+        }
+
+        return (bool) $this->ai_enabled;
     }
 
     public function placement(): HasOne

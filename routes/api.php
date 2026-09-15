@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 | Auth = HMAC signature + external_user_id -> platform user.
 | Tenant resolved from host / optional X-Tenant-Code.
 */
-Route::middleware(['orchestrator.signature', 'tenant', 'assistant.actor'])
+Route::middleware(['orchestrator.signature', 'tenant', 'assistant.actor', 'feature:ai'])
     ->prefix('assistant/tools')
     ->group(function (): void {
         Route::post('/', AssistantToolController::class)->name('assistant.tools.dispatch');

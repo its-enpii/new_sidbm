@@ -27,6 +27,7 @@ const navigation = [
     { label: 'Platform Settings', icon: 'tune', href: '/admin/settings' },
     { label: 'Payment Gateway', icon: 'payments', href: '/admin/payment-gateways' },
     { label: 'AI Assistant', icon: 'smart_toy', href: '/admin/ai-assistant' },
+    { label: 'Fitur AI', icon: 'toggle_on', href: '/admin/features' },
     { label: 'Migrasi Data', icon: 'transform', href: '/admin/migration' },
 ];
 

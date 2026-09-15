@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\PlatformSettingService;
 use App\Tenancy\TenantContext;
 use Enpii\Assistant\AssistantServiceProvider;
 use Enpii\Assistant\Models\AuditLog;
@@ -47,7 +48,7 @@ final class AiAssistantController extends Controller
         return '1';
     }
 
-    public function index(ToolRegistry $registry, Request $request): Response
+    public function index(ToolRegistry $registry, Request $request, PlatformSettingService $platformSettings): Response
     {
         $personas = Persona::query()
             ->with('tools:id,name')
@@ -101,10 +102,13 @@ final class AiAssistantController extends Controller
             'total_conversations' => Conversation::query()->count(),
         ];
 
+        $globalAiEnabled = (bool) $platformSettings->get('ai.enabled', true);
+
         return Inertia::render('Admin/AiAssistant/Index', [
             'personas' => $personas,
             'tools' => $tools,
             'stats' => $stats,
+            'global_ai_enabled' => $globalAiEnabled,
         ]);
     }
 
@@ -166,39 +170,23 @@ final class AiAssistantController extends Controller
             'tool_ids.*' => ['string'],
         ]);
 
-        $slug = $data['slug'] ?? Str::slug($data['name']);
-        if (Persona::query()->where('slug', $slug)->exists()) {
-            return response()->json(['ok' => false, 'message' => "Persona slug '{$slug}' already exists"], 422);
+        if (empty($data['slug'])) {
+            $data['slug'] = Str::slug($data['name']);
         }
 
         if (! empty($data['is_default'])) {
             Persona::query()->where('is_default', true)->update(['is_default' => false]);
         }
 
-        $persona = Persona::query()->create([
-            'name' => $data['name'],
-            'slug' => $slug,
-            'system_prompt' => $data['system_prompt'],
-            'is_default' => (bool) ($data['is_default'] ?? false),
-            'is_active' => (bool) ($data['is_active'] ?? true),
-        ]);
+        $toolIds = $data['tool_ids'] ?? [];
+        unset($data['tool_ids']);
 
-        if (! empty($data['tool_ids'])) {
-            $persona->tools()->sync($data['tool_ids']);
+        $persona = Persona::query()->create($data);
+        if (! empty($toolIds)) {
+            $persona->tools()->sync($toolIds);
         }
 
-        return response()->json([
-            'ok' => true,
-            'message' => "Persona '{$persona->name}' berhasil dibuat",
-            'persona' => [
-                'id' => $persona->id,
-                'slug' => $persona->slug,
-                'name' => $persona->name,
-                'system_prompt' => $persona->system_prompt,
-                'is_default' => (bool) $persona->is_default,
-                'is_active' => (bool) $persona->is_active,
-            ],
-        ]);
+        return response()->json(['ok' => true, 'persona' => $persona->load('tools:id,name')]);
     }
 
     public function updatePersona(Request $request, string $id): JsonResponse
@@ -207,60 +195,35 @@ final class AiAssistantController extends Controller
 
         $data = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:100'],
-            'slug' => ['sometimes', 'required', 'string', 'max:50'],
+            'slug' => ['nullable', 'string', 'max:50'],
             'system_prompt' => ['sometimes', 'required', 'string'],
-            'is_default' => ['sometimes', 'boolean'],
-            'is_active' => ['sometimes', 'boolean'],
+            'is_default' => ['boolean'],
+            'is_active' => ['boolean'],
             'tool_ids' => ['nullable', 'array'],
             'tool_ids.*' => ['string'],
         ]);
-
-        if (isset($data['slug']) && $data['slug'] !== $persona->slug) {
-            if (Persona::query()->where('slug', $data['slug'])->where('id', '!=', $id)->exists()) {
-                return response()->json(['ok' => false, 'message' => "Persona slug '{$data['slug']}' already exists"], 422);
-            }
-        }
 
         if (! empty($data['is_default'])) {
             Persona::query()->where('id', '!=', $id)->where('is_default', true)->update(['is_default' => false]);
         }
 
-        $persona->update(array_filter([
-            'name' => $data['name'] ?? null,
-            'slug' => $data['slug'] ?? null,
-            'system_prompt' => $data['system_prompt'] ?? null,
-            'is_default' => isset($data['is_default']) ? (bool) $data['is_default'] : null,
-            'is_active' => isset($data['is_active']) ? (bool) $data['is_active'] : null,
-        ], fn ($v) => $v !== null));
-
         if (array_key_exists('tool_ids', $data)) {
             $persona->tools()->sync($data['tool_ids'] ?? []);
+            unset($data['tool_ids']);
         }
 
-        return response()->json([
-            'ok' => true,
-            'message' => "Persona '{$persona->name}' berhasil diperbarui",
-            'persona' => [
-                'id' => $persona->id,
-                'slug' => $persona->slug,
-                'name' => $persona->name,
-                'system_prompt' => $persona->system_prompt,
-                'is_default' => (bool) $persona->is_default,
-                'is_active' => (bool) $persona->is_active,
-            ],
-        ]);
+        $persona->update($data);
+
+        return response()->json(['ok' => true, 'persona' => $persona->fresh(['tools:id,name'])]);
     }
 
     public function deletePersona(string $id): JsonResponse
     {
         $persona = Persona::query()->findOrFail($id);
-        $name = $persona->name;
+        $persona->tools()->detach();
         $persona->delete();
 
-        return response()->json([
-            'ok' => true,
-            'message' => "Persona '{$name}' berhasil dihapus",
-        ]);
+        return response()->json(['ok' => true]);
     }
 
     public function togglePersona(string $id): JsonResponse
@@ -269,47 +232,27 @@ final class AiAssistantController extends Controller
         $persona->is_active = ! $persona->is_active;
         $persona->save();
 
-        return response()->json([
-            'ok' => true,
-            'is_active' => (bool) $persona->is_active,
-            'message' => "Persona '{$persona->name}' ".($persona->is_active ? 'diaktifkan' : 'dinonaktifkan'),
-        ]);
+        return response()->json(['ok' => true, 'is_active' => $persona->is_active]);
     }
 
     public function syncTools(ToolRegistry $registry): JsonResponse
     {
         $registered = $registry->all();
-        $synced = 0;
-        $created = 0;
+        $synced = [];
 
         foreach ($registered as $handler) {
-            $tool = Tool::query()->where('name', $handler->name())->first();
-            if ($tool) {
-                $tool->update([
+            $tool = Tool::query()->updateOrCreate(
+                ['name' => $handler->name()],
+                [
                     'description' => $handler->description(),
-                    'json_schema' => $handler->schema(),
+                    'json_schema' => $handler->parametersSchema(),
                     'requires_confirmation' => $handler->requiresConfirmation(),
-                ]);
-                $synced++;
-            } else {
-                Tool::query()->create([
-                    'name' => $handler->name(),
-                    'description' => $handler->description(),
-                    'json_schema' => $handler->schema(),
-                    'requires_confirmation' => $handler->requiresConfirmation(),
-                    'is_active' => true,
-                ]);
-                $created++;
-            }
+                ]
+            );
+            $synced[] = $tool->name;
         }
 
-        return response()->json([
-            'ok' => true,
-            'message' => "Sync selesai: {$created} tool baru ditambahkan, {$synced} tool diperbarui.",
-            'created' => $created,
-            'synced' => $synced,
-            'total_registered' => count($registered),
-        ]);
+        return response()->json(['ok' => true, 'synced' => $synced]);
     }
 
     public function updateTool(Request $request, string $id): JsonResponse
@@ -317,256 +260,171 @@ final class AiAssistantController extends Controller
         $tool = Tool::query()->findOrFail($id);
 
         $data = $request->validate([
-            'description' => ['sometimes', 'required', 'string'],
-            'requires_confirmation' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],
+            'requires_confirmation' => ['sometimes', 'boolean'],
+            'description' => ['sometimes', 'string'],
         ]);
 
-        $tool->update(array_filter([
-            'description' => $data['description'] ?? null,
-            'requires_confirmation' => isset($data['requires_confirmation']) ? (bool) $data['requires_confirmation'] : null,
-            'is_active' => isset($data['is_active']) ? (bool) $data['is_active'] : null,
-        ], fn ($v) => $v !== null));
+        $tool->update($data);
 
-        return response()->json([
-            'ok' => true,
-            'message' => "Tool '{$tool->name}' berhasil diperbarui",
-            'tool' => [
-                'id' => $tool->id,
-                'name' => $tool->name,
-                'description' => $tool->description,
-                'requires_confirmation' => (bool) $tool->requires_confirmation,
-                'is_active' => (bool) $tool->is_active,
-            ],
-        ]);
+        return response()->json(['ok' => true, 'tool' => $tool->fresh()]);
     }
 
     public function documents(Request $request): JsonResponse
     {
-        $tenantId = $this->resolveTenantId($request);
+        $query = Document::query();
 
-        $documents = Document::query()
-            ->with(['source:id,tenant_id,type,uri,title,mime_type', 'persona:id,name'])
-            ->where('tenant_id', $tenantId)
-            ->orderByDesc('created_at')
-            ->get()
-            ->map(fn (Document $d) => [
+        if ($request->filled('namespace')) {
+            $query->where('namespace', $request->input('namespace'));
+        }
+
+        if ($request->filled('search')) {
+            $query->where('title', 'like', '%'.$request->input('search').'%');
+        }
+
+        $docs = $query->latest()
+            ->paginate((int) $request->input('per_page', 20))
+            ->through(fn (Document $d) => [
                 'id' => $d->id,
+                'namespace' => $d->namespace,
                 'title' => $d->title,
-                'persona_name' => optional($d->persona)->name ?? 'Global / Semua Persona',
-                'source_type' => optional($d->source)->type ?? 'file',
-                'source_uri' => optional($d->source)->uri ?? '-',
+                'source_type' => $d->source_type,
+                'source_url' => $d->source_url,
+                'chunk_count' => $d->chunk_count,
                 'token_count' => $d->token_count,
-                'chunks_count' => $d->chunks()->count(),
+                'meta' => $d->meta,
                 'created_at' => optional($d->created_at)->toIso8601String(),
             ]);
 
-        return response()->json(['ok' => true, 'documents' => $documents]);
-    }
-
-    public function uploadDocument(Request $request, DocumentIngestService $ingest): JsonResponse
-    {
-        $request->validate([
-            'file' => ['required', 'file', 'mimes:pdf,txt,csv,md,json', 'max:20480'],
-            'persona_id' => ['nullable', 'uuid'],
-            'title' => ['nullable', 'string', 'max:200'],
-        ]);
-
-        $file = $request->file('file');
-        $tenantId = $this->resolveTenantId($request);
-        $title = $request->input('title') ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $personaId = $request->input('persona_id') ?: null;
-
-        $tempPath = $file->getRealPath();
-
-        try {
-            $doc = $ingest->ingestFile(
-                tenantId: $tenantId,
-                path: $tempPath,
-                originalName: $file->getClientOriginalName(),
-                mime: $file->getMimeType() ?: 'application/octet-stream',
-                personaId: $personaId,
-                title: $title
-            );
-
-            return response()->json([
-                'ok' => true,
-                'message' => "Dokumen '{$title}' berhasil diindeks ke Knowledge Base RAG.",
-                'document' => [
-                    'id' => $doc->id,
-                    'title' => $doc->title,
-                    'token_count' => $doc->token_count,
-                ],
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'ok' => false,
-                'message' => 'Gagal memproses dokumen: '.$e->getMessage(),
-            ], 500);
-        }
+        return response()->json(['ok' => true, 'documents' => $docs]);
     }
 
     public function documentDetail(string $id): JsonResponse
     {
-        $doc = Document::query()
-            ->with(['source', 'persona:id,name', 'chunks' => fn ($q) => $q->orderBy('chunk_index')->limit(50)])
-            ->findOrFail($id);
+        $doc = Document::query()->with('chunks')->findOrFail($id);
 
-        return response()->json([
-            'ok' => true,
-            'document' => [
-                'id' => $doc->id,
-                'title' => $doc->title,
-                'persona_name' => optional($doc->persona)->name ?? 'Global',
-                'source' => $doc->source,
-                'token_count' => $doc->token_count,
-                'created_at' => optional($doc->created_at)->toIso8601String(),
-                'chunks' => $doc->chunks->map(fn ($c) => [
-                    'index' => $c->chunk_index,
-                    'text' => Str::limit($c->text, 300),
-                    'token_count' => $c->token_count,
-                ]),
-            ],
-        ]);
+        return response()->json(['ok' => true, 'document' => $doc]);
     }
 
     public function deleteDocument(string $id): JsonResponse
     {
-        $doc = Document::query()->with('source')->findOrFail($id);
-        $source = $doc->source;
-
+        $doc = Document::query()->findOrFail($id);
+        $doc->chunks()->delete();
         $doc->delete();
-        if ($source && $source->documents()->count() === 0) {
-            $source->delete();
-        }
 
-        return response()->json([
-            'ok' => true,
-            'message' => 'Dokumen berhasil dihapus dari Knowledge Base.',
+        return response()->json(['ok' => true]);
+    }
+
+    public function uploadDocument(Request $request, DocumentIngestService $ingestService): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'max:20480', 'mimes:pdf,docx,txt,md,csv'],
+            'title' => ['nullable', 'string', 'max:255'],
+            'namespace' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $file = $request->file('file');
+        $title = $request->input('title', $file->getClientOriginalName());
+        $namespace = $request->input('namespace', 'default');
+        $tenantId = $this->resolveTenantId($request);
+
+        $doc = $ingestService->ingestUploadedFile(
+            file: $file,
+            title: $title,
+            namespace: $namespace,
+            tenantId: $tenantId,
+        );
+
+        return response()->json(['ok' => true, 'document_id' => $doc->id, 'chunks' => $doc->chunk_count]);
+    }
+
+    public function chatStream(Request $request, AgentLoop $agentLoop, SseEmitter $sse): StreamedResponse
+    {
+        $request->validate([
+            'message' => ['required', 'string'],
+            'conversation_id' => ['nullable', 'string'],
+            'persona_id' => ['nullable', 'string'],
+        ]);
+
+        $message = (string) $request->input('message');
+        $conversationId = $request->input('conversation_id');
+        $personaId = $request->input('persona_id');
+        $tenantId = $this->resolveTenantId($request);
+        $userId = (string) ($request->user()?->row_id ?? '1');
+
+        return response()->stream(function () use ($agentLoop, $sse, $message, $conversationId, $personaId, $tenantId, $userId): void {
+            $sse->init();
+
+            try {
+                $agentLoop->run(
+                    message: $message,
+                    conversationId: $conversationId,
+                    personaId: $personaId,
+                    tenantId: $tenantId,
+                    userId: $userId,
+                    onToken: fn (string $token) => $sse->event('token', ['delta' => $token]),
+                    onToolStart: fn (string $tool, array $args) => $sse->event('tool_start', ['tool' => $tool, 'args' => $args]),
+                    onToolEnd: fn (string $tool, mixed $res) => $sse->event('tool_end', ['tool' => $tool, 'result' => $res]),
+                    onDone: fn (string $reply, string $convId) => $sse->event('done', ['reply' => $reply, 'conversation_id' => $convId]),
+                    onError: fn (string $err) => $sse->event('error', ['message' => $err]),
+                );
+            } catch (\Throwable $e) {
+                $sse->event('error', ['message' => $e->getMessage()]);
+            }
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'X-Accel-Buffering' => 'no',
         ]);
     }
 
     public function conversations(Request $request): JsonResponse
     {
+        $tenantId = $this->resolveTenantId($request);
+
         $conversations = Conversation::query()
-            ->with('persona:id,name')
-            ->withCount('messages')
-            ->orderByDesc('last_activity_at')
-            ->limit(50)
-            ->get()
-            ->map(fn (Conversation $c) => [
+            ->where('tenant_id', $tenantId)
+            ->latest('updated_at')
+            ->paginate((int) $request->input('per_page', 20))
+            ->through(fn (Conversation $c) => [
                 'id' => $c->id,
-                'persona_name' => optional($c->persona)->name ?? 'Default',
-                'channel' => $c->channel,
-                'status' => $c->status,
-                'messages_count' => $c->messages_count,
-                'started_at' => optional($c->started_at)->toIso8601String(),
-                'last_activity_at' => optional($c->last_activity_at)->toIso8601String(),
+                'title' => $c->title,
+                'persona_id' => $c->persona_id,
+                'user_id' => $c->user_id,
+                'created_at' => optional($c->created_at)->toIso8601String(),
+                'updated_at' => optional($c->updated_at)->toIso8601String(),
             ]);
 
-        return response()->json([
-            'ok' => true,
-            'count' => $conversations->count(),
-            'conversations' => $conversations,
-        ]);
+        return response()->json(['ok' => true, 'conversations' => $conversations]);
     }
 
     public function auditLogs(Request $request): JsonResponse
     {
-        $logs = AuditLog::query()
-            ->orderByDesc('created_at')
-            ->limit(50)
-            ->get()
-            ->map(fn (AuditLog $log) => [
-                'id' => $log->id,
-                'actor' => $log->actor,
-                'action' => $log->action,
-                'entity_type' => $log->entity_type,
-                'entity_id' => $log->entity_id,
-                'metadata' => $log->metadata,
-                'created_at' => optional($log->created_at)->toIso8601String(),
-            ]);
+        $query = AuditLog::query();
 
-        return response()->json([
-            'ok' => true,
-            'count' => $logs->count(),
-            'logs' => $logs,
-        ]);
-    }
-
-    public function chatStream(Request $request, AgentLoop $loop): StreamedResponse
-    {
-        $data = $request->validate([
-            'message' => ['required', 'string'],
-            'persona_slug' => ['nullable', 'string'],
-            'conversation_id' => ['nullable', 'uuid'],
-            'attachments' => ['nullable', 'array'],
-        ]);
-
-        $tenantId = $this->resolveTenantId($request);
-        $user = $request->user();
-        $actorId = $user ? (string) $user->row_id : '0';
-
-        $personaSlug = $data['persona_slug'] ?? null;
-        $persona = $personaSlug
-            ? Persona::query()->where('slug', $personaSlug)->where('is_active', true)->first()
-            : Persona::query()->where('is_default', true)->where('is_active', true)->first();
-
-        if (! $persona) {
-            $persona = Persona::query()->where('is_active', true)->orderBy('id')->first();
+        if ($request->filled('tenant_id')) {
+            $query->where('tenant_id', $request->input('tenant_id'));
         }
 
-        $conversationId = $data['conversation_id'] ?? null;
-        $conversation = null;
-        if ($conversationId) {
-            $conversation = Conversation::query()->find($conversationId);
+        if ($request->filled('tool_name')) {
+            $query->where('tool_name', $request->input('tool_name'));
         }
 
-        if (! $conversation) {
-            $conversation = Conversation::query()->create([
-                'tenant_id' => $tenantId,
-                'external_user_id' => $actorId,
-                'persona_id' => optional($persona)->id,
-                'channel' => 'web_test',
-                'status' => 'active',
-                'started_at' => now(),
-                'last_activity_at' => now(),
-            ]);
-        }
-
-        return response()->stream(function () use ($loop, $tenantId, $actorId, $persona, $conversation, $data): void {
-            @ini_set('zlib.output_compression', '0');
-            @ini_set('output_buffering', 'off');
-            while (ob_get_level() > 0) {
-                ob_end_flush();
-            }
-
-            $sse = new SseEmitter;
-            $sse->emit('start', [
-                'conversation_id' => $conversation->id,
-                'persona' => optional($persona)->name,
+        $logs = $query->latest()
+            ->paginate((int) $request->input('per_page', 50))
+            ->through(fn (AuditLog $l) => [
+                'id' => $l->id,
+                'conversation_id' => $l->conversation_id,
+                'user_id' => $l->user_id,
+                'tenant_id' => $l->tenant_id,
+                'tool_name' => $l->tool_name,
+                'action_status' => $l->action_status,
+                'tokens_used' => $l->tokens_used,
+                'duration_ms' => $l->duration_ms,
+                'error_message' => $l->error_message,
+                'created_at' => optional($l->created_at)->toIso8601String(),
             ]);
 
-            try {
-                $loop->run(
-                    tenantId: $tenantId,
-                    externalUserId: $actorId,
-                    personaId: optional($persona)->id,
-                    conversation: $conversation,
-                    userMessage: $data['message'],
-                    sse: $sse,
-                    attachments: (array) ($data['attachments'] ?? []),
-                );
-
-                $sse->emit('done', ['status' => 'completed']);
-            } catch (\Throwable $e) {
-                $sse->emit('error', ['message' => $e->getMessage()]);
-            }
-        }, 200, [
-            'Content-Type' => 'text/event-stream; charset=utf-8',
-            'Cache-Control' => 'no-cache, no-transform',
-            'Connection' => 'keep-alive',
-            'X-Accel-Buffering' => 'no',
-        ]);
+        return response()->json(['ok' => true, 'audit_logs' => $logs]);
     }
 }

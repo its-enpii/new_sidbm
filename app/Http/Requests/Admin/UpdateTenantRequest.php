@@ -27,6 +27,7 @@ final class UpdateTenantRequest extends FormRequest
             'map_zoom' => ['nullable', 'integer', 'between:3,19'],
             'status' => ['required', Rule::in(['active', 'suspended', 'provisioning', 'provisioning_failed'])],
             'timezone' => ['nullable', 'string', 'max:50'],
+            'ai_enabled' => ['nullable', Rule::in(['on', 'off', 'inherit', true, false, 1, 0, '1', '0'])],
             'custom_domains' => ['nullable', 'array'],
             'custom_domains.*' => ['required', 'string', 'max:255'],
         ];
@@ -129,6 +130,7 @@ final class UpdateTenantRequest extends FormRequest
             'map_zoom' => 'zoom peta',
             'status' => 'status',
             'timezone' => 'zona waktu',
+            'ai_enabled' => 'status fitur AI',
             'custom_domains' => 'custom domain',
         ];
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Assistant\AssistantNativeRouteGuard;
 use App\Assistant\EnpiiSessionResolver;
 use App\Assistant\Handlers\CreateJournalEntryHandler;
 use App\Assistant\Handlers\DownloadReportHandler;
@@ -21,6 +22,7 @@ use App\Assistant\Handlers\SearchLoansHandler;
 use App\Assistant\Handlers\SearchMembersHandler;
 use App\Assistant\Handlers\SendBillingNoticesHandler;
 use App\Assistant\Handlers\SimulateLoanHandler;
+use App\Domain\Features\Services\FeatureAccessService;
 use App\Domain\Migration\Support\LegacyConnection;
 use App\Models\Platform\PersonalAccessToken;
 use App\Tenancy\TenantContext;
@@ -37,6 +39,10 @@ final class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(
             LegacyConnection::class,
+        );
+
+        $this->app->singleton(
+            FeatureAccessService::class,
         );
 
         // enpii/assistant package bindings
@@ -87,5 +93,13 @@ final class AppServiceProvider extends ServiceProvider
         ) {
             URL::forceScheme('https');
         }
+
+        // Runs after every provider has booted, so both the package's autoloaded
+        // routes and the host /assistant/* mount exist. Callback-registered (not
+        // inline) because routes are loaded by RouteServiceProvider last; a file
+        // produced by `route:cache` is built from this same pruned collection.
+        $this->app->booted(function (): void {
+            $this->app->make(AssistantNativeRouteGuard::class)->disable();
+        });
     }
 }

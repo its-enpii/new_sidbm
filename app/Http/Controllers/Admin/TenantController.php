@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Features\Services\FeatureAccessService;
 use App\Http\Requests\Admin\UpdateTenantRequest;
 use App\Http\Requests\StoreTenantRequest;
 use App\Models\Platform\Plan;
@@ -116,24 +117,32 @@ final class TenantController
                 'map_zoom' => $tenant->map_zoom ? (int) $tenant->map_zoom : null,
                 'status' => $tenant->status,
                 'timezone' => $tenant->timezone,
-                'custom_domains' => array_values(array_filter($domains)),
+                'is_training_mode' => (bool) ($tenant->is_training_mode ?? false),
+                'ai_enabled' => $tenant->ai_enabled,
+                'training_started_at' => $tenant->training_started_at?->toDateTimeString(),
+                'training_ended_at' => $tenant->training_ended_at?->toDateTimeString(),
                 'provisioned_at' => $tenant->provisioned_at?->toDateTimeString(),
                 'suspended_at' => $tenant->suspended_at?->toDateTimeString(),
-                'placement' => $tenant->placement ? [
-                    'status' => $tenant->placement->status,
-                    'shard' => $tenant->placement->shard?->only(['code', 'name', 'database_name']),
-                ] : null,
+                'custom_domains' => array_values(array_filter($domains)),
+                'shard' => $tenant->placement?->shard?->only(['row_id', 'code', 'name', 'database_name']),
                 'active_subscription' => $tenant->activeSubscription ? [
                     'row_id' => $tenant->activeSubscription->row_id,
                     'status' => $tenant->activeSubscription->status,
                     'starts_at' => $tenant->activeSubscription->starts_at?->toDateString(),
                     'ends_at' => $tenant->activeSubscription->ends_at?->toDateString(),
-                    'plan' => $tenant->activeSubscription->plan?->only(['row_id', 'code', 'name', 'price_amount', 'billing_period', 'currency']),
+                    'plan' => $tenant->activeSubscription->plan?->only(['row_id', 'code', 'name', 'price_monthly']),
                 ] : null,
             ],
+            'recent_subscriptions' => $tenant->subscriptions->map(fn ($sub) => [
+                'row_id' => $sub->row_id,
+                'status' => $sub->status,
+                'starts_at' => $sub->starts_at?->toDateString(),
+                'ends_at' => $sub->ends_at?->toDateString(),
+                'plan' => $sub->plan?->only(['code', 'name']),
+            ]),
             'users' => $users,
-            'invoices' => $invoices,
-            'plans' => Plan::query()->where('is_active', true)->orderBy('name')->get(['row_id', 'code', 'name', 'price_amount', 'billing_period', 'currency']),
+            'recent_invoices' => $invoices,
+            'available_plans' => Plan::query()->where('is_active', true)->get(['row_id', 'code', 'name', 'price_monthly']),
         ]);
     }
 
@@ -146,12 +155,13 @@ final class TenantController
         return Inertia::render('Admin/Tenants/Edit', [
             'tenant' => [
                 ...$tenant->only(['row_id', 'code', 'name', 'district_code', 'status', 'timezone', 'map_latitude', 'map_longitude', 'map_zoom']),
+                'ai_enabled' => $tenant->ai_enabled === null ? 'inherit' : ($tenant->ai_enabled ? 'on' : 'off'),
                 'custom_domains' => array_values(array_filter($domains)),
             ],
         ]);
     }
 
-    public function update(UpdateTenantRequest $request, Tenant $tenant): RedirectResponse
+    public function update(UpdateTenantRequest $request, Tenant $tenant, AuditLogger $audit): RedirectResponse
     {
         $data = $request->validated();
         $oldDistrict = (string) $tenant->district_code;
@@ -159,6 +169,12 @@ final class TenantController
         $newLat = isset($data['map_latitude']) && $data['map_latitude'] !== '' && $data['map_latitude'] !== null ? (float) $data['map_latitude'] : null;
         $newLng = isset($data['map_longitude']) && $data['map_longitude'] !== '' && $data['map_longitude'] !== null ? (float) $data['map_longitude'] : null;
         $newZoom = isset($data['map_zoom']) && $data['map_zoom'] !== '' && $data['map_zoom'] !== null ? (int) $data['map_zoom'] : null;
+
+        $newAiEnabled = array_key_exists('ai_enabled', $data) ? match ($data['ai_enabled']) {
+            'on', true, 1, '1' => true,
+            'off', false, 0, '0' => false,
+            default => null,
+        } : $tenant->ai_enabled;
 
         $rawDomains = (array) ($data['custom_domains'] ?? []);
         $cleanDomains = [];
@@ -180,8 +196,26 @@ final class TenantController
         unset($metadata['domain']);
 
         $changes = AuditLogger::diff(
-            ['name' => $tenant->name, 'district_code' => $tenant->district_code, 'map_latitude' => $tenant->map_latitude, 'map_longitude' => $tenant->map_longitude, 'map_zoom' => $tenant->map_zoom, 'status' => $tenant->status, 'timezone' => $tenant->timezone],
-            ['name' => $data['name'], 'district_code' => $newDistrict, 'map_latitude' => $newLat, 'map_longitude' => $newLng, 'map_zoom' => $newZoom, 'status' => $data['status'], 'timezone' => $data['timezone'] ?? $tenant->timezone],
+            [
+                'name' => $tenant->name,
+                'district_code' => $tenant->district_code,
+                'map_latitude' => $tenant->map_latitude,
+                'map_longitude' => $tenant->map_longitude,
+                'map_zoom' => $tenant->map_zoom,
+                'status' => $tenant->status,
+                'timezone' => $tenant->timezone,
+                'ai_enabled' => $tenant->ai_enabled,
+            ],
+            [
+                'name' => $data['name'],
+                'district_code' => $newDistrict,
+                'map_latitude' => $newLat,
+                'map_longitude' => $newLng,
+                'map_zoom' => $newZoom,
+                'status' => $data['status'],
+                'timezone' => $data['timezone'] ?? $tenant->timezone,
+                'ai_enabled' => $newAiEnabled,
+            ],
         );
 
         $domainsChanged = $metadata['domains'] !== (is_array($tenant->metadata) ? ($tenant->metadata['domains'] ?? []) : []);
@@ -195,6 +229,7 @@ final class TenantController
             'map_zoom' => $newZoom,
             'status' => $data['status'],
             'timezone' => $data['timezone'] ?? $tenant->timezone,
+            'ai_enabled' => $newAiEnabled,
             'suspended_at' => $data['status'] === 'suspended' ? ($tenant->suspended_at ?? now()) : null,
             'metadata' => $metadata,
         ])->save();
@@ -203,7 +238,9 @@ final class TenantController
             app(PublicSiteResolver::class)->flush();
         }
 
-        app(AuditLogger::class)->record(
+        app(FeatureAccessService::class)->flush();
+
+        $audit->record(
             'tenant.update',
             $tenant,
             Tenant::class,

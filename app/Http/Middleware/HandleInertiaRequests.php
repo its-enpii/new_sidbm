@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Domain\Access\Services\PermissionChecker;
+use App\Domain\Features\Services\FeatureAccessService;
 use App\Domain\Membership\Models\OrganizationProfile;
 use App\Services\OfflineAccessService;
 use App\Tenancy\TenantContext;
@@ -54,7 +55,6 @@ final class HandleInertiaRequests extends Middleware
         }
 
         return [
-
             ...parent::share($request),
             'appName' => config('app.name'),
             'auth' => [
@@ -145,12 +145,32 @@ final class HandleInertiaRequests extends Middleware
 
     private function resolveAssistant(Request $request): array
     {
-        $enabled = $request->user() !== null
-            && app(PermissionChecker::class)->allows($request->user(), 'assistant.use');
+        $user = $request->user();
+        $hasPermission = $user !== null
+            && app(PermissionChecker::class)->allows($user, 'assistant.use');
+
+        $tenantId = null;
+        try {
+            $context = app(TenantContext::class);
+            if ($context->isInitialized()) {
+                $tenantId = $context->id();
+            } elseif ($user?->tenant_id !== null) {
+                $tenantId = (int) $user->tenant_id;
+            }
+        } catch (Throwable) {
+            $tenantId = $user?->tenant_id !== null ? (int) $user->tenant_id : null;
+        }
+
+        $featureEnabled = app(FeatureAccessService::class)->aiEnabled($tenantId);
+
+        $enabled = $hasPermission && $featureEnabled;
+        $gated = (! $featureEnabled) && $hasPermission;
 
         return [
             'enabled' => $enabled,
             'public_url' => $enabled ? url('/') : null,
+            'gated' => $gated,
+            'feature' => 'ai',
         ];
     }
 

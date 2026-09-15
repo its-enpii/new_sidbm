@@ -12,6 +12,7 @@ use App\Http\Controllers\Accounting\PeriodCloseController;
 use App\Http\Controllers\Accounting\ReportController;
 use App\Http\Controllers\Accounting\TaxEstimateController;
 use App\Http\Controllers\Admin\AiAssistantController;
+use App\Http\Controllers\Admin\AiFeatureController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\InvoiceController as AdminInvoiceController;
@@ -30,6 +31,7 @@ use App\Http\Controllers\Admin\TenantRoleController as AdminTenantRoleController
 use App\Http\Controllers\Admin\TenantUserController as AdminTenantUserController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Assets\AssetController;
+use App\Http\Controllers\Assistant\AssistantAccessRequestController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\HoldingSsoController;
 use App\Http\Controllers\AuthController;
@@ -260,6 +262,12 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::post('/payment-gateways/xendit', [PaymentGatewayController::class, 'updateXendit'])->name('payment-gateways.xendit');
     Route::post('/payment-gateways/xendit/test', [PaymentGatewayController::class, 'testXendit'])->name('payment-gateways.xendit.test');
 
+    // AI Features Control
+    Route::get('/features', [AiFeatureController::class, 'index'])->name('features.index');
+    Route::patch('/features/ai/global', [AiFeatureController::class, 'updateGlobal'])->name('features.ai.global');
+    Route::patch('/features/ai/{tenant}', [AiFeatureController::class, 'updateTenant'])->name('features.ai.tenant');
+    Route::post('/features/ai/bulk', [AiFeatureController::class, 'bulk'])->name('features.ai.bulk');
+
     // AI Assistant
     Route::get('/ai-assistant', [AiAssistantController::class, 'index'])->name('ai-assistant.index');
     Route::get('/ai-assistant/personas', [AiAssistantController::class, 'personas'])->name('ai-assistant.personas');
@@ -329,13 +337,21 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     });
 });
 
-Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function (): void {
+Route::middleware(['auth', 'tenant'])->group(function (): void {
+    Route::post('/assistant/access-request', [AssistantAccessRequestController::class, 'store'])
+        ->middleware('throttle:5,60')
+        ->name('assistant.access-request');
+});
+
+Route::middleware(['auth', 'tenant', 'subscription.active', 'feature:ai'])->group(function (): void {
     if (file_exists(base_path('vendor/enpii/assistant/routes/api.php'))) {
         Route::prefix('assistant')->group(function (): void {
             require base_path('vendor/enpii/assistant/routes/api.php');
         });
     }
+});
 
+Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function (): void {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/changelog', [ChangelogController::class, 'index'])->name('changelog');
     Route::get('/search', SearchController::class)->name('search');

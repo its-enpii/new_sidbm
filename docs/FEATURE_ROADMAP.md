@@ -29,7 +29,8 @@ Dokumentasi Arsitektur: PROJECT_OVERVIEW.md, DATABASE_STRUCTURE.md, CUTOVER_RUNB
 | Monitoring Kabupaten (Regency) | ✅ Selesai | Dashboard Kabupaten, Laporan Konsolidasi Multi-Kecamatan (Neraca, LR, BB, Arus Kas, CALK, PDF) |
 | Monitoring Provinsi (Province) | ✅ Selesai | Dashboard Provinsi, Laporan Konsolidasi Multi-Kabupaten & Multi-Kecamatan (Neraca, LR, BB, Arus Kas, CALK, Paket PDF) |
 | Pembatasan Operator Desa (Village Scope) | ✅ Selesai | Restriksi data anggota, kelompok, dan proposal pinjaman berbasis village_row_id dengan global scope VillageScope |
-| AI Assistant & RAG | ✅ Selesai | Asisten AI (enpii/assistant) dengan Vector RAG (pgvector), Ollama, & Komponen Chat Interaktif |
+| AI Assistant & RAG | ✅ Selesai | Asisten AI (enpii/assistant) dengan Vector RAG (pgvector), Ollama, Komponen Chat Interaktif, & Sakelar Gating Per-Tenant (/admin/features) |
+| Penagihan add-on AI (belum) | ⏳ Rencana | Penagihan otomatis langganan add-on AI per tenant via invoice subscription |
 | Redis Infrastructure | ✅ Selesai | Redis Cache Store, Redis Session Driver, & Dedicated Redis Queue Worker |
 | Automated Testing Suite | ✅ Selesai | PHPUnit 258 tests (1.779 assertions) + Playwright 47 E2E page tests + Playwright 25 Interactive CRUD tests |
 
