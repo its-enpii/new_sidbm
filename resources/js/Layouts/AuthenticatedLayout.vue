@@ -568,36 +568,38 @@ function logout() {
             </div>
         </header>
         <main class="p-4 sm:p-5 lg:ml-64 lg:p-6 xl:p-8">
-            <div
-                v-if="impersonatedBy"
-                class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/40 bg-primary-container/30 px-4 py-3 text-sm text-primary shadow-sm"
-            >
-                <div class="flex items-center gap-2.5">
-                    <AppIcon name="admin_panel_settings" tone="primary" />
-                    <p class="font-medium">
-                        <span class="font-bold">Mode Impersonasi Superadmin:</span>
-                        Anda sedang mengakses tenant sebagai <span class="font-bold">{{ user?.name }}</span> (diinisiasi oleh Superadmin <span class="font-bold">{{ impersonatorName || 'Superadmin' }}</span>).
-                    </p>
+            <div class="mx-auto max-w-7xl">
+                <div
+                    v-if="impersonatedBy"
+                    class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/40 bg-primary-container/30 px-4 py-3 text-sm text-primary shadow-sm"
+                >
+                    <div class="flex items-center gap-2.5">
+                        <AppIcon name="admin_panel_settings" tone="primary" />
+                        <p class="font-medium">
+                            <span class="font-bold">Mode Impersonasi Superadmin:</span>
+                            Anda sedang mengakses tenant sebagai <span class="font-bold">{{ user?.name }}</span> (diinisiasi oleh Superadmin <span class="font-bold">{{ impersonatorName || 'Superadmin' }}</span>).
+                        </p>
+                    </div>
+                    <form @submit.prevent="leaveImpersonation">
+                        <AppButton size="compact" variant="secondary" icon="logout" :loading="leaveForm.processing">
+                            Kembali ke Superadmin
+                        </AppButton>
+                    </form>
                 </div>
-                <form @submit.prevent="leaveImpersonation">
-                    <AppButton size="compact" variant="secondary" icon="logout" :loading="leaveForm.processing">
-                        Kembali ke Superadmin
-                    </AppButton>
-                </form>
-            </div>
-            <div
-                v-if="isTrainingMode"
-                class="mb-6 flex items-center justify-between gap-3 rounded-xl border border-warning/40 bg-warning-container/30 px-4 py-3 text-sm text-primary shadow-sm"
-            >
-                <div class="flex items-center gap-2.5">
-                    <span class="inline-block size-2.5 rounded-full bg-warning animate-pulse" />
-                    <p class="font-medium">
-                        <span class="font-bold">Mode Pelatihan Aktif:</span>
-                        Transaksi yang di-input pada periode ini adalah data simulasi latihan dan dapat dibersihkan oleh Superadmin.
-                    </p>
+                <div
+                    v-if="isTrainingMode"
+                    class="mb-6 flex items-center justify-between gap-3 rounded-xl border border-warning/40 bg-warning-container/30 px-4 py-3 text-sm text-primary shadow-sm"
+                >
+                    <div class="flex items-center gap-2.5">
+                        <span class="inline-block size-2.5 rounded-full bg-warning animate-pulse" />
+                        <p class="font-medium">
+                            <span class="font-bold">Mode Pelatihan Aktif:</span>
+                            Transaksi yang di-input pada periode ini adalah data simulasi latihan dan dapat dibersihkan oleh Superadmin.
+                        </p>
+                    </div>
                 </div>
+                <AiAccessNotice />
             </div>
-            <AiAccessNotice />
             <Transition name="page" mode="out-in" appear>
                 <div :key="currentPath" class="min-w-0 flex-1">
                     <slot />

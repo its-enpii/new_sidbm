@@ -24,7 +24,7 @@ function submitRequest() {
 </script>
 
 <template>
-    <div v-if="shouldShow" class="mb-4 sm:mb-5">
+    <div v-if="shouldShow" class="mx-auto mb-4 max-w-7xl sm:mb-5">
         <AppCard :padded="false" class="border-primary/20 bg-primary-container/10 p-3.5 sm:p-4 lg:p-4.5">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex items-center gap-3">
