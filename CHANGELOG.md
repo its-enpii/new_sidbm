@@ -15,6 +15,15 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
   - Integrasi blok "Fitur AI" pada `Admin/Tenants/Edit.vue`, audit logging menyeluruh via `AuditLogger`, dan warning banner di `Admin/AiAssistant/Index.vue` saat global kill-switch OFF.
   - Alur permintaan langganan tenant-facing via `POST /assistant/access-request` dengan proteksi rate limit harian dan notifikasi internal ke seluruh admin tenant (`AiAccessRequestNotification`).
 
+### Changed
+- **Responsivitas & Proporsi Ukuran UI (Laptop/Tablet/Mobile):** Menekan densitas layout pada rentang layar laptop (1024px-1279px) tanpa mengorbankan kenyamanan desktop besar.
+  - `AdminLayout.vue` dan `AuthenticatedLayout.vue`: padding `<main>` berubah dari `p-4 sm:p-6 lg:p-8` menjadi `p-4 sm:p-5 lg:p-6 xl:p-8`, sehingga laptop standar (1280x800, 1366x768) mendapat 24px alih-alih 32px, dan desktop `>= 1280px` tetap lega di 32px.
+  - `AppCard.vue`: prop `padded` kini menghasilkan `p-4 sm:p-5 lg:p-6` (dari `p-6` hardcoded), memberi 16px di mobile dan 20px di tablet/laptop.
+  - `SmartDataTable.vue`: sel dan header tabel memakai `px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 lg:py-3.5` (dari `px-6 py-4`), toolbar atas `gap-3 sm:gap-4 pb-4 sm:pb-5`, paginasi bawah `text-xs sm:text-sm`, dan empty state `p-4 sm:p-6` - mengembalikan ratusan piksel lebar kolom pada tabel multi-kolom di layar laptop.
+  - `Admin/Features/Index.vue`: judul halaman `text-xl sm:text-2xl` dengan subtitle `text-xs sm:text-sm`; wrapper tabel `p-3.5 sm:p-5 lg:p-6`; toolbar aksi massal lebih ramping (`mb-3.5 sm:mb-4 gap-2.5 sm:gap-3 p-3 sm:p-4`) dengan tombol `size="compact"` berlabel `text-xs sm:text-sm`; kolom aksi `SmartSelect` menyempit bertahap `min-w-36 sm:min-w-40 md:min-w-44` (dari `min-w-44`).
+  - `AssistantComponents/AiAccessNotice.vue`: banner CTA gate AI diturunkan dominasinya - wrapper `mb-4 sm:mb-5`, kartu `:padded="false"` dengan padding manual `p-3.5 sm:p-4 lg:p-4.5`, ikon `container-size="8"` (dari `9`), judul `text-xs sm:text-sm`, dan tombol `size="compact"` berlabel `text-xs sm:text-sm`.
+  - Seluruh perubahan tetap memakai komponen kit `App*` dan token MD3; tidak ada warna hex, inline style, maupun elemen interaktif raw baru.
+
 ### Fixed
   - **Penutupan Rute Native `enpii/assistant`:** `AssistantNativeRouteGuard` membersihkan sembilan rute tanpa prefix (`/chat`, `/persona`, `/confirmations/*`, `/messages/*`, `/conversations/*`) yang di-autoload oleh package `enpii/assistant` tanpa middleware. Host me-mount rute tersebut di `/assistant/*` berpagar middleware `auth`, `tenant`, `subscription.active`, dan `feature:ai` sehingga rute LLM tidak dapat diakses tanpa autentikasi dan otorisasi.
   - Banner CTA `AiAccessNotice.vue` pada `AuthenticatedLayout.vue` untuk tenant yang terkena gate AI (`gated: true`) khusus bagi user berizin `settings.manage`.

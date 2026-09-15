@@ -24,14 +24,14 @@ function submitRequest() {
 </script>
 
 <template>
-    <div v-if="shouldShow" class="mb-6">
-        <AppCard class="border-primary/20 bg-primary-container/10">
+    <div v-if="shouldShow" class="mb-4 sm:mb-5">
+        <AppCard :padded="false" class="border-primary/20 bg-primary-container/10 p-3.5 sm:p-4 lg:p-4.5">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex items-center gap-3">
-                    <AppIcon name="smart_toy" tone="primary" container-size="9" container-shape="pill" />
+                    <AppIcon name="smart_toy" tone="primary" container-size="8" container-shape="pill" />
                     <div>
                         <div class="flex items-center gap-2">
-                            <p class="text-sm font-bold text-primary">Fitur AI Belum Aktif</p>
+                            <p class="text-xs sm:text-sm font-bold text-primary">Fitur AI Belum Aktif</p>
                             <AppBadge tone="primary-soft">Langganan</AppBadge>
                         </div>
                         <p class="mt-0.5 text-xs text-on-surface-variant">
@@ -39,11 +39,12 @@ function submitRequest() {
                         </p>
                     </div>
                 </div>
-                <div class="flex shrink-0 items-center gap-2">
+                <div class="flex shrink-0 items-center gap-2 sm:gap-3">
                     <AppButton
                         variant="primary"
                         size="compact"
                         icon="send"
+                        class="text-xs sm:text-sm"
                         :loading="form.processing"
                         @click="submitRequest"
                     >

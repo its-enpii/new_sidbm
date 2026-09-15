@@ -124,8 +124,8 @@ const columns = [
         <div class="mx-auto max-w-7xl space-y-6">
             <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
-                    <h1 class="text-2xl font-bold text-primary">Sakelar Fitur AI Per-Tenant</h1>
-                    <p class="mt-1 text-on-surface-variant">
+                    <h1 class="text-xl sm:text-2xl font-bold text-primary">Sakelar Fitur AI Per-Tenant</h1>
+                    <p class="mt-1 text-xs sm:text-sm text-on-surface-variant">
                         Kelola kunci global asisten AI serta aturan akses override per-tenant platform.
                     </p>
                 </div>
@@ -133,15 +133,15 @@ const columns = [
 
             <!-- Card 1: Master Kill-Switch -->
             <AppCard>
-                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div class="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
                     <div class="space-y-1">
                         <div class="flex items-center gap-2">
-                            <h2 class="text-base font-bold text-primary">Kunci Global Fitur AI</h2>
+                            <h2 class="text-sm sm:text-base font-bold text-primary">Kunci Global Fitur AI</h2>
                             <AppBadge :tone="globalEnabled ? 'success' : 'error'">
                                 {{ globalEnabled ? 'Platform Aktif' : 'Platform Nonaktif' }}
                             </AppBadge>
                         </div>
-                        <p class="text-sm text-on-surface-variant">
+                        <p class="text-xs sm:text-sm text-on-surface-variant">
                             Master switch untuk seluruh sistem. Jika dimatikan, asisten AI akan nonaktif untuk seluruh tenant tanpa terkecuali.
                         </p>
                     </div>
@@ -157,9 +157,9 @@ const columns = [
 
             <!-- Card 2: Tenant List & Overrides -->
             <AppCard :padded="false">
-                <div class="p-6">
-                    <div v-if="selectedTenantIds.length > 0" class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary-container/20 p-4">
-                        <div class="flex items-center gap-2 text-sm font-semibold text-primary">
+                <div class="p-3.5 sm:p-5 lg:p-6">
+                    <div v-if="selectedTenantIds.length > 0" class="mb-3.5 sm:mb-4 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 rounded-xl border border-primary/20 bg-primary-container/20 p-3 sm:p-4">
+                        <div class="flex items-center gap-2 text-xs sm:text-sm font-semibold text-primary">
                             <AppIcon name="checklist" class="text-lg" />
                             <span>{{ selectedTenantIds.length }} tenant terpilih</span>
                         </div>
@@ -167,6 +167,7 @@ const columns = [
                             <AppButton
                                 variant="success"
                                 size="compact"
+                                class="text-xs sm:text-sm"
                                 icon="check"
                                 :loading="bulkProcessing"
                                 @click="bulkSubmit('on')"
@@ -176,6 +177,7 @@ const columns = [
                             <AppButton
                                 variant="danger"
                                 size="compact"
+                                class="text-xs sm:text-sm"
                                 icon="block"
                                 :loading="bulkProcessing"
                                 @click="bulkSubmit('off')"
@@ -185,6 +187,7 @@ const columns = [
                             <AppButton
                                 variant="secondary"
                                 size="compact"
+                                class="text-xs sm:text-sm"
                                 icon="undo"
                                 :loading="bulkProcessing"
                                 @click="bulkSubmit('inherit')"
@@ -224,7 +227,7 @@ const columns = [
                         </template>
 
                         <template #cell-plan="{ row }">
-                            <span class="text-sm font-medium text-primary">{{ row.plan?.name || '—' }}</span>
+                            <span class="text-xs sm:text-sm font-medium text-primary">{{ row.plan?.name || '—' }}</span>
                         </template>
 
                         <template #cell-is_training_mode="{ row }">
@@ -256,7 +259,7 @@ const columns = [
                         </template>
 
                         <template #actions="{ row }">
-                            <div class="min-w-44">
+                            <div class="min-w-36 sm:min-w-40 md:min-w-44">
                                 <SmartSelect
                                     :id="`select-ai-${row.row_id}`"
                                     label="Pengaturan AI"

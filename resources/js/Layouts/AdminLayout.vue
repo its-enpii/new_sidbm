@@ -113,7 +113,7 @@ function logout() {
             </div>
         </header>
 
-        <main class="p-4 sm:p-6 lg:ml-64 lg:p-8">
+        <main class="p-4 sm:p-5 lg:ml-64 lg:p-6 xl:p-8">
             <Transition name="page" mode="out-in" appear>
                 <div :key="currentPath" class="min-w-0 flex-1">
                     <slot />

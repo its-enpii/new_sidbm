@@ -567,7 +567,7 @@ function logout() {
                 <Link href="/profile" class="grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary" aria-label="Profil"><AppIcon name="account_circle" class="text-2xl leading-none" /></Link>
             </div>
         </header>
-        <main class="p-4 sm:p-6 lg:ml-64 lg:p-8">
+        <main class="p-4 sm:p-5 lg:ml-64 lg:p-6 xl:p-8">
             <div
                 v-if="impersonatedBy"
                 class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/40 bg-primary-container/30 px-4 py-3 text-sm text-primary shadow-sm"
