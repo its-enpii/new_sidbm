@@ -24,19 +24,19 @@ const features = [
     {
         icon: 'account_balance',
         title: 'Pengelolaan Dana Bergulir',
-        desc: 'Manajemen permohonan pinjaman kelompok SPP & UEP, verifikasi berjenjang, jadwal angsuran amortisasi, hingga mutasi kolektibilitas per pemanfaat.',
+        desc: 'Tata kelola perguliran dana kelompok SPP & UEP sesuai Permendesa No. 15/2021: permohonan pinjaman, verifikasi berjenjang, musyawarah antar desa, jadwal angsuran amortisasi, hingga mutasi kolektibilitas per pemanfaat.',
         badge: 'Lending Engine',
     },
     {
         icon: 'bar_chart',
         title: 'Konsolidasi Keuangan Kabupaten',
-        desc: 'Portal pengawasan terpadu untuk Pemerintah Kabupaten (Dinas PMD & Inspektorat). Laporan Neraca, Laba Rugi, Buku Besar, dan CALK otomatis se-wilayah.',
+        desc: 'Portal pengawasan terpadu Pemerintah Kabupaten (Dinas PMD & Inspektorat) dengan 5 format laporan baku Kepmendesa No. 136/2022 — Neraca, Laba Rugi, Perubahan Ekuitas, Arus Kas, dan CALK — plus Penilaian Tingkat Kesehatan Keuangan 6 rasio otomatis se-wilayah.',
         badge: 'Regency Portal',
     },
     {
         icon: 'smart_toy',
         title: 'AI Assistant & Pengetahuan Regulasi',
-        desc: 'Asisten cerdas terintegrasi untuk analisis data pinjaman, proyeksi keuangan bulanan, serta konsultasi regulasi dan SOP BUMDesma.',
+        desc: 'Asisten cerdas terintegrasi untuk analisis data pinjaman dan proyeksi keuangan bulanan, dengan basis pengetahuan regulasi PP No. 11/2021, Permendesa No. 15/2021, dan Kepmendesa No. 136/2022 beserta SOP BUMDesma.',
         badge: 'AI Intelligence',
     },
     {
@@ -106,7 +106,7 @@ const faqs = [
     },
     {
         q: 'Apakah sistem ini sesuai dengan regulasi pemerintah dan standar akuntansi terkini?',
-        a: 'Ya, sistem telah diselaraskan dengan amanat PP No. 11 Tahun 2021 tentang BUMDesa, Permendesa PDTT, serta standar bagan akun (COA) akuntansi keuangan entitas mikro & privat (SAK EP/ETAP) untuk menghasilkan Neraca, Laba Rugi, Arus Kas, dan CALK yang akuntabel.',
+        a: 'Ya. Sistem diselaraskan secara runut dengan tiga regulasi baku: (1) PP No. 11 Tahun 2021 tentang Badan Usaha Milik Desa dan BUMDesma sebagai badan hukum; (2) Permendesa PDTT No. 15 Tahun 2021 tentang transformasi pengelola DBM eks PNPM-MPd menjadi BUMDesma LKD beserta tata cara perguliran dana SPP/UEP; dan (3) Kepmendesa PDTT No. 136 Tahun 2022 tentang Panduan Baku Penyusunan Laporan Keuangan BUMDes/BUMDesma. Seluruh bagan akun (COA) dan laporan mengikuti standar SAK EP/ETAP — Neraca, Laba Rugi, Perubahan Ekuitas, Arus Kas, dan CALK — termasuk perhitungan otomatis Cadangan Kerugian Piutang (CKPN) serta 6 Rasio Tingkat Kesehatan Usaha.',
     },
     {
         q: 'Bagaimana keamanan dan kerahasiaan data keuangan masing-masing BUMDesma?',
@@ -379,7 +379,7 @@ onUnmounted(() => {
         <div class="top-banner-bar bg-gradient-to-r from-primary via-primary-container to-primary px-4 py-2 text-center text-xs font-semibold tracking-wide text-on-primary shadow-sm">
             <div class="mx-auto flex max-w-7xl items-center justify-center gap-2">
                 <span class="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-extrabold tracking-wider text-on-secondary shadow-sm">RESMI</span>
-                <span>Sistem Tata Kelola Keuangan & Dana Bergulir BUMDesma LKD Sesuai Regulasi PP No. 11/2021</span>
+                <span>Sistem Tata Kelola Keuangan &amp; Dana Bergulir BUMDesma LKD Sesuai PP No. 11/2021, Permendesa No. 15/2021 &amp; Kepmendesa No. 136/2022</span>
             </div>
         </div>
 

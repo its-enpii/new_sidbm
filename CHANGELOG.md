@@ -3,6 +3,17 @@
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
+## [2026-09-15]
+
+### Changed
+- **Penegasan Kepatuhan Regulasi pada Landing Page Utama (`resources/js/Pages/Home.vue`):** Seluruh klaim kepatuhan regulasi kini ditulis spesifik dan runut agar dapat diverifikasi publik.
+  - Banner atas (`top-banner-bar`) diperbarui menjadi "Sistem Tata Kelola Keuangan & Dana Bergulir BUMDesma LKD Sesuai PP No. 11/2021, Permendesa No. 15/2021 & Kepmendesa No. 136/2022" (sebelumnya hanya menyebut PP No. 11/2021).
+  - Kartu fitur *Pengelolaan Dana Bergulir* menegaskan tata kelola perguliran kelompok SPP/UEP sesuai **Permendesa No. 15/2021** (termasuk verifikasi berjenjang dan musyawarah antar desa).
+  - Kartu fitur *Konsolidasi Keuangan Kabupaten* menyebut 5 format laporan baku **Kepmendesa No. 136/2022** (Neraca, Laba Rugi, Perubahan Ekuitas, Arus Kas, CALK) dan Penilaian Tingkat Kesehatan Keuangan 6 rasio.
+  - Kartu fitur *AI Assistant & Pengetahuan Regulasi* mencantumkan basis pengetahuan PP No. 11/2021, Permendesa No. 15/2021, dan Kepmendesa No. 136/2022.
+  - Jawaban FAQ kedua daftar regulasi diperbarui menjadi runut: PP No. 11 Tahun 2021, Permendesa PDTT No. 15 Tahun 2021, dan Kepmendesa PDTT No. 136 Tahun 2022, mencakup standar SAK EP/ETAP, perhitungan otomatis Cadangan Kerugian Piutang (CKPN), dan 6 Rasio Tingkat Kesehatan Usaha.
+  - Perubahan murni teks pada array `features`/`faqs` dan banner template; tetap memakai komponen kit `App*` serta token MD3 tanpa raw hex, inline style, maupun elemen interaktif raw baru.
+
 ## [2026-09-14]
 
 ### Added
@@ -23,7 +34,7 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
   - `Admin/Features/Index.vue`: judul halaman `text-xl sm:text-2xl` dengan subtitle `text-xs sm:text-sm`; wrapper tabel `p-3.5 sm:p-5 lg:p-6`; toolbar aksi massal lebih ramping (`mb-3.5 sm:mb-4 gap-2.5 sm:gap-3 p-3 sm:p-4`) dengan tombol `size="compact"` berlabel `text-xs sm:text-sm`; kolom aksi `SmartSelect` menyempit bertahap `min-w-36 sm:min-w-40 md:min-w-44` (dari `min-w-44`).
   - `AssistantComponents/AiAccessNotice.vue`: banner CTA gate AI diturunkan dominasinya - wrapper `mb-4 sm:mb-5`, kartu `:padded="false"` dengan padding manual `p-3.5 sm:p-4 lg:p-4.5`, ikon `container-size="8"` (dari `9`), judul `text-xs sm:text-sm`, dan tombol `size="compact"` berlabel `text-xs sm:text-sm`.
   - Seluruh perubahan tetap memakai komponen kit `App*` dan token MD3; tidak ada warna hex, inline style, maupun elemen interaktif raw baru.
-  - `Home.vue`: penyelarasan urutan menu navbar dan mobile drawer (Capaian -> Fitur Unggulan -> Alur Kerja -> Tanya Jawab) agar berurutan sesuai alur scroll section halaman.
+  - `Home.vue`: penyelarasan urutan menu navbar dan mobile drawer (Capaian -> Fitur Unggulan -> Alur Kerja -> Tanya Jawab) agar berurutan sesuai alur scroll section halaman, serta penegasan kepatuhan regulasi PP No. 11/2021, Permendesa No. 15/2021, dan Kepmendesa No. 136/2022 pada top banner, kartu fitur, dan FAQ.
 
 ### Fixed
   - **Penutupan Rute Native `enpii/assistant`:** `AssistantNativeRouteGuard` membersihkan sembilan rute tanpa prefix (`/chat`, `/persona`, `/confirmations/*`, `/messages/*`, `/conversations/*`) yang di-autoload oleh package `enpii/assistant` tanpa middleware. Host me-mount rute tersebut di `/assistant/*` berpagar middleware `auth`, `tenant`, `subscription.active`, dan `feature:ai` sehingga rute LLM tidak dapat diakses tanpa autentikasi dan otorisasi.
