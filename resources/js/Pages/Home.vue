@@ -399,9 +399,9 @@ onUnmounted(() => {
 
                 <!-- Desktop Navigation Links -->
                 <nav class="hidden items-center gap-8 md:flex">
+                    <a href="#statistik" @click.prevent="smoothScrollTo('statistik')" class="text-sm font-semibold text-on-surface-variant transition hover:text-primary">Capaian</a>
                     <a href="#fitur" @click.prevent="smoothScrollTo('fitur')" class="text-sm font-semibold text-on-surface-variant transition hover:text-primary">Fitur Unggulan</a>
                     <a href="#solusi" @click.prevent="smoothScrollTo('solusi')" class="text-sm font-semibold text-on-surface-variant transition hover:text-primary">Alur Kerja</a>
-                    <a href="#statistik" @click.prevent="smoothScrollTo('statistik')" class="text-sm font-semibold text-on-surface-variant transition hover:text-primary">Capaian</a>
                     <a href="#faq" @click.prevent="smoothScrollTo('faq')" class="text-sm font-semibold text-on-surface-variant transition hover:text-primary">Tanya Jawab</a>
                 </nav>
 
@@ -430,9 +430,9 @@ onUnmounted(() => {
             <transition name="drawer">
                 <div v-if="mobileNavOpen" class="border-b border-outline-variant bg-surface-container-low px-4 py-4 md:hidden">
                     <nav class="flex flex-col gap-3">
+                        <a href="#statistik" @click="smoothScrollTo('statistik')" class="rounded-lg px-3 py-2 text-sm font-semibold text-on-surface hover:bg-surface-container-high">Capaian</a>
                         <a href="#fitur" @click="smoothScrollTo('fitur')" class="rounded-lg px-3 py-2 text-sm font-semibold text-on-surface hover:bg-surface-container-high">Fitur Unggulan</a>
                         <a href="#solusi" @click="smoothScrollTo('solusi')" class="rounded-lg px-3 py-2 text-sm font-semibold text-on-surface hover:bg-surface-container-high">Alur Kerja</a>
-                        <a href="#statistik" @click="smoothScrollTo('statistik')" class="rounded-lg px-3 py-2 text-sm font-semibold text-on-surface hover:bg-surface-container-high">Capaian</a>
                         <a href="#faq" @click="smoothScrollTo('faq')" class="rounded-lg px-3 py-2 text-sm font-semibold text-on-surface hover:bg-surface-container-high">Tanya Jawab</a>
                         <div class="pt-2 border-t border-outline-variant">
                             <Link href="/login" class="w-full">
@@ -594,7 +594,7 @@ onUnmounted(() => {
 
                                     <!-- Status bar preview -->
                                     <div class="flex items-center justify-between pt-1 text-[11px] font-bold text-outline">
-                                        <span class="flex items-center gap-1.5"><AppIcon name="sync" class="text-sm text-secondary animate-spin" style="animation-duration: 6s" /> Sinkronisasi Shard Database</span>
+                                        <span class="flex items-center gap-1.5"><AppIcon name="sync" class="text-sm text-secondary animate-spin [animation-duration:6s]" /> Sinkronisasi Shard Database</span>
                                         <span class="text-secondary font-black">Terisolasi</span>
                                     </div>
                                 </AppCard>

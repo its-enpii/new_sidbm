@@ -23,6 +23,7 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
   - `Admin/Features/Index.vue`: judul halaman `text-xl sm:text-2xl` dengan subtitle `text-xs sm:text-sm`; wrapper tabel `p-3.5 sm:p-5 lg:p-6`; toolbar aksi massal lebih ramping (`mb-3.5 sm:mb-4 gap-2.5 sm:gap-3 p-3 sm:p-4`) dengan tombol `size="compact"` berlabel `text-xs sm:text-sm`; kolom aksi `SmartSelect` menyempit bertahap `min-w-36 sm:min-w-40 md:min-w-44` (dari `min-w-44`).
   - `AssistantComponents/AiAccessNotice.vue`: banner CTA gate AI diturunkan dominasinya - wrapper `mb-4 sm:mb-5`, kartu `:padded="false"` dengan padding manual `p-3.5 sm:p-4 lg:p-4.5`, ikon `container-size="8"` (dari `9`), judul `text-xs sm:text-sm`, dan tombol `size="compact"` berlabel `text-xs sm:text-sm`.
   - Seluruh perubahan tetap memakai komponen kit `App*` dan token MD3; tidak ada warna hex, inline style, maupun elemen interaktif raw baru.
+  - `Home.vue`: penyelarasan urutan menu navbar dan mobile drawer (Capaian -> Fitur Unggulan -> Alur Kerja -> Tanya Jawab) agar berurutan sesuai alur scroll section halaman.
 
 ### Fixed
   - **Penutupan Rute Native `enpii/assistant`:** `AssistantNativeRouteGuard` membersihkan sembilan rute tanpa prefix (`/chat`, `/persona`, `/confirmations/*`, `/messages/*`, `/conversations/*`) yang di-autoload oleh package `enpii/assistant` tanpa middleware. Host me-mount rute tersebut di `/assistant/*` berpagar middleware `auth`, `tenant`, `subscription.active`, dan `feature:ai` sehingga rute LLM tidak dapat diakses tanpa autentikasi dan otorisasi.
