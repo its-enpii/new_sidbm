@@ -3,6 +3,20 @@
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
+## [2026-09-16]
+
+### Added
+- **Tenant Website Builder & Template Customization (`SiteSetting`, `TenantHome.vue`, `WebsiteSettingController`):**
+  - Pilihan template situs publik tenant (`classic`, `modern`, `minimal`) dengan integrasi pengaturan seksi modular (`hero`, `about`, `posts`, `officers`, `contact`).
+  - Penyimpanan profil BUMDesma, visi, misi, nilai-nilai, tahun berdiri, jam operasional, tautan media sosial, serta susunan pengurus (`officers_data`).
+  - Migrasi shard `2026_09_16_000001_add_template_and_jsonb_to_site_settings_table.php` untuk penambahan kolom `template` dan kolom jsonb (`sections_config`, `officers_data`, `social_links`).
+  - Endpoint preview interaktif `/website/settings/preview` (`WebsiteSettingController::preview`) terautentikasi untuk pengujian visual real-time sebelum publikasi.
+
+### Changed
+- **Format FAQ Regulasi Dinamis & Multi-Rule pada Landing Page Utama (`resources/js/Pages/Home.vue`):**
+  - Dukungan rendering jawaban FAQ fleksibel untuk tipe string maupun array terstruktur (`<ol class="list-decimal pl-5">`) dengan penomoran berurutan dan keying berbasis index.
+  - Penegasan teks kepatuhan hukum PP No. 11 Tahun 2021, Permendesa PDTT No. 15 Tahun 2021, dan Kepmendesa PDTT No. 136 Tahun 2022 tanpa raw style/hex inline.
+
 ## [2026-09-15]
 
 ### Changed

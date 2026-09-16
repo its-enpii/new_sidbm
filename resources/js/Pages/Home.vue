@@ -101,24 +101,34 @@ const steps = [
 
 const faqs = [
     {
-        q: 'Apa itu SIDBM Next dan siapa saja yang dapat menggunakannya?',
-        a: 'SIDBM Next adalah sistem informasi tata kelola keuangan terpadu yang dirancang khusus untuk BUMDesma LKD (Lembaga Keuangan Desa / Eks UPK PNPM-MPd), pengelola dana bergulir masyarakat, serta instansi pembina teknis di tingkat Kabupaten (Dinas PMD & Inspektorat).',
+        q: 'Apa itu SIDBM Next dan siapa yang bisa menggunakannya?',
+        a: 'SIDBM Next adalah sistem informasi keuangan terpadu untuk BUMDesma LKD, pengelola dana bergulir masyarakat, serta instansi pembina di tingkat kabupaten seperti Dinas PMD dan Inspektorat.',
     },
     {
-        q: 'Apakah sistem ini sesuai dengan regulasi pemerintah dan standar akuntansi terkini?',
-        a: 'Ya. Sistem diselaraskan secara runut dengan tiga regulasi baku: (1) PP No. 11 Tahun 2021 tentang Badan Usaha Milik Desa dan BUMDesma sebagai badan hukum; (2) Permendesa PDTT No. 15 Tahun 2021 tentang transformasi pengelola DBM eks PNPM-MPd menjadi BUMDesma LKD beserta tata cara perguliran dana SPP/UEP; dan (3) Kepmendesa PDTT No. 136 Tahun 2022 tentang Panduan Baku Penyusunan Laporan Keuangan BUMDes/BUMDesma. Seluruh bagan akun (COA) dan laporan mengikuti standar SAK EP/ETAP — Neraca, Laba Rugi, Perubahan Ekuitas, Arus Kas, dan CALK — termasuk perhitungan otomatis Cadangan Kerugian Piutang (CKPN) serta 6 Rasio Tingkat Kesehatan Usaha.',
+        q: 'Apakah sistem ini sesuai dengan regulasi pemerintah dan standar akuntansi?',
+        a: [
+            'Ya. Sistem diselaraskan secara runut dengan tiga regulasi baku:',
+            'PP No. 11 Tahun 2021 tentang Badan Usaha Milik Desa dan BUMDesma sebagai badan hukum.',
+            'Permendesa PDTT No. 15 Tahun 2021 tentang transformasi pengelola DBM eks PNPM-MPd menjadi BUMDesma LKD beserta tata cara perguliran dana SPP/UEP.',
+            'Kepmendesa PDTT No. 136 Tahun 2022 tentang Panduan Baku Penyusunan Laporan Keuangan BUMDes/BUMDesma.',
+            'Seluruh bagan akun (COA) dan laporan mengikuti standar SAK EP/ETAP: Neraca, Laba Rugi, Perubahan Ekuitas, Arus Kas, dan CALK — termasuk perhitungan otomatis Cadangan Kerugian Piutang (CKPN) serta 6 Rasio Tingkat Kesehatan Usaha.',
+        ],
     },
     {
-        q: 'Bagaimana keamanan dan kerahasiaan data keuangan masing-masing BUMDesma?',
-        a: 'Sistem menggunakan teknologi Database Sharding terisolasi, di mana setiap BUMDesma memiliki ruang data yang independen dan terenkripsi sehingga data antar-kecamatan tidak dapat saling bercampur atau diakses tanpa izin.',
+        q: 'Bagaimana keamanan data keuangan tiap BUMDesma?',
+        a: 'Setiap BUMDesma ditempatkan pada shard basis data yang terisolasi, sehingga data antar-kecamatan tidak bercampur. Akses diatur lewat peran dan hak jawab yang granular, dan seluruh aktivitas tercatat pada audit log.',
     },
     {
-        q: 'Apakah data lama dari format Excel atau database Access dapat dipindahkan?',
-        a: 'Tersedia modul Import Wizard dan migrasi data pintar yang memudahkan pengurus memasukkan data master desa, kelompok pemanfaat, data anggota, serta riwayat saldo pinjaman lama secara cepat tanpa harus input manual satu per satu.',
+        q: 'Bisakah data lama dari Excel atau database Access dipindahkan?',
+        a: 'Bisa. Import Wizard memindahkan data master desa, kelompok pemanfaat, anggota, serta riwayat saldo pinjaman tanpa perlu input ulang satu per satu.',
     },
     {
-        q: 'Bagaimana cara BUMDesma mendaftarkan unit atau berkonsultasi implementasi?',
-        a: 'Pengurus BUMDesma maupun perwakilan Dinas PMD dapat menghubungi tim teknis kami melalui tombol "Konsultasi & Pendaftaran" di bawah ini untuk pendampingan registrasi, demonstrasi sistem, dan pelatihan operator.',
+        q: 'Berapa biaya langganan dan bagaimana cara mendaftar?',
+        a: 'Skema langganan diatur langsung oleh pengelola platform sesuai kondisi usaha Anda. Hubungi tim admin untuk konsultasi pendaftaran dan skema biayanya.',
+    },
+    {
+        q: 'Apakah sistem bisa diakses dari HP atau komputer tanpa internet?',
+        a: 'Bisa. Tersedia aplikasi pendamping Android untuk operasional lapangan dengan cetak struk dan mode luring, serta aplikasi desktop untuk membaca laporan saat jaringan turun.',
     },
 ];
 
@@ -701,7 +711,14 @@ onUnmounted(() => {
                             multiple
                         >
                             <template v-for="(faq, idx) in faqs" :key="idx" #[`content-${idx}`]="{ item }">
-                                <div class="-mx-4 -mb-4 px-4 pt-0 text-xs leading-relaxed sm:text-sm">{{ faqs[item.key].a }}</div>
+                                <div v-if="typeof faqs[item.key].a === 'string'" class="-mx-4 -mb-4 px-4 pt-0 text-xs leading-relaxed sm:text-sm">{{ faqs[item.key].a }}</div>
+                                <div v-else class="-mx-4 -mb-4 space-y-2 px-4 pt-0 text-xs leading-relaxed sm:text-sm">
+                                    <div>{{ faqs[item.key].a[0] }}</div>
+                                    <ol class="list-decimal space-y-2 pl-5">
+                                        <li v-for="line in faqs[item.key].a.slice(1, faqs[item.key].a.length > 3 ? -1 : undefined)" :key="line">{{ line }}</li>
+                                    </ol>
+                                    <div v-if="faqs[item.key].a.length > 3">{{ faqs[item.key].a.at(-1) }}</div>
+                                </div>
                             </template>
                         </AppAccordion>
                     </div>

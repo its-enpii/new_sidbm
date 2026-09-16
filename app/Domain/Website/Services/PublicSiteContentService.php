@@ -18,9 +18,33 @@ final readonly class PublicSiteContentService
     ) {}
 
     /**
+     * Public site payload. Returns null when no tenant is bound to the host,
+     * the tenant is suspended, or the tenant keeps the site in draft state.
+     *
      * @return array<string, mixed>|null
      */
     public function tenantSite(): ?array
+    {
+        $site = $this->site(includeDrafts: false);
+
+        return $site === null ? null : $site;
+    }
+
+    /**
+     * Same payload as tenantSite() but ignoring the publication state, used by
+     * the authenticated builder preview so drafts stay visible to editors.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function tenantPreview(): ?array
+    {
+        return $this->site(includeDrafts: true);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function site(bool $includeDrafts): ?array
     {
         if (! $this->context->isInitialized() || $this->context->tenant()->status === 'suspended') {
             return null;
@@ -29,6 +53,13 @@ final readonly class PublicSiteContentService
         $profile = OrganizationProfile::query()->first();
         $tenant = $this->context->tenant();
         $displayName = $profile?->displayName() ?: (string) $tenant->name;
+        $settings = $this->settings();
+
+        // Draft sites stay invisible to visitors while remaining previewable
+        // from the builder.
+        if (! $includeDrafts && ! ($settings['is_published'] ?? true)) {
+            return null;
+        }
 
         return [
             'organization' => [
@@ -47,7 +78,8 @@ final readonly class PublicSiteContentService
                 'code' => $tenant->code,
                 'is_training_mode' => $tenant->isTraining(),
             ],
-            'settings' => $this->settings(),
+            'settings' => $settings,
+            'recent_posts' => $this->featuredPosts(),
         ];
     }
 
@@ -59,6 +91,7 @@ final readonly class PublicSiteContentService
         $settings = SiteSetting::query()->first();
 
         return [
+            'template' => $settings?->template ?: 'classic',
             'hero_tagline' => $settings?->hero_tagline,
             'hero_description' => $settings?->hero_description,
             'hero_image_url' => $settings?->hero_image_path
@@ -74,7 +107,104 @@ final readonly class PublicSiteContentService
             'contact_email' => $settings?->contact_email,
             'contact_address' => $settings?->contact_address,
             'footer_note' => $settings?->footer_note,
+            'sections_config' => SiteSetting::sectionsConfigFor(is_array($settings?->sections_config) ? $settings->sections_config : null),
+            'officers_data' => $this->officers($settings?->officers_data),
+            'is_published' => $settings === null ? true : (bool) ($settings->is_published ?? true),
         ];
+    }
+
+    /**
+     * Six latest published posts for the tenant home post section.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function featuredPosts(int $limit = 6): array
+    {
+        return SitePost::query()
+            ->published()
+            ->orderByDesc('published_at')
+            ->limit($limit)
+            ->get(['id', 'slug', 'title', 'excerpt', 'cover_image_path', 'published_at', 'author_name'])
+            ->map(fn (SitePost $post): array => [
+                'id' => (int) $post->getAttribute('id'),
+                'slug' => $post->slug,
+                'title' => $post->title,
+                'excerpt' => $post->excerpt,
+                'cover_image_url' => $this->coverImageUrl($post->cover_image_path),
+                'published_at' => $post->published_at?->toIso8601String(),
+                'author_name' => $post->author_name,
+            ])
+            ->all();
+    }
+
+    /**
+     * Normalize the stored officers list: drop empty rows and attach public
+     * photo URLs for freshly uploaded (non-absolute) paths.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function officers(mixed $officers): array
+    {
+        if (! is_array($officers)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            array_map($this->normalizeOfficer(...), $officers),
+            fn (?array $officer): bool => $officer !== null,
+        ));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function normalizeOfficer(mixed $officer): ?array
+    {
+        if (! is_array($officer)) {
+            return null;
+        }
+
+        $name = trim((string) ($officer['name'] ?? ''));
+        if ($name === '') {
+            return null;
+        }
+
+        $photo = $officer['photo_path'] ?? null;
+        $photo = is_string($photo) && $photo !== '' ? $photo : null;
+
+        return [
+            'name' => $name,
+            'position' => $this->textOrNull($officer['position'] ?? null),
+            'phone' => $this->textOrNull($officer['phone'] ?? null),
+            'email' => $this->textOrNull($officer['email'] ?? null),
+            'social' => $this->textOrNull($officer['social'] ?? null),
+            'photo_url' => $this->officerPhotoUrl($photo),
+            'photo_path' => $photo,
+        ];
+    }
+
+    private function officerPhotoUrl(?string $path): ?string
+    {
+        if ($path === null) {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return Storage::disk('public')->url($path);
+    }
+
+    private function textOrNull(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed === '' ? null : $trimmed;
     }
 
     /**

@@ -400,6 +400,9 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
         Route::get('/settings', [WebsiteSettingController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [WebsiteSettingController::class, 'update'])->name('settings.update');
 
+        // Authenticated live preview of the tenant's public site (builder tab)
+        Route::get('/preview', [WebsiteSettingController::class, 'preview'])->name('preview');
+
         // Inbox for the public contact form
         Route::get('/messages', [WebsiteMessageController::class, 'index'])->name('messages.index');
         Route::post('/messages/{message}/read', [WebsiteMessageController::class, 'markRead'])->name('messages.read');
