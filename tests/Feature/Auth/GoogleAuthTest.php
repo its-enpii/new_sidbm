@@ -80,24 +80,35 @@ final class GoogleAuthTest extends TestCase
         $this->assertEquals('google-123', $user->fresh()->google_id);
     }
 
-    public function test_callback_auto_links_user_matched_by_email(): void
+    public function test_callback_rejects_unlinked_user_even_if_email_matches(): void
     {
         $user = $this->createUser([
-            'email' => 'auto@example.test',
+            'email' => 'existing@example.test',
             'google_id' => null,
         ]);
 
-        $this->fakeGoogleTokenAndUserinfo('google-999', 'auto@example.test');
+        $this->fakeGoogleTokenAndUserinfo('google-999', 'existing@example.test');
 
         $this->get($this->callbackUrl('login'))
-            ->assertRedirect('/dashboard');
+            ->assertRedirect('/login')
+            ->assertSessionHas('error');
 
-        $this->assertAuthenticatedAs($user);
+        $this->assertGuest();
+        $this->assertNull($user->fresh()->google_id);
+    }
 
-        $fresh = $user->fresh();
-        $this->assertEquals('google-999', $fresh->google_id);
-        $this->assertEquals('auto@example.test', $fresh->google_email);
-        $this->assertNotNull($fresh->google_linked_at);
+    public function test_callback_does_not_auto_register_new_user(): void
+    {
+        $count = User::count();
+
+        $this->fakeGoogleTokenAndUserinfo('google-new', 'brandnew@example.test');
+
+        $this->get($this->callbackUrl('login'))
+            ->assertRedirect('/login')
+            ->assertSessionHas('error');
+
+        $this->assertGuest();
+        $this->assertSame($count, User::count());
     }
 
     public function test_callback_rejects_unknown_google_account(): void

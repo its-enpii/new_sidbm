@@ -144,26 +144,10 @@ final class GoogleAuthController extends Controller
     {
         $user = User::query()->where('google_id', $google['google_id'])->first();
 
-        if ($user === null && $google['email'] !== '') {
-            $user = User::query()
-                ->where('email', $google['email'])
-                ->where('status', 'active')
-                ->first();
-
-            if ($user !== null) {
-                $user->forceFill([
-                    'google_id' => $google['google_id'],
-                    'google_email' => $google['email'],
-                    'google_avatar' => $google['avatar'],
-                    'google_linked_at' => now(),
-                ])->save();
-            }
-        }
-
         if ($user === null) {
             return redirect()
                 ->route('login')
-                ->with('error', 'Akun Google ('.$google['email'].') belum terdaftar atau belum dihubungkan. Silakan login menggunakan username dan hubungkan di halaman Profil.');
+                ->with('error', 'Akun Google ('.$google['email'].') belum terhubung dengan akun pengguna manapun. Silakan masuk dengan username/email dan kata sandi Anda, lalu hubungkan akun Google di halaman Profil.');
         }
 
         if ($user->status !== 'active') {
