@@ -49,6 +49,16 @@ final class ProfileController
             'account' => [
                 'username' => (string) $user->username,
             ],
+            'google' => [
+                'connected' => $user->isGoogleConnected(),
+                'email' => $user->google_email,
+                'avatar' => $user->google_avatar,
+                'linked_at' => $user->google_linked_at?->translatedFormat('d F Y H:i'),
+            ],
+            'notificationSettings' => [
+                'billing' => $user->receivesBillingEmail(),
+                'announcements' => $user->receivesAnnouncementEmail(),
+            ],
             'photoUrl' => $user->photo_path
                 ? asset('storage/'.ltrim((string) $user->photo_path, '/')).'?v='.($user->updated_at?->timestamp ?? time())
                 : null,

@@ -26,6 +26,14 @@ const purposeLabels = {
     other: 'Lainnya',
 };
 
+const sendEmailForm = useForm({});
+
+function sendEmail() {
+    sendEmailForm.post(`/admin/invoices/${props.invoice.row_id}/send-email`, {
+        preserveScroll: true,
+    });
+}
+
 const manualForm = useForm({
     amount: props.invoice.remaining,
     paid_at: new Date().toISOString().slice(0, 10),
@@ -105,6 +113,14 @@ const paymentColumns = [
                     :loading="voidForm.processing"
                     @click="voidInvoice"
                 >Void</AppButton>
+                <AppButton
+                    variant="secondary"
+                    icon="email"
+                    :loading="sendEmailForm.processing"
+                    @click="sendEmail"
+                >
+                    Kirim ke Email
+                </AppButton>
             </header>
 
             <!-- Access Blocking Control Card -->

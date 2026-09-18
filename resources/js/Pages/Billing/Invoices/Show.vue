@@ -78,6 +78,14 @@ function checkStatus() {
     });
 }
 
+const sendEmailForm = useForm({});
+
+function sendEmail() {
+    sendEmailForm.post(`/billing/invoices/${props.invoice.row_id}/send-email`, {
+        preserveScroll: true,
+    });
+}
+
 function copyToClipboard(text, fieldName) {
     if (!text) return;
     navigator.clipboard.writeText(String(text));
@@ -387,7 +395,7 @@ const paymentColumns = [
                         </div>
                     </div>
 
-                    <div class="pt-2">
+                    <div class="pt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
                         <AppButton
                             v-if="can('billing.pay')"
                             class="w-full sm:w-auto"
@@ -396,6 +404,17 @@ const paymentColumns = [
                             @click="pay"
                         >
                             {{ active_payment ? 'Ganti ke Metode Ini' : 'Dapatkan Kode Pembayaran' }}
+                        </AppButton>
+
+                        <AppButton
+                            v-if="can('billing.view')"
+                            variant="secondary"
+                            class="w-full sm:w-auto"
+                            icon="email"
+                            :loading="sendEmailForm.processing"
+                            @click="sendEmail"
+                        >
+                            Kirim ke Email
                         </AppButton>
                     </div>
                 </AppCard>

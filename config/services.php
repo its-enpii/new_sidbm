@@ -20,6 +20,12 @@ return [
     'holding_sso' => [
         'secret' => env('HOLDING_SSO_SECRET', ''),
     ],
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID', ''),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET', ''),
+        'redirect_uri' => env('GOOGLE_REDIRECT_URI', env('APP_URL', 'http://localhost').'/auth/google/callback'),
+    ],
+
     'desktop' => [
         'api_key' => env('DESKTOP_SYNC_API_KEY', env('DESKTOP_API_KEY', '')),
         'enabled' => (bool) env('DESKTOP_SYNC_ENABLED', true),

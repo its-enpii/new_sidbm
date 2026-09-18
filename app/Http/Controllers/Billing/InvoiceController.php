@@ -8,6 +8,7 @@ use App\Domain\Access\Services\PermissionChecker;
 use App\Models\Platform\Invoice;
 use App\Models\Platform\InvoicePayment;
 use App\Services\Billing\DuitkuClient;
+use App\Services\Billing\InvoiceEmailService;
 use App\Services\Billing\InvoicePaymentService;
 use App\Services\Billing\TripayClient;
 use App\Services\Billing\XenditClient;
@@ -219,6 +220,21 @@ final class InvoiceController
         }
 
         return back()->with('info', 'Status pembayaran belum berubah. Silakan lakukan pembayaran jika belum.');
+    }
+
+    public function sendEmail(
+        Request $request,
+        Invoice $invoice,
+        TenantContext $context,
+        InvoiceEmailService $emails,
+    ): RedirectResponse {
+        $this->permissions->denyUnless($request->user(), 'billing.view');
+        $this->assertTenantOwns($invoice, $context);
+
+        $recipient = $request->query('recipient');
+        $result = $emails->sendInvoice($invoice, is_string($recipient) ? $recipient : null);
+
+        return back()->with($result['success'] ? 'success' : 'error', $result['message']);
     }
 
     private function assertTenantOwns(Invoice $invoice, TenantContext $context): void

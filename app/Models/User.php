@@ -43,7 +43,31 @@ final class User extends Authenticatable
             'appointed_at' => 'date',
             'term_end_at' => 'date',
             'notifications_read' => 'array',
+            'google_linked_at' => 'datetime',
+            'email_notifications' => 'array',
         ];
+    }
+
+    public function isGoogleConnected(): bool
+    {
+        return ! empty($this->google_id);
+    }
+
+    public function receivesBillingEmail(): bool
+    {
+        return (bool) ($this->email_notifications['billing'] ?? true);
+    }
+
+    public function receivesAnnouncementEmail(): bool
+    {
+        return (bool) ($this->email_notifications['announcements'] ?? true);
+    }
+
+    public function getNotificationEmail(): ?string
+    {
+        return ($this->google_email !== null && $this->google_email !== '')
+            ? (string) $this->google_email
+            : ($this->email !== null && $this->email !== '' ? (string) $this->email : null);
     }
 
     public function normalizePhone(): string

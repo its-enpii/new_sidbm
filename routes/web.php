@@ -33,6 +33,7 @@ use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Assets\AssetController;
 use App\Http\Controllers\Assistant\AssistantAccessRequestController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\HoldingSsoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Billing\InvoiceController as TenantInvoiceController;
@@ -140,6 +141,12 @@ Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
 
+Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])
+    ->middleware('throttle:10,1')
+    ->name('auth.google.redirect');
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])
+    ->name('auth.google.callback');
+
 Route::get('/auth/holding', HoldingSsoController::class)
     ->middleware(['web', 'throttle:10,1'])
     ->name('auth.holding');
@@ -214,6 +221,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::get('/invoices/{invoice}', [AdminInvoiceController::class, 'show'])->name('invoices.show');
     Route::post('/invoices/{invoice}/void', [AdminInvoiceController::class, 'void'])->name('invoices.void');
     Route::post('/invoices/{invoice}/toggle-blocking', [AdminInvoiceController::class, 'toggleBlocking'])->name('invoices.toggle-blocking');
+    Route::post('/invoices/{invoice}/send-email', [AdminInvoiceController::class, 'sendEmail'])->name('invoices.send-email');
     Route::post('/invoices/{invoice}/payments/manual', [AdminInvoicePaymentController::class, 'storeManual'])->name('invoices.payments.manual');
     Route::post('/invoices/{invoice}/payments/tripay', [AdminInvoicePaymentController::class, 'storeTripay'])->name('invoices.payments.tripay');
     Route::get('/revenue', AdminRevenueController::class)->name('revenue.index');
@@ -369,12 +377,18 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
     Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
     Route::delete('/profile/photo', [ProfileController::class, 'destroyPhoto'])->name('profile.photo.destroy');
 
+    Route::delete('/profile/google', [GoogleAuthController::class, 'unlink'])
+        ->name('auth.google.unlink');
+    Route::put('/profile/notifications', [GoogleAuthController::class, 'updateNotificationSettings'])
+        ->name('profile.notifications.update');
+
     Route::prefix('billing')->name('billing.')->group(function (): void {
         Route::get('/invoices', [TenantInvoiceController::class, 'index'])->name('invoices.index');
         Route::get('/invoices/{invoice}', [TenantInvoiceController::class, 'show'])->name('invoices.show');
         Route::post('/invoices/{invoice}/checkout/tripay', [TenantInvoiceController::class, 'checkoutTripay'])->name('invoices.checkout.tripay');
         Route::post('/invoices/{invoice}/pay', [TenantInvoiceController::class, 'pay'])->name('invoices.pay');
         Route::post('/invoices/{invoice}/check-status', [TenantInvoiceController::class, 'checkStatus'])->name('invoices.check-status');
+        Route::post('/invoices/{invoice}/send-email', [TenantInvoiceController::class, 'sendEmail'])->name('invoices.send-email');
     });
 
     // Website (public site content: blog & static pages)

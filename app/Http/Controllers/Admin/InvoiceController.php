@@ -9,6 +9,7 @@ use App\Models\Platform\Invoice;
 use App\Models\Platform\Subscription;
 use App\Models\Platform\Tenant;
 use App\Services\Admin\AuditLogger;
+use App\Services\Billing\InvoiceEmailService;
 use App\Services\Billing\InvoiceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -132,6 +133,18 @@ final class InvoiceController
                 'notes' => $p->notes,
             ]),
         ]);
+    }
+
+    public function sendEmail(Request $request, Invoice $invoice, InvoiceEmailService $emails): RedirectResponse
+    {
+        $request->validate([
+            'recipient' => ['nullable', 'email', 'max:190'],
+        ]);
+
+        $recipient = $request->input('recipient');
+        $result = $emails->sendInvoice($invoice, is_string($recipient) && $recipient !== '' ? $recipient : null);
+
+        return back()->with($result['success'] ? 'success' : 'error', $result['message']);
     }
 
     public function void(Invoice $invoice, InvoiceService $invoices, AuditLogger $audit): RedirectResponse

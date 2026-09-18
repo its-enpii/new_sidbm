@@ -3,10 +3,12 @@ import { useConfirm } from '../../composables/useConfirm';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import AppButton from '../../Components/AppButton.vue';
+import AppBadge from '../../Components/AppBadge.vue';
 import AppCard from '../../Components/AppCard.vue';
 import AppDatePicker from '../../Components/AppDatePicker.vue';
 import AppIcon from '../../Components/AppIcon.vue';
 import AppInput from '../../Components/AppInput.vue';
+import AppSwitch from '../../Components/AppSwitch.vue';
 import AppTextarea from '../../Components/AppTextarea.vue';
 import AppTabs from '../../Components/AppTabs.vue';
 import SmartSelect from '../../Components/SmartSelect.vue';
@@ -17,6 +19,8 @@ const props = defineProps({
     account: { type: Object, required: true },
     photoUrl: { type: String, default: null },
     educationOptions: { type: Array, required: true },
+    google: { type: Object, default: () => ({ connected: false, email: null, avatar: null, linked_at: null }) },
+    notificationSettings: { type: Object, default: () => ({ billing: true, announcements: true }) },
 });
 
 const page = usePage();
@@ -125,6 +129,21 @@ function submitPhoto() {
     });
 }
 
+const notificationForm = useForm({
+    billing: props.notificationSettings.billing,
+    announcements: props.notificationSettings.announcements,
+});
+
+function submitNotificationSettings() {
+    notificationForm.put('/profile/notifications', { preserveScroll: true });
+}
+
+const googleBenefits = [
+    { icon: 'rocket_launch', text: 'Login cepat dengan opsi "Lanjutkan dengan Google"' },
+    { icon: 'receipt_long', text: 'Penagihan seperti langganan aplikasi, pelatihan, dll. dikirim melalui email' },
+    { icon: 'auto_awesome', text: 'Pemberitahuan fitur dan pembaruan sistem mendatang' },
+];
+
 const { confirm: confirmAction } = useConfirm();
 
 async function destroyPhoto() {
@@ -136,6 +155,20 @@ async function destroyPhoto() {
             imageError.value = false;
         },
     });
+}
+
+const unlinkForm = useForm({});
+
+async function confirmUnlinkGoogle() {
+    if (!await confirmAction({
+        title: 'Putuskan Hubungan Google',
+        message: 'Akun Google akan dilepas dari akun SIDBM Next Anda. Login cepat dan pengiriman tagihan via email dinonaktifkan hingga Anda menghubungkan ulang akun Google.',
+        confirmLabel: 'Putuskan',
+        variant: 'danger',
+        icon: 'link_off',
+    })) return;
+
+    unlinkForm.delete('/profile/google', { preserveScroll: true });
 }
 </script>
 
@@ -306,6 +339,97 @@ async function destroyPhoto() {
                                 </AppButton>
                             </div>
                         </form>
+                    </AppCard>
+
+                    <AppCard v-show="activeTab === 'account'" bordered class="space-y-5">
+                        <template #header>
+                            <div>
+                                <h2 class="text-lg font-bold text-primary">Integrasi Akun Google</h2>
+                                <p class="text-sm text-on-surface-variant">Hubungkan akun Google untuk login lebih cepat, pengiriman tagihan langganan/pelatihan melalui email, dan pemberitahuan fitur mendatang.</p>
+                            </div>
+                            <AppBadge :tone="props.google.connected ? 'success' : 'neutral'">
+                                {{ props.google.connected ? 'Terhubung' : 'Belum Terhubung' }}
+                            </AppBadge>
+                        </template>
+
+                        <ul v-if="!props.google.connected" class="space-y-3">
+                            <li
+                                v-for="(benefit, index) in googleBenefits"
+                                :key="index"
+                                class="flex items-start gap-3 rounded-lg bg-surface-container-low p-3"
+                            >
+                                <AppIcon :name="benefit.icon" tone="primary" container-size="8" class="shrink-0" />
+                                <span class="text-sm text-on-surface-variant">{{ benefit.text }}</span>
+                            </li>
+                        </ul>
+
+                        <div v-if="props.google.connected" class="space-y-4">
+                            <div class="flex items-center gap-4 rounded-lg border border-outline-variant bg-surface-container-low p-4">
+                                <img
+                                    v-if="props.google.avatar"
+                                    :src="props.google.avatar"
+                                    alt="Foto akun Google"
+                                    class="size-12 rounded-full border border-outline-variant object-cover"
+                                />
+                                <div v-else class="grid size-12 shrink-0 place-items-center rounded-full bg-primary-container text-on-primary-container">
+                                    <AppIcon name="person" class="text-2xl" />
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="truncate text-sm font-bold text-primary">{{ props.google.email }}</p>
+                                    <p v-if="props.google.linked_at" class="text-xs text-on-surface-variant">
+                                        Terhubung sejak {{ props.google.linked_at }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3 border-t border-outline-variant pt-4">
+                                <p class="text-sm font-bold text-primary">Preferensi Notifikasi Email</p>
+                                <form class="space-y-3" @submit.prevent="submitNotificationSettings">
+                                    <AppSwitch
+                                        v-model="notificationForm.billing"
+                                        icon="receipt_long"
+                                        label="Terima tagihan langganan &amp; pelatihan via email"
+                                    />
+                                    <AppSwitch
+                                        v-model="notificationForm.announcements"
+                                        icon="campaign"
+                                        label="Terima pengumuman pembaruan fitur via email"
+                                    />
+                                    <div class="flex justify-end">
+                                        <AppButton
+                                            type="submit"
+                                            icon="save"
+                                            :loading="notificationForm.processing"
+                                            :disabled="notificationForm.processing"
+                                        >
+                                            Simpan Preferensi
+                                        </AppButton>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3 border-t border-outline-variant pt-4">
+                            <a
+                                v-if="!props.google.connected"
+                                href="/auth/google/redirect?action=link"
+                                class="block w-full sm:w-auto"
+                            >
+                                <AppButton type="button" variant="secondary" icon="link" class="w-full font-bold">
+                                    Hubungkan Akun Google
+                                </AppButton>
+                            </a>
+                            <AppButton
+                                v-else
+                                type="button"
+                                variant="danger"
+                                icon="link_off"
+                                :loading="unlinkForm.processing"
+                                @click="confirmUnlinkGoogle"
+                            >
+                                Putuskan Hubungan Google
+                            </AppButton>
+                        </div>
                     </AppCard>
 
                     <AppCard v-show="activeTab === 'photo'" bordered>
