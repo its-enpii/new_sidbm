@@ -214,3 +214,4 @@
         </td>
     </tr>
 </table>
+@include('reports.pdf.loan_documents.partials.footer')

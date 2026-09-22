@@ -340,3 +340,4 @@
         </tr>
     </table>
 </div>
+@include('reports.pdf.loan_documents.partials.footer')

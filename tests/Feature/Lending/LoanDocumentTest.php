@@ -250,6 +250,38 @@ final class LoanDocumentTest extends TestCase
         self::assertSame('KLP-001', $payload['group']['code']);
     }
 
+    public function test_disbursement_documents_contain_spk_and_disbursement_date_footer(): void
+    {
+        $loan = $this->seedLoan('active');
+        $service = app(LoanDocumentService::class);
+
+        foreach (['spk', 'berita_acara_pencairan', 'rencana_angsuran'] as $documentKey) {
+            $payload = $service->payload($loan, $documentKey);
+            $meta = $service->resolve($documentKey);
+            $rendered = view($meta['view'], $payload)->render();
+
+            self::assertStringContainsString('disbursement-footer', $rendered);
+            self::assertStringContainsString('No. SPK: '.$loan->loan_number, $rendered);
+            self::assertStringContainsString('Tgl. Cair: '.$payload['tokens']['{tgl_cair}'], $rendered);
+        }
+    }
+
+    public function test_excluded_documents_do_not_contain_disbursement_footer(): void
+    {
+        $loan = $this->seedLoan('active');
+        $service = app(LoanDocumentService::class);
+
+        foreach (['cover_pencairan', 'kuitansi_pencairan', 'kuitansi_anggota', 'kartu_angsuran_anggota'] as $documentKey) {
+            $payload = $service->payload($loan, $documentKey);
+            $meta = $service->resolve($documentKey);
+            $rendered = view($meta['view'], $payload)->render();
+
+            self::assertStringNotContainsString('disbursement-footer', $rendered);
+            self::assertStringNotContainsString('No. SPK: '.$loan->loan_number, $rendered);
+            self::assertStringNotContainsString('Tgl. Cair: '.$payload['tokens']['{tgl_cair}'], $rendered);
+        }
+    }
+
     public function test_signature_template_with_tokens_is_replaced_in_pdf_payload(): void
     {
         // Set template dengan token

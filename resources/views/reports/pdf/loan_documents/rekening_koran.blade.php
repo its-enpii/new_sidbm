@@ -197,3 +197,4 @@
 @if (!empty($signatureHtml))
     {!! $signatureHtml !!}
 @endif
+@include('reports.pdf.loan_documents.partials.footer')

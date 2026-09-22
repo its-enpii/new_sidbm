@@ -206,3 +206,4 @@
         </table>
     @endif
 @endforeach
+@include('reports.pdf.loan_documents.partials.footer')
