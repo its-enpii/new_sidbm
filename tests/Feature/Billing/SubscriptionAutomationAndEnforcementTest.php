@@ -25,6 +25,15 @@ final class SubscriptionAutomationAndEnforcementTest extends TestCase
         parent::setUp();
         $this->withoutMiddleware(PreventRequestForgery::class);
 
+        $tenantDb = (string) config('database.connections.tenant.database');
+        if (config('database.connections.tenant.driver') === 'sqlite' && $tenantDb !== ':memory:' && ! file_exists($tenantDb)) {
+            $dir = dirname($tenantDb);
+            if (! is_dir($dir)) {
+                @mkdir($dir, 0755, true);
+            }
+            @touch($tenantDb);
+        }
+
         Artisan::call('migrate:fresh', [
             '--database' => 'platform',
             '--path' => 'database/migrations/platform',
