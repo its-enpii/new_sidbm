@@ -17,7 +17,7 @@ return [
     | the default disk is used for other concerns.
     |
     */
-    'upload_disk' => env('FILESYSTEM_UPLOAD_DISK', env('FILESYSTEM_DISK', 'local')),
+    'upload_disk' => env('FILESYSTEM_UPLOAD_DISK', env('FILESYSTEM_DISK') === 'enstorage' ? 'enstorage' : 'public'),
 
     'disks' => [
         'local' => [

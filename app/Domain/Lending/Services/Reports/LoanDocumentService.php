@@ -389,7 +389,8 @@ final class LoanDocumentService
             return null;
         }
 
-        $disk = Storage::disk('public');
+        $uploadDisk = (string) config('filesystems.upload_disk', 'public');
+        $disk = Storage::disk($uploadDisk);
 
         if (! $disk->exists($path)) {
             return null;
