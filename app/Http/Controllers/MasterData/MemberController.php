@@ -144,13 +144,13 @@ final class MemberController
         $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
 
         if ($person->identity_photo_path) {
-            Storage::disk('public')->delete($person->identity_photo_path);
+            Storage::disk($this->uploadDisk())->delete($person->identity_photo_path);
         }
 
         $person->identity_photo_path = $file->storeAs(
             'identity-photos/'.$person->getKey(),
             'ktp.'.$extension,
-            'public',
+            $this->uploadDisk(),
         );
         $person->touch();
         $person->save();
@@ -166,7 +166,7 @@ final class MemberController
         $person = $member->person()->firstOrFail();
 
         if ($person->identity_photo_path) {
-            Storage::disk('public')->delete($person->identity_photo_path);
+            Storage::disk($this->uploadDisk())->delete($person->identity_photo_path);
             $person->identity_photo_path = null;
             $person->touch();
             $person->save();
@@ -298,6 +298,15 @@ final class MemberController
         }
 
         return to_route($route)->with('success', $message);
+    }
+
+    /**
+     * Disk used for user supplied uploads, following FILESYSTEM_DISK so member
+     * identity photos land on EnStorage S3 when it is the configured disk.
+     */
+    private function uploadDisk(): string
+    {
+        return (string) config('filesystems.upload_disk', config('filesystems.default', 'public'));
     }
 
     private function villages(): array

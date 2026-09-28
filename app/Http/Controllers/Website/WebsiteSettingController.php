@@ -62,7 +62,7 @@ final class WebsiteSettingController
                 'officers_data' => $this->content->officers($settings?->officers_data),
             ],
             'heroImageUrl' => $settings?->hero_image_path
-                ? Storage::disk('public')->url($settings->hero_image_path)
+                ? Storage::disk($this->uploadDisk())->url($settings->hero_image_path)
                 : null,
             'recentPosts' => $this->content->featuredPosts(),
             'siteStatus' => [
@@ -117,7 +117,7 @@ final class WebsiteSettingController
 
         if ($request->boolean('remove_hero_image')) {
             if ($settings?->hero_image_path) {
-                Storage::disk('public')->delete($settings->hero_image_path);
+                Storage::disk($this->uploadDisk())->delete($settings->hero_image_path);
             }
 
             $attributes['hero_image_path'] = null;
@@ -125,10 +125,10 @@ final class WebsiteSettingController
 
         if ($request->hasFile('hero_image')) {
             $oldPath = $settings?->hero_image_path;
-            $path = $request->file('hero_image')->store('site/settings', 'public');
+            $path = $request->file('hero_image')->store('site/settings', $this->uploadDisk());
 
             if (is_string($oldPath) && $oldPath !== '') {
-                Storage::disk('public')->delete($oldPath);
+                Storage::disk($this->uploadDisk())->delete($oldPath);
             }
 
             $attributes['hero_image_path'] = $path;
@@ -158,7 +158,7 @@ final class WebsiteSettingController
                 continue;
             }
 
-            $officers[$index]['photo_path'] = $file->store(self::OFFICER_IMAGE_DIR, 'public');
+            $officers[$index]['photo_path'] = $file->store(self::OFFICER_IMAGE_DIR, $this->uploadDisk());
             $settings->update(['officers_data' => array_values($officers)]);
         }
 
@@ -192,7 +192,7 @@ final class WebsiteSettingController
             if ($file instanceof UploadedFile) {
                 // A fresh upload replaces whatever portrait the row had.
                 if ($photo !== null && $this->isLocalPath($photo)) {
-                    Storage::disk('public')->delete($photo);
+                    Storage::disk($this->uploadDisk())->delete($photo);
                 }
 
                 $photo = null;
@@ -218,7 +218,7 @@ final class WebsiteSettingController
             $path = is_array($officer) ? trim((string) ($officer['photo_path'] ?? '')) : '';
 
             if ($path !== '' && $this->isLocalPath($path) && ! in_array($path, $keptPaths, true)) {
-                Storage::disk('public')->delete($path);
+                Storage::disk($this->uploadDisk())->delete($path);
             }
         }
 
@@ -297,6 +297,16 @@ final class WebsiteSettingController
     private function isLocalPath(string $path): bool
     {
         return ! str_starts_with($path, 'http://') && ! str_starts_with($path, 'https://');
+    }
+
+    /**
+     * Disk used for user supplied uploads, following FILESYSTEM_DISK so website
+     * assets (hero image, officer portraits) land on EnStorage S3 when it is
+     * the configured disk.
+     */
+    private function uploadDisk(): string
+    {
+        return (string) config('filesystems.upload_disk', config('filesystems.default', 'public'));
     }
 
     /**

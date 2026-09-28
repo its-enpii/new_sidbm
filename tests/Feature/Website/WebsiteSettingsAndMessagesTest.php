@@ -99,7 +99,8 @@ final class WebsiteSettingsAndMessagesTest extends TestCase
 
     public function test_update_stores_hero_image_and_remove_clears_it(): void
     {
-        Storage::fake('public');
+        $disk = $this->uploadDisk();
+        Storage::fake($disk);
 
         $this->actingAs($this->user)->put('/website/settings', [
             'hero_tagline' => null,
@@ -117,7 +118,7 @@ final class WebsiteSettingsAndMessagesTest extends TestCase
 
         $settings = SiteSetting::query()->firstOrFail();
         self::assertNotNull($settings->hero_image_path);
-        Storage::disk('public')->assertExists((string) $settings->hero_image_path);
+        Storage::disk($disk)->assertExists((string) $settings->hero_image_path);
 
         $firstPath = $settings->hero_image_path;
 
@@ -138,12 +139,13 @@ final class WebsiteSettingsAndMessagesTest extends TestCase
 
         $fresh = $settings->fresh();
         self::assertNull($fresh->hero_image_path);
-        Storage::disk('public')->assertMissing((string) $firstPath);
+        Storage::disk($disk)->assertMissing((string) $firstPath);
     }
 
     public function test_settings_update_replaces_previous_hero_image(): void
     {
-        Storage::fake('public');
+        $disk = $this->uploadDisk();
+        Storage::fake($disk);
 
         $this->actingAs($this->user)->put('/website/settings', [
             'hero_tagline' => null,
@@ -160,7 +162,7 @@ final class WebsiteSettingsAndMessagesTest extends TestCase
         ]);
         $settings = SiteSetting::query()->firstOrFail();
         $firstPath = $settings->hero_image_path;
-        Storage::disk('public')->assertExists((string) $firstPath);
+        Storage::disk($disk)->assertExists((string) $firstPath);
 
         $this->actingAs($this->user)->put('/website/settings', [
             'hero_tagline' => null,
@@ -179,8 +181,8 @@ final class WebsiteSettingsAndMessagesTest extends TestCase
         $fresh = $settings->fresh();
         self::assertNotNull($fresh->hero_image_path);
         self::assertNotSame($firstPath, $fresh->hero_image_path);
-        Storage::disk('public')->assertMissing((string) $firstPath);
-        Storage::disk('public')->assertExists((string) $fresh->hero_image_path);
+        Storage::disk($disk)->assertMissing((string) $firstPath);
+        Storage::disk($disk)->assertExists((string) $fresh->hero_image_path);
     }
 
     public function test_role_restricted_user_is_forbidden_from_settings_and_messages(): void
@@ -507,6 +509,15 @@ final class WebsiteSettingsAndMessagesTest extends TestCase
         ])->save();
         app(PublicSiteResolver::class)->flush();
         $this->clearTenantTestContext();
+    }
+
+    /**
+     * Mirror the controller: website asset uploads follow the configured
+     * upload disk rather than always living on the `public` disk.
+     */
+    private function uploadDisk(): string
+    {
+        return (string) config('filesystems.upload_disk', config('filesystems.default', 'public'));
     }
 
     /**

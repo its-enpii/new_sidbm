@@ -95,7 +95,7 @@ final readonly class PublicSiteContentService
             'hero_tagline' => $settings?->hero_tagline,
             'hero_description' => $settings?->hero_description,
             'hero_image_url' => $settings?->hero_image_path
-                ? Storage::disk('public')->url($settings->hero_image_path)
+                ? Storage::disk($this->uploadDisk())->url($settings->hero_image_path)
                 : null,
             'about_short' => $settings?->about_short,
             'social' => [
@@ -193,7 +193,7 @@ final readonly class PublicSiteContentService
             return $path;
         }
 
-        return Storage::disk('public')->url($path);
+        return Storage::disk($this->uploadDisk())->url($path);
     }
 
     private function textOrNull(mixed $value): ?string
@@ -357,7 +357,16 @@ final readonly class PublicSiteContentService
 
     private function coverImageUrl(?string $path): ?string
     {
-        return $path !== null ? Storage::disk('public')->url($path) : null;
+        return $path !== null ? Storage::disk($this->uploadDisk())->url($path) : null;
+    }
+
+    /**
+     * Disk used for user supplied uploads, following FILESYSTEM_DISK so public
+     * image URLs resolve against EnStorage S3 when it is the configured disk.
+     */
+    private function uploadDisk(): string
+    {
+        return (string) config('filesystems.upload_disk', config('filesystems.default', 'public'));
     }
 
     private function composeAddress(?OrganizationProfile $profile): ?string

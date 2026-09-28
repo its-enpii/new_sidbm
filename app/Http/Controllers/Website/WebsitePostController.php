@@ -133,7 +133,7 @@ final class WebsitePostController
         $this->permissions->denyUnless($request->user(), 'website.manage');
 
         if (is_string($post->cover_image_path) && $post->cover_image_path !== '') {
-            Storage::disk('public')->delete($post->cover_image_path);
+            Storage::disk($this->uploadDisk())->delete($post->cover_image_path);
             $post->update(['cover_image_path' => null]);
         }
 
@@ -183,13 +183,22 @@ final class WebsitePostController
         }
 
         $file = $request->file('cover_image');
-        $path = $file->storeAs("site/posts/{$post->id}", 'cover.'.$file->getClientOriginalExtension(), 'public');
+        $path = $file->storeAs("site/posts/{$post->id}", 'cover.'.$file->getClientOriginalExtension(), $this->uploadDisk());
 
         if (is_string($post->cover_image_path) && $post->cover_image_path !== $path) {
-            Storage::disk('public')->delete($post->cover_image_path);
+            Storage::disk($this->uploadDisk())->delete($post->cover_image_path);
         }
 
         $post->update(['cover_image_path' => $path]);
+    }
+
+    /**
+     * Disk used for user supplied uploads, following FILESYSTEM_DISK so website
+     * cover images land on EnStorage S3 when it is the configured disk.
+     */
+    private function uploadDisk(): string
+    {
+        return (string) config('filesystems.upload_disk', config('filesystems.default', 'public'));
     }
 
     private function slugify(string $title): string

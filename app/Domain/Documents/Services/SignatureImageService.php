@@ -13,8 +13,6 @@ final class SignatureImageService
 {
     public const SETTING_KEY = 'signatures.images';
 
-    private const DISK = 'public';
-
     private const MIME_MAP = [
         'png' => 'image/png',
         'jpg' => 'image/jpeg',
@@ -26,6 +24,15 @@ final class SignatureImageService
         private readonly TenantSettingService $settings,
         private readonly TenantContext $context,
     ) {}
+
+    /**
+     * Disk holding the signature images. Follows the configured default disk so
+     * FILESYSTEM_DISK=enstorage transparently moves signatures to EnStorage S3.
+     */
+    private function disk(): string
+    {
+        return (string) config('filesystems.upload_disk', config('filesystems.default', 'public'));
+    }
 
     /**
      * @return array<string, string|null>
@@ -84,7 +91,7 @@ final class SignatureImageService
 
         $tenantId = $this->context->id();
         $path = "tenants/{$tenantId}/signatures/{$reportKey}.{$extension}";
-        Storage::disk(self::DISK)->put($path, $binary);
+        Storage::disk($this->disk())->put($path, $binary);
 
         $paths = $this->paths();
         $paths[$reportKey] = $path;
@@ -101,7 +108,7 @@ final class SignatureImageService
 
         $path = $this->path($reportKey);
         if ($path !== null) {
-            Storage::disk(self::DISK)->delete($path);
+            Storage::disk($this->disk())->delete($path);
         }
 
         if (! $persistSetting) {
@@ -123,11 +130,11 @@ final class SignatureImageService
             return null;
         }
 
-        if (! Storage::disk(self::DISK)->exists($path)) {
+        if (! Storage::disk($this->disk())->exists($path)) {
             return null;
         }
 
-        $binary = Storage::disk(self::DISK)->get($path);
+        $binary = Storage::disk($this->disk())->get($path);
         if ($binary === null || $binary === '') {
             return null;
         }

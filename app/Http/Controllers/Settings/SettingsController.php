@@ -175,10 +175,10 @@ final class SettingsController
 
         $profile = OrganizationProfile::query()->first();
         if ($profile !== null && $profile->logo_path) {
-            Storage::disk('public')->delete($profile->logo_path);
+            Storage::disk($this->uploadDisk())->delete($profile->logo_path);
         }
 
-        $path = $file->storeAs("tenants/{$tenantId}", 'logo.'.$extension, 'public');
+        $path = $file->storeAs("tenants/{$tenantId}", 'logo.'.$extension, $this->uploadDisk());
 
         DB::connection('tenant')->table('organization_profiles')->updateOrInsert(
             ['tenant_id' => $tenantId],
@@ -200,7 +200,7 @@ final class SettingsController
         $profile = OrganizationProfile::query()->first();
 
         if ($profile !== null && $profile->logo_path) {
-            Storage::disk('public')->delete($profile->logo_path);
+            Storage::disk($this->uploadDisk())->delete($profile->logo_path);
             DB::connection('tenant')->table('organization_profiles')
                 ->where('tenant_id', $tenantId)
                 ->update(['logo_path' => null, 'updated_at' => now()]);
@@ -313,6 +313,15 @@ final class SettingsController
         }
 
         return $this->flashRedirect('Pengaturan akses offline berhasil disimpan.', 'offline');
+    }
+
+    /**
+     * Disk used for user supplied uploads, following FILESYSTEM_DISK so tenant
+     * logos land on EnStorage S3 when it is the configured disk.
+     */
+    private function uploadDisk(): string
+    {
+        return (string) config('filesystems.upload_disk', config('filesystems.default', 'public'));
     }
 
     private function whatsappPayload(TenantSettingService $settings, WhatsappGatewayService $gateway): array

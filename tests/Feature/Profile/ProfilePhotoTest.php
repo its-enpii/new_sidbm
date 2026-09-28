@@ -48,7 +48,8 @@ final class ProfilePhotoTest extends TestCase
 
     public function test_user_can_upload_profile_photo_and_persists(): void
     {
-        Storage::fake('public');
+        $disk = $this->uploadDisk();
+        Storage::fake($disk);
 
         $user = $this->createTenantMember();
         $fakeImage = UploadedFile::fake()->image('profile_pic.jpg', 200, 200);
@@ -64,7 +65,7 @@ final class ProfilePhotoTest extends TestCase
         $this->assertNotNull($freshUser->photo_path);
         $this->assertStringStartsWith('users/'.$user->row_id.'/photo.', $freshUser->photo_path);
 
-        Storage::disk('public')->assertExists($freshUser->photo_path);
+        Storage::disk($disk)->assertExists($freshUser->photo_path);
     }
 
     public function test_uploaded_photo_can_be_served_via_storage_route(): void
@@ -108,7 +109,8 @@ final class ProfilePhotoTest extends TestCase
 
     public function test_user_can_delete_profile_photo(): void
     {
-        Storage::fake('public');
+        $disk = $this->uploadDisk();
+        Storage::fake($disk);
 
         $user = $this->createTenantMember();
         $fakeImage = UploadedFile::fake()->image('profile_pic.jpg', 200, 200);
@@ -123,7 +125,16 @@ final class ProfilePhotoTest extends TestCase
 
         $finalUser = User::query()->find($user->row_id);
         $this->assertNull($finalUser->photo_path);
-        Storage::disk('public')->assertMissing($photoPath);
+        Storage::disk($disk)->assertMissing($photoPath);
+    }
+
+    /**
+     * Mirror the controller: uploads follow the configured upload disk rather
+     * than always living on the `public` disk.
+     */
+    private function uploadDisk(): string
+    {
+        return (string) config('filesystems.upload_disk', config('filesystems.default', 'public'));
     }
 
     private function createTenantMember(): User

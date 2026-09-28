@@ -116,13 +116,13 @@ final class ProfileController
         $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
 
         if ($user->photo_path) {
-            Storage::disk('public')->delete($user->photo_path);
+            Storage::disk($this->uploadDisk())->delete($user->photo_path);
         }
 
         $path = $file->storeAs(
             'users/'.$user->getKey(),
             'photo.'.$extension,
-            'public',
+            config('filesystems.upload_disk', config('filesystems.default', 'public')),
         );
 
         $user->photo_path = $path;
@@ -134,12 +134,21 @@ final class ProfileController
             ->with('success', ['message' => 'Foto profil berhasil diunggah.', 'tab' => 'photo']);
     }
 
+    /**
+     * Disk used for user supplied uploads, following FILESYSTEM_DISK so that
+     * profile photos land on EnStorage S3 when it is the configured disk.
+     */
+    private function uploadDisk(): string
+    {
+        return (string) config('filesystems.upload_disk', config('filesystems.default', 'public'));
+    }
+
     public function destroyPhoto(): RedirectResponse
     {
         $user = auth()->user();
 
         if ($user->photo_path) {
-            Storage::disk('public')->delete($user->photo_path);
+            Storage::disk($this->uploadDisk())->delete($user->photo_path);
             $user->photo_path = null;
             $user->touch();
             $user->save();

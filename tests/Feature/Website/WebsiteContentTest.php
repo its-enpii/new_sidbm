@@ -168,7 +168,8 @@ final class WebsiteContentTest extends TestCase
 
     public function test_store_upload_then_remove_cover(): void
     {
-        Storage::fake('public');
+        $disk = $this->uploadDisk();
+        Storage::fake($disk);
 
         $this->actingAs($this->user)->post('/website/posts', [
             'title' => 'Berita Bergambar',
@@ -179,11 +180,11 @@ final class WebsiteContentTest extends TestCase
 
         $post = SitePost::query()->firstOrFail();
         self::assertNotNull($post->cover_image_path);
-        Storage::disk('public')->assertExists((string) $post->cover_image_path);
+        Storage::disk($disk)->assertExists((string) $post->cover_image_path);
 
         $this->actingAs($this->user)->delete('/website/posts/'.$post->row_id.'/cover')->assertRedirect();
         self::assertNull($post->fresh()->cover_image_path);
-        Storage::disk('public')->assertMissing((string) $post->cover_image_path);
+        Storage::disk($disk)->assertMissing((string) $post->cover_image_path);
     }
 
     public function test_guest_is_redirected_to_login(): void
@@ -335,6 +336,15 @@ final class WebsiteContentTest extends TestCase
         } finally {
             File::delete($outboxDb);
         }
+    }
+
+    /**
+     * Mirror the controller: website cover image uploads follow the configured
+     * upload disk rather than always living on the `public` disk.
+     */
+    private function uploadDisk(): string
+    {
+        return (string) config('filesystems.upload_disk', config('filesystems.default', 'public'));
     }
 
     private function activateTenantDomain(): void
