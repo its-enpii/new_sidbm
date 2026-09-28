@@ -43,7 +43,7 @@ return [
             'region' => env('ENSTORAGE_REGION', env('AWS_DEFAULT_REGION', 'us-east-1')),
             'bucket' => env('ENSTORAGE_BUCKET', env('AWS_BUCKET', 'public')),
             'url' => env('ENSTORAGE_URL', env('AWS_URL')),
-            'endpoint' => env('ENSTORAGE_ENDPOINT', env('AWS_ENDPOINT', 'https://enstorage.enpiistudio.com/s3')),
+            'endpoint' => env('ENSTORAGE_ENDPOINT', env('AWS_ENDPOINT', 'https://enstorage.enpiistudio.com/api/v1/s3')),
             'use_path_style_endpoint' => env('ENSTORAGE_USE_PATH_STYLE_ENDPOINT', true),
             'throw' => false,
             'report' => false,
