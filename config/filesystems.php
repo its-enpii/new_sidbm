@@ -45,6 +45,20 @@ return [
             'url' => env('ENSTORAGE_URL', env('AWS_URL')),
             'endpoint' => env('ENSTORAGE_ENDPOINT', env('AWS_ENDPOINT', 'https://enstorage.enpiistudio.com/api/v1/s3')),
             'use_path_style_endpoint' => env('ENSTORAGE_USE_PATH_STYLE_ENDPOINT', true),
+            /*
+             | API key ikut dikirim sebagai header `X-API-Key` pada setiap
+             | request. Ini jalur autentikasi yang andal di produksi: proxy
+             | (Cloudflare/nginx) bisa membuang header yang ikut
+             | ditandatangani AWS SDK (`X-Amz-User-Agent`) sehingga SigV4
+             | gagal, sedangkan API key selalu lolos apa adanya.
+             */
+            'options' => [
+                'http' => [
+                    'headers' => [
+                        'X-API-Key' => env('ENSTORAGE_KEY', env('AWS_ACCESS_KEY_ID')),
+                    ],
+                ],
+            ],
             'throw' => false,
             'report' => false,
         ],
