@@ -47,16 +47,17 @@ return [
             'use_path_style_endpoint' => env('ENSTORAGE_USE_PATH_STYLE_ENDPOINT', true),
             /*
              | API key ikut dikirim sebagai header `X-API-Key` pada setiap
-             | request. Ini jalur autentikasi yang andal di produksi: proxy
-             | (Cloudflare/nginx) bisa membuang header yang ikut
-             | ditandatangani AWS SDK (`X-Amz-User-Agent`) sehingga SigV4
-             | gagal, sedangkan API key selalu lolos apa adanya.
+             | request. Signature SigV4 tetap dikirim, tetapi API key
+             | menjamin autentikasi tetap berhasil apa pun perlakuan proxy
+             | terhadap header yang ikut ditandatangani.
+             |
+             | Kunci `http` (bukan `options`) yang benar: FilesystemManager
+             | meneruskan seluruh konfigurasi disk ke konstruktor S3Client,
+             | dan hanya `http` yang dibaca Guzzle untuk opsi koneksi.
              */
-            'options' => [
-                'http' => [
-                    'headers' => [
-                        'X-API-Key' => env('ENSTORAGE_KEY', env('AWS_ACCESS_KEY_ID')),
-                    ],
+            'http' => [
+                'headers' => [
+                    'X-API-Key' => env('ENSTORAGE_KEY', env('AWS_ACCESS_KEY_ID')),
                 ],
             ],
             'throw' => false,
