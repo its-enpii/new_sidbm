@@ -128,6 +128,40 @@ function dateForRow(row) {
     return row.disbursed_at ?? row.funded_at ?? row.verified_at ?? row.proposed_at ?? null;
 }
 
+const statusLabels = {
+    draft: 'Proposal',
+    verified: 'Verifikasi',
+    waiting: 'Menunggu cair',
+    approved: 'Disetujui',
+    active: 'Aktif',
+    disbursed: 'Cair',
+    unfeasible: 'Tidak Layak',
+    tidak_layak: 'Tidak Layak',
+    rejected: 'Ditolak',
+    written_off: 'Dihapus',
+};
+
+const statusTones = {
+    draft: 'neutral',
+    verified: 'info-soft',
+    waiting: 'warning-soft',
+    approved: 'primary-soft',
+    active: 'success-soft',
+    disbursed: 'success-soft',
+    unfeasible: 'error-soft',
+    tidak_layak: 'error-soft',
+    rejected: 'error-soft',
+    written_off: 'error-soft',
+};
+
+function statusLabel(status) {
+    return statusLabels[status] || status;
+}
+
+function statusTone(status) {
+    return statusTones[status] || 'neutral';
+}
+
 const { can } = useCan();
 
 const quickActions = [
@@ -357,6 +391,7 @@ const sourceLabel = {
                         <thead class="bg-surface-container-low text-on-surface-variant">
                             <tr>
                                 <th class="px-4 py-3 font-semibold">Kelompok &amp; Desa</th>
+                                <th class="px-4 py-3 font-semibold">Status</th>
                                 <th class="px-4 py-3 font-semibold">Tgl</th>
                                 <th class="px-4 py-3 text-right font-semibold">Nominal</th>
                                 <th class="px-4 py-3 text-right font-semibold">Sisa Pokok</th>
@@ -373,6 +408,9 @@ const sourceLabel = {
                                     <p class="font-semibold text-primary">{{ row.group_name }}</p>
                                     <p v-if="row.group_address" class="mt-0.5 text-xs text-on-surface-variant">{{ row.group_address }}</p>
                                     <p class="mt-0.5 text-[10px] uppercase tracking-wider text-outline">#{{ row.id }} · {{ row.product_code || '—' }}</p>
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-3 align-top">
+                                    <AppBadge :tone="statusTone(row.status)">{{ statusLabel(row.status) }}</AppBadge>
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3 align-top text-on-surface-variant">{{ formatDate(dateForRow(row)) }}</td>
                                 <td class="whitespace-nowrap px-4 py-3 text-right align-top font-semibold text-primary">{{ formatMoney(amountForRow(row)) }}</td>
@@ -401,7 +439,10 @@ const sourceLabel = {
             </div>
 
             <template #footer>
-                <Link v-if="pipeline_modal_key && can('loans.view')" :href="`/lending/loans?tab=${pipeline_modal_key}`">
+                <Link
+                    v-if="pipeline_modal_key && can('loans.view')"
+                    :href="pipeline_modal_key === 'tidak_layak' ? '/lending/reports/tidak-layak' : `/lending/loans?tab=${pipeline_modal_key}`"
+                >
                     <AppButton variant="secondary" icon="open_in_new">Lihat semua di Tahapan Perguliran</AppButton>
                 </Link>
                 <AppButton variant="primary" @click="closePipeline">Tutup</AppButton>

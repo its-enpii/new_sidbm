@@ -68,6 +68,7 @@ final class ReportController
                 ['key' => 'lpp-kelompok', 'title' => 'LPP Rincian Kelompok', 'href' => '/lending/reports/lpp-kelompok', 'icon' => 'groups_2'],
                 ['key' => 'kolek-desa', 'title' => 'Kolektibilitas Pinjaman', 'href' => '/lending/reports/kolek-desa', 'icon' => 'pie_chart'],
                 ['key' => 'cadangan-penghapusan', 'title' => 'Cadangan Kerugian (CKPN)', 'href' => '/lending/reports/cadangan-penghapusan', 'icon' => 'shield'],
+                ['key' => 'tidak-layak', 'title' => 'Pinjaman Tidak Layak (Kelompok)', 'href' => '/lending/reports/tidak-layak', 'icon' => 'cancel'],
                 ['key' => 'financial-health', 'title' => 'Penilaian Kesehatan Usaha', 'href' => '/accounting/reports/financial-health', 'icon' => 'health_and_safety'],
                 ['key' => 'journals', 'title' => 'Jurnal Transaksi', 'href' => '/accounting/reports/journals', 'icon' => 'receipt_long'],
                 ['key' => 'trial-balance', 'title' => 'Neraca Saldo', 'href' => '/accounting/reports/trial-balance', 'icon' => 'table_chart'],

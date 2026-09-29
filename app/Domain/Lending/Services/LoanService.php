@@ -789,6 +789,39 @@ final class LoanService
     }
 
     /**
+     * Tandai pinjaman sebagai tidak layak (ditolak didanai/dicairkan).
+     *
+     * Dapat dijalankan dari status draft, verified, atau waiting.
+     * Status berubah menjadi `unfeasible` dan perubahan dicatat pada riwayat status.
+     *
+     * @param  array{notes?: string|null}  $data
+     */
+    public function markUnfeasible(Loan $loan, array $data, int $userId): Loan
+    {
+        if (! in_array($loan->status, ['draft', 'verified', 'waiting'], true)) {
+            throw new RuntimeException('Pinjaman hanya dapat ditandai tidak layak dari status draft, verified, atau waiting.');
+        }
+
+        return DB::connection('tenant')->transaction(function () use ($loan, $data, $userId): Loan {
+            $fromStatus = (string) $loan->status;
+
+            $loan->update(['status' => 'unfeasible']);
+
+            $loan->statusHistories()->create([
+                'from_status' => $fromStatus,
+                'to_status' => 'unfeasible',
+                'principal_amount' => (float) $loan->principal_amount,
+                'product_row_id' => $loan->loan_product_row_id,
+                'notes' => $data['notes'] ?? 'Pinjaman ditandai tidak layak didanai/dicairkan.',
+                'changed_by_user_id' => $userId,
+                'changed_at' => now(),
+            ]);
+
+            return $loan->fresh(['product', 'borrower.group', 'beneficiaries', 'statusHistories']);
+        });
+    }
+
+    /**
      * Write off remaining principal (penghapusan piutang kelompok).
      * Mirrors legacy /perguliran/hapus: status → written_off + journal allowance vs receivable.
      */

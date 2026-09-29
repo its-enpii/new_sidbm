@@ -12,7 +12,7 @@ use Inertia\Response;
 
 final class DashboardController
 {
-    private const PIPELINE_MODAL_KEYS = ['proposal', 'verifikasi', 'waiting', 'aktif'];
+    private const PIPELINE_MODAL_KEYS = ['proposal', 'verifikasi', 'waiting', 'aktif', 'tidak_layak'];
 
     public function __construct(
         private readonly DashboardService $dashboard,

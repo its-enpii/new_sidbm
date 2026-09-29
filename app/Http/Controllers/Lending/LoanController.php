@@ -603,6 +603,26 @@ final class LoanController
             ->with('success', 'Penghapusan piutang pemanfaat berhasil dicatat.');
     }
 
+    public function unfeasible(Request $request, Loan $loan, LoanService $loans, PermissionChecker $permissions): RedirectResponse
+    {
+        if (! $permissions->allows($request->user(), 'loans.verify') && ! $permissions->allows($request->user(), 'loans.approve')) {
+            abort(403, 'Missing permission: loans.verify atau loans.approve');
+        }
+
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $loans->markUnfeasible($loan, $validated, (int) $request->user()->row_id);
+        } catch (\RuntimeException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        return to_route('lending.loans.show', ['loan' => $loan->row_id])
+            ->with('success', 'Pinjaman berhasil ditandai tidak layak.');
+    }
+
     public function complete(Request $request, Loan $loan, LoanService $loans): RedirectResponse
     {
         $validated = $request->validate([

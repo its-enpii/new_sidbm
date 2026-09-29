@@ -525,6 +525,7 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
         ->whereNumber('member')
         ->name('lending.loans.beneficiaries.write-off');
     Route::patch('/lending/loans/{loan}/complete', [LoanController::class, 'complete'])->name('lending.loans.complete');
+    Route::patch('/lending/loans/{loan}/unfeasible', [LoanController::class, 'unfeasible'])->name('lending.loans.unfeasible');
 
     Route::get('/lending/payments/create', [LoanController::class, 'create'])->name('lending.payments.create');
     Route::post('/lending/payments', [LoanController::class, 'store'])->name('lending.payments.store');
@@ -544,6 +545,8 @@ Route::middleware(['auth', 'tenant', 'subscription.active'])->group(function ():
         Route::get('/cadangan-penghapusan/pdf', [LoanReportController::class, 'cadanganPenghapusanPdf'])->name('cadangan-penghapusan.pdf');
         Route::get('/billing-notice', [LoanReportController::class, 'billingNotice'])->name('billing-notice');
         Route::get('/billing-notice/pdf', [LoanReportController::class, 'billingNoticePdf'])->name('billing-notice.pdf');
+        Route::get('/tidak-layak', [LoanReportController::class, 'tidakLayak'])->name('tidak-layak');
+        Route::get('/tidak-layak/pdf', [LoanReportController::class, 'tidakLayakPdf'])->name('tidak-layak.pdf');
     });
 
     // Accounting

@@ -28,6 +28,7 @@ final class DashboardService
         'verified' => 'Verifikasi',
         'waiting' => 'Menunggu cair',
         'active' => 'Aktif',
+        'unfeasible' => 'Tidak Layak',
     ];
 
     private const PIPELINE_MODAL_LIMIT = 25;
@@ -41,6 +42,7 @@ final class DashboardService
         'verifikasi' => ['verified'],
         'waiting' => ['waiting', 'approved'],
         'aktif' => ['active', 'disbursed'],
+        'tidak_layak' => ['unfeasible', 'tidak_layak'],
     ];
 
     public function __construct(
@@ -324,6 +326,7 @@ final class DashboardService
             'verifikasi' => 'verified',
             'waiting' => 'waiting',
             'aktif' => 'active',
+            'tidak_layak' => 'unfeasible',
             default => $key,
         };
     }

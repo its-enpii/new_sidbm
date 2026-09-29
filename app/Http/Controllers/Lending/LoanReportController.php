@@ -10,6 +10,7 @@ use App\Domain\Lending\Services\Reports\LoanBillingNoticeReportService;
 use App\Domain\Lending\Services\Reports\LoanPortfolioReportService;
 use App\Domain\Lending\Services\Reports\LoanScheduleVsActualService;
 use App\Domain\Lending\Services\Reports\LppReportService;
+use App\Domain\Lending\Services\Reports\UnfeasibleLoanReportService;
 use App\Domain\Membership\Models\Group;
 use App\Models\Tenant\OrganizationUnit;
 use App\Models\User;
@@ -29,6 +30,7 @@ final class LoanReportController
         private readonly LppReportService $lpp,
         private readonly CollectibilityReportService $collectibility,
         private readonly LoanBillingNoticeReportService $billingNoticeService,
+        private readonly UnfeasibleLoanReportService $unfeasibleService,
         private readonly ReportPdf $pdf,
     ) {}
 
@@ -249,6 +251,33 @@ final class LoanReportController
             $data,
             sprintf('surat-tagihan-%04d-%02d.pdf', $year, $month),
             'portrait',
+        );
+    }
+
+    public function tidakLayak(Request $request): InertiaResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->yearMonth($request);
+        $product = $request->query('product', 'all');
+
+        return Inertia::render('Lending/Reports/TidakLayak', [
+            ...$this->unfeasibleService->build($year, $month, is_string($product) ? $product : null),
+            'filters' => ['year' => $year, 'month' => $month, 'product' => $product],
+        ]);
+    }
+
+    public function tidakLayakPdf(Request $request): Response|StreamedResponse
+    {
+        $this->authorize($request);
+        [$year, $month] = $this->yearMonth($request);
+        $product = $request->query('product', 'all');
+        $data = $this->unfeasibleService->build($year, $month, is_string($product) ? $product : null);
+
+        return $this->pdf->stream(
+            'reports.pdf.lending.tidak_layak',
+            $data,
+            sprintf('pinjaman-tidak-layak-%04d-%02d.pdf', $year, $month),
+            'landscape',
         );
     }
 
