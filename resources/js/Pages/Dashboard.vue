@@ -166,12 +166,21 @@ const { can } = useCan();
 
 const quickActions = [
     { label: 'Register Proposal', href: '/lending/loans/create', icon: 'assignment_add', permission: 'loans.propose' },
+    { label: 'Pinjaman Tidak Layak', href: '/lending/reports/tidak-layak', icon: 'cancel', permission: 'loans.view' },
     { label: 'Jurnal Angsuran', href: '/accounting/journal-entries/installment', icon: 'payments', permission: 'installments.record' },
     { label: 'Jurnal Umum', href: '/accounting/journal-entries/create', icon: 'receipt_long', permission: 'journals.create' },
     { label: 'E-Budgeting', href: '/budgeting', icon: 'account_balance_wallet', permission: 'budgeting.view' },
 ];
 
 const visibleQuickActions = computed(() => quickActions.filter((action) => can(action.permission)));
+
+// Tahapan pipeline yang menandakan pinjaman tidak layak — diberi penekanan
+// visual (badge error / varian danger) agar mudah terlihat di dashboard.
+const UNFEASIBLE_STAGE_KEYS = ['tidak_layak', 'unfeasible'];
+
+function isUnfeasibleStage(stage) {
+    return UNFEASIBLE_STAGE_KEYS.includes(stage.key) || UNFEASIBLE_STAGE_KEYS.includes(stage.status);
+}
 
 const sourceLabel = {
     loan: 'Pinjaman',
@@ -252,15 +261,18 @@ const sourceLabel = {
                         <AppButton
                             v-for="stage in pipeline"
                             :key="stage.status"
-                            variant="secondary"
+                            :variant="isUnfeasibleStage(stage) && stage.count > 0 ? 'danger' : 'secondary'"
                             class="!min-h-0 !justify-between !rounded-xl !px-4 !py-3 !text-left"
                             @click="openPipeline(stage)"
                         >
                             <span>
-                                <p class="font-semibold text-primary">{{ stage.label }}</p>
-                                <p class="text-xs text-on-surface-variant">{{ formatMoney(stage.amount) }}</p>
+                                <p class="font-semibold" :class="isUnfeasibleStage(stage) && stage.count > 0 ? 'text-on-error' : 'text-primary'">{{ stage.label }}</p>
+                                <p class="text-xs" :class="isUnfeasibleStage(stage) && stage.count > 0 ? 'text-on-error/80' : 'text-on-surface-variant'">{{ formatMoney(stage.amount) }}</p>
                             </span>
-                            <span class="text-xl font-bold text-primary">{{ stage.count }}</span>
+                            <span class="inline-flex items-center gap-2">
+                                <AppBadge v-if="isUnfeasibleStage(stage) && stage.count > 0" tone="error">{{ stage.count }} tidak layak</AppBadge>
+                                <span v-else class="text-xl font-bold text-primary">{{ stage.count }}</span>
+                            </span>
                         </AppButton>
                     </div>
                 </section>
