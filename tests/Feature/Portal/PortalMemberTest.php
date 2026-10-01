@@ -237,6 +237,17 @@ final class PortalMemberTest extends TestCase
                 ->missing('active_groups.0'));
     }
 
+    public function test_unlinked_user_with_portal_permission_sees_friendly_not_linked_page(): void
+    {
+        $user = $this->createUser('unlinked_user');
+        $this->assignRole($user, 'anggota');
+
+        $response = $this->actingAs($user)->get('/portal');
+
+        $response->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Portal/NotLinked'));
+    }
+
     public function test_admin_store_and_update_manage_member_link(): void
     {
         $admin = $this->createUser('admin_user');

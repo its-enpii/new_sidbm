@@ -81,6 +81,11 @@ function filterNavItems(items) {
                 if (!children.length) return null;
                 return { ...item, children };
             }
+            if (item.href === '/portal') {
+                if (!page.props.auth?.user?.has_member_link) {
+                    return null;
+                }
+            }
             if (item.href) {
                 const need = permissionForHref(item.href);
                 if (need && !can(need)) return null;

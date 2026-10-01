@@ -33,7 +33,11 @@ final class PortalMemberController
                 ->value('member_row_id'))
             ->with(['person:row_id,full_name', 'village:row_id,name'])
             ->first();
-        abort_unless($member !== null, 404, 'Akun belum terhubung ke data anggota.');
+        if ($member === null) {
+            return Inertia::render('Portal/NotLinked', [
+                'userName' => auth()->user()?->name,
+            ]);
+        }
 
         $loans = $this->loanRows($tenantId, (int) $member->row_id);
         $officers = $this->officerRows($tenantId, (int) $member->row_id);

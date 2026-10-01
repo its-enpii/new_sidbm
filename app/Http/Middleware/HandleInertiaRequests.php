@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Domain\Access\Services\PermissionChecker;
 use App\Domain\Features\Services\FeatureAccessService;
+use App\Domain\Membership\Models\MemberUserLink;
 use App\Domain\Membership\Models\OrganizationProfile;
 use App\Services\OfflineAccessService;
 use App\Tenancy\TenantContext;
@@ -77,6 +78,7 @@ final class HandleInertiaRequests extends Middleware
                         'village_row_id',
                     ]),
                     [
+                        'has_member_link' => $this->resolveHasMemberLink($request),
                         'photo_url' => $user->photo_path
                             ? asset('storage/'.ltrim((string) $user->photo_path, '/')).'?v='.($user->updated_at?->timestamp ?? time())
                             : null,
@@ -140,6 +142,26 @@ final class HandleInertiaRequests extends Middleware
             return app(PermissionChecker::class)->listFor($user);
         } catch (Throwable) {
             return [];
+        }
+    }
+
+    private function resolveHasMemberLink(Request $request): bool
+    {
+        $user = $request->user();
+        if ($user === null) {
+            return false;
+        }
+
+        try {
+            if (! app(TenantContext::class)->isInitialized()) {
+                return false;
+            }
+
+            return MemberUserLink::query()
+                ->where('user_row_id', (int) $user->row_id)
+                ->exists();
+        } catch (Throwable) {
+            return false;
         }
     }
 
