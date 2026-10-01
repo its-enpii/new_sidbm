@@ -3,6 +3,78 @@
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
+## [2026-09-30]
+
+### Added
+- **Halaman Penjelasan Akun Anggota Belum Tertaut (`resources/js/Pages/Portal/NotLinked.vue`):**
+  - Tampilan ramah dan solutif ketika pengguna mengakses rute `/portal` namun belum memiliki tautan ke data anggota pemanfaat. Dilengkapi tombol navigasi kembali ke Dashboard tanpa memicu error HTTP 404.
+
+### Changed
+- **Penyelarasan Lebar Kontainer Halaman Changelog (`resources/js/Pages/Changelog/Index.vue`):**
+  - Lebar kontainer utama diselaraskan dari `max-w-5xl` menjadi `max-w-7xl` agar sejajar dan konsisten dengan banner atas dan seluruh halaman aplikasi.
+- **Normalisasi Bahasa Antarmuka Ramah Non-Akuntan:**
+  - Penyelarasan teks UI di seluruh aplikasi (Dashboard, Navigasi Sidebar, Transaksi, Pinjaman, Simulasi, dan Pelaporan) menggunakan istilah sehari-hari yang mudah dipahami warga desa dan pemula:
+    - `Outstanding Pokok` → `Sisa Pokok Pinjaman`
+    - `Plafon Pinjaman` / `Plafon` → `Jumlah Pinjaman` / `Batas Pinjaman Kelompok`
+    - `Jurnal posted` / `Posting` → `Transaksi Tercatat` / `Catat Transaksi`
+    - `Reversal` / `Reverse` / `Immutable` → `Batalkan Transaksi` / `Transaksi Pembatalan`
+    - `Umur Eko.` → `Masa Pakai (Bulan)`
+    - `Harga Perolehan` → `Total Harga Beli`
+    - `Register Proposal` → `Ajukan Pinjaman`
+    - `Tahapan Perguliran` → `Daftar Pinjaman`
+    - Tab `Waiting` → `Menunggu Cair`
+    - `Cadangan Kerugian Penurunan Nilai (CKPN)` → `Cadangan Risiko Pinjaman Macet (CKPN)`
+    - `Memverifikasi Kredensial...` → `Memeriksa Akun...`
+
+### Fixed
+- **Penyembunyian Menu "Portal Saya" untuk Pengguna Tanpa Tautan Anggota (`AuthenticatedLayout.vue`, `HandleInertiaRequests.php`):**
+  - Penambahan atribut `has_member_link` pada data autentikasi sesi. Menu "Portal Saya" dan grup navigasi "Anggota" otomatis disembunyikan dari sidebar untuk akun Administrator/Staff yang tidak ditautkan ke data anggota, mencegah navigasi ke tautan yang tidak relevan.
+
+## [2026-09-29]
+
+### Added
+- **Pelaporan & Tombol Cepat Pinjaman Tidak Layak (`Lending/Reports/TidakLayak.vue`, `Dashboard.vue`):**
+  - Halaman pelaporan khusus untuk memantau proposal dan pinjaman kelompok yang dinyatakan tidak layak (`unfeasible`/`tidak_layak`).
+  - Tombol aksi cepat "Pinjaman Tidak Layak" pada Dashboard serta penanda visual (badge status error) pada kartu pipeline tahapan pinjaman.
+
+## [2026-09-28]
+
+### Fixed
+- **Autentikasi Header API & Opsi Client S3 Enstorage (`config/filesystems.php`, `Services/Storage`):**
+  - Pengiriman kredensial header `X-API-Key` melalui opsi HTTP `S3Client` AWS SDK secara presisi untuk memastikan koneksi ke gateway penyimpanan Enstorage berjalan tanpa hambatan otorisasi.
+
+## [2026-09-27]
+
+### Added
+- **Dukungan Driver Penyimpanan S3 Enstorage & Upload Routing:**
+  - Konfigurasi disk `enstorage` berbasis protokol S3 kompatibel dengan endpoint default `/api/v1/s3`.
+  - Fallback cerdas upload disk ke `public` ketika `FILESYSTEM_DISK` berjalan pada mode lokal.
+
+## [2026-09-23]
+
+### Added
+- **Uji Otomatis Siklus Hidup "Ingat Saya" / Remember Me (`tests/Feature/Auth/RememberMeTest.php`):**
+  - Test suite komprehensif (4 test, 29 assertions) untuk memvalidasi penerbitan token acak `remember_token`, pengantrean encrypted cookie recaller, autentikasi otomatis saat sesi kedaluwarsa, serta rotasi token dan kedaluwarsa cookie saat logout.
+
+## [2026-09-21]
+
+### Added
+- **Catatan Kaki Nomor SPK & Tanggal Pencairan pada Dokumen Pinjaman:**
+  - Penambahan catatan kaki otomatis yang memuat Nomor SPK dan Tanggal Pencairan pada 15 dokumen PDF pencairan dana bergulir, dengan pengecualian dokumen cover, kuitansi, dan kartu angsuran.
+
+### Fixed
+- **Self-Healing SQLite Test Fixture (`SubscriptionAutomationAndEnforcementTest`):**
+  - Pembuatan otomatis berkas database tenant `database/tenant_test.sqlite` saat pengujian penegakan tagihan langganan dijalankan dengan driver SQLite.
+
+## [2026-09-17]
+
+### Added
+- **Integrasi Penautan Akun Google OAuth2 (`GoogleAuthService`, `GoogleAuthController`, `User`):**
+  - Fitur hubungkan akun Google di halaman Profil Akun (`/profile?tab=account`) dengan avatar, email terhubung, switch preferensi notifikasi, dan konfirmasi pemutusan tautan.
+  - Tombol "Lanjutkan dengan Google" pada halaman Login (`/login`) dengan pengamanan ketat: murni login untuk akun yang sudah ditautkan sebelumnya tanpa fitur auto-register atau auto-link akun baru.
+- **Notifikasi Tagihan & Pembaruan Sistem via Email:**
+  - Mailable responsif `BillingInvoiceMail` untuk tagihan langganan/pelatihan dan `UpcomingNotificationMail` untuk pengumuman sistem, dikirimkan ke email Google pengguna yang mengaktifkan notifikasi.
+
 ## [2026-09-16]
 
 ### Added

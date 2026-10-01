@@ -188,7 +188,7 @@ const filteredReleases = computed(() => {
     <component :is="activeLayout">
         <Head title="Catatan Rilis & Changelog" />
 
-        <div class="mx-auto max-w-5xl space-y-6 pb-12">
+        <div class="mx-auto max-w-7xl space-y-6 pb-12">
             <!-- Header Hero Card -->
             <AppCard padded class="relative overflow-hidden bg-gradient-to-br from-surface-container-lowest via-surface-container-lowest to-primary-container/10 shadow-sm">
                 <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
