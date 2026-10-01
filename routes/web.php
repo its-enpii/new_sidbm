@@ -59,6 +59,7 @@ use App\Http\Controllers\Province\ProvinceReportController;
 use App\Http\Controllers\PublicSite\PublicSiteController;
 use App\Http\Controllers\Regency\RegencyDashboardController;
 use App\Http\Controllers\Regency\RegencyReportController;
+use App\Http\Controllers\Regency\RegencySettingsController;
 use App\Http\Controllers\RegionalCodeController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Settings\SettingsController;
@@ -177,6 +178,10 @@ Route::middleware(['auth', 'regency.user'])->prefix('regency')->name('regency.')
     Route::get('/reports/cash-flow', [RegencyReportController::class, 'cashFlow'])->name('reports.cash-flow');
     Route::get('/reports/calk', [RegencyReportController::class, 'calk'])->name('reports.calk');
     Route::get('/reports/{type}/pdf', [RegencyReportController::class, 'pdf'])->name('reports.pdf');
+    Route::get('/settings', [RegencySettingsController::class, 'index'])->name('settings');
+    Route::post('/settings/logo', [RegencySettingsController::class, 'updateLogo'])->name('settings.logo');
+    Route::delete('/settings/logo', [RegencySettingsController::class, 'destroyLogo'])->name('settings.logo.destroy');
+    Route::put('/settings/identity', [RegencySettingsController::class, 'updateIdentity'])->name('settings.identity');
 });
 
 Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->group(function (): void {

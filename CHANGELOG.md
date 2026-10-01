@@ -3,6 +3,15 @@
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
+## [2026-10-01]
+
+### Added
+- **Fitur Pengaturan Logo & Identitas Tingkat Kabupaten (`RegencySettingsController`, `Regency/Settings.vue`):**
+  - Halaman pengaturan baru `/regency/settings` untuk pengguna level kabupaten (`regency.user`) guna mengunggah logo resmi Pemkab/Dinas PMD dan mengisi identitas instansi pembina serta alamat kantor.
+  - Berkas logo disimpan pada disk upload terisolasi (`regencies/{regency_code}/logo.{ext}`) dan dicatat di `platform_settings` via `PlatformSettingService` (`regency.{regency_code}.logo_path`).
+  - Penyematan logo resmi dan identitas instansi pembina pada sisi kiri kop surat seluruh dokumen laporan konsolidasi keuangan kabupaten PDF (Neraca, Laba Rugi, Buku Besar, Arus Kas, dan CALK).
+  - Penambahan menu navigasi "Pengaturan" dan penyematan logo kabupaten pada sidebar `RegencyLayout.vue`.
+
 ## [2026-09-30]
 
 ### Added

@@ -25,9 +25,20 @@
     <div style="border-bottom: 2px solid #111; padding-bottom: 8px; margin-bottom: 12px;">
         <table style="width: 100%;">
             <tr>
-                <td>
+                @if (! empty($logo_url))
+                    <td style="width: 50px; vertical-align: middle; padding-right: 12px;">
+                        <img src="{{ $logo_url }}" style="max-height: 48px; max-width: 48px; object-fit: contain;" alt="Logo Pemkab">
+                    </td>
+                @endif
+                <td style="vertical-align: middle;">
                     <div style="font-size: 13px; font-weight: bold;">PEMERINTAH KABUPATEN {{ strtoupper($regency_name ?? 'KABUPATEN') }}</div>
-                    <div style="font-size: 11px; color: #374151;">SISTEM INFORMASI KEUANGAN GABUNGAN KECAMATAN / UPK DBM</div>
+                    @if (! empty($official_name))
+                        <div style="font-size: 11px; font-weight: bold; color: #1f2937;">{{ strtoupper($official_name) }}</div>
+                    @endif
+                    <div style="font-size: 10px; color: #374151;">SISTEM INFORMASI KEUANGAN GABUNGAN KECAMATAN / UPK DBM</div>
+                    @if (! empty($regency_address))
+                        <div style="font-size: 9px; color: #6b7280;">{{ $regency_address }}</div>
+                    @endif
                 </td>
                 <td style="text-align: right; vertical-align: bottom;">
                     <div style="font-size: 10px; color: #6b7280;">Dicetak: {{ date('d/m/Y H:i') }}</div>

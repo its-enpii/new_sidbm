@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Regency;
 use App\Domain\Accounting\Models\Account;
 use App\Domain\Accounting\Services\Reports\RegencyConsolidatedReportService;
 use App\Models\Platform\DatabaseShard;
+use App\Services\PlatformSettingService;
 use App\Support\ReportPdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -160,6 +161,13 @@ final class RegencyReportController
         $tenantIds = $kecamatans->pluck('row_id')->map(fn ($id) => (int) $id)->all();
         $regencyName = (string) ($user?->regency_name ?: ($shard->regency_name ?: 'Kabupaten'));
 
+        $regencyCode = (string) ($user?->regency_code ?: ($shard->regency_code ?: ''));
+        $platformSettings = app(PlatformSettingService::class);
+        $logoPath = $platformSettings->get("regency.{$regencyCode}.logo_path");
+        $logoUrl = $logoPath ? asset('storage/'.ltrim((string) $logoPath, '/')) : null;
+        $officialName = $platformSettings->get("regency.{$regencyCode}.official_name");
+        $address = $platformSettings->get("regency.{$regencyCode}.address");
+
         $orientation = 'portrait';
         $view = "reports.pdf.regency.{$type}";
         $filename = "laporan_{$type}_{$year}".($month ? "_{$month}" : '').'.pdf';
@@ -195,6 +203,9 @@ final class RegencyReportController
         return $this->pdf->stream($view, [
             'report' => $data,
             'regency_name' => $regencyName,
+            'official_name' => $officialName,
+            'regency_address' => $address,
+            'logo_url' => $logoUrl,
             'year' => $year,
             'month' => $month,
         ], $filename, $orientation);

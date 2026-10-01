@@ -9,6 +9,7 @@ use App\Domain\Features\Services\FeatureAccessService;
 use App\Domain\Membership\Models\MemberUserLink;
 use App\Domain\Membership\Models\OrganizationProfile;
 use App\Services\OfflineAccessService;
+use App\Services\PlatformSettingService;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -94,6 +95,7 @@ final class HandleInertiaRequests extends Middleware
                 'canonical_base' => $request->getSchemeAndHttpHost(),
             ],
             'logoPath' => $this->resolveLogoPath(),
+            'regency_logo_url' => $this->resolveRegencyLogoUrl($request),
             'assistant' => $this->resolveAssistant($request),
             'tenant' => $this->resolveTenantInfo(),
             'offline_access' => $offlineAccessData,
@@ -223,6 +225,30 @@ final class HandleInertiaRequests extends Middleware
             }
             $profile = OrganizationProfile::query()->first(['logo_path']);
             $path = $profile?->logo_path;
+            if (! is_string($path) || $path === '') {
+                return null;
+            }
+
+            return asset('storage/'.ltrim($path, '/'));
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    private function resolveRegencyLogoUrl(Request $request): ?string
+    {
+        $user = $request->user();
+        if ($user === null || (! $user->is_regency_user && ! $user->is_superadmin)) {
+            return null;
+        }
+
+        $regencyCode = (string) ($user->regency_code ?? '');
+        if ($regencyCode === '') {
+            return null;
+        }
+
+        try {
+            $path = app(PlatformSettingService::class)->get("regency.{$regencyCode}.logo_path");
             if (! is_string($path) || $path === '') {
                 return null;
             }

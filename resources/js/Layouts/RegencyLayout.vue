@@ -21,6 +21,7 @@ const navigation = [
     { label: 'Buku Besar', icon: 'menu_book', href: '/regency/reports/general-ledger' },
     { label: 'Arus Kas', icon: 'payments', href: '/regency/reports/cash-flow' },
     { label: 'CALK', icon: 'description', href: '/regency/reports/calk' },
+    { label: 'Pengaturan', icon: 'settings', href: '/regency/settings' },
 ];
 
 function isActive(item) {
@@ -57,6 +58,9 @@ function logout() {
             :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'"
         >
             <div class="mb-8 px-6">
+                <div v-if="page.props.regency_logo_url" class="mb-3 flex items-center">
+                    <img :src="page.props.regency_logo_url" :alt="user?.regency_name || 'Kabupaten'" class="h-10 max-w-[140px] object-contain brightness-0 invert" />
+                </div>
                 <p class="text-xs font-bold uppercase tracking-[0.2em] text-on-primary-container">Portal Kabupaten</p>
                 <p class="mt-1 text-lg font-bold text-on-primary">{{ user?.regency_name || 'Kabupaten' }}</p>
                 <p class="text-xs text-primary-fixed-dim">Konsolidasi Multi-Kecamatan</p>
