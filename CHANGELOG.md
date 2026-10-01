@@ -677,12 +677,3 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
   - `AppFilterPill.vue` untuk filter status interaktif.
   - `AppTabs.vue` untuk navigasi tab modular.
 
----
-
-## [2026-07-26]
-
-### Added
-- **Konfigurasi Pembulatan Angsuran (Rounding Methods):**
-  - Opsi pembulatan pinjaman: `decimal_2`, `rupiah_bersih`, `ceil_100`, `floor_100`, serta nominal kelipatan ratusan hingga puluhan ribu.
-- **Isolasi Sharding Multi-Tenant:**
-  - Arsitektur basis data terpisah per tenant BUMDesma dengan koneksi dinamis.
