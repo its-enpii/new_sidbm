@@ -165,11 +165,11 @@ function statusTone(status) {
 const { can } = useCan();
 
 const quickActions = [
-    { label: 'Register Proposal', href: '/lending/loans/create', icon: 'assignment_add', permission: 'loans.propose' },
+    { label: 'Ajukan Pinjaman', href: '/lending/loans/create', icon: 'assignment_add', permission: 'loans.propose' },
     { label: 'Pinjaman Tidak Layak', href: '/lending/reports/tidak-layak', icon: 'cancel', permission: 'loans.view' },
-    { label: 'Jurnal Angsuran', href: '/accounting/journal-entries/installment', icon: 'payments', permission: 'installments.record' },
-    { label: 'Jurnal Umum', href: '/accounting/journal-entries/create', icon: 'receipt_long', permission: 'journals.create' },
-    { label: 'E-Budgeting', href: '/budgeting', icon: 'account_balance_wallet', permission: 'budgeting.view' },
+    { label: 'Catat Angsuran', href: '/accounting/journal-entries/installment', icon: 'payments', permission: 'installments.record' },
+    { label: 'Catat Transaksi', href: '/accounting/journal-entries/create', icon: 'receipt_long', permission: 'journals.create' },
+    { label: 'Rencana Anggaran', href: '/budgeting', icon: 'account_balance_wallet', permission: 'budgeting.view' },
 ];
 
 const visibleQuickActions = computed(() => quickActions.filter((action) => can(action.permission)));
@@ -196,7 +196,7 @@ const sourceLabel = {
         <div class="mx-auto max-w-7xl space-y-8">
             <section class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
                 <div>
-                    <p class="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Ringkasan operasional</p>
+                    <p class="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Ringkasan Hari Ini</p>
                     <h1 class="mt-1 text-2xl font-bold text-primary sm:text-3xl">
                         {{ unitName || 'Dashboard' }}
                     </h1>
@@ -323,7 +323,7 @@ const sourceLabel = {
                         </table>
                     </div>
                     <div v-else class="flex flex-1 items-center p-6">
-                        <AppEmptyState icon="receipt_long" title="Belum ada jurnal posted" description="Transaksi yang di-post akan tampil di sini." />
+                        <AppEmptyState icon="receipt_long" title="Belum ada transaksi tercatat" description="Transaksi yang sudah dicatat akan langsung muncul di sini." />
                     </div>
                 </section>
 
@@ -373,7 +373,7 @@ const sourceLabel = {
                 <div class="relative space-y-2">
                     <h2 class="text-lg font-bold">Siap operasional</h2>
                     <p class="text-sm leading-6 text-primary-fixed-dim">
-                        KPI dihitung dari jurnal posted dan jadwal angsuran pinjaman aktif — tanpa salinan saldo legacy.
+                        Data dihitung otomatis dari transaksi tercatat dan jadwal cicilan pinjaman aktif.
                     </p>
                     <Link href="/accounting/tax-estimate" class="inline-flex text-sm font-bold text-on-primary underline-offset-2 hover:underline">
                         Lihat taksiran pajak →

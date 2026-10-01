@@ -322,7 +322,7 @@ function balanceAllocationRemainder(field) {
         <div class="mx-auto max-w-7xl space-y-6">
             <header>
                 <h1 class="text-2xl font-bold text-primary sm:text-3xl">Input Jurnal Angsuran</h1>
-                <p class="mt-1 text-on-surface-variant">Catat pembayaran angsuran pinjaman dengan akun debit kas dan kredit piutang/jasa/denda.</p>
+                <p class="mt-1 text-on-surface-variant">Catat pembayaran cicilan pinjaman dari peminjam atau kelompok secara praktis.</p>
             </header>
 
             <AppCard v-if="flashEntry" ref="successCardRef">
@@ -384,7 +384,7 @@ function balanceAllocationRemainder(field) {
 
             <AppCard>
                 <form class="space-y-5" @submit.prevent="submit">
-                    <SmartSelect v-model="form.loan_id" :options="props.loanOptions" label="Pinjaman" placeholder="Cari pinjaman..." required searchable search-placeholder="Cari pinjaman..." hint="Loan dengan status aktif atau sudah dicairkan" />
+                    <SmartSelect v-model="form.loan_id" :options="props.loanOptions" label="Pinjaman" placeholder="Cari pinjaman..." required searchable search-placeholder="Cari pinjaman..." hint="Pilih pinjaman yang sedang berjalan" />
 
                     <div class="grid gap-4 sm:grid-cols-2">
                         <AppDatePicker v-model="form.transaction_date" label="Tanggal Angsuran" required :error="form.errors.transaction_date" />
@@ -403,7 +403,7 @@ function balanceAllocationRemainder(field) {
 
                     <div class="grid gap-4 sm:grid-cols-2">
                         <SmartSelect v-model="form.reference" :options="availablePeminjam" label="Penyetor" :placeholder="form.loan_id ? 'Pilih peminjam' : 'Pilih pinjaman dulu'" :disabled="!form.loan_id" required :error="form.errors.reference" searchable search-placeholder="Cari peminjam..." />
-                        <SmartSelect v-model="form.cash_account_row_id" :options="props.cashAccounts" label="Tujuan (Akun Debit)" placeholder="Pilih akun kas" required :error="form.errors.cash_account_row_id" />
+                        <SmartSelect v-model="form.cash_account_row_id" :options="props.cashAccounts" label="Masuk ke Rekening / Kas" placeholder="Pilih akun kas" required :error="form.errors.cash_account_row_id" />
                     </div>
 
                     <input type="hidden" :value="form.description">
@@ -412,7 +412,7 @@ function balanceAllocationRemainder(field) {
                         <div class="flex flex-wrap gap-2">
                             <AppButton variant="secondary" icon="groups" type="button" :disabled="!selectedLoan" @click="openGroupModal">Detail Kelompok</AppButton>
                             <AppButton variant="secondary" icon="history" type="button" :disabled="!selectedLoan" @click="openHistoryModal">Riwayat Angsuran</AppButton>
-                            <AppButton variant="secondary" icon="person" type="button" :disabled="!selectedLoan" @click="openAllocationModal">Catatan Per-Anggota</AppButton>
+                            <AppButton variant="secondary" icon="person" type="button" :disabled="!selectedLoan" @click="openAllocationModal">Rincian Per Anggota</AppButton>
                         </div>
                         <div class="flex gap-2">
                             <a :href="pagePath"><AppButton variant="secondary" type="button">Reset</AppButton></a>
@@ -456,7 +456,7 @@ function balanceAllocationRemainder(field) {
                                 <th class="px-3 py-2 text-left">No. Jurnal</th>
                                 <th class="px-3 py-2 text-left">Angsuran</th>
                                 <th class="px-3 py-2 text-left">Keterangan</th>
-                                <th class="px-3 py-2 text-right">Catatan Per-Anggota</th>
+                                <th class="px-3 py-2 text-right">Rincian Per Anggota</th>
                             </tr>
                         </thead>
                         <tbody>

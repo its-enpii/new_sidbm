@@ -176,7 +176,7 @@ function transactionTypeLabel(value) {
                         </ul>
                         <p class="mt-2 text-sm text-warning">
                             Jurnal lama tidak berubah sampai Anda klik <strong>Simpan Koreksi</strong>.
-                            Kedua jurnal (reversal + baru) akan dibuat bersamaan dalam satu transaksi.
+                            Transaksi pembalik dan transaksi baru akan dibuat bersamaan agar riwayat pembukuan tetap rapi dan seimbang.
                         </p>
                     </div>
                 </div>
@@ -216,7 +216,7 @@ function transactionTypeLabel(value) {
                         <SmartSelect
                             v-model="form.sumber_dana_row_id"
                             :options="sumberDanaOptions"
-                            :label="sumberDanaLabel + ' (Kredit)'"
+                            :label="sumberDanaLabel + ' (Asal Dana / Kredit)'"
                             placeholder="Pilih akun"
                             :disabled="!currentType"
                             required
@@ -225,7 +225,7 @@ function transactionTypeLabel(value) {
                         <SmartSelect
                             v-model="form.disimpan_ke_row_id"
                             :options="disimpanKeOptions"
-                            :label="disimpanKeLabel + ' (Debit)'"
+                            :label="disimpanKeLabel + ' (Tujuan Dana / Debit)'"
                             placeholder="Pilih akun"
                             :disabled="!currentType"
                             required
@@ -239,7 +239,7 @@ function transactionTypeLabel(value) {
 
                     <template v-if="isInventory">
                         <div class="grid gap-4 sm:grid-cols-3">
-                            <AppInput v-model="form.reference" label="Relasi" :error="form.errors.reference" placeholder="No referensi / vendor" />
+                            <AppInput v-model="form.reference" label="Pihak Terkait / Rekanan" :error="form.errors.reference" placeholder="No referensi / vendor" />
                             <AppInput v-model="form.asset_name" label="Nama Barang" required :error="form.errors.asset_name" placeholder="Contoh: Laptop" />
                             <AppInput v-model="form.asset_quantity" label="Jml. Unit" type="number" min="1" required :error="form.errors.asset_quantity" placeholder="1" />
                         </div>
@@ -247,7 +247,7 @@ function transactionTypeLabel(value) {
                             <AppCurrencyInput v-model="form.asset_unit_cost" label="Harga Satuan" icon="payments" :min="1" required :error="form.errors.asset_unit_cost" placeholder="0" />
                             <AppInput
                                 v-model="form.asset_useful_life_months"
-                                label="Umur Eko. (bulan)"
+                                label="Masa Pakai (Bulan)"
                                 type="number"
                                 :min="currentType === 'pembelian_aset_tanah' ? 0 : 1"
                                 required
@@ -255,12 +255,12 @@ function transactionTypeLabel(value) {
                                 :placeholder="currentType === 'pembelian_aset_tanah' ? '0' : '48'"
                                 :hint="currentType === 'pembelian_aset_tanah' ? 'Tanah: 0 = tidak disusutkan' : null"
                             />
-                            <AppCurrencyInput v-model="form.amount" label="Harga Perolehan" icon="payments" :min="1" required readonly :error="form.errors.amount" placeholder="0" hint="Otomatis: unit × harga satuan" />
+                            <AppCurrencyInput v-model="form.amount" label="Total Harga Beli" icon="payments" :min="1" required readonly :error="form.errors.amount" placeholder="0" hint="Otomatis: unit × harga satuan" />
                         </div>
                     </template>
 
                     <template v-else>
-                        <AppInput v-model="form.reference" label="Relasi (opsional)" :error="form.errors.reference" placeholder="No referensi / catatan tambahan" />
+                        <AppInput v-model="form.reference" label="Pihak Terkait / Rekanan (opsional)" :error="form.errors.reference" placeholder="No referensi / catatan tambahan" />
                         <AppCurrencyInput v-model="form.amount" label="Nominal" icon="payments" :min="1" required :error="form.errors.amount" placeholder="0" />
                     </template>
 
@@ -269,7 +269,7 @@ function transactionTypeLabel(value) {
                         label="Alasan Koreksi"
                         placeholder="Contoh: Salah nominal, akun kredit tertukar, dll."
                         :error="form.errors.reason"
-                        hint="Wajib diisi. Disimpan di jurnal reversal dan jurnal baru untuk audit trail."
+                        hint="Wajib diisi sebagai alasan perubahan transaksi agar riwayat pembukuan tetap jelas."
                     />
 
                     <div class="flex justify-end gap-3 border-t border-outline-variant pt-4">

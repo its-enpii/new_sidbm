@@ -400,7 +400,7 @@ function copySummary() {
     const methodName = form.installment_method === 'flat' ? 'Flat / Tetap' : form.installment_method === 'declining' ? 'Efektif Menurun' : 'Anuitas';
     const text = `*SIMULASI PINJAMAN*
 Peminjam: ${form.borrower_name || 'Calon Peminjam'}
-Plafon: ${money(s.principal_amount)}
+Jumlah Pinjaman: ${money(s.principal_amount)}
 Tenor: ${s.term_months} Bulan
 Sistem Bunga: ${methodName}
 Suku Bunga: ${s.interest_rate_monthly.toFixed(2)}% / bulan (${s.interest_rate_annual.toFixed(2)}% / tahun)
@@ -428,7 +428,7 @@ Est. Angsuran/Bln: ${money(s.estimated_monthly)}`;
                         <h1 class="text-2xl font-bold text-on-surface sm:text-3xl">Simulasi Pinjaman</h1>
                     </div>
                     <p class="mt-1.5 text-sm text-on-surface-variant max-w-2xl">
-                        Kalkulator simulasi perhitungan skema angsuran pokok dan jasa pinjaman secara instan dan presisi.
+                        Hitung perkiraan cicilan pinjaman pokok dan bunga/jasa secara mudah dan cepat.
                     </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2.5">
@@ -482,14 +482,14 @@ Est. Angsuran/Bln: ${money(s.estimated_monthly)}`;
                         </div>
                     </AppCard>
 
-                    <!-- Section 2: Plafon & Tenor -->
-                    <AppCard title="Plafon & Jangka Waktu" icon="payments" class="shadow-xs">
+                    <!-- Section 2: Jumlah Pinjaman & Tenor -->
+                    <AppCard title="Jumlah Pinjaman & Jangka Waktu" icon="payments" class="shadow-xs">
                         <div class="space-y-4">
-                            <!-- Plafon Pinjaman -->
+                            <!-- Jumlah Pinjaman -->
                             <div>
                                 <AppCurrencyInput
                                     v-model="form.principal_amount"
-                                    label="Plafon Pinjaman (Rp)"
+                                    label="Jumlah Pinjaman (Rp)"
                                     icon="payments"
                                     :step="500000"
                                     required
@@ -632,10 +632,10 @@ Est. Angsuran/Bln: ${money(s.estimated_monthly)}`;
                 <div class="lg:col-span-7 space-y-5">
                     <!-- 4 Summary KPI Cards -->
                     <div class="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
-                        <!-- Card 1: Plafon -->
+                        <!-- Card 1: Pokok Pinjaman -->
                         <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-xs flex flex-col justify-between">
                             <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Plafon Pokok</span>
+                                <span class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Pokok Pinjaman</span>
                                 <span class="grid size-7 place-items-center rounded-lg bg-primary/10 text-primary">
                                     <AppIcon name="account_balance_wallet" class="text-base" />
                                 </span>
@@ -661,7 +661,7 @@ Est. Angsuran/Bln: ${money(s.estimated_monthly)}`;
                                     {{ money(simulationResult.summary.total_interest) }}
                                 </p>
                                 <p class="text-[11px] text-on-surface-variant mt-0.5">
-                                    {{ simulationResult.summary.interest_ratio.toFixed(1) }}% dari plafon
+                                    {{ simulationResult.summary.interest_ratio.toFixed(1) }}% dari pokok pinjaman
                                 </p>
                             </div>
                         </div>

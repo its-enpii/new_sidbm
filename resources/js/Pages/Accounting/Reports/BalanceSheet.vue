@@ -41,7 +41,7 @@ function sectionTotalLabel(l1) {
                     <p class="text-sm text-on-surface-variant">{{ period.period_label }} · per {{ period.as_of }}</p>
                 </div>
                 <AppBadge :tone="balanced ? 'success' : 'error'">
-                    {{ balanced ? 'Aset = Liabilitas+Ekuitas' : 'Tidak seimbang' }}
+                    {{ balanced ? 'Seimbang (Aset = Kewajiban + Modal)' : 'Tidak Seimbang' }}
                 </AppBadge>
             </div>
 
@@ -99,7 +99,7 @@ function sectionTotalLabel(l1) {
                     </tbody>
                     <tfoot>
                         <tr class="border-t-2 border-outline bg-surface-container font-bold">
-                            <td class="px-3 py-2" colspan="2">Jumlah Liabilitas + Ekuitas</td>
+                            <td class="px-3 py-2" colspan="2">Jumlah Kewajiban + Modal (Ekuitas)</td>
                             <td class="px-3 py-2 text-right tabular-nums">{{ fmt(totals.liabilities_equity) }}</td>
                         </tr>
                     </tfoot>

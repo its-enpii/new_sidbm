@@ -334,7 +334,7 @@ onMounted(() => {
                     </div>
 
                     <div class="form-anim-item flex items-center justify-between text-sm">
-                        <AppCheckbox v-model="form.remember" variant="inline" label="Ingat sesi saya" />
+                        <AppCheckbox v-model="form.remember" variant="inline" label="Ingat saya di perangkat ini" />
                     </div>
 
                     <div class="form-anim-item">
@@ -346,7 +346,7 @@ onMounted(() => {
                             :loading="form.processing"
                             icon="login"
                         >
-                            {{ form.processing ? 'Memverifikasi Kredensial...' : 'Masuk ke Dashboard' }}
+                            {{ form.processing ? 'Memeriksa Akun...' : 'Masuk ke Dashboard' }}
                         </AppButton>
                     </div>
 

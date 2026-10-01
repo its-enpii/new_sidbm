@@ -310,7 +310,7 @@ function addBeneficiary() {
                         <h2 class="font-semibold text-primary">Detail Pengajuan</h2>
                         <div class="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                             <AppDatePicker v-model="form.proposed_at" label="Tanggal Pengajuan" icon="event" placeholder="Pilih tanggal" :max="today" required :error="form.errors.proposed_at" />
-                            <AppCurrencyInput v-model="form.principal_amount" label="Plafon Pinjaman" icon="payments" :min="0" required :error="form.errors.principal_amount" />
+                            <AppCurrencyInput v-model="form.principal_amount" label="Jumlah Pinjaman" icon="payments" :min="0" required :error="form.errors.principal_amount" />
                             <AppInput v-model="form.term_months" label="Jangka Waktu (bulan)" icon="schedule" type="number" inputmode="numeric" min="1" max="120" required :error="form.errors.term_months" />
                             <AppInput
                                 v-model="form.service_rate_total"
@@ -357,7 +357,7 @@ function addBeneficiary() {
 
                     <section class="border-t border-outline-variant pt-4">
                         <h2 class="font-semibold text-primary">Pemanfaat</h2>
-                        <p class="mt-1 text-sm text-on-surface-variant">Pilih anggota yang menerima bagian plafon. Plafon dibagi rata ke seluruh pemanfaat aktif.</p>
+                        <p class="mt-1 text-sm text-on-surface-variant">Pilih anggota yang menerima bagian pinjaman. Pinjaman dibagi rata ke seluruh pemanfaat aktif.</p>
                         <div class="mt-3">
                             <div v-if="!selectedGroup" class="rounded-xl border border-outline-variant bg-surface-container-low p-4 text-sm text-on-surface-variant">Pilih kelompok terlebih dahulu.</div>
                             <template v-else>
@@ -395,7 +395,7 @@ function addBeneficiary() {
                                         </tfoot>
                                     </table>
                                 </div>
-                                <p v-if="beneficiaryTotal > 0 && Number(form.principal_amount) > 0 && beneficiaryTotal > Number(form.principal_amount)" class="mt-2 text-sm text-error">Total pengajuan melebihi plafon pinjaman ({{ currency(Number(form.principal_amount)) }}).</p>
+                                <p v-if="beneficiaryTotal > 0 && Number(form.principal_amount) > 0 && beneficiaryTotal > Number(form.principal_amount)" class="mt-2 text-sm text-error">Total pengajuan melebihi jumlah pinjaman ({{ currency(Number(form.principal_amount)) }}).</p>
                                 <p v-if="form.errors.beneficiary_ids" class="mt-2 text-sm text-error">{{ form.errors.beneficiary_ids }}</p>
                                 <p v-if="form.errors.beneficiary_amounts" class="mt-2 text-sm text-error">{{ form.errors.beneficiary_amounts }}</p>
                             </template>

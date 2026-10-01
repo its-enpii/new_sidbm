@@ -81,9 +81,9 @@ const pdfUrl = computed(() => {
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Laporan Piutang</p>
-                    <h1 class="mt-1 text-2xl font-bold text-primary">Cadangan Kerugian Penurunan Nilai (CKPN)</h1>
+                    <h1 class="mt-1 text-2xl font-bold text-primary">Cadangan Risiko Pinjaman Macet (CKPN)</h1>
                     <p class="mt-1 text-sm text-on-surface-variant">
-                        Perhitungan penyisihan cadangan risiko piutang: 0.5% (Lancar), 50% (Diragukan), dan 100% (Macet)
+                        Perkiraan dana cadangan untuk antisipasi pinjaman macet: 0.5% (Lancar), 50% (Kurang Lancar / Diragukan), dan 100% (Macet)
                     </p>
                 </div>
                 <div class="flex items-center gap-2">
@@ -124,8 +124,8 @@ const pdfUrl = computed(() => {
                             <tr class="border-b border-outline-variant/30 text-center">
                                 <th rowspan="2" class="p-3 text-left">Desa</th>
                                 <th rowspan="2" class="p-3 text-right">Saldo Pokok</th>
-                                <th colspan="3" class="p-3 border-l border-outline-variant/20">Klasifikasi Kolektibilitas</th>
-                                <th colspan="3" class="p-3 border-l border-outline-variant/20">Penyisihan Cadangan (CKPN)</th>
+                                <th colspan="3" class="p-3 border-l border-outline-variant/20">Tingkat Kelancaran Pembayaran</th>
+                                <th colspan="3" class="p-3 border-l border-outline-variant/20">Dana Cadangan Risiko</th>
                                 <th rowspan="2" class="p-3 border-l border-outline-variant/20 text-right">Total CKPN</th>
                             </tr>
                             <tr class="border-b border-outline-variant/30 text-center text-[11px] text-on-surface-variant">

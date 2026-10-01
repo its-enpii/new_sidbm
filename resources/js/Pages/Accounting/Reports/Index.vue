@@ -17,7 +17,7 @@ defineProps({
                 <p class="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Keuangan</p>
                 <h1 class="mt-1 text-2xl font-bold text-primary">Pelaporan Akuntansi</h1>
                 <p class="mt-1 text-sm text-on-surface-variant">
-                    Laporan dari jurnal posted. Sumber kebenaran = baris jurnal, bukan salinan saldo legacy.
+                    Seluruh laporan keuangan dihitung otomatis dari transaksi yang sudah tercatat secara akurat.
                 </p>
             </div>
 

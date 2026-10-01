@@ -205,7 +205,7 @@ function submitBulkReverse() {
                 <div>
                     <p class="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Transaksi</p>
                     <h1 class="mt-1 text-2xl font-bold text-primary">Daftar Jurnal</h1>
-                    <p class="text-sm text-on-surface-variant">Jurnal posted. Koreksi / hapus transaksi lewat reverse (immutable).</p>
+                    <p class="text-sm text-on-surface-variant">Daftar seluruh transaksi yang sudah tercatat. Jika ada kekeliruan, batalkan transaksi agar pembukuan tetap rapi dan seimbang.</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <a v-if="can('journals.create')" href="/accounting/journal-entries/create">
@@ -262,7 +262,7 @@ function submitBulkReverse() {
                         icon="delete_sweep"
                         @click="openBulkReverse"
                     >
-                        Hapus (Reverse) Terpilih
+                        Batalkan Transaksi Terpilih
                     </AppButton>
                 </div>
             </div>
@@ -312,9 +312,9 @@ function submitBulkReverse() {
                             <span class="font-mono text-sm font-semibold text-primary">{{ formatMoney(row.amount) }}</span>
                         </template>
                         <template #cell-status="{ row }">
-                            <AppBadge v-if="row.is_reversal" tone="warning">Reversal</AppBadge>
-                            <AppBadge v-else-if="row.already_reversed" tone="error">Reversed</AppBadge>
-                            <AppBadge v-else tone="success">Posted</AppBadge>
+                            <AppBadge v-if="row.is_reversal" tone="warning">Transaksi Pembatalan</AppBadge>
+                            <AppBadge v-else-if="row.already_reversed" tone="error">Dibatalkan</AppBadge>
+                            <AppBadge v-else tone="success">Tercatat</AppBadge>
                         </template>
                         <template #actions="{ row }">
                             <div class="inline-flex items-center gap-1">
@@ -369,13 +369,13 @@ function submitBulkReverse() {
                 <form class="space-y-4" @submit.prevent="submitReverse">
                     <p class="text-sm text-on-surface-variant">
                         Jurnal <span class="font-semibold text-primary">#{{ reverseTarget?.id }}</span>
-                        tidak dihapus permanen dari basis data. Sistem akan membuat jurnal lawan pembalik (reverse: debit↔kredit) untuk menjaga kepatuhan audit.
+                        tidak dihapus begitu saja agar catatan keuangan tetap rapi dan transparan. Sistem akan otomatis mencatat jurnal pembalik (pembatalan).
                     </p>
                     <p v-if="reverseTarget" class="rounded-lg bg-surface-container-low px-3 py-2 text-sm">
                         {{ reverseTarget.description || '—' }}
                         · {{ formatMoney(reverseTarget.amount) }}
                     </p>
-                    <AppDatePicker v-model="reverseForm.reversal_date" mode="day" label="Tanggal reverse" required />
+                    <AppDatePicker v-model="reverseForm.reversal_date" mode="day" label="Tanggal Pembatalan" required />
                     <AppTextarea
                         v-model="reverseForm.reason"
                         label="Alasan pembatalan"
@@ -397,9 +397,9 @@ function submitBulkReverse() {
                     <p class="text-sm text-on-surface-variant">
                         Sebanyak <span class="font-semibold text-primary">{{ selectedRowIds.length }} transaksi</span>
                         (Total nominal <span class="font-semibold text-primary">{{ formatMoney(selectedTotalAmount) }}</span>)
-                        akan dibatalkan secara bersamaan dengan membuat jurnal lawan (reverse). Data transaksi asli tetap tersimpan demi audit trail.
+                        akan dibatalkan secara bersamaan dengan membuat transaksi pembalik. Data transaksi asli tetap tersimpan agar riwayat pembukuan tetap lengkap.
                     </p>
-                    <AppDatePicker v-model="bulkReverseForm.reversal_date" mode="day" label="Tanggal reverse" required />
+                    <AppDatePicker v-model="bulkReverseForm.reversal_date" mode="day" label="Tanggal Pembatalan" required />
                     <AppTextarea
                         v-model="bulkReverseForm.reason"
                         label="Alasan pembatalan massal"

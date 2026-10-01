@@ -34,11 +34,11 @@ function formatMoney(v) {
                     <p class="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Pelaporan</p>
                     <h1 class="mt-1 text-2xl font-bold text-primary">Laporan Arus Kas</h1>
                     <p class="text-sm text-on-surface-variant">
-                        {{ period.period_label }} · metode langsung dari jurnal akun kas (1.1.01*)
+                        {{ period.period_label }} · arus keluar masuk kas dan bank
                     </p>
                 </div>
                 <AppBadge :tone="reconciled ? 'success' : 'error'">
-                    {{ reconciled ? 'Rekonsiliasi OK' : 'Selisih vs saldo kas' }}
+                    {{ reconciled ? 'Kas Cocok (Seimbang)' : 'Ada Selisih Saldo Kas' }}
                 </AppBadge>
             </div>
 

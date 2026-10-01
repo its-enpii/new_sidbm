@@ -262,7 +262,7 @@ function openHistoryModal() {
         <div class="mx-auto max-w-7xl space-y-6">
             <header>
                 <h1 class="text-2xl font-bold text-primary sm:text-3xl">Input Jurnal Umum</h1>
-                <p class="mt-1 text-on-surface-variant">Catat transaksi jurnal manual dengan satu akun debit dan satu akun kredit.</p>
+                <p class="mt-1 text-on-surface-variant">Catat transaksi pengeluaran, pemasukan, atau mutasi keuangan secara langsung.</p>
             </header>
 
             <AppCard v-if="flashEntry">
@@ -285,27 +285,27 @@ function openHistoryModal() {
                     <div class="rounded-xl border border-secondary/30 bg-secondary-container/40 p-4">
                         <div class="mb-3 flex items-center gap-2">
                             <AppIcon name="arrow_downward" class="text-secondary" />
-                            <p class="text-xs font-bold uppercase tracking-wider text-secondary">Akun Bertambah</p>
+                            <p class="text-xs font-bold uppercase tracking-wider text-secondary">Uang Masuk / Akun Bertambah (Debit)</p>
                         </div>
                         <ul class="space-y-2">
                             <li v-for="line in debitedLines" :key="`d-${line.account_code}`" class="rounded-lg bg-surface-container-lowest p-3">
                                 <p class="text-sm font-bold text-primary">{{ line.account_code }} · {{ line.account_name }}</p>
                                 <p class="mt-1 text-base font-bold text-secondary">{{ currency(line.debit) }}</p>
                             </li>
-                            <li v-if="!debitedLines.length" class="text-sm text-on-surface-variant">Tidak ada akun debit.</li>
+                            <li v-if="!debitedLines.length" class="text-sm text-on-surface-variant">Belum ada akun bertambah.</li>
                         </ul>
                     </div>
                     <div class="rounded-xl border border-error/30 bg-error-container/40 p-4">
                         <div class="mb-3 flex items-center gap-2">
                             <AppIcon name="arrow_outward" class="text-error" />
-                            <p class="text-xs font-bold uppercase tracking-wider text-error">Akun Berkurang</p>
+                            <p class="text-xs font-bold uppercase tracking-wider text-error">Uang Keluar / Akun Berkurang (Kredit)</p>
                         </div>
                         <ul class="space-y-2">
                             <li v-for="line in creditedLines" :key="`c-${line.account_code}`" class="rounded-lg bg-surface-container-lowest p-3">
                                 <p class="text-sm font-bold text-primary">{{ line.account_code }} · {{ line.account_name }}</p>
                                 <p class="mt-1 text-base font-bold text-error">{{ currency(line.credit) }}</p>
                             </li>
-                            <li v-if="!creditedLines.length" class="text-sm text-on-surface-variant">Tidak ada akun kredit.</li>
+                            <li v-if="!creditedLines.length" class="text-sm text-on-surface-variant">Belum ada akun berkurang.</li>
                         </ul>
                     </div>
                 </div>
@@ -328,19 +328,19 @@ function openHistoryModal() {
                         label="Keterangan / Deskripsi"
                         required
                         :error="form.errors.description"
-                        placeholder="Contoh: Pencatatan biaya operasional bulanan"
+                        placeholder="Contoh: Pembayaran listrik dan internet kantor"
                     />
 
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <SmartSelect v-model="form.sumber_dana_row_id" :options="sumberDanaOptions" :label="sumberDanaLabel + ' (Kredit)'" placeholder="Pilih akun" :disabled="!currentType" required :error="form.errors.sumber_dana_row_id" />
-                        <SmartSelect v-model="form.disimpan_ke_row_id" :options="disimpanKeOptions" :label="disimpanKeLabel + ' (Debit)'" placeholder="Pilih akun" :disabled="!currentType" required :error="form.errors.disimpan_ke_row_id" />
+                        <SmartSelect v-model="form.sumber_dana_row_id" :options="sumberDanaOptions" :label="sumberDanaLabel + ' (Asal Dana / Kredit)'" placeholder="Pilih akun" :disabled="!currentType" required :error="form.errors.sumber_dana_row_id" />
+                        <SmartSelect v-model="form.disimpan_ke_row_id" :options="disimpanKeOptions" :label="disimpanKeLabel + ' (Tujuan Dana / Debit)'" placeholder="Pilih akun" :disabled="!currentType" required :error="form.errors.disimpan_ke_row_id" />
                     </div>
 
                     <p v-if="form.errors.sumber_dana_row_id || form.errors.disimpan_ke_row_id" class="text-sm text-error">{{ form.errors.sumber_dana_row_id || form.errors.disimpan_ke_row_id }}</p>
 
                     <template v-if="isInventory">
                         <div class="grid gap-4 sm:grid-cols-3">
-                            <AppInput v-model="form.reference" label="Relasi" :error="form.errors.reference" placeholder="No referensi / vendor" />
+                            <AppInput v-model="form.reference" label="Pihak Terkait / Rekanan" :error="form.errors.reference" placeholder="No referensi / vendor" />
                             <AppInput v-model="form.asset_name" label="Nama Barang" required :error="form.errors.asset_name" placeholder="Contoh: Laptop" />
                             <AppInput v-model="form.asset_quantity" label="Jml. Unit" type="number" min="1" required :error="form.errors.asset_quantity" placeholder="1" />
                         </div>
@@ -348,7 +348,7 @@ function openHistoryModal() {
                             <AppCurrencyInput v-model="form.asset_unit_cost" label="Harga Satuan" icon="payments" :min="1" required :error="form.errors.asset_unit_cost" placeholder="0" />
                             <AppInput
                                 v-model="form.asset_useful_life_months"
-                                label="Umur Eko. (bulan)"
+                                label="Masa Pakai (Bulan)"
                                 type="number"
                                 :min="currentType === 'pembelian_aset_tanah' ? 0 : 1"
                                 required
@@ -356,12 +356,12 @@ function openHistoryModal() {
                                 :placeholder="currentType === 'pembelian_aset_tanah' ? '0' : '48'"
                                 :hint="currentType === 'pembelian_aset_tanah' ? 'Tanah: 0 = tidak disusutkan' : null"
                             />
-                            <AppCurrencyInput v-model="form.amount" label="Harga Perolehan" icon="payments" :min="1" required readonly :error="form.errors.amount" placeholder="0" hint="Otomatis: unit × harga satuan" />
+                            <AppCurrencyInput v-model="form.amount" label="Total Harga Beli" icon="payments" :min="1" required readonly :error="form.errors.amount" placeholder="0" hint="Dihitung otomatis: jumlah unit × harga satuan" />
                         </div>
                     </template>
 
                     <template v-else>
-                        <AppInput v-model="form.reference" label="Relasi (opsional)" :error="form.errors.reference" placeholder="No referensi / catatan tambahan" />
+                        <AppInput v-model="form.reference" label="Pihak Terkait / Rekanan (opsional)" :error="form.errors.reference" placeholder="No referensi / catatan tambahan" />
                         <AppCurrencyInput v-model="form.amount" label="Nominal" icon="payments" :min="1" required :error="form.errors.amount" placeholder="0" />
                     </template>
 

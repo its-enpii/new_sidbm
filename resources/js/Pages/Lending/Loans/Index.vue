@@ -46,7 +46,7 @@ const props = defineProps({
 const tabs = [
     { key: 'proposal', label: 'Proposal' },
     { key: 'verifikasi', label: 'Verifikasi' },
-    { key: 'waiting', label: 'Waiting' },
+    { key: 'waiting', label: 'Menunggu Cair' },
     { key: 'aktif', label: 'Aktif' },
     { key: 'lunas', label: 'Lunas' },
 ];
@@ -62,7 +62,7 @@ const pdfTabOptions = [
     { value: 'all_active', label: 'Pinjaman Terkini (Proposal, Verifikasi, Waiting & Aktif)' },
     { value: 'proposal', label: 'Proposal (Pengajuan Baru)' },
     { value: 'verifikasi', label: 'Terverifikasi (Pemeriksaan)' },
-    { value: 'waiting', label: 'Waiting (Menunggu Pencairan)' },
+    { value: 'waiting', label: 'Menunggu Pencairan' },
     { value: 'aktif', label: 'Aktif (Sedang Berjalan)' },
     { value: 'lunas', label: 'Lunas / Selesai' },
     { value: 'all', label: 'Semua Status Pinjaman' },
@@ -122,7 +122,7 @@ function formatDate(value) {
 const emptyMessages = {
     proposal: { title: 'Belum ada proposal', description: 'Belum ada pengajuan pinjaman kelompok yang baru didaftarkan.' },
     verifikasi: { title: 'Belum ada verifikasi', description: 'Tidak ada pinjaman yang sedang menunggu verifikasi.' },
-    waiting: { title: 'Belum ada waiting', description: 'Tidak ada pinjaman yang menunggu keputusan pendanaan.' },
+    waiting: { title: 'Belum ada pinjaman menunggu cair', description: 'Tidak ada pinjaman yang sedang menunggu proses pencairan dana.' },
     aktif: { title: 'Belum ada pinjaman aktif', description: 'Tidak ada pinjaman yang sedang aktif berjalan.' },
     lunas: { title: 'Belum ada pinjaman lunas', description: 'Tidak ada pinjaman yang telah dilunasi.' },
 };
@@ -142,7 +142,7 @@ const emptyMessages = {
                         {{ view === 'kanban' ? 'Tampilan Tabel' : 'Tampilan Kanban' }}
                     </AppButton>
                     <AppButton v-if="can('loans.view')" variant="secondary" icon="print" @click="openPdfModal">Cetak PDF</AppButton>
-                    <Link v-if="can('loans.propose')" href="/lending/loans/create"><AppButton icon="add">Register Proposal</AppButton></Link>
+                    <Link v-if="can('loans.propose')" href="/lending/loans/create"><AppButton icon="add">Ajukan Pinjaman</AppButton></Link>
                 </div>
             </header>
 

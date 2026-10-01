@@ -56,8 +56,8 @@ const columns = [
     { key: 'asset_code', label: 'Kode' },
     { key: 'name', label: 'Nama' },
     { key: 'purchased_at', label: 'Tgl beli' },
-    { key: 'acquisition', label: 'Perolehan', class: 'text-right' },
-    { key: 'book_value', label: 'Nilai buku', class: 'text-right' },
+    { key: 'acquisition', label: 'Harga Beli', class: 'text-right' },
+    { key: 'book_value', label: 'Nilai Sekarang', class: 'text-right' },
     { key: 'status_label', label: 'Status' },
 ];
 
@@ -96,11 +96,11 @@ watch([status, category, asOf], () => {
                 <div>
                     <h1 class="text-2xl font-bold text-primary">Inventaris</h1>
                     <p class="mt-1 text-on-surface-variant">
-                        Register &amp; nilai buku. <strong>Beli aset</strong> lewat Jurnal Umum → tipe Pembelian Inventaris.
+                        Daftar barang inventaris dan nilai aset saat ini. Tambah barang baru melalui menu Catat Transaksi.
                     </p>
                 </div>
                 <Link v-if="can('journals.create')" href="/accounting/journal-entries/create?type=pembelian_aset_peralatan">
-                    <AppButton icon="receipt_long">Beli di Jurnal Umum</AppButton>
+                    <AppButton icon="receipt_long">Catat Pembelian Barang</AppButton>
                 </Link>
             </header>
 

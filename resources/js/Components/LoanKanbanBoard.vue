@@ -297,7 +297,7 @@ function allocatedAmountError(beneficiary) {
                     <AppDatePicker v-model="approveForm.approved_at" label="Tanggal Penetapan" :max="today" required :error="approveForm.errors.approved_at" />
                     <AppDatePicker v-model="approveForm.planned_disbursed_at" label="Rencana Tanggal Cair" :min="approveForm.approved_at" required :error="approveForm.errors.planned_disbursed_at" />
                 </div>
-                <AppCurrencyInput v-model="approveForm.allocated_principal" label="Plafon Alokasi Kelompok" :min="0" required :error="approveForm.errors.allocated_principal" />
+                <AppCurrencyInput v-model="approveForm.allocated_principal" label="Batas Pinjaman Kelompok" :min="0" required :error="approveForm.errors.allocated_principal" />
                 <AppTextarea v-model="approveForm.allocation_notes" label="Catatan Penetapan (opsional)" :error="approveForm.errors.allocation_notes" />
 
                 <LoanBeneficiaryAmountTable
@@ -310,7 +310,7 @@ function allocatedAmountError(beneficiary) {
                     @update-amount="setBeneficiaryAllocatedAmount"
                 />
                 <p v-if="approveBeneficiaryTotal > Number(approveForm.allocated_principal || 0)" class="text-sm text-error">
-                    Total alokasi per anggota melebihi plafon alokasi kelompok.
+                    Total alokasi per anggota melebihi batas pinjaman kelompok.
                 </p>
             </form>
 

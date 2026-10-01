@@ -72,7 +72,7 @@ watch([type, status], () => {
                 <div>
                     <h1 class="text-2xl font-bold text-primary">Bagan Akun</h1>
                     <p class="mt-1 text-on-surface-variant">
-                        Tampilan saja. Tambah/ubah/hapus akun hanya lewat persetujuan pusat.
+                        Daftar pos akun keuangan untuk pencatatan transaksi masuk dan keluar.
                     </p>
                 </div>
                 <div class="flex flex-wrap gap-3 text-sm">
@@ -85,7 +85,7 @@ watch([type, status], () => {
                         <span class="ml-2 font-bold text-primary">{{ counts.active }}</span>
                     </div>
                     <div class="rounded-xl bg-surface-container-low px-3 py-2">
-                        <span class="text-on-surface-variant">Bisa di-post</span>
+                        <span class="text-on-surface-variant">Akun Transaksi</span>
                         <span class="ml-2 font-bold text-primary">{{ counts.postable }}</span>
                     </div>
                 </div>
@@ -107,8 +107,8 @@ watch([type, status], () => {
                                 <th class="px-4 py-3 font-semibold">Kode</th>
                                 <th class="px-4 py-3 font-semibold">Nama</th>
                                 <th class="px-4 py-3 font-semibold">Jenis</th>
-                                <th class="px-4 py-3 font-semibold">Saldo normal</th>
-                                <th class="px-4 py-3 font-semibold">Posting</th>
+                                <th class="px-4 py-3 font-semibold">Posisi Standar (Debit/Kredit)</th>
+                                <th class="px-4 py-3 font-semibold">Bisa Dipakai</th>
                                 <th class="px-4 py-3 font-semibold">Status</th>
                                 <th class="px-4 py-3 font-semibold">Tgl Ditambah</th>
                                 <th class="px-4 py-3 font-semibold">Tgl Nonaktif</th>

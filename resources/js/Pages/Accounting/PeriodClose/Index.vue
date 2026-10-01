@@ -43,7 +43,7 @@ const tab = ref('periods');
 const tabs = [
     { value: 'periods', label: '1. Periode', short: 'Periode' },
     { value: 'trial_balance', label: '2. Neraca Saldo', short: 'Neraca Saldo' },
-    { value: 'allocate', label: '3. Alokasi laba', short: 'Alokasi' },
+    { value: 'allocate', label: '3. Bagi Hasil Laba', short: 'Bagi Hasil' },
 ];
 
 watch(
@@ -206,7 +206,7 @@ async function submitAllocation() {
                     <p class="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Keuangan</p>
                     <h1 class="mt-1 text-2xl font-bold text-primary">Tutup Buku</h1>
                     <p class="mt-1 text-sm text-on-surface-variant">
-                        Tutup periode, bawa saldo akun ke tahun depan, lalu alokasi laba — satu langkah per tab.
+                        Kunci pembukuan bulanan, pindahkan saldo ke tahun berikutnya, dan atur pembagian laba hasil usaha.
                     </p>
                 </div>
                 <div class="w-40">
@@ -230,7 +230,7 @@ async function submitAllocation() {
                     <p class="mt-2 text-2xl font-bold text-primary">{{ closed_count }}</p>
                 </AppCard>
                 <AppCard>
-                    <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Jurnal draft</p>
+                    <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Transaksi Draft (Belum Selesai)</p>
                     <p class="mt-2 text-2xl font-bold" :class="draft_journals > 0 ? 'text-error' : 'text-primary'">
                         {{ draft_journals }}
                     </p>
@@ -258,7 +258,7 @@ async function submitAllocation() {
                 <div class="border-b border-outline-variant px-4 py-3">
                     <h2 class="text-sm font-bold text-primary">Periode bulanan {{ year }}</h2>
                     <p class="text-xs text-on-surface-variant">
-                        Periode tertutup menolak posting jurnal baru.
+                        Bulan yang sudah ditutup tidak bisa ditambahkan transaksi baru agar angka laporan tidak berubah.
                     </p>
                 </div>
                 <div class="overflow-x-auto">
@@ -427,7 +427,7 @@ async function submitAllocation() {
             <!-- TAB 3: allocate -->
             <AppCard v-show="tab === 'allocate'" class="overflow-hidden p-0">
                 <div class="border-b border-outline-variant px-4 py-3">
-                    <h2 class="text-sm font-bold text-primary">Alokasi laba tahun {{ year }}</h2>
+                    <h2 class="text-sm font-bold text-primary">Bagi Hasil Laba tahun {{ year }}</h2>
                     <p class="text-xs text-on-surface-variant">
                         Dr {{ allocation.accounts?.earnings?.code || '3.2.02.01' }} → Cr utang laba / laba ditahan.
                         Tanggal biasanya 1 Jan tahun berikutnya (periode harus terbuka).

@@ -750,7 +750,7 @@ function setAllocatedAmount(memberRowId, value) {
                     </div>
                     <div class="space-y-4">
                         <div>
-                            <p class="text-xs font-bold uppercase tracking-widest opacity-80">Plafon</p>
+                            <p class="text-xs font-bold uppercase tracking-widest opacity-80">Total Pinjaman</p>
                             <p class="text-3xl font-bold">{{ currency(loan.proposed_amount) }}</p>
                         </div>
                         <div class="grid grid-cols-3 gap-3 text-center">
@@ -1016,7 +1016,7 @@ function setAllocatedAmount(memberRowId, value) {
                                     <td v-if="auditStageHistories.length < 4" class="py-3 pl-4 text-on-surface-variant" :colspan="4 - auditStageHistories.length">Belum tersedia</td>
                                 </tr>
                                 <tr>
-                                    <th class="py-3 pr-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Plafon / Nominal</th>
+                                    <th class="py-3 pr-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Jumlah Pinjaman</th>
                                     <td v-for="history in auditStageHistories" :key="`amount-${history.to_status}-${history.changed_at}`" class="py-3 px-4 font-semibold text-primary">{{ currency(history.principal_amount) }}</td>
                                     <td v-if="auditStageHistories.length < 4" class="py-3 pl-4 text-on-surface-variant" :colspan="4 - auditStageHistories.length">—</td>
                                 </tr>
@@ -1310,7 +1310,7 @@ function setAllocatedAmount(memberRowId, value) {
                 <form class="space-y-5" @submit.prevent="submitVerify">
                     <div class="grid gap-4 sm:grid-cols-2">
                         <AppDatePicker v-model="verifyForm.verified_at" label="Tanggal Verifikasi" :max="today" :error="verifyForm.errors.verified_at" required />
-                        <AppCurrencyInput v-model="verifyForm.verification_amount" @update:model-value="verifyTotalTouched = true" label="Nominal Verifikasi Total (opsional)" :min="0" :error="verifyForm.errors.verification_amount" hint="Kosongkan untuk konfirmasi plafon penuh." />
+                        <AppCurrencyInput v-model="verifyForm.verification_amount" @update:model-value="verifyTotalTouched = true" label="Nominal Verifikasi Total (opsional)" :min="0" :error="verifyForm.errors.verification_amount" hint="Kosongkan untuk menyetujui seluruh jumlah pinjaman." />
                     </div>
                     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <AppInput v-model="verifyForm.term_months" label="Rekomendasi Jangka Waktu (bulan)" icon="schedule" type="number" min="1" max="120" :error="verifyForm.errors.term_months" />
@@ -1330,13 +1330,13 @@ function setAllocatedAmount(memberRowId, value) {
             <AppCard v-if="canShowApproveForm">
                 <template #header>
                     <h2 class="text-lg font-bold text-primary">Form Penetapan Alokasi</h2>
-                    <p class="text-sm text-on-surface-variant">Atur alokasi kelompok (plafon) dan nominal per anggota di Daftar Pemanfaat di atas. Standar mengikuti nilai verifikasi ({{ currency(verifiedAmountTotal) }}).</p>
+                    <p class="text-sm text-on-surface-variant">Atur batas alokasi pinjaman kelompok dan nominal per anggota di Daftar Pemanfaat di atas. Standar mengikuti nilai verifikasi ({{ currency(verifiedAmountTotal) }}).</p>
                 </template>
                 <form class="space-y-5" @submit.prevent="submitApprove">
                     <div class="grid gap-4 sm:grid-cols-3">
                         <AppDatePicker v-model="approveForm.approved_at" label="Tanggal Penetapan" :max="today" :error="approveForm.errors.approved_at" required />
                         <AppDatePicker v-model="approveForm.planned_disbursed_at" label="Rencana Tanggal Cair" :min="approveForm.approved_at" :error="approveForm.errors.planned_disbursed_at" required />
-                        <AppCurrencyInput v-model="approveForm.allocated_principal" @update:model-value="approveTotalTouched = true" label="Plafon Alokasi Kelompok" icon="payments" :min="0" :max="loan.proposed_amount ?? loan.principal_amount" required :error="approveForm.errors.allocated_principal" />
+                        <AppCurrencyInput v-model="approveForm.allocated_principal" @update:model-value="approveTotalTouched = true" label="Batas Pinjaman Kelompok" icon="payments" :min="0" :max="loan.proposed_amount ?? loan.principal_amount" required :error="approveForm.errors.allocated_principal" />
                     </div>
                     <div class="grid gap-4 sm:grid-cols-1">
                         <AppInput v-model="approveForm.loan_number" label="Nomor SPK / Perjanjian Kredit" icon="tag" placeholder="Otomatis terisi jika dikosongkan" :error="approveForm.errors.loan_number" />
@@ -1349,7 +1349,7 @@ function setAllocatedAmount(memberRowId, value) {
                         <SmartSelect v-model="approveForm.interest_frequency" label="Sistem Angs. Jasa Disetujui" :options="frequencyOptions" required :error="approveForm.errors.interest_frequency" />
                         <SmartSelect v-model="approveForm.interest_grace_months" label="Grace Period Jasa" :options="graceOptions" required :error="approveForm.errors.interest_grace_months" />
                     </div>
-                    <p v-if="approveTotal > approveForm.allocated_principal" class="text-sm text-error">Total alokasi per anggota ({{ currency(approveTotal) }}) melebihi plafon alokasi kelompok ({{ currency(approveForm.allocated_principal) }}).</p>
+                    <p v-if="approveTotal > approveForm.allocated_principal" class="text-sm text-error">Total alokasi per anggota ({{ currency(approveTotal) }}) melebihi batas pinjaman kelompok ({{ currency(approveForm.allocated_principal) }}).</p>
                     <AppTextarea v-model="approveForm.allocation_notes" label="Catatan Penetapan (opsional)" :error="approveForm.errors.allocation_notes" placeholder="Akan muncul di riwayat status. Kosongkan untuk catatan otomatis." />
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <Link :href="backUrl"><AppButton type="button" variant="secondary">Kembali</AppButton></Link>
@@ -1491,7 +1491,7 @@ function setAllocatedAmount(memberRowId, value) {
                 <form class="space-y-5" @submit.prevent="submitEdit">
                     <div class="grid gap-4 sm:grid-cols-2">
                         <AppDatePicker v-model="editForm.proposed_at" label="Tanggal Pengajuan" :max="today" :error="editForm.errors.proposed_at" required />
-                        <AppCurrencyInput v-model="editForm.principal_amount" label="Plafon Pinjaman" icon="payments" :min="0" required :error="editForm.errors.principal_amount" />
+                        <AppCurrencyInput v-model="editForm.principal_amount" label="Jumlah Pinjaman" icon="payments" :min="0" required :error="editForm.errors.principal_amount" />
                     </div>
                     <div class="grid gap-4 sm:grid-cols-2">
                         <AppCurrencyInput v-model="editForm.service_rate_total" label="Prosentase Jasa Total (%)" icon="percent" :min="0" :max="100" required :error="editForm.errors.service_rate_total" />
@@ -1509,7 +1509,7 @@ function setAllocatedAmount(memberRowId, value) {
                     </div>
                     <div>
                         <h3 class="text-sm font-bold uppercase tracking-wider text-primary">Pengajuan per Pemanfaat</h3>
-                        <p class="mt-1 text-xs text-on-surface-variant">Sesuaikan nominal pengajuan masing-masing pemanfaat. Total pengajuan tidak boleh melebihi plafon pinjaman.</p>
+                        <p class="mt-1 text-xs text-on-surface-variant">Sesuaikan nominal pengajuan masing-masing pemanfaat. Total pengajuan tidak boleh melebihi jumlah pinjaman.</p>
                         <div v-if="loan.beneficiaries.length === 0" class="mt-3 rounded-xl border border-outline-variant bg-surface-container-low p-4 text-sm text-on-surface-variant">Belum ada pemanfaat.</div>
                         <div v-else class="mt-3 overflow-x-auto rounded-xl border border-outline-variant">
                             <table class="w-full text-left text-sm">
