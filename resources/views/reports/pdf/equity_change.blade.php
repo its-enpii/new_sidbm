@@ -42,5 +42,12 @@
             @endif
         </td>
     </tr>
+
+    <tr>
+        <td colspan="3">
+            <div style="margin-top: 16px;"></div>
+            {!! $tanda_tangan ?? '' !!}
+        </td>
+    </tr>
 </table>
 @endsection

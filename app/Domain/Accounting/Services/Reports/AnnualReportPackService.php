@@ -55,8 +55,11 @@ final class AnnualReportPackService
                 'email' => $profile?->email ?? '',
                 'registration_number' => $profile?->registration_number ?? '',
                 'director_name' => $profile?->director_name ?? 'Direktur Utama',
+                'director_title' => $profile?->director_title ?? 'Direktur Utama',
                 'supervisor_name' => $profile?->supervisor_name ?? 'Ketua Badan Pengawas',
                 'advisor_name' => $profile?->advisor_name ?? 'Penasihat',
+                'regency_address' => $profile?->regency_address ?? '',
+                'regency_code' => $profile?->regency_code ?? '',
                 'logo_url' => $profile?->logo_url ?? null,
             ],
             'villages' => $villages->map(fn ($v) => [

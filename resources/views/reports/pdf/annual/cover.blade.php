@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>COVER BUKU LAPORAN TAHUNAN</title>
+    <title>COVER</title>
     <style>
         * { font-family: Arial, Helvetica, sans-serif; }
         html { margin: 75.59px; margin-left: 94.48px; }
@@ -39,7 +39,7 @@
         @if (! empty($identity['logo_url']))
             <img src="{{ $identity['logo_url'] }}" width="290" alt="Logo">
         @else
-            <div style="font-size: 40px; font-weight: bold; color: #2b6cb0;">{{ $identity['short_name'] ?? 'BUMDESMA' }}</div>
+            <div style="font-size: 40px; font-weight: bold; color: rgb(43, 108, 176);">{{ $identity['short_name'] ?? 'BUMDESMA' }}</div>
         @endif
     </main>
 

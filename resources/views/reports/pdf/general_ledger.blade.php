@@ -104,11 +104,14 @@
                         <td align="right"><b>{{ number_format($totals['ytd']['credit'] ?? 0, 2) }}</b></td>
                     </tr>
                     <tr style="background: rgb(233, 233, 233);">
-                        <td height="12"><b>{{ $totals['cumulative']['label'] ?? 'Total Transaksi Kumulatif Tahun' }}</b></td>
+                        <td height="12"><b>{{ $totals['cumulative']['label'] ?? 'Total Transaksi Komulatif sampai dengan Tahun' }}</b></td>
                         <td align="right"><b>{{ number_format($totals['cumulative']['debit'] ?? 0, 2) }}</b></td>
                         <td align="right"><b>{{ number_format($totals['cumulative']['credit'] ?? 0, 2) }}</b></td>
                     </tr>
                 </table>
+
+                <div style="margin-top: 16px;"></div>
+                {!! $tanda_tangan ?? '' !!}
             </td>
         </tr>
     </tbody>

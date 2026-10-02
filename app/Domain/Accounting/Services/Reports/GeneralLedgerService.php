@@ -125,7 +125,11 @@ final readonly class GeneralLedgerService
             $rows[] = [
                 'no' => $no,
                 'date' => (string) $line->transaction_date,
-                'journal_number' => $line->journal_number ?: (string) $line->entry_id,
+                'journal_number' => $this->formatReference(
+                    (string) ($line->journal_number ?: $line->entry_id),
+                    (string) $line->transaction_date,
+                    (int) $line->entry_id,
+                ),
                 'entry_row_id' => (int) $line->entry_row_id,
                 'description' => (string) ($line->line_description ?: $line->entry_description ?: ''),
                 'source_type' => $line->source_type,
@@ -187,14 +191,14 @@ final readonly class GeneralLedgerService
             ],
             'opening' => [
                 'year' => [
-                    'label' => "Kumulatif Awal Tahun {$year}",
+                    'label' => "Komulatif Transaksi Awal Tahun {$year}",
                     'date' => $yearStart->toDateString(),
                     'debit' => $openingPair['debit'],
                     'credit' => $openingPair['credit'],
                     'balance' => $openingSigned,
                 ],
                 'prior' => [
-                    'label' => 'Kumulatif s/d Awal Periode',
+                    'label' => 'Komulatif Transaksi s/d Bulan Lalu',
                     'date' => $periodFrom->toDateString(),
                     'debit' => $priorPair['debit'],
                     'credit' => $priorPair['credit'],
@@ -209,7 +213,7 @@ final readonly class GeneralLedgerService
                 'closing_balance' => $running,
                 'period' => [
                     'label' => $monthLabel !== null
-                        ? "Total Transaksi Bulan {$monthLabel} {$year}"
+                        ? "Total Transaksi {$monthLabel} {$year}"
                         : "Total Transaksi Tahun {$year}",
                     'debit' => round($periodDebit, 2),
                     'credit' => round($periodCredit, 2),
@@ -217,14 +221,14 @@ final readonly class GeneralLedgerService
                 ],
                 'ytd' => [
                     'label' => $monthLabel !== null
-                        ? "Total Transaksi sampai dengan Bulan {$monthLabel} {$year}"
+                        ? "Total Transaksi sampai dengan {$monthLabel} {$year}"
                         : "Total Transaksi sampai dengan Tahun {$year}",
                     'debit' => $ytdDebit,
                     'credit' => $ytdCredit,
                     'balance' => $running,
                 ],
                 'cumulative' => [
-                    'label' => "Total Transaksi Kumulatif sampai dengan Tahun {$year}",
+                    'label' => "Total Transaksi Komulatif sampai dengan Tahun {$year}",
                     'debit' => $cumDebit,
                     'credit' => $cumCredit,
                     'balance' => null,
@@ -232,5 +236,25 @@ final readonly class GeneralLedgerService
             ],
             'account_options' => $accountOptions,
         ];
+    }
+
+    /**
+     * Legacy "Ref ID." = substr(kode,0,3) . '-' . idt. Next memakai journal_number,
+     * diformat agar tampak seperti legacy bila memungkinkan.
+     */
+    private function formatReference(string $journalNumber, string $date, int $entryId): string
+    {
+        if ($journalNumber !== '' && preg_match('/^(\d{2,3})[.\-\/](\d+)/', $journalNumber, $m) === 1) {
+            return substr($m[1], 0, 3).'-'.$m[2];
+        }
+
+        $compact = preg_replace('/[^A-Za-z0-9]/', '', $journalNumber);
+        if (is_string($compact) && strlen($compact) >= 4) {
+            return substr($compact, 0, 3).'-'.substr($compact, 3);
+        }
+
+        $year = substr($date, 2, 2) !== '' ? substr($date, 2, 2) : '';
+
+        return 'JR-'.$year.$entryId;
     }
 }

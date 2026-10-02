@@ -1,124 +1,87 @@
-@extends('reports.pdf.layout', ['title' => 'Rencana vs Realisasi Angsuran', 'identity' => $identity, 'period' => $period])
+@extends('reports.pdf.layout', ['title' => 'Laporan Realisasi Pencairan Kelompok', 'identity' => $identity, 'period' => $period])
 
 @section('content')
-<table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px;">
+<table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 10px;">
     <tr>
-        <td colspan="9" align="center">
-            <div style="font-size: 18px;"><b>RENCANA VS REALISASI ANGSURAN</b></div>
+        <td colspan="3" align="center">
+            <div style="font-size: 18px;"><b>LAPORAN REALISASI PENCAIRAN KELOMPOK</b></div>
             <div style="font-size: 16px;"><b>{{ strtoupper($period['period_label'] ?? '') }}</b></div>
         </td>
     </tr>
-    <tr><td colspan="9" height="5"></td></tr>
-    <tr style="background: rgb(74, 74, 74); font-weight: bold; color: #fff;">
-        <td height="20">ID</td>
-        <td>Kelompok</td>
-        <td>Produk</td>
-        <td align="right">Rencana Pokok</td>
-        <td align="right">Realisasi Pokok</td>
-        <td align="right">Gap Pokok</td>
-        <td align="right">Rencana Jasa</td>
-        <td align="right">Realisasi Jasa</td>
-        <td align="right">Gap Jasa</td>
-    </tr>
-    @forelse($rows as $row)
-        <tr style="background: {{ $loop->iteration % 2 == 1 ? 'rgb(230, 230, 230)' : 'rgba(255, 255, 255)' }};">
-            <td>{{ $row['id'] }}</td>
-            <td>{{ $row['group_name'] }}</td>
-            <td>{{ $row['product_code'] }}</td>
-            <td align="right">
-                @if(($row['plan_principal'] ?? 0) < 0)
-                    ({{ number_format(abs($row['plan_principal']), 2) }})
-                @else
-                    {{ number_format($row['plan_principal'], 2) }}
-                @endif
-            </td>
-            <td align="right">
-                @if(($row['actual_principal'] ?? 0) < 0)
-                    ({{ number_format(abs($row['actual_principal']), 2) }})
-                @else
-                    {{ number_format($row['actual_principal'], 2) }}
-                @endif
-            </td>
-            <td align="right">
-                @if(($row['gap_principal'] ?? 0) < 0)
-                    ({{ number_format(abs($row['gap_principal']), 2) }})
-                @else
-                    {{ number_format($row['gap_principal'], 2) }}
-                @endif
-            </td>
-            <td align="right">
-                @if(($row['plan_interest'] ?? 0) < 0)
-                    ({{ number_format(abs($row['plan_interest']), 2) }})
-                @else
-                    {{ number_format($row['plan_interest'], 2) }}
-                @endif
-            </td>
-            <td align="right">
-                @if(($row['actual_interest'] ?? 0) < 0)
-                    ({{ number_format(abs($row['actual_interest']), 2) }})
-                @else
-                    {{ number_format($row['actual_interest'], 2) }}
-                @endif
-            </td>
-            <td align="right">
-                @if(($row['gap_interest'] ?? 0) < 0)
-                    ({{ number_format(abs($row['gap_interest']), 2) }})
-                @else
-                    {{ number_format($row['gap_interest'], 2) }}
-                @endif
-            </td>
-        </tr>
-    @empty
+    <tr><td colspan="3" height="5"></td></tr>
+</table>
+
+<table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px;">
+    <thead>
         <tr>
-            <td colspan="9" align="center" style="color: #666; font-size: 10px;">Tidak ada data.</td>
+            <th class="t l b" rowspan="2" width="5%">No</th>
+            <th class="t l b" rowspan="2" width="23%">Kelompok - Load ID</th>
+            <th class="t l b" rowspan="2" width="20%">Nomor SPK</th>
+            <th class="t l b" rowspan="2" width="12%">Ketua Kelompok</th>
+            <th class="t l b" rowspan="2" width="5%">Ang</th>
+            <th class="t l b" rowspan="2" width="8%">Tgl Cair</th>
+            <th class="t l b" rowspan="2" width="5%">T/S</th>
+            <th class="t l b r" colspan="2" width="22%">Alokasi</th>
         </tr>
-    @endforelse
-    @if(count($rows) > 0)
-        <tr style="background: rgb(167, 167, 167); font-weight: bold;">
-            <td colspan="3">Jumlah</td>
-            <td align="right">
-                @if(($totals['plan_principal'] ?? 0) < 0)
-                    ({{ number_format(abs($totals['plan_principal']), 2) }})
-                @else
-                    {{ number_format($totals['plan_principal'], 2) }}
-                @endif
-            </td>
-            <td align="right">
-                @if(($totals['actual_principal'] ?? 0) < 0)
-                    ({{ number_format(abs($totals['actual_principal']), 2) }})
-                @else
-                    {{ number_format($totals['actual_principal'], 2) }}
-                @endif
-            </td>
-            <td align="right">
-                @if(($totals['gap_principal'] ?? 0) < 0)
-                    ({{ number_format(abs($totals['gap_principal']), 2) }})
-                @else
-                    {{ number_format($totals['gap_principal'], 2) }}
-                @endif
-            </td>
-            <td align="right">
-                @if(($totals['plan_interest'] ?? 0) < 0)
-                    ({{ number_format(abs($totals['plan_interest']), 2) }})
-                @else
-                    {{ number_format($totals['plan_interest'], 2) }}
-                @endif
-            </td>
-            <td align="right">
-                @if(($totals['actual_interest'] ?? 0) < 0)
-                    ({{ number_format(abs($totals['actual_interest']), 2) }})
-                @else
-                    {{ number_format($totals['actual_interest'], 2) }}
-                @endif
-            </td>
-            <td align="right">
-                @if(($totals['gap_interest'] ?? 0) < 0)
-                    ({{ number_format(abs($totals['gap_interest']), 2) }})
-                @else
-                    {{ number_format($totals['gap_interest'], 2) }}
-                @endif
-            </td>
+        <tr>
+            <th class="t l b" width="11%">Pengajuan</th>
+            <th class="t l b r" width="11%">Pencairan</th>
         </tr>
-    @endif
+    </thead>
+    <tbody>
+        @foreach ($villages as $village)
+            <tr style="font-weight: bold;">
+                <td class="t l b r" colspan="9" align="left">
+                    {{ $village['kode_desa'] }}. {{ $village['nama_desa'] }}
+                </td>
+            </tr>
+            @foreach ($village['loans'] as $loan)
+                <tr>
+                    <td class="t l b" align="center">{{ $loop->iteration }}</td>
+                    <td class="t l b">{{ $loan['group_name'] }} - {{ $loan['loan_id'] }}</td>
+                    <td class="t l b">{{ $loan['loan_number'] }}</td>
+                    <td class="t l b">{{ $loan['ketua'] }}</td>
+                    <td class="t l b" align="center">{{ $loan['pemanfaat_count'] }}</td>
+                    <td class="t l b" align="center">{{ $loan['disbursed_at'] ? date('d/m/y', strtotime($loan['disbursed_at'])) : '' }}</td>
+                    <td class="t l b" align="center">{{ $loan['jangka'] }}/{{ $loan['sistem_pokok'] }}</td>
+                    <td class="t l b" align="right">{{ number_format($loan['proposal']) }}</td>
+                    <td class="t l b r" align="right">{{ number_format($loan['alokasi']) }}</td>
+                </tr>
+            @endforeach
+            <tr style="font-weight: bold;">
+                <td class="t l b" colspan="4" align="center" height="15">
+                    Jumlah Kelompok {{ $village['nama_desa'] }} ({{ $village['subtotal']['kelompok'] }})
+                </td>
+                <td class="t l b" align="center">{{ $village['subtotal']['pemanfaat'] }}</td>
+                <td class="t l b" align="right" colspan="2">&nbsp;</td>
+                <td class="t l b" align="right">{{ number_format($village['subtotal']['pengajuan']) }}</td>
+                <td class="t l b r" align="right">{{ number_format($village['subtotal']['pencairan']) }}</td>
+            </tr>
+        @endforeach
+
+        @if (count($villages) > 0)
+            <tr>
+                <td colspan="9" style="padding: 0px !important;">
+                    <table class="p" border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px; table-layout: fixed;">
+                        <tr style="font-weight: bold;">
+                            <td class="t l b" colspan="4" align="center" height="15" width="60%">
+                                J U M L A H ({{ $pencairan_totals['kelompok'] }})
+                            </td>
+                            <td class="t l b" align="center" width="5%">{{ $pencairan_totals['pemanfaat'] }}</td>
+                            <td class="t l b" align="right" width="13%">&nbsp;</td>
+                            <td class="t l b" align="right" width="11%">{{ number_format($pencairan_totals['pengajuan']) }}</td>
+                            <td class="t l b r" align="right" width="11%">{{ number_format($pencairan_totals['pencairan']) }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="8">
+                                <div style="margin-top: 16px;"></div>
+                                {!! $tanda_tangan ?? '' !!}
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        @endif
+    </tbody>
 </table>
 @endsection

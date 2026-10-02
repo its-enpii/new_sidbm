@@ -132,6 +132,96 @@ final class LoanScheduleVsActualService
             'rows' => $out,
             'totals' => $totals,
             'monthLabels' => $labels,
+            // Data format legacy (rencana_realisasi.blade.php) — dipakai oleh PDF.
+            ...$this->pencairan($tenantId, $fromStr, $untilStr),
+        ];
+    }
+
+    /**
+     * Data realisasi pencairan kelompok format legacy.
+     *
+     * @return array{villages: list<array<string, mixed>>, pencairan_totals: array<string, float|int>}
+     */
+    private function pencairan(int $tenantId, string $fromStr, string $untilStr): array
+    {
+        $loans = DB::connection('tenant')
+            ->table('loans as l')
+            ->leftJoin('loan_borrowers as b', function ($j): void {
+                $j->on('b.tenant_id', '=', 'l.tenant_id')
+                    ->on('b.loan_row_id', '=', 'l.row_id');
+            })
+            ->leftJoin('groups as g', function ($j): void {
+                $j->on('g.tenant_id', '=', 'b.tenant_id')
+                    ->on('g.row_id', '=', 'b.group_row_id');
+            })
+            ->leftJoin('organization_units as v', function ($j): void {
+                $j->on('v.tenant_id', '=', 'g.tenant_id')
+                    ->on('v.row_id', '=', 'g.organization_unit_row_id');
+            })
+            ->where('l.tenant_id', $tenantId)
+            ->whereIn('l.status', self::ACTIVE_LIKE)
+            ->whereNotNull('l.disbursed_at')
+            ->where('l.disbursed_at', '>=', $fromStr)
+            ->where('l.disbursed_at', '<', $untilStr)
+            ->orderBy('v.name')
+            ->orderBy('l.id')
+            ->selectRaw('l.id, l.loan_number, l.disbursed_at, l.principal_amount, l.term_months, l.installment_method')
+            ->selectRaw('g.name as group_name, v.code as village_code, v.name as village_name')
+            ->selectRaw('(SELECT COUNT(*) FROM loan_beneficiaries lb WHERE lb.tenant_id = l.tenant_id AND lb.loan_row_id = l.row_id) as beneficiary_count')
+            ->get();
+
+        $villagesMap = [];
+        $grand = ['kelompok' => 0, 'pemanfaat' => 0, 'pengajuan' => 0.0, 'pencairan' => 0.0];
+
+        foreach ($loans as $loan) {
+            $vKey = (string) ($loan->village_code ?? $loan->village_name ?? 'LAIN-LAIN');
+            if (! isset($villagesMap[$vKey])) {
+                $villagesMap[$vKey] = [
+                    'kode_desa' => (string) ($loan->village_code ?? '-'),
+                    'nama_desa' => (string) ($loan->village_name ?? 'Lain-lain'),
+                    'loans' => [],
+                    'subtotal' => ['kelompok' => 0, 'pemanfaat' => 0, 'pengajuan' => 0.0, 'pencairan' => 0.0],
+                ];
+            }
+
+            $alokasi = (float) $loan->principal_amount;
+            $pemanfaat = max(1, (int) ($loan->beneficiary_count ?? 0));
+
+            $villagesMap[$vKey]['loans'][] = [
+                'loan_id' => (int) $loan->id,
+                'loan_number' => (string) ($loan->loan_number ?? ''),
+                'group_name' => (string) ($loan->group_name ?? 'Individu'),
+                'ketua' => '',
+                'pemanfaat_count' => $pemanfaat,
+                'disbursed_at' => (string) $loan->disbursed_at,
+                'jangka' => (int) ($loan->term_months ?? 0),
+                'sistem_pokok' => (string) ($loan->installment_method ?? ''),
+                // Next belum menyimpan nilai pengajuan (proposal) terpisah dari pencairan.
+                'proposal' => $alokasi,
+                'alokasi' => $alokasi,
+            ];
+
+            $villagesMap[$vKey]['subtotal']['kelompok'] += 1;
+            $villagesMap[$vKey]['subtotal']['pemanfaat'] += $pemanfaat;
+            $villagesMap[$vKey]['subtotal']['pengajuan'] += $alokasi;
+            $villagesMap[$vKey]['subtotal']['pencairan'] += $alokasi;
+
+            $grand['kelompok'] += 1;
+            $grand['pemanfaat'] += $pemanfaat;
+            $grand['pengajuan'] += $alokasi;
+            $grand['pencairan'] += $alokasi;
+        }
+
+        ksort($villagesMap);
+
+        return [
+            'villages' => array_values($villagesMap),
+            'pencairan_totals' => [
+                'kelompok' => $grand['kelompok'],
+                'pemanfaat' => $grand['pemanfaat'],
+                'pengajuan' => round($grand['pengajuan'], 2),
+                'pencairan' => round($grand['pencairan'], 2),
+            ],
         ];
     }
 }

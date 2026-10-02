@@ -127,6 +127,9 @@ final readonly class TrialBalanceService
             $totals[$k] = round($v, 2);
         }
 
+        // Surplus/Devisit row (legacy L/R footer): pendapatan - biaya.
+        $totals['surplus_deficit'] = round($totals['lr_credit'] - $totals['lr_debit'], 2);
+
         $profile = OrganizationProfile::query()->first();
 
         return [

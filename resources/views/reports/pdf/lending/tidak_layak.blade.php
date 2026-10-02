@@ -6,64 +6,97 @@
         .num { text-align: right; white-space: nowrap; }
     </style>
 
-    <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px; margin-bottom: 10px;">
-        <tr>
-            <td align="center">
-                <div style="font-size: 18px; font-weight: bold;">
-                    DAFTAR PINJAMAN TIDAK LAYAK (KELOMPOK)
-                </div>
-                <div style="font-size: 16px; font-weight: bold;">
-                    PERIODE: {{ strtoupper($period_label) }}
-                </div>
-            </td>
-        </tr>
-    </table>
+    @php $productIdx = 0; @endphp
+    @foreach ($products as $product)
+        @php
+            $productLoans = [];
+            foreach ($villages as $village) {
+                $loans = array_values(array_filter(
+                    $village['loans'],
+                    fn ($l) => ($l['product_code'] ?? null) === $product['product_code'],
+                ));
+                if ($loans !== []) {
+                    $productLoans[] = ['village' => $village, 'loans' => $loans];
+                }
+            }
+        @endphp
+        @if ($productLoans === [])
+            @continue
+        @endif
 
-    <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 9px; table-layout: fixed;">
-        <thead>
-            <tr style="background: rgb(230, 230, 230); font-weight: bold; text-align: center;">
-                <th class="t l b" width="4%">No</th>
-                <th class="t l b" width="26%">Nama Kelompok</th>
-                <th class="t l b" width="22%">Desa / Alamat</th>
-                <th class="t l b" width="18%">Tgl Ditetapkan / Tunggu</th>
-                <th class="t l b" width="18%">Alokasi Pinjaman</th>
-                <th class="t l b r" width="12%">Jml Anggota</th>
+        @if ($productIdx > 0)
+            <div class="break"></div>
+        @endif
+        @php $productIdx++; @endphp
+
+        <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px;">
+            <tr>
+                <td colspan="3" align="center">
+                    <div style="font-size: 18px;">
+                        <b>DAFTAR PINJAMAN TIDAK LAYAK {{ strtoupper($product['product_name']) }}</b>
+                    </div>
+                    <div style="font-size: 16px;">
+                        <b>{{ strtoupper($period_label) }}</b>
+                    </div>
+                </td>
             </tr>
-        </thead>
-        <tbody>
-            @forelse ($villages as $village)
-                <tr style="background: rgb(244, 244, 244); font-weight: bold;">
-                    <td class="l b" colspan="6">DESA: {{ strtoupper($village['nama_desa']) }} ({{ $village['kode_desa'] }})</td>
+            <tr><td colspan="3" height="5"></td></tr>
+        </table>
+
+        <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px; table-layout: fixed;">
+            <thead>
+                <tr style="background: rgb(230, 230, 230); font-weight: bold;">
+                    <th class="t l b" width="5%" height="20">No</th>
+                    <th class="t l b" width="25%">Nama Kelompok</th>
+                    <th class="t l b" width="30%">Alamat</th>
+                    <th class="t l b" width="20%">Tanggal Tunggu</th>
+                    <th class="t l b r" width="20%">Alokasi</th>
                 </tr>
-                @foreach ($village['loans'] as $i => $loan)
-                    <tr>
-                        <td class="l b" align="center">{{ $i + 1 }}</td>
-                        <td class="l b">{{ $loan['group_name'] }}</td>
-                        <td class="l b">{{ $loan['group_address'] }}</td>
-                        <td class="l b" align="center">{{ $loan['unfeasible_at'] ?? $loan['waiting_since'] ?? '-' }}</td>
-                        <td class="l b num">{{ number_format($loan['amount'], 0, ',', '.') }}</td>
-                        <td class="l b r" align="center">{{ $loan['members_count'] }}</td>
+            </thead>
+            <tbody>
+                @php $nomor = 1; $totalAlokasi = 0; @endphp
+                @foreach ($productLoans as $block)
+                    <tr style="font-weight: bold;">
+                        <td class="t l b r" colspan="5" align="left" height="15">
+                            {{ $block['village']['kode_desa'] }}. {{ $block['village']['nama_desa'] }}
+                        </td>
                     </tr>
+                    @foreach ($block['loans'] as $loan)
+                        @php
+                            $totalAlokasi += $loan['amount'];
+                            $jenisPinjaman = 'Kelompok';
+                        @endphp
+                        <tr>
+                            <td class="t l b" align="center">{{ $nomor++ }}</td>
+                            <td class="t l b" align="left">
+                                {{ $jenisPinjaman }} {{ $loan['group_name'] }} - {{ $loan['loan_id'] }}
+                            </td>
+                            <td class="t l b" align="left">{{ $loan['village_name'] }}</td>
+                            <td class="t l b" align="center">{{ $loan['unfeasible_at'] ?? '' }}</td>
+                            <td class="t l b r" align="right">{{ number_format($loan['amount'], 2) }}</td>
+                        </tr>
+                    @endforeach
                 @endforeach
-                <tr style="background: rgb(238, 238, 238); font-weight: bold;">
-                    <td class="l b" colspan="4" align="left">SUBTOTAL {{ strtoupper($village['nama_desa']) }}</td>
-                    <td class="l b num">{{ number_format($village['subtotal']['amount'], 0, ',', '.') }}</td>
-                    <td class="l b r" align="center">{{ $village['subtotal']['members_count'] }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td class="l b r" colspan="6" align="center" style="padding: 12px;">
-                        Tidak ada pinjaman tidak layak pada periode ini.
-                    </td>
-                </tr>
-            @endforelse
-        </tbody>
-        <tfoot>
-            <tr style="background: rgb(232, 232, 232); font-weight: bold;">
-                <th class="t l b" colspan="4" align="left">GRAND TOTAL ({{ $totals['groups_count'] }} Kelompok)</th>
-                <th class="t l b num">{{ number_format($totals['amount'], 0, ',', '.') }}</th>
-                <th class="t l b r" align="center">{{ $totals['members_count'] }}</th>
-            </tr>
-        </tfoot>
-    </table>
+
+                @if ($productLoans !== [])
+                    <tr>
+                        <td colspan="5" style="padding: 0px !important;">
+                            <table class="p" border="0" width="100%" cellspacing="0" cellpadding="0" style="table-layout: fixed;">
+                                <tr style="background: rgb(230, 230, 230); font-weight: bold;">
+                                    <td class="t l b" align="center" width="80%" height="15">J U M L A H</td>
+                                    <td class="t l b r" width="20%" align="right">{{ number_format($totalAlokasi, 2) }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2">
+                                        <div style="margin-top: 16px;"></div>
+                                        {!! $tanda_tangan ?? '' !!}
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                @endif
+            </tbody>
+        </table>
+    @endforeach
 @endsection

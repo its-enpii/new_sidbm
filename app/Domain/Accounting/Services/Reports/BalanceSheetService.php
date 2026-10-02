@@ -165,6 +165,132 @@ final readonly class BalanceSheetService
     }
 
     /**
+     * Detail L1 → L2 → L3 → L4 tree untuk CALK "Informasi Tambahan Laporan Keuangan".
+     *
+     * @return array{
+     *   sections: list<array<string, mixed>>,
+     *   total_asset: float,
+     *   total_liability_equity: float,
+     *   difference: float
+     * }
+     */
+    public function buildDetailTree(int $year, ?int $month): array
+    {
+        $period = $this->balances->resolvePeriod($year, $month);
+        $asOf = CarbonImmutable::parse($period['as_of'])->startOfDay();
+        $netIncome = $this->balances->netIncome($asOf);
+
+        $accounts = Account::query()
+            ->whereIn('account_type', ['asset', 'liability', 'equity'])
+            ->whereDate('created_at', '<=', $asOf->toDateString())
+            ->orderBy('code')
+            ->get(['row_id', 'code', 'name', 'account_type', 'normal_balance', 'level', 'parent_row_id', 'is_postable']);
+
+        $balances = [];
+        foreach ($accounts->where('is_postable', true) as $account) {
+            $balances[(int) $account->row_id] = (string) $account->code === AccountBalanceQuery::CURRENT_EARNINGS_CODE
+                ? $netIncome
+                : $this->balances->asOfRaw($account, $asOf)['signed'];
+        }
+
+        $byParent = $accounts->groupBy(fn (Account $a) => (int) ($a->parent_row_id ?? 0));
+
+        $sections = [];
+        $totalAsset = 0.0;
+        $totalCredit = 0.0;
+
+        foreach ($accounts->where('level', 1)->values() as $l1) {
+            $l1Sum = 0.0;
+            $l2Nodes = [];
+
+            foreach ($byParent->get((int) $l1->row_id, collect())->where('level', 2)->values() as $l2) {
+                $l2Sum = 0.0;
+                $l3Nodes = [];
+
+                foreach ($byParent->get((int) $l2->row_id, collect())->where('level', 3)->values() as $l3) {
+                    $l3Sum = 0.0;
+                    $l4Nodes = [];
+
+                    foreach ($byParent->get((int) $l3->row_id, collect())->where('level', 4)->values() as $l4) {
+                        $bal = round($this->sumDescendants($l4, $byParent, $balances), 2);
+                        $l4Nodes[] = ['code' => (string) $l4->code, 'name' => (string) $l4->name, 'balance' => $bal];
+                        $l3Sum += $bal;
+                    }
+
+                    if ($l4Nodes === []) {
+                        $l3Sum = round($this->sumDescendants($l3, $byParent, $balances), 2);
+                    }
+
+                    $l3Nodes[] = [
+                        'code' => (string) $l3->code,
+                        'name' => (string) $l3->name,
+                        'balance' => round($l3Sum, 2),
+                        'children' => $l4Nodes,
+                    ];
+                    $l2Sum += $l3Sum;
+                }
+
+                if ($l3Nodes === []) {
+                    continue;
+                }
+
+                $l2Nodes[] = [
+                    'code' => (string) $l2->code,
+                    'name' => (string) $l2->name,
+                    'children' => $l3Nodes,
+                ];
+                $l1Sum += $l2Sum;
+            }
+
+            if ($l2Nodes === []) {
+                continue;
+            }
+
+            $sections[] = [
+                'code' => (string) $l1->code,
+                'name' => (string) $l1->name,
+                'account_type' => (string) $l1->account_type,
+                'balance' => round($l1Sum, 2),
+                'children' => $l2Nodes,
+            ];
+
+            if ($l1->account_type === 'asset') {
+                $totalAsset += $l1Sum;
+            } else {
+                $totalCredit += $l1Sum;
+            }
+        }
+
+        $hasEarnings = $accounts->contains(fn (Account $a) => (string) $a->code === AccountBalanceQuery::CURRENT_EARNINGS_CODE);
+        if (! $hasEarnings && abs($netIncome) >= 0.005) {
+            $totalCredit += $netIncome;
+            $sections[] = [
+                'code' => '3',
+                'name' => 'Ekuitas (Laba Berjalan)',
+                'account_type' => 'equity',
+                'balance' => round($netIncome, 2),
+                'children' => [[
+                    'code' => '3.2',
+                    'name' => 'Laba Rugi',
+                    'children' => [[
+                        'code' => AccountBalanceQuery::CURRENT_EARNINGS_CODE,
+                        'name' => 'Laba/Rugi Tahun Berjalan',
+                        'balance' => round($netIncome, 2),
+                        'children' => [],
+                    ]],
+                ]],
+            ];
+        }
+
+        return [
+            'sections' => $sections,
+            'total_asset' => round($totalAsset, 2),
+            'total_liability_equity' => round($totalCredit, 2),
+            'difference' => round($totalAsset - $totalCredit, 2),
+        ];
+    }
+
+    /**
      * @param  Collection<int, Collection<int, Account>>  $byParent
      * @param  array<int, float>  $postableBalances
      */

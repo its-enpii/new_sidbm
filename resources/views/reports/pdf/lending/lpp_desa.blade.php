@@ -15,10 +15,10 @@
             <tr>
                 <td align="center">
                     <div style="font-size: 18px; font-weight: bold;">
-                        DAFTAR PERKEMBANGAN PIUTANG (LPP) REKAP DESA — {{ strtoupper($prod['product_name']) }} ({{ $prod['product_code'] }})
+                        DAFTAR PERKEMBANGAN PIUTANG {{ strtoupper($prod['product_name']) }} REKAP DESA
                     </div>
                     <div style="font-size: 16px; font-weight: bold;">
-                        PERIODE: {{ strtoupper($period_label) }}
+                        {{ strtoupper($period_label) }}
                     </div>
                 </td>
             </tr>
@@ -59,19 +59,19 @@
                         <td class="l b">{{ $v['village_name'] }}</td>
                         <td class="l b" align="center">{{ $v['kelompok_count'] }}</td>
                         <td class="l b" align="center">{{ $v['pemanfaat_count'] }}</td>
-                        <td class="l b num">{{ number_format($v['alokasi'], 0, ',', '.') }}</td>
-                        <td class="l b num">{{ number_format($v['target_pokok'], 0, ',', '.') }}</td>
-                        <td class="l b num">{{ number_format($v['target_jasa'], 0, ',', '.') }}</td>
-                        <td class="l b num">{{ number_format($v['real_lalu_pokok'], 0, ',', '.') }}</td>
-                        <td class="l b num">{{ number_format($v['real_lalu_jasa'], 0, ',', '.') }}</td>
-                        <td class="l b num">{{ number_format($v['real_ini_pokok'], 0, ',', '.') }}</td>
-                        <td class="l b num">{{ number_format($v['real_ini_jasa'], 0, ',', '.') }}</td>
-                        <td class="l b num">{{ number_format($v['real_kumulatif_pokok'], 0, ',', '.') }}</td>
-                        <td class="l b num">{{ number_format($v['real_kumulatif_jasa'], 0, ',', '.') }}</td>
-                        <td class="l b num">{{ number_format($v['saldo_pokok'], 0, ',', '.') }}</td>
-                        <td class="l b num">{{ number_format($v['saldo_jasa'], 0, ',', '.') }}</td>
-                        <td class="l b num" style="{{ $v['tunggakan_pokok'] > 0 ? 'color: #c53030;' : '' }}">{{ number_format($v['tunggakan_pokok'], 0, ',', '.') }}</td>
-                        <td class="l b r num" style="{{ $v['tunggakan_jasa'] > 0 ? 'color: #c53030;' : '' }}">{{ number_format($v['tunggakan_jasa'], 0, ',', '.') }}</td>
+                        <td class="l b num">{{ number_format($v['alokasi']) }}</td>
+                        <td class="l b num">{{ number_format($v['target_pokok']) }}</td>
+                        <td class="l b num">{{ number_format($v['target_jasa']) }}</td>
+                        <td class="l b num">{{ number_format($v['real_lalu_pokok']) }}</td>
+                        <td class="l b num">{{ number_format($v['real_lalu_jasa']) }}</td>
+                        <td class="l b num">{{ number_format($v['real_ini_pokok']) }}</td>
+                        <td class="l b num">{{ number_format($v['real_ini_jasa']) }}</td>
+                        <td class="l b num">{{ number_format($v['real_kumulatif_pokok']) }}</td>
+                        <td class="l b num">{{ number_format($v['real_kumulatif_jasa']) }}</td>
+                        <td class="l b num">{{ number_format($v['saldo_pokok']) }}</td>
+                        <td class="l b num">{{ number_format($v['saldo_jasa']) }}</td>
+                        <td class="l b num">{{ number_format($v['tunggakan_pokok']) }}</td>
+                        <td class="l b r num">{{ number_format($v['tunggakan_jasa']) }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -80,19 +80,25 @@
                     <th class="t l b" align="left">TOTAL {{ $prod['product_code'] }}</th>
                     <th class="t l b" align="center">{{ $prod['totals']['kelompok_count'] }}</th>
                     <th class="t l b" align="center">{{ $prod['totals']['pemanfaat_count'] }}</th>
-                    <th class="t l b num">{{ number_format($prod['totals']['alokasi'], 0, ',', '.') }}</th>
-                    <th class="t l b num">{{ number_format($prod['totals']['target_pokok'], 0, ',', '.') }}</th>
-                    <th class="t l b num">{{ number_format($prod['totals']['target_jasa'], 0, ',', '.') }}</th>
-                    <th class="t l b num">{{ number_format($prod['totals']['real_lalu_pokok'], 0, ',', '.') }}</th>
-                    <th class="t l b num">{{ number_format($prod['totals']['real_lalu_jasa'], 0, ',', '.') }}</th>
-                    <th class="t l b num">{{ number_format($prod['totals']['real_ini_pokok'], 0, ',', '.') }}</th>
-                    <th class="t l b num">{{ number_format($prod['totals']['real_ini_jasa'], 0, ',', '.') }}</th>
-                    <th class="t l b num">{{ number_format($prod['totals']['real_kumulatif_pokok'], 0, ',', '.') }}</th>
-                    <th class="t l b num">{{ number_format($prod['totals']['real_kumulatif_jasa'], 0, ',', '.') }}</th>
-                    <th class="t l b num">{{ number_format($prod['totals']['saldo_pokok'], 0, ',', '.') }}</th>
-                    <th class="t l b num">{{ number_format($prod['totals']['saldo_jasa'], 0, ',', '.') }}</th>
-                    <th class="t l b num">{{ number_format($prod['totals']['tunggakan_pokok'], 0, ',', '.') }}</th>
-                    <th class="t l b r num">{{ number_format($prod['totals']['tunggakan_jasa'], 0, ',', '.') }}</th>
+                    <th class="t l b num">{{ number_format($prod['totals']['alokasi']) }}</th>
+                    <th class="t l b num">{{ number_format($prod['totals']['target_pokok']) }}</th>
+                    <th class="t l b num">{{ number_format($prod['totals']['target_jasa']) }}</th>
+                    <th class="t l b num">{{ number_format($prod['totals']['real_lalu_pokok']) }}</th>
+                    <th class="t l b num">{{ number_format($prod['totals']['real_lalu_jasa']) }}</th>
+                    <th class="t l b num">{{ number_format($prod['totals']['real_ini_pokok']) }}</th>
+                    <th class="t l b num">{{ number_format($prod['totals']['real_ini_jasa']) }}</th>
+                    <th class="t l b num">{{ number_format($prod['totals']['real_kumulatif_pokok']) }}</th>
+                    <th class="t l b num">{{ number_format($prod['totals']['real_kumulatif_jasa']) }}</th>
+                    <th class="t l b num">{{ number_format($prod['totals']['saldo_pokok']) }}</th>
+                    <th class="t l b num">{{ number_format($prod['totals']['saldo_jasa']) }}</th>
+                    <th class="t l b num">{{ number_format($prod['totals']['tunggakan_pokok']) }}</th>
+                    <th class="t l b r num">{{ number_format($prod['totals']['tunggakan_jasa']) }}</th>
+                </tr>
+                <tr>
+                    <td colspan="16">
+                        <div style="margin-top: 16px;"></div>
+                        {!! $tanda_tangan ?? '' !!}
+                    </td>
                 </tr>
             </tfoot>
         </table>

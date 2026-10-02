@@ -6,6 +6,7 @@ namespace App\Domain\Accounting\Services\Reports;
 
 use App\Domain\Accounting\Services\AccountBalanceQuery;
 use App\Domain\Membership\Models\OrganizationProfile;
+use App\Models\Tenant\OrganizationUnit;
 use App\Services\TenantSettingService;
 use Carbon\CarbonImmutable;
 
@@ -43,6 +44,26 @@ final class CalkService
             $notes = is_array($notes) ? (string) ($notes['body'] ?? '') : '';
         }
 
+        // Personalia pengurus: Next belum menyimpan struktur jabatan/nama pengurus
+        // secara eksplisit — ambil dari leader/responsible organisasi bila tersedia.
+        $personalia = [];
+        $unitPersonalia = OrganizationUnit::query()->first(['leader_name', 'responsible_name']);
+        if ($unitPersonalia !== null) {
+            if (filled($unitPersonalia->leader_name)) {
+                $personalia[] = ['sebutan' => 'Ketua', 'nama' => (string) $unitPersonalia->leader_name];
+            }
+            if (filled($unitPersonalia->responsible_name)) {
+                $personalia[] = ['sebutan' => 'Penanggung Jawab', 'nama' => (string) $unitPersonalia->responsible_name];
+            }
+        }
+
+        $accountingSummary = $this->balanceSheet->buildDetailTree($year, $month);
+
+        $profitDistribution = [
+            'villages' => [],
+            'retained' => [],
+        ];
+
         return [
             'period' => $period,
             'identity' => [
@@ -53,6 +74,9 @@ final class CalkService
                 'tax_number' => $profile?->tax_number,
             ],
             'notes' => $notes,
+            'personalia' => $personalia,
+            'accounting_summary' => $accountingSummary,
+            'profit_distribution' => $profitDistribution,
             'highlights' => [
                 [
                     'key' => 'net_income',
@@ -81,11 +105,38 @@ final class CalkService
                 ],
             ],
             'policies' => [
-                'Basis pencatatan adalah akrual dengan jurnal berpasangan (debit = kredit).',
-                'Saldo bulanan merupakan projection dari jurnal posted, bukan sumber kebenaran terpisah.',
-                'Piutang pinjaman diukur sebesar sisa pokok (due − paid) pada jadwal angsuran.',
-                'Pendapatan jasa diakui saat diterima/dicatat pada jurnal angsuran.',
-                'Aset kas meliputi akun dengan kode awalan 1.1.01.',
+                [
+                    'title' => 'Pernyataan Kepatuhan',
+                    'items' => [
+                        'Laporan keuangan disusun menggunakan Standar Akuntansi Keuangan Perusahaan Jasa Keuangan',
+                        'Dasar Penyusunan Kepmendesa 136 Tahun 2022',
+                        'Dasar penyusunan laporan keuangan adalah biaya historis dan menggunakan asumsi dasar akrual. Mata uang penyajian yang digunakan untuk menyusun laporan keuangan ini adalah Rupiah.',
+                    ],
+                ],
+                [
+                    'title' => 'Piutang Usaha Bersih',
+                    'items' => [
+                        'Penyajian piutang dalam laporan keuangan dilakukan dengan cara menyajikan nilai bersih yang dapat direalisasikan (net realizable value). Nilai bersih yang dapat direalisasikan adalah selisih antara nilai nominal piutang dengan penyisihan piutang.',
+                    ],
+                ],
+                [
+                    'title' => 'Aset Tetap (berwujud dan tidak berwujud)',
+                    'items' => [
+                        'Aset tetap dinyatakan berdasarkan biaya perolehan dikurangi akumulasi penyusutan. Penyusutan dihitung dengan metode garis lurus sesuai taksiran masa manfaat ekonomis.',
+                    ],
+                ],
+                [
+                    'title' => 'Pengakuan Pendapatan dan Beban',
+                    'items' => [
+                        'Pendapatan diakui pada saat terjadinya transaksi. Beban diakui pada saat terjadinya (basis akrual). Bila suatu pengeluaran telah menikmati manfaat/menerima fasilitas, maka hal tersebut sudah wajib diakui sebagai beban meskipun belum diterbitkan kuitansi pembayaran.',
+                    ],
+                ],
+                [
+                    'title' => 'Pajak Penghasilan',
+                    'items' => [
+                        'Pajak Penghasilan mengikuti ketentuan perpajakan yang berlaku di Indonesia',
+                    ],
+                ],
             ],
         ];
     }

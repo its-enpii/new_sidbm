@@ -310,6 +310,7 @@ final class LppReportService
             'year' => $year,
             'month' => $month,
             'period_label' => ($monthNames[$month] ?? "Bulan {$month}")." {$year}",
+            'period_end' => $endOfMonth,
             'identity' => [
                 'legal_name' => (string) ($profile?->legal_name ?? 'BUMDesma LKD'),
                 'short_name' => $profile?->short_name,
@@ -370,20 +371,29 @@ final class LppReportService
             ->orderBy('g.name')
             ->orderBy('l.id');
 
-        $loans = $loansQuery->get([
-            'l.row_id',
-            'l.id',
-            'l.loan_number',
-            'l.loan_product_row_id',
-            'l.disbursed_at',
-            'l.principal_amount',
-            'l.borrower_count',
-            'g.row_id as group_row_id',
-            'g.name as group_name',
-            'g.code as group_code',
-            'v.row_id as village_row_id',
-            'v.name as village_name',
-        ]);
+        $loans = $loansQuery
+            ->select([
+                'l.row_id',
+                'l.id',
+                'l.loan_number',
+                'l.loan_product_row_id',
+                'l.disbursed_at',
+                'l.principal_amount',
+                'l.term_months',
+                'l.interest_rate',
+                'l.installment_method',
+                'l.status',
+                'l.completed_at',
+                'g.row_id as group_row_id',
+                'g.name as group_name',
+                'g.code as group_code',
+                'g.address as group_address',
+                'v.row_id as village_row_id',
+                'v.code as village_code',
+                'v.name as village_name',
+            ])
+            ->selectRaw('(SELECT COUNT(*) FROM loan_beneficiaries lb WHERE lb.tenant_id = l.tenant_id AND lb.loan_row_id = l.row_id) as borrower_count')
+            ->get();
 
         $loanRowIds = $loans->pluck('row_id')->map(fn ($id) => (int) $id)->all();
 
@@ -470,6 +480,8 @@ final class LppReportService
                 if (! isset($villagesMap[$vKey])) {
                     $villagesMap[$vKey] = [
                         'village_name' => $vKey,
+                        'village_code' => (string) ($loan->village_code ?? ''),
+                        'sebutan_desa' => '',
                         'loans' => [],
                         'subtotal' => [
                             'alokasi' => 0.0,
@@ -551,7 +563,17 @@ final class LppReportService
                     'loan_number' => (string) $loan->loan_number,
                     'group_name' => (string) ($loan->group_name ?? 'Individu'),
                     'group_code' => $loan->group_code,
+                    'group_address' => $loan->group_address ?? null,
+                    'ketua' => '',
+                    'kode_desa' => (string) ($loan->village_code ?? ''),
+                    'nama_desa' => (string) ($loan->village_name ?? ''),
+                    'sebutan_desa' => '',
                     'disbursed_at' => (string) $loan->disbursed_at,
+                    'jangka' => (int) ($loan->term_months ?? 0),
+                    'pros_jasa' => (float) ($loan->interest_rate ?? 0),
+                    'sistem_pokok' => (string) ($loan->installment_method ?? ''),
+                    'status' => (string) ($loan->status ?? 'active'),
+                    'tgl_lunas' => $loan->completed_at ?? null,
                     'alokasi' => $alokasi,
                     'pemanfaat_count' => $borrowerCount,
                     'target_pokok' => $targetPokok,
@@ -631,6 +653,7 @@ final class LppReportService
             'year' => $year,
             'month' => $month,
             'period_label' => ($monthNames[$month] ?? "Bulan {$month}")." {$year}",
+            'period_end' => $endOfMonth,
             'identity' => [
                 'legal_name' => (string) ($profile?->legal_name ?? 'BUMDesma LKD'),
                 'short_name' => $profile?->short_name,

@@ -31,7 +31,7 @@
                 <td align="center">{{ $row['date'] }}</td>
                 <td align="left">{{ $row['journal_number'] }}</td>
                 <td align="center">{{ $row['account_code'] }}</td>
-                <td align="left">{{ $row['account_name'] }}{{ $row['description'] ? ' - '.$row['description'] : '' }}</td>
+                <td align="left">{{ $row['account_name'] }}</td>
                 <td align="right">{{ $row['debit'] ? number_format($row['debit'], 2) : '&nbsp;' }}</td>
                 <td align="right">{{ $row['credit'] ? number_format($row['credit'], 2) : '&nbsp;' }}</td>
                 <td align="center">&nbsp;</td>
@@ -48,6 +48,9 @@
                         <td align="center" width="5%">&nbsp;</td>
                     </tr>
                 </table>
+
+                <div style="margin-top: 16px;"></div>
+                {!! $tanda_tangan ?? '' !!}
             </td>
         </tr>
     </tbody>

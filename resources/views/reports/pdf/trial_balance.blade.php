@@ -46,14 +46,56 @@
             </td>
         </tr>
     @endforeach
-    <tr style="background: rgb(242, 242, 242); font-weight: bold;">
-        <td class="t l b" align="center">Jumlah</td>
-        <td class="t l b" align="right">{{ number_format($totals['ns_debit'], 2) }}</td>
-        <td class="t l b" align="right">{{ number_format($totals['ns_credit'], 2) }}</td>
-        <td class="t l b" align="right">{{ number_format($totals['lr_debit'], 2) }}</td>
-        <td class="t l b" align="right">{{ number_format($totals['lr_credit'], 2) }}</td>
-        <td class="t l b" align="right">{{ number_format($totals['bs_debit'], 2) }}</td>
-        <td class="t l b r" align="right">{{ number_format($totals['bs_credit'], 2) }}</td>
+    <tr>
+        <td colspan="7" style="padding: 0px !important;">
+            <table class="p" border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px;">
+                <tr style="background: rgb(167, 167, 167); font-weight: bold;">
+                    <td class="t l b" width="40%" align="center">Surplus/Devisit</td>
+                    <td class="t l b" width="10%">&nbsp;</td>
+                    <td class="t l b" width="10%">&nbsp;</td>
+                    <td class="t l b" width="10%" align="right">
+                        @if(($totals['surplus_deficit'] ?? 0) < 0)
+                            ({{ number_format(abs($totals['surplus_deficit']), 2) }})
+                        @else
+                            {{ number_format($totals['surplus_deficit'] ?? 0, 2) }}
+                        @endif
+                    </td>
+                    <td class="t l b" width="10%">&nbsp;</td>
+                    <td class="t l b" width="10%">&nbsp;</td>
+                    <td class="t l b r" width="10%" align="right">
+                        @if(($totals['surplus_deficit'] ?? 0) < 0)
+                            ({{ number_format(abs($totals['surplus_deficit']), 2) }})
+                        @else
+                            {{ number_format($totals['surplus_deficit'] ?? 0, 2) }}
+                        @endif
+                    </td>
+                </tr>
+                <tr style="background: rgb(242, 242, 242); font-weight: bold;">
+                    <td class="t l b" align="center">Jumlah</td>
+                    <td class="t l b" align="right">
+                        @if($totals['ns_debit'] < 0)({{ number_format(abs($totals['ns_debit']), 2) }})@else{{ number_format($totals['ns_debit'], 2) }}@endif
+                    </td>
+                    <td class="t l b" align="right">
+                        @if($totals['ns_credit'] < 0)({{ number_format(abs($totals['ns_credit']), 2) }})@else{{ number_format($totals['ns_credit'], 2) }}@endif
+                    </td>
+                    <td class="t l b" align="right">
+                        @if($totals['lr_debit'] < 0)({{ number_format(abs($totals['lr_debit']), 2) }})@else{{ number_format($totals['lr_debit'], 2) }}@endif
+                    </td>
+                    <td class="t l b" align="right">
+                        @if($totals['lr_credit'] < 0)({{ number_format(abs($totals['lr_credit']), 2) }})@else{{ number_format($totals['lr_credit'], 2) }}@endif
+                    </td>
+                    <td class="t l b" align="right">
+                        @if($totals['bs_debit'] < 0)({{ number_format(abs($totals['bs_debit']), 2) }})@else{{ number_format($totals['bs_debit'], 2) }}@endif
+                    </td>
+                    <td class="t l b r" align="right">
+                        @if($totals['bs_credit'] < 0)({{ number_format(abs($totals['bs_credit']), 2) }})@else{{ number_format($totals['bs_credit'], 2) }}@endif
+                    </td>
+                </tr>
+            </table>
+
+            <div style="margin-top: 16px;"></div>
+            {!! $tanda_tangan ?? '' !!}
+        </td>
     </tr>
 </table>
 @endsection
