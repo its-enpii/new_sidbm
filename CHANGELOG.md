@@ -3,7 +3,26 @@
 Semua perubahan penting pada proyek **SIDBM Next** didokumentasikan dalam berkas ini.
 Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
-## [2026-10-01]
+## [2026-10-02]
+
+### Changed
+- **Penyelarasan Format 17 Laporan PDF dengan `sidbm` Legacy:**
+  - `layout.blade.php`: kop surat 2 baris, margin cetak `75.59px/94.48px`, padding tabel legacy, kolom logo selalu dirender, dukungan ekspor Excel.
+  - `trial_balance.blade.php`: baris footer `Surplus/Devisit` (bg `rgb(167,167,167)`).
+  - `balance_sheet.blade.php`: label `Jumlah {{ nama akun }}`, kode akun bertitik, total akhir `rgb(167,167,167)`.
+  - `income_statement.blade.php`: header `Bulan Lalu/Bulan Ini`, baris section L1 `4. Pendapatan` / `5. Beban`, partial baru `partials/income_group.blade.php`.
+  - `cash_flow.blade.php`: kolom angka romawi, label `Kas Bersih yang diperoleh dari aktivitas ...`, `SALDO AKHIR KAS SETARA KAS`.
+  - `calk.blade.php`: struktur 4 poin legacy (Gambaran Umum, Ikhtisar Kebijakan Akutansi, Informasi Tambahan Laporan Keuangan, Pembagian Laba Usaha) + Penutup.
+  - `journal.blade.php`: kolom Keterangan = nama akun saja.
+  - `general_ledger.blade.php`: label `Komulatif Transaksi Awal Tahun` / `Komulatif Transaksi s/d Bulan Lalu`.
+  - `lending/cadangan_penghapusan.blade.php`: 6 kolom legacy agregat per produk + blok `NPL`.
+  - `lending/kolek_desa.blade.php`: label `(Menunggak 1-3/4-5/6+)`, blok `Resiko Pinjaman`, persentase integer.
+  - `lending/lpp_kelompok.blade.php`: 18 kolom legacy, baris status `V-LUNAS` / `Rescedulling` / `Penghapusan`, ringkasan `Aktif s.d.` & `Lunas s.d. Tahun Lalu`.
+  - `lending/tidak_layak.blade.php`: 5 kolom legacy, satu baris `J U M L A H`.
+  - `loan_schedule_vs_actual.blade.php`: 9 kolom `LAPORAN REALISASI PENCAIRAN KELOMPOK` (No, Kelompok, SPK, Ketua, Ang, Tgl Cair, T/S, Pengajuan, Pencairan).
+  - `annual/cover.blade.php`: judul `COVER`, warna fallback `rgb(43, 108, 176)`.
+  - `annual/surat_pengantar.blade.php`: nomor kosong, `1 Bendel`, 5 item lampiran, satu kolom tanda tangan, blok `Tembusan`.
+  - Seluruh laporan: `{!! $tanda_tangan !!}` ditambahkan, format angka mengikuti legacy (akuntansi 2 desimal, lending 0 desimal).
 
 ### Added
 - **Fitur Pengaturan Logo & Identitas Tingkat Kabupaten (`RegencySettingsController`, `Regency/Settings.vue`):**
