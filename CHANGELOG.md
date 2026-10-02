@@ -5,6 +5,17 @@ Format penulisan mengikuti panduan [Keep a Changelog](https://keepachangelog.com
 
 ## [2026-10-02]
 
+### Fixed
+- **Kolom Kosong pada Laporan Diisi Ulang dengan JOIN Nyata ke Skema Shard:**
+  - `LppReportService`: JOIN `group_officers` (`position` = `chair`/`chief`/`ketua`) + `members` + `people` → kolom `Ketua Kelompok` terisi (fallback `-`). Ditemukan bahwa sistem memakai `chair`, bukan `ketua` (lihat `LoanDocumentService.php:191`, `LoanService.php:153`).
+  - `LppReportService`: `ACTIVE` diperluas menjadi `RENDERED_STATUSES` = `active`, `disbursed`, `completed`, `rescheduled`, `written_off` agar baris `V-LUNAS` / `Rescedulling` / `Penghapusan` muncul.
+  - `LoanScheduleVsActualService`: kolom `Pengajuan` = `SUM(COALESCE(loan_beneficiaries.proposed_amount, allocated_amount))`, kolom `Pencairan` = `SUM(allocated_amount)`; output dipisah per produk + page break.
+  - `UnfeasibleLoanReportService`: `jenis_pinjaman` diambil dari `loan_products.borrower_scope` (CASE), tidak lagi hardcode.
+  - `CalkService`: `profitDistribution()` menampilkan baris desa dari `organization_units` (nilai 0 bila tanpa mutasi) + personalia.
+  - `CashFlowService`: `opening_label` = `Saldo Awal per d/m/Y` dari `period.from`.
+  - `borrower_count` di kedua service: subquery `COUNT(*) FROM loan_beneficiaries` (kolom `member_row_id`).
+  - Test baru `tests/Feature/Lending/ReportDomainJoinTest.php` (8 tests, 43 assertions) dengan bukti query mentah ke database.
+
 ### Changed
 - **Penyelarasan Format 17 Laporan PDF dengan `sidbm` Legacy:**
   - `layout.blade.php`: kop surat 2 baris, margin cetak `75.59px/94.48px`, padding tabel legacy, kolom logo selalu dirender, dukungan ekspor Excel.
