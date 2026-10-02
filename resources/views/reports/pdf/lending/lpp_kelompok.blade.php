@@ -104,11 +104,14 @@
                             <td class="t l b" align="right">{{ number_format($loan['saldo_jasa']) }}</td>
                             <td class="t l b" align="center">{{ number_format(floor($prossSaldo * 100)) }}</td>
 
-                            @if ($statusLunas && ($loan['status'] ?? '') === 'paid')
+                            @php
+                                $statusKey = strtolower((string) ($loan['status'] ?? ''));
+                            @endphp
+                            @if (in_array($statusKey, ['completed', 'paid', 'lunas'], true))
                                 <td class="t l b r" colspan="2" align="center">V-LUNAS {{ $tglLunas }}</td>
-                            @elseif ($statusLunas && ($loan['status'] ?? '') === 'rescheduled')
+                            @elseif ($statusKey === 'rescheduled')
                                 <td class="t l b r" colspan="2" align="center">Rescedulling {{ $tglLunas }}</td>
-                            @elseif ($statusLunas && ($loan['status'] ?? '') === 'written_off')
+                            @elseif ($statusKey === 'written_off')
                                 <td class="t l b r" colspan="2" align="center">Penghapusan {{ $tglLunas }}</td>
                             @else
                                 <td class="t l b" align="right">{{ number_format($loan['tunggakan_pokok']) }}</td>

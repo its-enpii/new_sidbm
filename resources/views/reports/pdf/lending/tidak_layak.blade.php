@@ -64,7 +64,8 @@
                     @foreach ($block['loans'] as $loan)
                         @php
                             $totalAlokasi += $loan['amount'];
-                            $jenisPinjaman = 'Kelompok';
+                            $jenisPinjaman = $loan['jenis_pinjaman']
+                                ?? (($loan['borrower_scope'] ?? 'group') === 'member' ? '' : 'Kelompok');
                         @endphp
                         <tr>
                             <td class="t l b" align="center">{{ $nomor++ }}</td>

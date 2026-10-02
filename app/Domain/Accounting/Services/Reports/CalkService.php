@@ -8,7 +8,9 @@ use App\Domain\Accounting\Services\AccountBalanceQuery;
 use App\Domain\Membership\Models\OrganizationProfile;
 use App\Models\Tenant\OrganizationUnit;
 use App\Services\TenantSettingService;
+use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 
 /**
  * CALK — catatan atas laporan keuangan.
@@ -24,6 +26,7 @@ final class CalkService
         private readonly IncomeStatementService $incomeStatement,
         private readonly CashFlowService $cashFlow,
         private readonly TenantSettingService $settings,
+        private readonly TenantContext $context,
     ) {}
 
     /**
@@ -59,10 +62,7 @@ final class CalkService
 
         $accountingSummary = $this->balanceSheet->buildDetailTree($year, $month);
 
-        $profitDistribution = [
-            'villages' => [],
-            'retained' => [],
-        ];
+        $profitDistribution = $this->profitDistribution($year, $month);
 
         return [
             'period' => $period,
@@ -138,6 +138,88 @@ final class CalkService
                     ],
                 ],
             ],
+        ];
+    }
+
+    /**
+     * Pembagian laba per Desa dari saldo akun Modal/ekuitas (prefix 3.1.*) per
+     * organization_unit_row_id pada journal_lines. Bila tidak ada mutasi, baris desa
+     * tetap ditampilkan dengan nilai 0 (bukan tabel kosong).
+     *
+     * @return array{villages: list<array<string, mixed>>, retained: list<array<string, mixed>>}
+     */
+    private function profitDistribution(int $year, ?int $month): array
+    {
+        $tenantId = $this->context->id();
+        $asOf = CarbonImmutable::create($year, $month ?? 12, 1);
+        $asOf = ($month === null ? $asOf->endOfYear() : $asOf->endOfMonth())->toDateString();
+        $yearStart = sprintf('%04d-01-01', $year);
+        $priorEnd = sprintf('%04d-12-31', $year - 1);
+
+        $villages = OrganizationUnit::query()
+            ->where('type', 'village')
+            ->orderBy('code')
+            ->get(['row_id', 'code', 'name']);
+
+        // Saldo ekuitas/modal (3.1.*) per unit organisasi s/d akhir tahun lalu.
+        $priorByUnit = DB::connection('tenant')
+            ->table('journal_lines as jl')
+            ->join('journal_entries as je', function ($j): void {
+                $j->on('je.tenant_id', '=', 'jl.tenant_id')
+                    ->on('je.row_id', '=', 'jl.journal_entry_row_id');
+            })
+            ->join('accounts as a', function ($j): void {
+                $j->on('a.tenant_id', '=', 'jl.tenant_id')
+                    ->on('a.row_id', '=', 'jl.account_row_id');
+            })
+            ->where('jl.tenant_id', $tenantId)
+            ->where('je.status', 'posted')
+            ->where('je.transaction_date', '<=', $priorEnd)
+            ->where('a.code', 'like', '3.1.%')
+            ->whereNotNull('jl.organization_unit_row_id')
+            ->groupBy('jl.organization_unit_row_id')
+            ->selectRaw('jl.organization_unit_row_id as unit_row_id')
+            ->selectRaw('CAST(COALESCE(SUM(jl.credit - jl.debit), 0) AS CHAR) as total')
+            ->pluck('total', 'unit_row_id');
+
+        // Mutasi ekuitas/modal tahun berjalan s/d as-of.
+        $currentByUnit = DB::connection('tenant')
+            ->table('journal_lines as jl')
+            ->join('journal_entries as je', function ($j): void {
+                $j->on('je.tenant_id', '=', 'jl.tenant_id')
+                    ->on('je.row_id', '=', 'jl.journal_entry_row_id');
+            })
+            ->join('accounts as a', function ($j): void {
+                $j->on('a.tenant_id', '=', 'jl.tenant_id')
+                    ->on('a.row_id', '=', 'jl.account_row_id');
+            })
+            ->where('jl.tenant_id', $tenantId)
+            ->where('je.status', 'posted')
+            ->where('je.transaction_date', '>=', $yearStart)
+            ->where('je.transaction_date', '<=', $asOf)
+            ->where('a.code', 'like', '3.1.%')
+            ->whereNotNull('jl.organization_unit_row_id')
+            ->groupBy('jl.organization_unit_row_id')
+            ->selectRaw('jl.organization_unit_row_id as unit_row_id')
+            ->selectRaw('CAST(COALESCE(SUM(jl.credit - jl.debit), 0) AS CHAR) as total')
+            ->pluck('total', 'unit_row_id');
+
+        $villageRows = [];
+        foreach ($villages as $village) {
+            $prior = round((float) ($priorByUnit[(int) $village->row_id] ?? 0), 2);
+            $current = round((float) ($currentByUnit[(int) $village->row_id] ?? 0), 2);
+            $villageRows[] = [
+                'code' => (string) $village->code,
+                'name' => (string) $village->name,
+                'prior' => $prior,
+                'current' => $current,
+                'cumulative' => round($prior + $current, 2),
+            ];
+        }
+
+        return [
+            'villages' => $villageRows,
+            'retained' => [],
         ];
     }
 

@@ -7,6 +7,7 @@ namespace App\Domain\Lending\Services\Reports;
 use App\Domain\Membership\Models\OrganizationProfile;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -158,19 +159,39 @@ final class LoanScheduleVsActualService
                 $j->on('v.tenant_id', '=', 'g.tenant_id')
                     ->on('v.row_id', '=', 'g.organization_unit_row_id');
             })
+            ->leftJoin('loan_products as p', function ($j): void {
+                $j->on('p.tenant_id', '=', 'l.tenant_id')
+                    ->on('p.row_id', '=', 'l.loan_product_row_id');
+            })
+            ->leftJoinSub($this->ketuaOfficerSub($tenantId), 'go', function ($j): void {
+                $j->on('go.group_row_id', '=', 'g.row_id');
+            })
+            ->leftJoin('members as m2', function ($j): void {
+                $j->on('m2.tenant_id', '=', 'g.tenant_id')
+                    ->on('m2.row_id', '=', 'go.member_row_id');
+            })
+            ->leftJoin('people as p2', function ($j): void {
+                $j->on('p2.tenant_id', '=', 'm2.tenant_id')
+                    ->on('p2.row_id', '=', 'm2.person_row_id');
+            })
             ->where('l.tenant_id', $tenantId)
             ->whereIn('l.status', self::ACTIVE_LIKE)
             ->whereNotNull('l.disbursed_at')
             ->where('l.disbursed_at', '>=', $fromStr)
             ->where('l.disbursed_at', '<', $untilStr)
+            ->orderBy('p.code')
             ->orderBy('v.name')
             ->orderBy('l.id')
-            ->selectRaw('l.id, l.loan_number, l.disbursed_at, l.principal_amount, l.term_months, l.installment_method')
-            ->selectRaw('g.name as group_name, v.code as village_code, v.name as village_name')
-            ->selectRaw('(SELECT COUNT(*) FROM loan_beneficiaries lb WHERE lb.tenant_id = l.tenant_id AND lb.loan_row_id = l.row_id) as beneficiary_count')
+            ->selectRaw('l.row_id, l.id, l.loan_number, l.disbursed_at, l.principal_amount, l.term_months, l.installment_method, l.status')
+            ->selectRaw('g.name as group_name, v.code as village_code, v.name as village_name, p.code as product_code, p.name as product_name')
+            ->selectRaw('p2.full_name as ketua_name')
+            ->selectRaw('(SELECT COUNT(*) FROM loan_beneficiaries lb WHERE lb.tenant_id = l.tenant_id AND lb.loan_row_id = l.row_id AND lb.member_row_id IS NOT NULL) as anggota_count')
+            ->selectRaw('CAST(COALESCE((SELECT SUM(COALESCE(lb.proposed_amount, lb.allocated_amount)) FROM loan_beneficiaries lb WHERE lb.tenant_id = l.tenant_id AND lb.loan_row_id = l.row_id), 0) AS CHAR) as total_pengajuan')
+            ->selectRaw('CAST(COALESCE((SELECT SUM(lb.allocated_amount) FROM loan_beneficiaries lb WHERE lb.tenant_id = l.tenant_id AND lb.loan_row_id = l.row_id), 0) AS CHAR) as total_pencairan')
             ->get();
 
         $villagesMap = [];
+        $productsMap = [];
         $grand = ['kelompok' => 0, 'pemanfaat' => 0, 'pengajuan' => 0.0, 'pencairan' => 0.0];
 
         foreach ($loans as $loan) {
@@ -185,37 +206,99 @@ final class LoanScheduleVsActualService
             }
 
             $alokasi = (float) $loan->principal_amount;
-            $pemanfaat = max(1, (int) ($loan->beneficiary_count ?? 0));
+            $pengajuan = (float) $loan->total_pengajuan;
+            $pencairan = (float) $loan->total_pencairan;
+            if ($pengajuan <= 0.0 && $pencairan <= 0.0) {
+                // Fallback bila rincian pemanfaat tidak tersedia: pakai pokok pinjaman.
+                $pengajuan = $alokasi;
+                $pencairan = $alokasi;
+            }
+            if ($pengajuan <= 0.0) {
+                $pengajuan = $pencairan;
+            }
+            if ($pencairan <= 0.0) {
+                $pencairan = $pengajuan;
+            }
 
-            $villagesMap[$vKey]['loans'][] = [
+            $pemanfaat = max(1, (int) ($loan->anggota_count ?? 0));
+
+            $loanRow = [
                 'loan_id' => (int) $loan->id,
                 'loan_number' => (string) ($loan->loan_number ?? ''),
+                'spk_no' => (string) ($loan->loan_number ?? ''),
                 'group_name' => (string) ($loan->group_name ?? 'Individu'),
-                'ketua' => '',
+                'ketua' => filled($loan->ketua_name ?? null) ? (string) $loan->ketua_name : '-',
                 'pemanfaat_count' => $pemanfaat,
+                'pinjaman_anggota_count' => $pemanfaat,
                 'disbursed_at' => (string) $loan->disbursed_at,
                 'jangka' => (int) ($loan->term_months ?? 0),
                 'sistem_pokok' => (string) ($loan->installment_method ?? ''),
-                // Next belum menyimpan nilai pengajuan (proposal) terpisah dari pencairan.
-                'proposal' => $alokasi,
-                'alokasi' => $alokasi,
+                'status' => (string) ($loan->status ?? 'active'),
+                'proposal' => round($pengajuan, 2),
+                'pengajuan' => round($pengajuan, 2),
+                'alokasi' => round($pencairan, 2),
+                'pencairan' => round($pencairan, 2),
             ];
 
+            $villagesMap[$vKey]['loans'][] = $loanRow;
             $villagesMap[$vKey]['subtotal']['kelompok'] += 1;
             $villagesMap[$vKey]['subtotal']['pemanfaat'] += $pemanfaat;
-            $villagesMap[$vKey]['subtotal']['pengajuan'] += $alokasi;
-            $villagesMap[$vKey]['subtotal']['pencairan'] += $alokasi;
+            $villagesMap[$vKey]['subtotal']['pengajuan'] += $pengajuan;
+            $villagesMap[$vKey]['subtotal']['pencairan'] += $pencairan;
+
+            $pKey = (string) ($loan->product_code ?? 'LAIN-LAIN');
+            if (! isset($productsMap[$pKey])) {
+                $productsMap[$pKey] = [
+                    'product_code' => $pKey,
+                    'product_name' => (string) ($loan->product_name ?? 'Lain-lain'),
+                    'villages' => [],
+                    'totals' => ['kelompok' => 0, 'pemanfaat' => 0, 'pengajuan' => 0.0, 'pencairan' => 0.0],
+                ];
+            }
+            if (! isset($productsMap[$pKey]['villages'][$vKey])) {
+                $productsMap[$pKey]['villages'][$vKey] = [
+                    'kode_desa' => $villagesMap[$vKey]['kode_desa'],
+                    'nama_desa' => $villagesMap[$vKey]['nama_desa'],
+                    'loans' => [],
+                    'subtotal' => ['kelompok' => 0, 'pemanfaat' => 0, 'pengajuan' => 0.0, 'pencairan' => 0.0],
+                ];
+            }
+            $productsMap[$pKey]['villages'][$vKey]['loans'][] = $loanRow;
+            $productsMap[$pKey]['villages'][$vKey]['subtotal']['kelompok'] += 1;
+            $productsMap[$pKey]['villages'][$vKey]['subtotal']['pemanfaat'] += $pemanfaat;
+            $productsMap[$pKey]['villages'][$vKey]['subtotal']['pengajuan'] += $pengajuan;
+            $productsMap[$pKey]['villages'][$vKey]['subtotal']['pencairan'] += $pencairan;
+            $productsMap[$pKey]['totals']['kelompok'] += 1;
+            $productsMap[$pKey]['totals']['pemanfaat'] += $pemanfaat;
+            $productsMap[$pKey]['totals']['pengajuan'] += $pengajuan;
+            $productsMap[$pKey]['totals']['pencairan'] += $pencairan;
 
             $grand['kelompok'] += 1;
             $grand['pemanfaat'] += $pemanfaat;
-            $grand['pengajuan'] += $alokasi;
-            $grand['pencairan'] += $alokasi;
+            $grand['pengajuan'] += $pengajuan;
+            $grand['pencairan'] += $pencairan;
         }
 
         ksort($villagesMap);
+        ksort($productsMap);
+
+        $products = [];
+        foreach ($productsMap as $block) {
+            ksort($block['villages']);
+            $block['totals']['pengajuan'] = round($block['totals']['pengajuan'], 2);
+            $block['totals']['pencairan'] = round($block['totals']['pencairan'], 2);
+            $block['villages'] = array_values($block['villages']);
+            $products[] = $block;
+        }
+
+        foreach ($villagesMap as $k => $v) {
+            $villagesMap[$k]['subtotal']['pengajuan'] = round($villagesMap[$k]['subtotal']['pengajuan'], 2);
+            $villagesMap[$k]['subtotal']['pencairan'] = round($villagesMap[$k]['subtotal']['pencairan'], 2);
+        }
 
         return [
             'villages' => array_values($villagesMap),
+            'products' => $products,
             'pencairan_totals' => [
                 'kelompok' => $grand['kelompok'],
                 'pemanfaat' => $grand['pemanfaat'],
@@ -223,5 +306,26 @@ final class LoanScheduleVsActualService
                 'pencairan' => round($grand['pencairan'], 2),
             ],
         ];
+    }
+
+    /**
+     * Sub-query: satu baris petugas ketua per kelompok (ambil yang paling awal
+     * diangkat) supaya JOIN tidak menggandakan baris pinjaman.
+     */
+    private function ketuaOfficerSub(int $tenantId): Builder
+    {
+        $minRowIds = DB::connection('tenant')
+            ->table('group_officers')
+            ->where('tenant_id', $tenantId)
+            ->whereRaw("LOWER(position) IN ('ketua','chief','chair')")
+            ->groupBy('group_row_id')
+            ->selectRaw('MIN(row_id) as row_id');
+
+        return DB::connection('tenant')
+            ->table('group_officers as go_src')
+            ->joinSub($minRowIds, 'picked', function ($j): void {
+                $j->on('picked.row_id', '=', 'go_src.row_id');
+            })
+            ->select('go_src.group_row_id', 'go_src.member_row_id');
     }
 }

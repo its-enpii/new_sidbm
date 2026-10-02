@@ -63,7 +63,7 @@ final class UnfeasibleLoanReportService
                     });
             })
             ->with([
-                'product:row_id,code,name',
+                'product:row_id,code,name,borrower_scope',
                 'borrower.group:row_id,name,code,address,organization_unit_row_id',
                 'borrower.group.village:row_id,name,code',
                 'beneficiaries.member:row_id,person_row_id,member_number',
@@ -129,6 +129,8 @@ final class UnfeasibleLoanReportService
                 'village_name' => (string) ($village?->name ?? 'Lain-lain'),
                 'village_code' => (string) ($village?->code ?? '-'),
                 'product_code' => $loan->product?->code,
+                'borrower_scope' => (string) ($loan->product?->borrower_scope ?? 'group'),
+                'jenis_pinjaman' => $this->resolveJenisPinjaman($loan->product?->borrower_scope),
                 'product_name' => $loan->product?->name,
                 'unfeasible_at' => $unfeasibleAt,
                 'waiting_since' => $loan->proposed_at?->format('Y-m-d'),
@@ -181,6 +183,15 @@ final class UnfeasibleLoanReportService
                 'amount' => round($totalAmount, 2),
             ],
         ];
+    }
+
+    private function resolveJenisPinjaman(?string $borrowerScope): string
+    {
+        return match (strtolower((string) $borrowerScope)) {
+            'member' => '',
+            'group', 'both' => 'Kelompok',
+            default => 'Kelompok',
+        };
     }
 
     private function resolveUnfeasibleDate(Loan $loan): ?string

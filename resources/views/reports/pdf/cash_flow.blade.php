@@ -19,7 +19,7 @@
     <tr><td colspan="3" height="3"></td></tr>
     <tr style="background: rgb(128, 128, 128)">
         <td width="5%" align="center">I</td>
-        <td width="80%">{{ $period['period_label'] ?? 'Saldo Awal' }}</td>
+        <td width="80%">{{ $opening_label ?? ('Saldo Awal per '.date('d/m/Y', strtotime($period['from'] ?? 'now'))) }}</td>
         <td width="15%" align="right">{{ number_format($opening_cash, 2) }}</td>
     </tr>
 

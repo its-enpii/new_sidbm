@@ -7,6 +7,7 @@ namespace App\Domain\Lending\Services\Reports;
 use App\Domain\Membership\Models\OrganizationProfile;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -15,7 +16,15 @@ use Illuminate\Support\Facades\DB;
  */
 final class LppReportService
 {
-    private const ACTIVE = ['active', 'disbursed'];
+    /**
+     * Status pinjaman yang dirender pada LPP. Baris non-aktif (lunas / reschedule /
+     * hapus buku) tetap disertakan agar kolom Tunggakan dapat menampilkan penanda
+     * V-LUNAS / Rescedulling / Penghapusan.
+     */
+    private const RENDERED_STATUSES = ['active', 'disbursed', 'completed', 'rescheduled', 'written_off'];
+
+    /** Alias kompatibilitas. */
+    private const ACTIVE = self::RENDERED_STATUSES;
 
     public function __construct(
         private readonly TenantContext $context,
@@ -66,24 +75,44 @@ final class LppReportService
                 $j->on('v.tenant_id', '=', 'g.tenant_id')
                     ->on('v.row_id', '=', 'g.organization_unit_row_id');
             })
+            ->leftJoinSub(
+                $this->ketuaOfficerSub($tenantId, $endOfMonth),
+                'go',
+                function ($j): void {
+                    $j->on('go.group_row_id', '=', 'g.row_id');
+                }
+            )
+            ->leftJoin('members as m2', function ($j): void {
+                $j->on('m2.tenant_id', '=', 'g.tenant_id')
+                    ->on('m2.row_id', '=', 'go.member_row_id');
+            })
+            ->leftJoin('people as p2', function ($j): void {
+                $j->on('p2.tenant_id', '=', 'm2.tenant_id')
+                    ->on('p2.row_id', '=', 'm2.person_row_id');
+            })
             ->where('l.tenant_id', $tenantId)
             ->whereIn('l.status', self::ACTIVE)
             ->orderBy('v.name')
             ->orderBy('g.name')
             ->orderBy('l.id');
 
-        $loans = $loansQuery->get([
-            'l.row_id',
-            'l.id',
-            'l.loan_number',
-            'l.loan_product_row_id',
-            'l.disbursed_at',
-            'l.principal_amount',
-            'g.row_id as group_row_id',
-            'g.name as group_name',
-            'v.row_id as village_row_id',
-            'v.name as village_name',
-        ]);
+        $loans = $loansQuery
+            ->select([
+                'l.row_id',
+                'l.id',
+                'l.loan_number',
+                'l.loan_product_row_id',
+                'l.disbursed_at',
+                'l.completed_at',
+                'l.status',
+                'l.principal_amount',
+                'g.row_id as group_row_id',
+                'g.name as group_name',
+                'v.row_id as village_row_id',
+                'v.name as village_name',
+            ])
+            ->selectRaw('p2.full_name as ketua_name')
+            ->get();
 
         $loanRowIds = $loans->pluck('row_id')->map(fn ($id) => (int) $id)->all();
 
@@ -365,6 +394,21 @@ final class LppReportService
                 $j->on('v.tenant_id', '=', 'g.tenant_id')
                     ->on('v.row_id', '=', 'g.organization_unit_row_id');
             })
+            ->leftJoinSub(
+                $this->ketuaOfficerSub($tenantId, $endOfMonth),
+                'go',
+                function ($j): void {
+                    $j->on('go.group_row_id', '=', 'g.row_id');
+                }
+            )
+            ->leftJoin('members as m2', function ($j): void {
+                $j->on('m2.tenant_id', '=', 'g.tenant_id')
+                    ->on('m2.row_id', '=', 'go.member_row_id');
+            })
+            ->leftJoin('people as p2', function ($j): void {
+                $j->on('p2.tenant_id', '=', 'm2.tenant_id')
+                    ->on('p2.row_id', '=', 'm2.person_row_id');
+            })
             ->where('l.tenant_id', $tenantId)
             ->whereIn('l.status', self::ACTIVE)
             ->orderBy('v.name')
@@ -393,6 +437,7 @@ final class LppReportService
                 'v.name as village_name',
             ])
             ->selectRaw('(SELECT COUNT(*) FROM loan_beneficiaries lb WHERE lb.tenant_id = l.tenant_id AND lb.loan_row_id = l.row_id) as borrower_count')
+            ->selectRaw('p2.full_name as ketua_name')
             ->get();
 
         $loanRowIds = $loans->pluck('row_id')->map(fn ($id) => (int) $id)->all();
@@ -564,7 +609,7 @@ final class LppReportService
                     'group_name' => (string) ($loan->group_name ?? 'Individu'),
                     'group_code' => $loan->group_code,
                     'group_address' => $loan->group_address ?? null,
-                    'ketua' => '',
+                    'ketua' => filled($loan->ketua_name ?? null) ? (string) $loan->ketua_name : '-',
                     'kode_desa' => (string) ($loan->village_code ?? ''),
                     'nama_desa' => (string) ($loan->village_name ?? ''),
                     'sebutan_desa' => '',
@@ -573,7 +618,7 @@ final class LppReportService
                     'pros_jasa' => (float) ($loan->interest_rate ?? 0),
                     'sistem_pokok' => (string) ($loan->installment_method ?? ''),
                     'status' => (string) ($loan->status ?? 'active'),
-                    'tgl_lunas' => $loan->completed_at ?? null,
+                    'tgl_lunas' => $this->dateOnly($loan->completed_at ?? null),
                     'alokasi' => $alokasi,
                     'pemanfaat_count' => $borrowerCount,
                     'target_pokok' => $targetPokok,
@@ -661,5 +706,40 @@ final class LppReportService
             'products' => $productBlocks,
             'totals' => $grandTotals,
         ];
+    }
+
+    private function dateOnly(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $raw = (string) $value;
+
+        return substr($raw, 0, 10);
+    }
+
+    /**
+     * Sub-query: satu baris petugas ketua per kelompok (ambil yang paling awal
+     * diangkat) supaya JOIN tidak menggandakan baris pinjaman.
+     */
+    private function ketuaOfficerSub(int $tenantId, string $asOf): Builder
+    {
+        $minRowIds = DB::connection('tenant')
+            ->table('group_officers')
+            ->where('tenant_id', $tenantId)
+            ->whereRaw("LOWER(position) IN ('ketua','chief','chair')")
+            ->where(function ($w) use ($asOf): void {
+                $w->whereNull('ended_at')->orWhere('ended_at', '>=', $asOf);
+            })
+            ->groupBy('group_row_id')
+            ->selectRaw('MIN(row_id) as row_id');
+
+        return DB::connection('tenant')
+            ->table('group_officers as go_src')
+            ->joinSub($minRowIds, 'picked', function ($j): void {
+                $j->on('picked.row_id', '=', 'go_src.row_id');
+            })
+            ->select('go_src.group_row_id', 'go_src.member_row_id');
     }
 }

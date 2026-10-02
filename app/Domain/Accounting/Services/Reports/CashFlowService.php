@@ -369,8 +369,13 @@ final class CashFlowService
         $impliedClosing = round($opening + $net, 2);
         $profile = OrganizationProfile::query()->first(['legal_name', 'short_name']);
 
+        $openingLabel = 'Saldo Awal per '.(isset($period['from'])
+            ? CarbonImmutable::parse((string) $period['from'])->format('d/m/Y')
+            : '');
+
         return [
             'period' => $period,
+            'opening_label' => $openingLabel,
             'identity' => [
                 'legal_name' => (string) ($profile?->legal_name ?: config('app.name')),
                 'short_name' => $profile?->short_name,
