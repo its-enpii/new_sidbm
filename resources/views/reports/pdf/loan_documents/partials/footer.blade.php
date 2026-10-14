@@ -7,7 +7,7 @@
     }
 </style>
 <footer class="disbursement-footer">
-    <table width="100%" style="border-top: 1px solid #888; font-size: 8px; color: #555;">
+    <table width="100%" style="border-top: 1.5px solid #888; font-size: 8px; color: #555;">
         <tr>
             <td align="left">
                 <i>No. SPK: {{ $loan['loan_number'] ?? '-' }}</i>

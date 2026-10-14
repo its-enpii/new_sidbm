@@ -70,6 +70,15 @@
     .b {
         border-bottom: 1px solid #000;
     }
+
+    table.gp {
+        border-collapse: collapse;
+    }
+
+    table.gp th,
+    table.gp td {
+        border: 1.5px solid #000;
+    }
 </style>
 
 <title>{{ $documentTitle }}</title>
@@ -232,7 +241,7 @@
     {{ $identity['district_name'] }} sesuai
     dengan registrasi piutang nomor {{ $group['code'] }} dan data piutang sebagai berikut :
 
-    <table border="1" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px; table-layout: fixed;">
+    <table class="gp" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px; table-layout: fixed;">
         <tr style="background: rgb(232, 232, 232)">
             <th width="3%" height="20">No</th>
             <th width="17%">Nik</th>
