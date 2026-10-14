@@ -1,3 +1,12 @@
+@php
+    $footerStatus = strtolower(trim((string) ($loan['status'] ?? '')));
+    $footerStatusAllowed = in_array(
+        $footerStatus,
+        \App\Domain\Lending\Services\Reports\LoanDocumentService::disbursementStageStatuses(),
+        true,
+    );
+@endphp
+@if ($footerStatusAllowed)
 <style>
     footer.disbursement-footer {
         position: fixed;
@@ -18,3 +27,4 @@
         </tr>
     </table>
 </footer>
+@endif

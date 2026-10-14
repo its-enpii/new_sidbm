@@ -38,6 +38,11 @@ final class LoanDocumentController
             abort(422, $e->getMessage());
         }
 
+        $status = (string) $loan->status;
+        if (! $this->service->isStageStatusAllowed($meta['stage'], $status)) {
+            abort(403, "Dokumen tahap {$meta['stage']} tidak tersedia untuk pinjaman berstatus {$status}.");
+        }
+
         return $this->pdf->stream(
             $meta['view'],
             $payload,
