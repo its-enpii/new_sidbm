@@ -104,6 +104,35 @@ final class LoanDocumentService
     }
 
     /**
+     * Daftar status loan yang boleh menampilkan catatan kaki tahap pencairan.
+     *
+     * Single source of truth: dibaca dari {@see self::STAGE_ALLOWED_STATUS}
+     * agar partial footer tidak menduplikasi daftar status literal.
+     *
+     * @return list<string>
+     */
+    public static function disbursementStageStatuses(): array
+    {
+        return self::STAGE_ALLOWED_STATUS['disbursement'];
+    }
+
+    /**
+     * Apakah status loan berada pada tahap pencairan (sudah/pernah berputar)?
+     */
+    public function isDisbursementStageStatus(string $status): bool
+    {
+        return in_array($status, self::STAGE_ALLOWED_STATUS['disbursement'], true);
+    }
+
+    /**
+     * Apakah status loan diizinkan untuk stage dokumen tertentu.
+     */
+    public function isStageStatusAllowed(string $stage, string $status): bool
+    {
+        return in_array($status, self::STAGE_ALLOWED_STATUS[$stage] ?? [], true);
+    }
+
+    /**
      * Resolve dokumen meta, throws DomainException bila key tidak dikenal.
      *
      * @return array{key: string, label: string, stage: string, view: string, signature: ?string, orientation: string, icon: string}

@@ -282,6 +282,71 @@ final class LoanDocumentTest extends TestCase
         }
     }
 
+    public function test_footer_gate_renders_only_for_disbursement_stage_statuses(): void
+    {
+        $service = app(LoanDocumentService::class);
+        $allowed = ['waiting', 'approved', 'active', 'disbursed', 'completed'];
+        $blocked = ['draft', 'verified', 'unfeasible', 'written_off', 'rescheduled'];
+
+        foreach ($allowed as $status) {
+            $loan = $this->seedLoan($status);
+            $payload = $service->payload($loan, 'spk');
+            $meta = $service->resolve('spk');
+            $rendered = view($meta['view'], $payload)->render();
+
+            self::assertStringContainsString('disbursement-footer', $rendered, "Status {$status} harus menampilkan footer");
+            self::assertStringContainsString('No. SPK: '.$loan->loan_number, $rendered);
+        }
+
+        foreach ($blocked as $status) {
+            $loan = $this->seedLoan($status);
+            $payload = $service->payload($loan, 'spk');
+            $meta = $service->resolve('spk');
+            $rendered = view($meta['view'], $payload)->render();
+
+            self::assertStringNotContainsString('disbursement-footer', $rendered, "Status {$status} tidak boleh menampilkan footer");
+            self::assertStringNotContainsString('No. SPK:', $rendered, "Status {$status} tidak boleh menampilkan No. SPK");
+        }
+    }
+
+    public function test_endpoint_rejects_disbursement_document_for_ineligible_status(): void
+    {
+        foreach (['draft', 'verified'] as $status) {
+            $loan = $this->seedLoan($status);
+
+            $response = $this->actingAs($this->user)
+                ->get("/lending/loans/{$loan->row_id}/documents/spk");
+
+            $response->assertStatus(403);
+        }
+    }
+
+    public function test_endpoint_allows_disbursement_document_for_eligible_status(): void
+    {
+        foreach (['waiting', 'active'] as $status) {
+            $loan = $this->seedLoan($status);
+
+            $response = $this->actingAs($this->user)
+                ->get("/lending/loans/{$loan->row_id}/documents/spk");
+
+            $response->assertOk();
+            $response->assertHeader('content-type', 'application/pdf');
+        }
+    }
+
+    public function test_endpoint_allows_proposal_and_verification_for_matching_status(): void
+    {
+        $draftLoan = $this->seedLoan('draft');
+        $this->actingAs($this->user)
+            ->get("/lending/loans/{$draftLoan->row_id}/documents/cover_proposal")
+            ->assertOk();
+
+        $verifiedLoan = $this->seedLoan('verified');
+        $this->actingAs($this->user)
+            ->get("/lending/loans/{$verifiedLoan->row_id}/documents/rekomendasi_kredit")
+            ->assertOk();
+    }
+
     public function test_signature_template_with_tokens_is_replaced_in_pdf_payload(): void
     {
         // Set template dengan token
